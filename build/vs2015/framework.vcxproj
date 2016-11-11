@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug Win64|x64">
+      <Configuration>Debug Win64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release Win64|x64">
+      <Configuration>Release Win64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{33827CC1-9FEC-3038-E82A-E2DD54D40E8D}</ProjectGuid>
+    <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>framework</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Win64|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Win64|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug Win64|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release Win64|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Win64|x64'">
+    <OutDir>..\..\lib\</OutDir>
+    <IntDir>obj\Win64\Debug\framework\</IntDir>
+    <TargetName>framework_debug</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Win64|x64'">
+    <OutDir>..\..\lib\</OutDir>
+    <IntDir>obj\Win64\Release\framework\</IntDir>
+    <TargetName>framework</TargetName>
+    <TargetExt>.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug Win64|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\src\all;..\..\extern;..\..\extern\ApplicationTools\src\all;..\..\src\win;..\..\extern\ApplicationTools\src\win;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Win64|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\src\all;..\..\extern;..\..\extern\ApplicationTools\src\all;..\..\src\win;..\..\extern\ApplicationTools\src\win;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <Optimization>Full</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\extern\lua\lua.hpp" />
+    <ClInclude Include="..\..\src\all\frm\App.h" />
+    <ClInclude Include="..\..\src\all\frm\AppProperty.h" />
+    <ClInclude Include="..\..\src\all\frm\AppSample.h" />
+    <ClInclude Include="..\..\src\all\frm\AppSample3d.h" />
+    <ClInclude Include="..\..\src\all\frm\Buffer.h" />
+    <ClInclude Include="..\..\src\all\frm\Camera.h" />
+    <ClInclude Include="..\..\src\all\frm\Framebuffer.h" />
+    <ClInclude Include="..\..\src\all\frm\GlContext.h" />
+    <ClInclude Include="..\..\src\all\frm\Input.h" />
+    <ClInclude Include="..\..\src\all\frm\LuaScript.h" />
+    <ClInclude Include="..\..\src\all\frm\Mesh.h" />
+    <ClInclude Include="..\..\src\all\frm\MeshData.h" />
+    <ClInclude Include="..\..\src\all\frm\Profiler.h" />
+    <ClInclude Include="..\..\src\all\frm\Resource.h" />
+    <ClInclude Include="..\..\src\all\frm\Scene.h" />
+    <ClInclude Include="..\..\src\all\frm\Shader.h" />
+    <ClInclude Include="..\..\src\all\frm\ShaderPreprocessor.h" />
+    <ClInclude Include="..\..\src\all\frm\Texture.h" />
+    <ClInclude Include="..\..\src\all\frm\TextureAtlas.h" />
+    <ClInclude Include="..\..\src\all\frm\Window.h" />
+    <ClInclude Include="..\..\src\all\frm\XForm.h" />
+    <ClInclude Include="..\..\src\all\frm\def.h" />
+    <ClInclude Include="..\..\src\all\frm\geom.h" />
+    <ClInclude Include="..\..\src\all\frm\gl.h" />
+    <ClInclude Include="..\..\src\all\frm\im3d.h" />
+    <ClInclude Include="..\..\src\all\frm\math.h" />
+    <ClInclude Include="..\..\src\all\frm\ui\Log.h" />
+    <ClInclude Include="..\..\src\all\frm\ui\ProfilerViewer.h" />
+    <ClInclude Include="..\..\src\all\frm\ui\ShaderViewer.h" />
+    <ClInclude Include="..\..\src\all\frm\ui\TextureViewer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\extern\GL\glew.c" />
+    <ClCompile Include="..\..\extern\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\extern\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\extern\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\extern\lua\lapi.c" />
+    <ClCompile Include="..\..\extern\lua\lauxlib.c" />
+    <ClCompile Include="..\..\extern\lua\lbaselib.c" />
+    <ClCompile Include="..\..\extern\lua\lbitlib.c" />
+    <ClCompile Include="..\..\extern\lua\lcode.c" />
+    <ClCompile Include="..\..\extern\lua\lcorolib.c" />
+    <ClCompile Include="..\..\extern\lua\lctype.c" />
+    <ClCompile Include="..\..\extern\lua\ldblib.c" />
+    <ClCompile Include="..\..\extern\lua\ldebug.c" />
+    <ClCompile Include="..\..\extern\lua\ldo.c" />
+    <ClCompile Include="..\..\extern\lua\ldump.c" />
+    <ClCompile Include="..\..\extern\lua\lfunc.c" />
+    <ClCompile Include="..\..\extern\lua\lgc.c" />
+    <ClCompile Include="..\..\extern\lua\linit.c" />
+    <ClCompile Include="..\..\extern\lua\liolib.c" />
+    <ClCompile Include="..\..\extern\lua\llex.c" />
+    <ClCompile Include="..\..\extern\lua\lmathlib.c" />
+    <ClCompile Include="..\..\extern\lua\lmem.c" />
+    <ClCompile Include="..\..\extern\lua\loadlib.c" />
+    <ClCompile Include="..\..\extern\lua\lobject.c" />
+    <ClCompile Include="..\..\extern\lua\lopcodes.c" />
+    <ClCompile Include="..\..\extern\lua\loslib.c" />
+    <ClCompile Include="..\..\extern\lua\lparser.c" />
+    <ClCompile Include="..\..\extern\lua\lstate.c" />
+    <ClCompile Include="..\..\extern\lua\lstring.c" />
+    <ClCompile Include="..\..\extern\lua\lstrlib.c" />
+    <ClCompile Include="..\..\extern\lua\ltable.c" />
+    <ClCompile Include="..\..\extern\lua\ltablib.c" />
+    <ClCompile Include="..\..\extern\lua\ltm.c" />
+    <ClCompile Include="..\..\extern\lua\lundump.c" />
+    <ClCompile Include="..\..\extern\lua\lutf8lib.c" />
+    <ClCompile Include="..\..\extern\lua\lvm.c" />
+    <ClCompile Include="..\..\extern\lua\lzio.c" />
+    <ClCompile Include="..\..\src\all\frm\App.cpp" />
+    <ClCompile Include="..\..\src\all\frm\AppProperty.cpp" />
+    <ClCompile Include="..\..\src\all\frm\AppSample.cpp" />
+    <ClCompile Include="..\..\src\all\frm\AppSample3d.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Buffer.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Camera.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Framebuffer.cpp" />
+    <ClCompile Include="..\..\src\all\frm\GlContext.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Input.cpp" />
+    <ClCompile Include="..\..\src\all\frm\LuaScript.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Mesh.cpp" />
+    <ClCompile Include="..\..\src\all\frm\MeshData.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Profiler.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Resource.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Scene.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Shader.cpp" />
+    <ClCompile Include="..\..\src\all\frm\ShaderPreprocessor.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Texture.cpp" />
+    <ClCompile Include="..\..\src\all\frm\TextureAtlas.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Window.cpp" />
+    <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
+    <ClCompile Include="..\..\src\all\frm\geom.cpp" />
+    <ClCompile Include="..\..\src\all\frm\gl.cpp" />
+    <ClCompile Include="..\..\src\all\frm\im3d.cpp" />
+    <ClCompile Include="..\..\src\all\frm\math.cpp" />
+    <ClCompile Include="..\..\src\all\frm\ui\Log.cpp" />
+    <ClCompile Include="..\..\src\all\frm\ui\ProfilerViewer.cpp" />
+    <ClCompile Include="..\..\src\all\frm\ui\ShaderViewer.cpp" />
+    <ClCompile Include="..\..\src\all\frm\ui\TextureViewer.cpp" />
+    <ClCompile Include="..\..\src\win\frm\GlContextImpl.cpp" />
+    <ClCompile Include="..\..\src\win\frm\InputImpl.cpp" />
+    <ClCompile Include="..\..\src\win\frm\WindowImpl.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\extern\lua\README" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,3 @@
+[submodule "extern/ApplicationTools"]
+	path = extern/ApplicationTools
+	url = https://github.com/john-chapman/ApplicationTools.git

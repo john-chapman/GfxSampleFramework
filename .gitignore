@@ -1,0 +1,19 @@
+# All builds and intermediate build files
+lib/*
+bin/*
+!bin/*.ini
+
+# Auto-generated docs (except configs)
+docs/*
+!docs/*.doxy
+
+# Visual Studio
+build/vs*/*
+build/vs*/*.user
+!build/vs*/*.sln
+!build/vs*/*.vcxproj
+!build/vs*/*.filters
+!build/vs*/*.props
+
+# User configs
+*.ini
