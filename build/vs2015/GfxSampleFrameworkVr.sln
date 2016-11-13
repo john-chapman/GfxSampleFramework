@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2015
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "libs", "libs", "{1600DA5D-02B8-1BAB-6BBF-F4065796B69B}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ApplicationTools", "..\..\extern\ApplicationTools\build\vs2015\ApplicationTools.vcxproj", "{6ADD11F4-56D6-3046-7F08-16CB6B601052}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "framework", "framework.vcxproj", "{33827CC1-9FEC-3038-E82A-E2DD54D40E8D}"
@@ -28,5 +30,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6ADD11F4-56D6-3046-7F08-16CB6B601052} = {1600DA5D-02B8-1BAB-6BBF-F4065796B69B}
+		{33827CC1-9FEC-3038-E82A-E2DD54D40E8D} = {1600DA5D-02B8-1BAB-6BBF-F4065796B69B}
+		{9BEAA512-07A0-1E08-9094-18DFFC48150C} = {1600DA5D-02B8-1BAB-6BBF-F4065796B69B}
 	EndGlobalSection
 EndGlobal
