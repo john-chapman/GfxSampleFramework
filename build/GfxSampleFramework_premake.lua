@@ -35,7 +35,7 @@ workspace "GfxSampleFramework"
 		ALL_SRC_DIR, 
 		ALL_EXTERN_DIR, 
 		APT_DIR .. "src/all/",
-		APT_DIR .. "src/all/extern",
+		APT_DIR .. "src/all/extern/",
 		})
 	filter { "platforms:Win*" }
 		includedirs({ 
@@ -108,6 +108,11 @@ workspace "GfxSampleFramework"
 		links { "ApplicationTools", "framework" }
 		filter { "platforms:Win*" }
 			links { "shlwapi", "hid", "opengl32" }
+
+		filter { "action:vs*" }
+			postbuildcommands({
+				"xcopy \"$(ProjectDir)..\\..\\data\\*.*\"" .. " \"$(ProjectDir)..\\..\\bin\\*.*\"" .. " /y /d /i /e",
+				})
 		
 
 workspace "GfxSampleFrameworkVr"
