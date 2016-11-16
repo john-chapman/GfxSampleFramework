@@ -9,6 +9,7 @@ local TESTS_DIR       = "../tests/"
 local ALL_TESTS_DIR   = TESTS_DIR .. "all/"
 
 filter { "configurations:debug" }
+	defines { "APT_DEBUG", "FRM_DEBUG" }
 	targetsuffix "_debug"
 	symbols "On"
 	optimize "Off"
