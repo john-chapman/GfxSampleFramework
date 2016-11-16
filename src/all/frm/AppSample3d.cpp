@@ -18,6 +18,10 @@
 using namespace frm;
 using namespace apt;
 
+// \hack we override some callbacks for Im3d, hence need to do call them manually
+// \todo allow multiple callbacks on Window
+static Window::Callbacks s_appSampleCallbacks;
+
 // PUBLIC
 
 bool AppSample3d::init(const apt::ArgList& _args)
@@ -26,9 +30,19 @@ bool AppSample3d::init(const apt::ArgList& _args)
 		return false;
 	}
 
+	
+	Im3d::SetCurrentContext(m_im3dCtx);
 	if (!Im3d_Init()) {
 		return false;
 	}
+
+ // set Im3d callbacks
+	s_appSampleCallbacks = getWindow()->getCallbacks();
+	Window::Callbacks cb = s_appSampleCallbacks;
+	cb.m_OnMouseButton = Im3d_OnMouseButton;
+	cb.m_OnKey = Im3d_OnKey;
+	getWindow()->setCallbacks(cb);
+
 
  // create default scene root
 	Node* defaultScene = m_scene.createNode("SceneDefault", Node::kTypeRoot);
@@ -57,8 +71,8 @@ bool AppSample3d::update()
 	if (!AppSample::update()) {
 		return false;
 	}
-	m_im3dCtx.reset();
 	Im3d::SetCurrentContext(m_im3dCtx);
+	Im3d_Update(this);
 
 	m_scene.update((float)m_deltaTime, Node::kStateActive | Node::kStateDynamic);
 	#ifdef frm_Scene_ENABLE_EDIT
@@ -156,17 +170,17 @@ Ray AppSample3d::getCursorRayW() const
 
 Ray AppSample3d::getCursorRayV() const
 {
-/*	int mx, my;
+	int mx, my;
 	getWindow()->getWindowRelativeCursor(&mx, &my);
 	vec2 mpos  = vec2((float)mx, (float)my);
 	vec2 wsize = vec2((float)getWindow()->getWidth(), (float)getWindow()->getHeight());
 	mpos = (mpos / wsize) * 2.0f - 1.0f;
 	mpos.y = -mpos.y; // the cursor position is top-left relative
-	float tanHalfFov = getCurrentCamera().getTanHalfFov();
-	float aspect = getCurrentCamera().getAspect();
+	float tanHalfFov = m_scene.getDrawCamera()->getTanFovUp();
+	float aspect = m_scene.getDrawCamera()->getAspect();
 	return Ray(vec3(0.0f), normalize(vec3(mpos.x * tanHalfFov * aspect, mpos.y * tanHalfFov, -1.0f)));
-	*/
-	return Ray(vec3(0.0f), vec3(0.0f));
+	
+	//return Ray(vec3(0.0f), vec3(0.0f));
 }
 
 // PROTECTED
@@ -210,6 +224,20 @@ static Mesh   *s_msIm3dPoints, *s_msIm3dLines;
 
 bool AppSample3d::Im3d_Init()
 {
+ // io
+	Im3d::Context& im3d = Im3d::GetCurrentContext();
+	im3d.m_keyMap[Im3d::Context::kMouseLeft]   = 0;
+	im3d.m_keyMap[Im3d::Context::kMouseRight]  = 1;
+	im3d.m_keyMap[Im3d::Context::kMouseMiddle] = 2;
+	im3d.m_keyMap[Im3d::Context::kKeyCtrl]     = Keyboard::kLCtrl + 3;
+	im3d.m_keyMap[Im3d::Context::kKeyShift]    = Keyboard::kLShift + 3;
+	im3d.m_keyMap[Im3d::Context::kKeyAlt]      = Keyboard::kLShift + 3;
+	im3d.m_keyMap[Im3d::Context::kKeyT]        = Keyboard::kT + 3;
+	im3d.m_keyMap[Im3d::Context::kKeyR]        = Keyboard::kR + 3;
+	im3d.m_keyMap[Im3d::Context::kKeyS]        = Keyboard::kS + 3;
+
+	
+ // render resources
 	ShaderDesc sd;
 	sd.setPath(GL_VERTEX_SHADER,   "shaders/Im3d_vs.glsl");
 	sd.setPath(GL_FRAGMENT_SHADER, "shaders/Im3d_fs.glsl");
@@ -240,6 +268,18 @@ void AppSample3d::Im3d_Shutdown()
 	if (s_shIm3dLines)  Shader::Destroy(s_shIm3dLines);
 	if (s_msIm3dPoints) Mesh::Destroy(s_msIm3dPoints);
 	if (s_msIm3dLines)  Mesh::Destroy(s_msIm3dLines);
+}
+
+void AppSample3d::Im3d_Update(AppSample3d* _app)
+{
+	Im3d::Context& im3d = Im3d::GetCurrentContext();
+
+	Ray cursorRayW = _app->getCursorRayW();
+	im3d.m_cursorRayOriginW = cursorRayW.m_origin;
+	im3d.m_cursorRayDirectionW = cursorRayW.m_direction;
+	im3d.m_deltaTime = (float)_app->getDeltaTime();
+
+	im3d.reset();
 }
 
 void AppSample3d::Im3d_Render(Im3d::Context& _im3dCtx, const Camera& _cam, bool _depthTest)
@@ -281,4 +321,29 @@ void AppSample3d::Im3d_Render(Im3d::Context& _im3dCtx, const Camera& _cam, bool 
 		glAssert(glDisable(GL_DEPTH_TEST));
 	}
 	glAssert(glDisable(GL_BLEND));
+}
+
+bool AppSample3d::Im3d_OnMouseButton(Window* _window, unsigned _button, bool _isDown)
+{
+	Im3d::Context& im3d = Im3d::GetCurrentContext();
+
+	APT_ASSERT(_button < 3); // button index out of bounds
+	switch ((Mouse::Button)_button) {
+		case Mouse::kLeft:    im3d.m_keyDown[0] = _isDown; break;
+		case Mouse::kRight:   im3d.m_keyDown[1] = _isDown; break;
+		case Mouse::kMiddle:  im3d.m_keyDown[2] = _isDown; break;
+		default: break;
+	};
+	
+	return s_appSampleCallbacks.m_OnMouseButton(_window, _button, _isDown);
+}
+
+bool AppSample3d::Im3d_OnKey(Window* _window, unsigned _key, bool _isDown)
+{
+	Im3d::Context& im3d = Im3d::GetCurrentContext();
+	unsigned key = _key + 3; // reserve mouse buttons
+	APT_ASSERT(key < APT_ARRAY_COUNT(im3d.m_keyDown)); // key index out of bounds
+	im3d.m_keyDown[key] = _isDown;
+
+	return s_appSampleCallbacks.m_OnKey(_window, _key, _isDown);
 }

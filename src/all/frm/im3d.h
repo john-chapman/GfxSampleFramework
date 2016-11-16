@@ -2,15 +2,6 @@
 #ifndef im3d_h
 #define im3d_h
 
-/* \todo
-    - Culling idea: set a culling frustum on the context and cull as primitives
-	  are added (i.e. when End() is called check whether any primitives intersect
-	  the frustum, discard all the verts if not).
-	- Add higher order primitives (Sphere, Box, Circle, Rect, etc.).
-	- Solid primitives? (SphereSolid, BoxSolid, CircleSolid, RectSolid).
-	- Remove all dependencies, move to a separate project.
-*/
-
 #include <frm/def.h>
 #include <frm/math.h>
 
@@ -23,6 +14,7 @@ namespace Im3d {
 typedef frm::mat4   Mat4;
 typedef frm::vec3   Vec3;
 typedef frm::vec4   Vec4;
+typedef frm::quat   Quat;
 typedef frm::uint32 U32;
 
 class Context;
@@ -55,11 +47,25 @@ struct Color
 		m_value |= (U32)(_r * 255.0f);
 	}
 
+	void scaleAlpha(float _alpha)
+	{
+		NOT WORKING, AND MAYBE Bitfield::Insert has a redundant & mask 
+		_alpha *= (float)(m_value >> 24) / 255.0f;
+		U32 mask = ((1 << 8) - 1) << 24;
+		U32 insert = ((U32)(_alpha * 255.0f) << 24);
+		m_value = (m_value & ~(mask << 24)) | ((U32)(_alpha * 255.0f) << 24);
+	}
+
 	operator U32() const
 	{
 		return m_value;
 	}
 };
+extern const Color kColorBlack;
+extern const Color kColorWhite;
+extern const Color kColorRed;
+extern const Color kColorGreen;
+extern const Color kColorBlue;
 
 struct Vertex
 {
@@ -124,6 +130,18 @@ inline void Vertex(float _x, float _y, float _z, float _width)      { Vertex(Vec
 inline void SetColor(float _r, float _g, float _b, float _a = 1.0f) { SetColor(Color(_r, _g, _b, _a)); }
 
 
+typedef U32 Id;
+static const Id kInvalidId = ~0u;
+Id MakeId(const char* _str);
+
+/// Manipulate position/orientation/scale via a gizmo.
+/// \return true if the gizmo is active.
+bool Gizmo(const char* _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_);
+bool PositionGizmo(const char* _id, Vec3* _position_);
+bool OrientationGizmo(const char* _id, Quat* _orientation_);
+bool ScaleGizmo(const char* _id, Vec3* _scale_);
+
+
 ////////////////////////////////////////////////////////////////////////////////
 /// \class Context
 /// Storage + helpers for primitive assembly. 
@@ -131,7 +149,33 @@ inline void SetColor(float _r, float _g, float _b, float _a = 1.0f) { SetColor(C
 class Context
 {
 public:
-	enum Mode
+	enum Key
+	{
+		kMouseLeft,
+		kMouseRight,
+		kMouseMiddle,
+		
+		kKeyCtrl,
+		kKeyShift,
+		kKeyAlt,
+
+		kKeyT,                   //< Select translation gizmo.
+		kKeyR,                   //< Select rotation gizmo.
+		kKeyS,                   //< Select scale gizmo.
+
+		kKeyCount
+	};
+	static const int kKeyMax = 256;
+
+	Vec3  m_cursorRayOriginW;    //< World-space cursor ray origin.
+	Vec3  m_cursorRayDirectionW; //< World-space cursor ray direction.
+	bool  m_keyDown[kKeyMax];    //< Client-provided key data.
+	int   m_keyMap[kKeyCount];   //< Map Keys enum to m_keyDown array.
+	float m_deltaTime;
+
+
+
+	enum PrimitiveMode
 	{
 		kNone,
 		kPoints,
@@ -151,25 +195,32 @@ public:
 	const Mat4& getMatrix() const        { return m_matStack.top(); }
 
 	/// Color stack.
-	void  pushColor(Color _color)        { m_colorStack.push(m_colorStack.top()); }
+	void  pushColor()                    { m_colorStack.push(m_colorStack.top()); }
 	void  popColor()                     { m_colorStack.pop(); }
 	void  setColor(Color _color)         { m_colorStack.top() = _color; }
 	Color getColor() const               { return m_colorStack.top(); }
 
+	/// Alpha stack (multiplies vertex alpha).
+	void  pushAlpha()                    { m_alphaStack.push(m_alphaStack.top()); }
+	void  popAlpha()                     { m_alphaStack.pop(); }
+	void  setAlpha(float _alpha)         { m_alphaStack.top() = _alpha; }
+	float getAlpha() const               { return m_alphaStack.top(); }
+
 	/// Size stack.
-	void  pushSize(float _size)          { m_sizeStack.push(m_sizeStack.top()); }
+	void  pushSize()                     { m_sizeStack.push(m_sizeStack.top()); }
 	void  popSize()                      { m_sizeStack.pop(); }
 	void  setSize(float _size)           { m_sizeStack.top() = _size; }
 	float getSize() const                { return m_sizeStack.top(); }
 
 	/// Primitive begin/end.
-	void begin(Mode _mode);
+	void begin(PrimitiveMode _mode);
 	void end();
 
 	/// Push a vertex (must occur between begin()/end() calls).
 	void vertex(const Vec3& _position, float _size, Color _color);
 
-	/// Reset draw list (clear per frame).
+	/// Call per-frame to reset draw list, etc.
+	/// \note Set the i/o state before calling this.
 	void reset();
 
 	const void* getPointData() const     { return m_points.data(); }
@@ -177,6 +228,8 @@ public:
 
 	const void* getLineData() const      { return m_lines.data(); }
 	unsigned getLineCount() const        { return (unsigned)m_lines.size(); }
+
+	bool gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_);
 
 private:
 	static const int kMaxMatStackDepth   = 8;
@@ -198,13 +251,32 @@ private:
 	};
 	Stack<Mat4,  kMaxMatStackDepth>   m_matStack;
 	Stack<Color, kMaxStateStackDepth> m_colorStack;
+	Stack<float, kMaxStateStackDepth> m_alphaStack;
 	Stack<float, kMaxStateStackDepth> m_sizeStack;
 
-	Mode m_mode;
+	PrimitiveMode m_primMode;
 	unsigned m_firstVertThisPrim;        //< Index of the first vertex pushed during this primitive
 	unsigned m_vertCountThisPrim;        //< # calls to vertex() since the last call to begin()
 	std::vector<struct Vertex> m_points;
 	std::vector<struct Vertex> m_lines;
+
+	bool m_keyDownCurr[kKeyMax];
+	bool m_keyDownPrev[kKeyMax];
+	Id m_activeId;
+
+	bool isKeyDown(Key _key)     { return m_keyDownCurr[m_keyMap[_key]]; }
+	bool wasKeyPressed(Key _key) { int k = m_keyMap[_key]; return m_keyDownPrev[k] && !m_keyDownCurr[k]; }
+	
+/* Approach for IM gizmos:
+	- Set IO information at the start of each frame (cursor ray, mouse/keyboard states).
+	- Each call to the Gizmo() function:
+		- Generate a gizmo ID (must be the same for each call to the function, hence require string)
+		- If it's active, process the state and update the outputs. You only ever need to store internal
+		  state for the currently active gizmo!
+		- If not active, make active if necessary (i.e. if no currently active gizmo and intersects the
+		  gizmo and clicking or whatever).
+		- Push draw primitives!
+*/
 
 };
 

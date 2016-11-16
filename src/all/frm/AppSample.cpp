@@ -169,7 +169,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	MeshData::Destroy(quadData);
 	
  // set ImGui callbacks
-	Window::Callbacks cb;
+	Window::Callbacks cb = m_window->getCallbacks();
 	cb.m_OnMouseButton = ImGui_OnMouseButton;
 	cb.m_OnMouseWheel  = ImGui_OnMouseWheel;
 	cb.m_OnKey         = ImGui_OnKey;

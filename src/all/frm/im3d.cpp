@@ -2,10 +2,23 @@
 
 #include <frm/def.h>
 #include <frm/math.h>
+#include <frm/geom.h>
+
+#include <cstring>
+
+	// \todo tmp debug stuff, remove
+	#include <apt/log.h>
+	#include <frm/Input.h>
 
 #define Im3dAssert(_x) APT_ASSERT(_x)
 
 using namespace Im3d;
+
+const Im3d::Color Im3d::kColorBlack   = Im3d::Color(0.0f, 0.0f, 0.0f);
+const Im3d::Color Im3d::kColorWhite   = Im3d::Color(1.0f, 1.0f, 1.0f);
+const Im3d::Color Im3d::kColorRed     = Im3d::Color(1.0f, 0.0f, 0.0f);
+const Im3d::Color Im3d::kColorGreen   = Im3d::Color(0.0f, 1.0f, 0.0f);
+const Im3d::Color Im3d::kColorBlue    = Im3d::Color(0.0f, 0.0f, 1.0f);
 
 static Context  kDefaultContext;
 static Context* g_currentContext = &kDefaultContext; 
@@ -187,6 +200,25 @@ void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int 
 	PopMatrix();
 }
 
+Im3d::Id Im3d::MakeId(const char* _str)
+{
+	static const U32 kFnv1aBase32  = 0x811C9DC5u;
+	static const U32 kFnv1aPrime32 = 0x01000193u;
+
+	APT_ASSERT(_str);
+	U32 ret = kFnv1aBase32;
+	while (*_str) {
+		ret ^= (U32)*_str++;
+		ret *= kFnv1aPrime32;
+	}
+	return (Id)ret;
+}
+
+bool Im3d::Gizmo(const char* _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_)
+{
+	Id id = MakeId(_id);
+	return GetCurrentContext().gizmo(id, _position_, _orientation_, _scale_);
+}
 
 /*******************************************************************************
 
@@ -199,10 +231,12 @@ void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int 
 Context::Context()
 	: m_matStack(Mat4(1.0f))
 	, m_colorStack(Color(1.0f, 1.0f, 1.0f))
+	, m_alphaStack(1.0f)
 	, m_sizeStack(1.0f)
-	, m_mode(kNone)
+	, m_primMode(kNone)
 	, m_firstVertThisPrim(0)
 	, m_vertCountThisPrim(0)
+	, m_activeId(kInvalidId)
 {
 }
 
@@ -210,12 +244,12 @@ Context::~Context()
 {
 }
 
-void Context::begin(Mode _mode)
+void Context::begin(PrimitiveMode _mode)
 {
-	Im3dAssert(m_mode == kNone);
-	m_mode = _mode;
+	Im3dAssert(m_primMode == kNone);
+	m_primMode = _mode;
 	m_vertCountThisPrim = 0;
-	switch (m_mode) {
+	switch (m_primMode) {
 	case kPoints:
 		m_firstVertThisPrim = (unsigned)m_points.size();
 		break;
@@ -231,8 +265,8 @@ void Context::begin(Mode _mode)
 
 void Context::end()
 {
-	Im3dAssert(m_mode != kNone);
-	switch (m_mode) {
+	Im3dAssert(m_primMode != kNone);
+	switch (m_primMode) {
 	case kPoints:
 		break;
 
@@ -252,14 +286,15 @@ void Context::end()
 		break;
 	};
 
-	m_mode = kNone;
+	m_primMode = kNone;
 }
 
 void Context::vertex(const Vec3& _position, float _width, Color _color)
 {
-	Im3dAssert(m_mode != kNone);
+	Im3dAssert(m_primMode != kNone);
 
-	switch (m_mode) {
+	_color.scaleAlpha(getAlpha());
+	switch (m_primMode) {
 	case kPoints:
 		m_points.push_back(struct Vertex(_position, _width, _color));
 		break;
@@ -282,9 +317,67 @@ void Context::vertex(const Vec3& _position, float _width, Color _color)
 
 void Context::reset()
 {
-	Im3dAssert(m_mode == kNone);
+	Im3dAssert(m_primMode == kNone);
 	m_points.clear();
 	m_lines.clear();
+
+ // copy keydown array internally so that we can make a delta to detect key presses
+	memcpy(m_keyDownPrev, m_keyDownCurr, sizeof(m_keyDown)); // \todo avoid this copy, use an index
+	memcpy(m_keyDownCurr, m_keyDown,     sizeof(m_keyDown));
+}
+
+bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_)
+{
+frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
+frm::Plane ground(Vec3(0.0f, 1.0f, 0.0f), 0.0f);
+float tnear, tfar;
+//if (cursorRay.intersect(ground, tnear)) {
+//	begin(kPoints);
+//		vertex(m_cursorRayOriginW + m_cursorRayDirectionW * tnear, 4.0f, Color(1.0f, 0.0f, 1.0f, 1.0f));
+//	end();
+//}
+
+	//if (_id == m_activeId) {
+	//} else {
+		static const float kCapsuleRadius = 0.05f;
+		frm::Capsule xcap(*_position_, *_position_ + Vec3(1.0f, 0.0f, 0.0f), kCapsuleRadius);
+		frm::Capsule ycap(*_position_, *_position_ + Vec3(0.0f, 1.0f, 0.0f), kCapsuleRadius);
+		frm::Capsule zcap(*_position_, *_position_ + Vec3(0.0f, 0.0f, 1.0f), kCapsuleRadius);
+		
+		if (cursorRay.intersect(xcap, tnear, tfar) || cursorRay.intersect(ycap, tnear, tfar) || cursorRay.intersect(zcap, tnear, tfar)) {
+			m_activeId = _id;
+		} else {
+			m_activeId = kInvalidId;
+		}
+	//}
+
+ // draw the gizmo
+	pushAlpha();
+	if (_id != m_activeId) {
+		setAlpha(0.25f);
+	}
+	pushMatrix();
+		Mat4 wm = glm::scale(glm::translate(glm::mat4(1.0f), *_position_) * glm::mat4_cast(*_orientation_), *_scale_);
+		mulMatrix(wm);
+		
+		begin(kLines);
+			vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorRed);
+			vertex(Vec3(1.0f, 0.0f, 0.0f), 4.0f, kColorRed);
+
+			vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorGreen);
+			vertex(Vec3(0.0f, 1.0f, 0.0f), 4.0f, kColorGreen);
+
+			vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorBlue);
+			vertex(Vec3(0.0f, 0.0f, 1.0f), 4.0f, kColorBlue);
+		end();
+
+		begin(kPoints);
+			vertex(Vec3(0.0f), 10.0f, kColorWhite);
+		end();
+	popMatrix();
+	popAlpha();
+
+	return true;
 }
 
 // PRIVATE
