@@ -278,6 +278,8 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	im3d.m_cursorRayOriginW = cursorRayW.m_origin;
 	im3d.m_cursorRayDirectionW = cursorRayW.m_direction;
 	im3d.m_deltaTime = (float)_app->getDeltaTime();
+	im3d.m_viewOriginW = _app->m_scene.getDrawCamera()->getPosition();
+	im3d.m_tanHalfFov = _app->m_scene.getDrawCamera()->getTanFovUp();
 
 	im3d.reset();
 }
@@ -299,6 +301,14 @@ void AppSample3d::Im3d_Render(Im3d::Context& _im3dCtx, const Camera& _cam, bool 
     
 	vec2 viewport = vec2(ctx->getViewportWidth(), ctx->getViewportHeight());
 
+ // lines
+	s_msIm3dLines->setVertexData(im3dCtx.getLineData(), im3dCtx.getLineCount(), GL_STREAM_DRAW);
+	ctx->setShader(s_shIm3dLines);
+	ctx->setUniform("uViewProjMatrix", _cam.getViewProjMatrix());
+	ctx->setUniform("uViewport", viewport);
+	ctx->setMesh(s_msIm3dLines);
+	ctx->draw();
+
  // points
 	glAssert(glEnable(GL_PROGRAM_POINT_SIZE));
 	s_msIm3dPoints->setVertexData(im3dCtx.getPointData(), im3dCtx.getPointCount(), GL_STREAM_DRAW);
@@ -308,14 +318,6 @@ void AppSample3d::Im3d_Render(Im3d::Context& _im3dCtx, const Camera& _cam, bool 
 	ctx->setMesh(s_msIm3dPoints);
 	ctx->draw();
 	glAssert(glDisable(GL_PROGRAM_POINT_SIZE));
-
- // lines
-	s_msIm3dLines->setVertexData(im3dCtx.getLineData(), im3dCtx.getLineCount(), GL_STREAM_DRAW);
-	ctx->setShader(s_shIm3dLines);
-	ctx->setUniform("uViewProjMatrix", _cam.getViewProjMatrix());
-	ctx->setUniform("uViewport", viewport);
-	ctx->setMesh(s_msIm3dLines);
-	ctx->draw();
 
 	if (_depthTest) {
 		glAssert(glDisable(GL_DEPTH_TEST));

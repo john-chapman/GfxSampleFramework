@@ -40,6 +40,8 @@ void  Im3d::BeginLineLoop()              { GetCurrentContext().begin(Context::kL
 void  Im3d::End()                        { GetCurrentContext().end(); }
 void  Im3d::SetColor(Color _color)       { GetCurrentContext().setColor(_color); }
 Color Im3d::GetColor()                   { return GetCurrentContext().getColor(); }
+void  SetAlpha(float _alpha)             { GetCurrentContext().setAlpha(_alpha); }
+float GetAlpha()                         { return GetCurrentContext().getAlpha(); }
 void  Im3d::SetSize(float _width)        { GetCurrentContext().setSize(_width); }
 float Im3d::GetSize()                    { return GetCurrentContext().getSize(); }
 void  Im3d::PushMatrix()                 { GetCurrentContext().pushMatrix(); }
@@ -329,52 +331,51 @@ void Context::reset()
 bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_)
 {
 frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
-frm::Plane ground(Vec3(0.0f, 1.0f, 0.0f), 0.0f);
 float tnear, tfar;
-//if (cursorRay.intersect(ground, tnear)) {
-//	begin(kPoints);
-//		vertex(m_cursorRayOriginW + m_cursorRayDirectionW * tnear, 4.0f, Color(1.0f, 0.0f, 1.0f, 1.0f));
-//	end();
-//}
+	 
+ // \todo something more scientific - maintain an exact screen space size
+	float d = glm::length(*_position_ - m_viewOriginW);
+	float distanceScale = 1.0f / (2.0f * glm::atan(0.5f / d)) * 0.1f;
 
-	//if (_id == m_activeId) {
-	//} else {
+	if (_id == m_activeId) {
+	} else if (isKeyDown(kMouseLeft)) {
 		static const float kCapsuleRadius = 0.05f;
-		frm::Capsule xcap(*_position_, *_position_ + Vec3(1.0f, 0.0f, 0.0f), kCapsuleRadius);
-		frm::Capsule ycap(*_position_, *_position_ + Vec3(0.0f, 1.0f, 0.0f), kCapsuleRadius);
-		frm::Capsule zcap(*_position_, *_position_ + Vec3(0.0f, 0.0f, 1.0f), kCapsuleRadius);
+		frm::Capsule xcap(*_position_, *_position_ + Vec3(1.0f, 0.0f, 0.0f) * distanceScale, kCapsuleRadius);
+		frm::Capsule ycap(*_position_, *_position_ + Vec3(0.0f, 1.0f, 0.0f) * distanceScale, kCapsuleRadius);
+		frm::Capsule zcap(*_position_, *_position_ + Vec3(0.0f, 0.0f, 1.0f) * distanceScale, kCapsuleRadius);
 		
 		if (cursorRay.intersect(xcap, tnear, tfar) || cursorRay.intersect(ycap, tnear, tfar) || cursorRay.intersect(zcap, tnear, tfar)) {
 			m_activeId = _id;
 		} else {
 			m_activeId = kInvalidId;
 		}
-	//}
+	}
 
  // draw the gizmo
 	pushAlpha();
 	if (_id != m_activeId) {
-		setAlpha(0.25f);
+		setAlpha(0.5f);
 	}
-	pushMatrix();
-		Mat4 wm = glm::scale(glm::translate(glm::mat4(1.0f), *_position_) * glm::mat4_cast(*_orientation_), *_scale_);
-		mulMatrix(wm);
+	PushMatrix();
+	// \todo probably don't want to scale the gizmo
+		Mat4 wm = glm::scale(glm::translate(glm::mat4(1.0f), *_position_) * glm::mat4_cast(*_orientation_), /**_scale_ **/ Vec3(distanceScale));
+		MulMatrix(wm);
 		
-		begin(kLines);
-			vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorRed);
-			vertex(Vec3(1.0f, 0.0f, 0.0f), 4.0f, kColorRed);
+		BeginLines();
+			Vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorRed);
+			Vertex(Vec3(1.0f, 0.0f, 0.0f), 4.0f, kColorRed);
 
-			vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorGreen);
-			vertex(Vec3(0.0f, 1.0f, 0.0f), 4.0f, kColorGreen);
+			Vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorGreen);
+			Vertex(Vec3(0.0f, 1.0f, 0.0f), 4.0f, kColorGreen);
 
-			vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorBlue);
-			vertex(Vec3(0.0f, 0.0f, 1.0f), 4.0f, kColorBlue);
-		end();
+			Vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorBlue);
+			Vertex(Vec3(0.0f, 0.0f, 1.0f), 4.0f, kColorBlue);
+		End();
 
-		begin(kPoints);
-			vertex(Vec3(0.0f), 10.0f, kColorWhite);
-		end();
-	popMatrix();
+		BeginPoints();
+			Vertex(Vec3(0.0f), 10.0f, kColorWhite);
+		End();
+	PopMatrix();
 	popAlpha();
 
 	return true;

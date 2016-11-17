@@ -49,8 +49,8 @@ public:
 			return false;
 		}
 
-		static vec3 position, scale;
-		static quat orientation;
+		static vec3 position(-0.5f, 0.0f, 0.5f), scale(1.0f);
+		static quat orientation(1.0f, 0.0f, 0.0f, 0.0f);
 		Im3d::Gizmo("gizmoTest", &position, &orientation, &scale);
 
 		return true;

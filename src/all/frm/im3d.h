@@ -49,11 +49,9 @@ struct Color
 
 	void scaleAlpha(float _alpha)
 	{
-		NOT WORKING, AND MAYBE Bitfield::Insert has a redundant & mask 
 		_alpha *= (float)(m_value >> 24) / 255.0f;
 		U32 mask = ((1 << 8) - 1) << 24;
-		U32 insert = ((U32)(_alpha * 255.0f) << 24);
-		m_value = (m_value & ~(mask << 24)) | ((U32)(_alpha * 255.0f) << 24);
+		m_value = (m_value & ~mask) | ((U32)(_alpha * 255.0f) << 24);
 	}
 
 	operator U32() const
@@ -105,6 +103,8 @@ void  Vertex(const Vec3& _position, float _size, Color _color);
 /// Current draw state (affects all subsequent vertices).
 void  SetColor(Color _color);
 Color GetColor();
+void  SetAlpha(float _alpha);
+float GetAlpha();
 void  SetSize(float _size);
 float GetSize();
 
@@ -172,6 +172,8 @@ public:
 	bool  m_keyDown[kKeyMax];    //< Client-provided key data.
 	int   m_keyMap[kKeyCount];   //< Map Keys enum to m_keyDown array.
 	float m_deltaTime;
+	Vec3  m_viewOriginW;
+	float m_tanHalfFov;
 
 
 
