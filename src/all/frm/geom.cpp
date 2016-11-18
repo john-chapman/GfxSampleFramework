@@ -303,3 +303,79 @@ void Frustum::initPlanes()
 	m_planes[kBottom] = Plane(m_vertices[3], m_vertices[7], m_vertices[6]);
 	m_planes[kLeft]   = Plane(m_vertices[3], m_vertices[0], m_vertices[4]);
 }
+
+
+/*******************************************************************************
+
+                            Intersection Tests
+
+*******************************************************************************/
+
+bool frm::Intersects(const Ray& _r, const AlignedBox& _b)
+{
+ // \todo cheaper version
+	float t0, t1;
+	return Intersect(_r, _b, t0, t1);
+}
+bool frm::Intersect(const Ray& _r, const AlignedBox& _b, float& t0_, float& t1_)
+{
+	vec3 omin = (_b.m_min - _r.m_origin) / _r.m_direction;
+	vec3 omax = (_b.m_max - _r.m_origin) / _r.m_direction;
+	vec3 tmax = apt::max(omax, omin);
+	vec3 tmin = apt::min(omax, omin);
+	t1_ = apt::min(tmax.x, apt::min(tmax.y, tmax.z));
+	t0_ = apt::max(apt::max(tmin.x, 0.0f), apt::max(tmin.y, tmin.z));
+	return t1_ > t0_;
+}
+
+bool frm::Intersects(const Ray& _r, const Sphere& _s)
+{
+	vec3 w = _s.m_origin - _r.m_origin;
+	float w2 = length2(w);
+	float toa = dot(w, _r.m_direction);
+	float r2 = _s.m_radius * _s.m_radius;
+	if (toa < 0.0f && w2 > r2) {
+		return false;
+	}
+	return w2 - (toa * toa) <= r2;
+}
+bool frm::Intersect(const Ray& _r, const Sphere& _s, float& t0_, float& t1_)
+{
+	vec3 w = _s.m_origin - _r.m_origin; 
+	float toa = dot(w, _r.m_direction); 
+	if (toa < 0.0f) {
+		return false;
+	}
+	float w2 = length2(w) - toa * toa; 
+	float r2 = _s.m_radius * _s.m_radius;
+	if (w2 > r2) {
+		return false;
+	}
+	float tho = sqrtf(r2 - w2); 
+	t0_ = apt::max(toa - tho, 0.0f);
+	t1_ = toa + tho;
+	 
+	return true;
+}
+
+bool frm::Intersects(const Ray& _r, const Plane& _p)
+{
+	float x = dot(_p.m_normal, _r.m_direction);
+	return x <= 0.0f;
+}
+bool frm::Intersect(const Ray& _r, const Plane& _p, float& t0_)
+{
+	t0_ = dot(_p.m_normal, (_p.m_normal * _p.m_offset) - _r.m_origin) / dot(_p.m_normal, _r.m_direction);
+	return t0_ >= 0.0f;
+}
+
+bool frm::Intersects(const Ray& _r, const Capsule& _c)
+{
+
+	return false;
+}
+bool frm::Intersect (const Ray& _r, const Capsule& _c, float& t0_, float& t1_)
+{
+
+	return false;
+}

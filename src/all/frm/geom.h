@@ -404,6 +404,25 @@ inline bool Intersect(const Sphere& _s, const AlignedBox& _b)
 	return d2 < (_s.m_radius * _s.m_radius);
 }
 
+
+/// Ray-primitive intersections.
+/// t0_/t1_ return the first/second intersections. If the ray origin is inside the
+/// primitive, t0_ will be 0.
+/// Intersects() may be cheaper than Intersect() hence use these functions if 
+/// t0_/t1_ aren't required.
+
+bool Intersects(const Ray& _r, const AlignedBox& _b);
+bool Intersect (const Ray& _r, const AlignedBox& _b, float& t0_, float& t1_);
+
+bool Intersects(const Ray& _r, const Sphere& _s);
+bool Intersect (const Ray& _r, const Sphere& _s, float& t0_, float& t1_);
+
+bool Intersects(const Ray& _r, const Plane& _p);
+bool Intersect (const Ray& _r, const Plane& _p, float& t0_);
+
+bool Intersects(const Ray& _r, const Capsule& _c);
+bool Intersect (const Ray& _r, const Capsule& _c, float& t0_, float& t1_);
+
 } // namespace frm
 
 #endif // frm_geom_h
