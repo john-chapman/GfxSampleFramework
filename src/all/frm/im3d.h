@@ -54,6 +54,17 @@ struct Color
 		m_value = (m_value & ~mask) | ((U32)(_alpha * 255.0f) << 24);
 	}
 
+	void set(int _i, float _val)
+	{
+		_i *= 8;
+		U32 mask = ((1 << 8) - 1) << _i;
+		m_value = (m_value & ~mask) | ((U32)(_val * 255.0f) << _i);
+	}
+	void setR(float _val) { set(0, _val); }
+	void setG(float _val) { set(1, _val); }
+	void setB(float _val) { set(2, _val); }
+	void setA(float _val) { set(3, _val); }
+
 	operator U32() const
 	{
 		return m_value;
