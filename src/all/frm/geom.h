@@ -62,7 +62,7 @@ struct AlignedBox
 		return ret;
 	}
 
-};
+}; // struct AlignedBox
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -92,7 +92,8 @@ struct Sphere
 		float rsum = m_radius + _s.m_radius;
 		return length2(m_origin - _s.m_origin) < (rsum * rsum);
 	}
-};
+
+}; // struct Sphere
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class Plane
@@ -163,7 +164,8 @@ struct Plane
 	{ 
 		return m_normal * m_offset; 
 	}
-};
+
+}; // struct Plane
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -218,6 +220,39 @@ struct Line
 	{
 		return (m_end - m_start) * 0.5f;
 	}
+
+}; // struct Line
+
+////////////////////////////////////////////////////////////////////////////////
+/// \class Cylinder
+////////////////////////////////////////////////////////////////////////////////
+struct Cylinder
+{
+	vec3  m_start;
+	vec3  m_end;
+	float m_radius;
+
+	Cylinder(const vec3& _start, const vec3& _end, float _radius)
+		: m_start(_start)
+		, m_end(_end)
+		, m_radius(_radius)
+	{
+	}
+
+	void transform(const mat4& _mat)
+	{
+	 // \todo apply scale to m_radius, see Sphere::transform
+		Line l(m_start, m_end);
+		l.transform(_mat);
+		m_start = l.m_start;
+		m_end = l.m_end;
+	}
+
+	vec3 getOrigin() const
+	{
+		return m_start + (m_end - m_start) * 0.5f;
+	}
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -238,6 +273,7 @@ struct Capsule
 
 	void transform(const mat4& _mat)
 	{
+	 // \todo apply scale to m_radius, see Sphere::transform
 		Line l(m_start, m_end);
 		l.transform(_mat);
 		m_start = l.m_start;
@@ -419,6 +455,9 @@ bool Intersect (const Ray& _r, const Sphere& _s, float& t0_, float& t1_);
 
 bool Intersects(const Ray& _r, const Plane& _p);
 bool Intersect (const Ray& _r, const Plane& _p, float& t0_);
+
+bool Intersects(const Ray& _r, const Cylinder& _c);
+bool Intersect (const Ray& _r, const Cylinder& _c, float& t0_, float& t1_);
 
 bool Intersects(const Ray& _r, const Capsule& _c);
 bool Intersect (const Ray& _r, const Capsule& _c, float& t0_, float& t1_);

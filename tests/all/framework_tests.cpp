@@ -53,15 +53,17 @@ public:
 		Im3d::Gizmo("gizmoTest", &position, &orientation, &scale);
 
 	 // primitive intersection tests
-		Im3d::Color kPlaneColor   = Im3d::Color(1.0f, 0.0f, 0.5f);
-		Im3d::Color kBoxColor     = Im3d::Color(1.0f, 0.9f, 0.0f);
-		Im3d::Color kSphereColor  = Im3d::Color(1.0f, 0.3f, 0.0f);
-		Im3d::Color kCapsuleColor = Im3d::Color(0.3f, 0.3f, 1.0f);
+		Im3d::Color kPlaneColor    = Im3d::Color(1.0f, 0.0f, 0.5f);
+		Im3d::Color kBoxColor      = Im3d::Color(1.0f, 0.9f, 0.0f);
+		Im3d::Color kSphereColor   = Im3d::Color(1.0f, 0.3f, 0.0f);
+		Im3d::Color kCylinderColor = Im3d::Color(0.0f, 1.0f, 0.1f);
+		Im3d::Color kCapsuleColor  = Im3d::Color(0.3f, 0.3f, 1.0f);
 
 		Plane p(vec3(0.0f, 1.0f, 0.0f), 0.0f);
 		AlignedBox ab(vec3(-8.0f, 0.0f, 4.0f), vec3(-4.0f, 2.0f, 5.0f));
 		Sphere s(vec3(-1.0f, 1.0f, 4.5f), 1.5f);
-		Capsule c(vec3(0.5f, 1.0f, 4.5f), vec3(2.5f, 0.5f, 4.5f), 1.0f);
+		Cylinder cy(vec3(2.0f, 0.0f, 4.5f), vec3(2.0f, 3.0f, 4.5f), 1.0f);
+		Capsule ca(vec3(4.0f, 1.5f, 4.5f), vec3(8.0f, 1.0f, 4.5f), 0.5f);
 
 		Ray r;
 		//r = getCursorRayW();
@@ -77,38 +79,72 @@ public:
 		}
 
 	  // box
+		Im3d::SetColor(kBoxColor);
 		if (Intersect(r, ab, tnear, tfar)) {
 			Im3d::BeginPoints();
-				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  8.0f, kBoxColor);
-				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f, kBoxColor);
+				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  8.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f);
 			Im3d::End();
 			Im3d::BeginLines();
-				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  1.0f, kBoxColor);
-				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 1.0f, kBoxColor);
+				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  1.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 1.0f);
 			Im3d::End();
 		}		
-		kBoxColor.setA(frm::Intersects(r, ab) ? 1.0f : 0.2f);
+		kBoxColor.setA(frm::Intersects(r, ab) ? 1.0f : 0.4f);
 		Im3d::SetColor(kBoxColor);
+		Im3d::SetSize(2.0f);
 		Im3d::DrawBox(ab.m_min, ab.m_max);
 
 	 // sphere
+		Im3d::SetColor(kSphereColor);
 		if (Intersect(r, s, tnear, tfar)) {
 			Im3d::BeginPoints();
-				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  8.0f, kSphereColor);
-				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f, kSphereColor);
+				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  8.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f);
 			Im3d::End();
 			Im3d::BeginLines();
-				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  1.0f, kSphereColor);
-				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 1.0f, kSphereColor);
+				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  1.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 1.0f);
 			Im3d::End();
 		}
-		kSphereColor.setA(frm::Intersects(r, s) ? 1.0f : 0.2f);
+		kSphereColor.setA(frm::Intersects(r, s) ? 1.0f : 0.4f);
 		Im3d::SetColor(kSphereColor);
+		Im3d::SetSize(2.0f);
 		Im3d::DrawSphere(s.m_origin, s.m_radius, 32);
+
+	 // cylinder
+		Im3d::SetColor(kCylinderColor);
+		//if (Intersect(r, cy, tnear, tfar)) {
+		//	Im3d::BeginPoints();
+		//		Im3d::Vertex(r.m_origin + r.m_direction * tfar,  8.0f);
+		//		Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f);
+		//	Im3d::End();
+		//	Im3d::BeginLines();
+		//		Im3d::Vertex(r.m_origin + r.m_direction * tfar,  1.0f);
+		//		Im3d::Vertex(r.m_origin + r.m_direction * tnear, 1.0f);
+		//	Im3d::End();
+		//}
+		kCylinderColor.setA(frm::Intersects(r, cy) ? 1.0f : 0.4f);
+		Im3d::SetColor(kCylinderColor);
+		Im3d::SetSize(2.0f);
+		Im3d::DrawCylinder(cy.m_start, cy.m_end, cy.m_radius, 24);
 
 	 // capsule
 		Im3d::SetColor(kCapsuleColor);
-		Im3d::DrawCapsule(c.m_start, c.m_end, c.m_radius, 24);
+		if (Intersect(r, ca, tnear, tfar)) {
+			Im3d::BeginPoints();
+				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  8.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f);
+			Im3d::End();
+			Im3d::BeginLines();
+				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  1.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 1.0f);
+			Im3d::End();
+		}
+		kCapsuleColor.setA(frm::Intersects(r, ca) ? 1.0f : 0.4f);
+		Im3d::SetColor(kCapsuleColor);
+		Im3d::SetSize(2.0f);
+		Im3d::DrawCapsule(ca.m_start, ca.m_end, ca.m_radius, 24);
 
 	 // ray
 		Im3d::BeginLines();

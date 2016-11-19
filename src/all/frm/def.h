@@ -47,8 +47,11 @@ namespace frm {
 	class Window;
 
 	struct AlignedBox;
-	struct Sphere;
+	struct Capsule;
+	struct Cylinder;
+	struct Line;
 	struct Ray;
+	struct Sphere;	
 	struct Plane;
 }
 

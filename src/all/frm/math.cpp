@@ -3,17 +3,19 @@
 using namespace frm;
 using namespace apt;
 
+static const float kEpsilon = FLT_EPSILON;
+
 mat4 frm::LookAt(const vec3& _from, const vec3& _to, const vec3& _up)
 {
 	vec3 z = normalize(_to - _from);
 
-	#define EQUAL(a, b) (apt::all(apt::lessThan(apt::abs(a - b), vec3(FLT_EPSILON))))
+	#define EQUAL(a, b) (apt::all(apt::lessThan(apt::abs(a - b), vec3(kEpsilon))))
 
  // orthonormal basis
 	vec3 x, y;
 	if_unlikely (EQUAL(z, _up) || EQUAL(z, -_up)) {
-		vec3 k = _up + vec3(FLT_EPSILON);
-		normalize(y = k - z * dot(k, z));
+		vec3 k = _up + vec3(kEpsilon);
+		y = normalize(k - z * dot(k, z));
 	} else {
 		y = normalize(_up - z * dot(_up, z));
 	}

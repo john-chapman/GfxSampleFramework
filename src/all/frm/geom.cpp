@@ -369,13 +369,29 @@ bool frm::Intersect(const Ray& _r, const Plane& _p, float& t0_)
 	return t0_ >= 0.0f;
 }
 
+bool frm::Intersects(const Ray& _r, const Cylinder& _c)
+{
+	return true;
+}
+bool frm::Intersect (const Ray& _r, const Cylinder& _c, float& t0_, float& t1_)
+{
+	return true;
+}
+
 bool frm::Intersects(const Ray& _r, const Capsule& _c)
 {
-
-	return false;
+	Line ln(_c.m_start, _c.m_end);
+	float t0;
+	return _r.distance2(ln, t0) < (_c.m_radius * _c.m_radius);
 }
 bool frm::Intersect (const Ray& _r, const Capsule& _c, float& t0_, float& t1_)
 {
+	Line ln(_c.m_start, _c.m_end);
+	if (_r.distance2(ln, t0_) < (_c.m_radius * _c.m_radius)) {
+		//t0_ = sqrtf(t0_);
+		t1_ = t0_;
+		return true;
 
+	}
 	return false;
 }

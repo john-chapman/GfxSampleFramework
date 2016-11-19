@@ -133,6 +133,7 @@ void  Scale(float _x, float _y, float _z);
 void DrawXyzAxes();
 void DrawSphere(const Vec3& _origin, float _radius, int _detail = 24);
 void DrawBox(const Vec3& _min, const Vec3& _max);
+void DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int _detail = 24);
 void DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int _detail = 12);
 
 inline void Vertex(float _x, float _y, float _z)                    { Vertex(Vec3(_x, _y, _z)); }

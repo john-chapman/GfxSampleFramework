@@ -150,6 +150,40 @@ void Im3d::DrawBox(const Vec3& _min, const Vec3& _max)
 	End();
 }
 
+void Im3d::DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int _detail)
+{
+	Vec3 org = _start + (_end - _start) * 0.5f;
+	Mat4 cmat = frm::LookAt(org, _end);
+	float ln = glm::length(_end - _start) * 0.5f;
+
+	PushMatrix();
+	MulMatrix(cmat);
+
+	BeginLineLoop();
+		for (int i = 0; i <= _detail; ++i) {
+			float rad = glm::two_pi<float>() * ((float)i / (float)_detail) - glm::half_pi<float>();
+			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(cosf(rad), sinf(rad), 0.0f) * _radius;
+			Im3d::Vertex(v);
+		}
+		for (int i = 0; i <= _detail; ++i) {
+			float rad = glm::two_pi<float>() * ((float)i / (float)_detail) - glm::half_pi<float>();
+			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(cosf(rad), sinf(rad), 0.0f) * _radius;
+			Im3d::Vertex(v);
+		}
+	End();
+
+	BeginLines();
+		Im3d::Vertex(-_radius, 0.0f, -ln);
+		Im3d::Vertex(-_radius, 0.0f,  ln);
+		Im3d::Vertex( _radius, 0.0f, -ln);
+		Im3d::Vertex( _radius, 0.0f,  ln);
+		Im3d::Vertex(0.0f, _radius, -ln);
+		Im3d::Vertex(0.0f, _radius,  ln);
+	End();
+
+	PopMatrix();
+}
+
 void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int _detail)
 {
 	Vec3 org = _start + (_end - _start) * 0.5f;
@@ -158,29 +192,28 @@ void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int 
 	int detail2 = _detail * 2; // force cap base detail to match ends
 
 	PushMatrix();
-	Translate(org.x, org.y, org.z);
 	MulMatrix(cmat);
 
  // yz silhoette + cap bases
 	BeginLineLoop();
 		for (int i = 0; i <= detail2; ++i) {
 			float rad = glm::two_pi<float>() * ((float)i / (float)detail2) - glm::half_pi<float>();
-			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(cosf(rad), sinf(rad), 0.0f);
+			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(cosf(rad), sinf(rad), 0.0f) * _radius;
 			Im3d::Vertex(v);
 		}
-		for (int i = 0; i < detail2; ++i) {
+		for (int i = 0; i < _detail; ++i) {
 			float rad = glm::pi<float>() * ((float)i / (float)_detail) + glm::pi<float>();
-			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(0.0f, cosf(rad), sinf(rad));
+			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(0.0f, cosf(rad), sinf(rad)) * _radius;
 			Im3d::Vertex(v);
 		}
-		for (int i = 0; i < detail2; ++i) {
+		for (int i = 0; i < _detail; ++i) {
 			float rad = glm::pi<float>() * ((float)i / (float)_detail);
-			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(0.0f, cosf(rad), sinf(rad));
+			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(0.0f, cosf(rad), sinf(rad)) * _radius;
 			Im3d::Vertex(v);
 		}
 		for (int i = 0; i <= detail2; ++i) {
 			float rad = glm::two_pi<float>() * ((float)i / (float)detail2) - glm::half_pi<float>();
-			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(cosf(rad), sinf(rad), 0.0f);
+			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(cosf(rad), sinf(rad), 0.0f) * _radius;
 			Im3d::Vertex(v);
 		}
 	End();
@@ -189,12 +222,12 @@ void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int 
 	BeginLineLoop();
 		for (int i = 0; i < _detail; ++i) {
 			float rad = glm::pi<float>() * ((float)i / (float)_detail) + glm::pi<float>();
-			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(cosf(rad), 0.0f, sinf(rad));
+			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(cosf(rad), 0.0f, sinf(rad)) * _radius;
 			Im3d::Vertex(v);
 		}
 		for (int i = 0; i < _detail; ++i) {
 			float rad = glm::pi<float>() * ((float)i / (float)_detail);
-			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(cosf(rad), 0.0f, sinf(rad));
+			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(cosf(rad), 0.0f, sinf(rad)) * _radius;
 			Im3d::Vertex(v);
 		}
 	End();
