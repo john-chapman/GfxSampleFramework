@@ -510,23 +510,47 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 		
 		if (raw->header.dwType == RIM_TYPEMOUSE) {
 			MouseImpl* mouse;
-			APT_VERIFY(mouse = MouseImpl::Find(raw->header.hDevice));
-			if (mouse) {
+			mouse = MouseImpl::Find(raw->header.hDevice);
+			if_likely (mouse) {
 				mouse->update(raw);
+			} else {
+			 // device not found but in use, so set device 0
+				APT_LOG_DBG("Set unknown device as mouse 0");
+				APT_VERIFY(mouse = &MouseImpl::s_instances[0]);
+				if (mouse) {
+					mouse->m_handle = raw->header.hDevice;
+					mouse->update(raw);
+				}
 			}
 
 		} else if (raw->header.dwType == RIM_TYPEKEYBOARD) {
 			KeyboardImpl* keyboard;
-			APT_VERIFY(keyboard = KeyboardImpl::Find(raw->header.hDevice));
-			if (keyboard) {
+			keyboard = KeyboardImpl::Find(raw->header.hDevice);
+			if_likely (keyboard) {
 				keyboard->update(raw);
+			} else {
+			 // device not found but in use, so set device 0
+				APT_LOG_DBG("Set unknown device as keyboard 0");
+				APT_VERIFY(keyboard = &KeyboardImpl::s_instances[0]);
+				if (keyboard) {
+					keyboard->m_handle = raw->header.hDevice;
+					keyboard->update(raw);
+				}
 			}
 
 		} else if (raw->header.dwType == RIM_TYPEHID) {
 			GamepadImpl* gamepad;
-			APT_VERIFY(gamepad = GamepadImpl::Find(raw->header.hDevice));
-			if (gamepad) {
+			gamepad = GamepadImpl::Find(raw->header.hDevice);
+			if_likely (gamepad) {
 				gamepad->update(raw);
+			} else {
+			 // device not found but in use, so set device 0
+				APT_LOG_DBG("Set unknown device as gamepad 0");
+				APT_VERIFY(gamepad = &GamepadImpl::s_instances[0]);
+				if (gamepad) {
+					gamepad->m_handle = raw->header.hDevice;
+					gamepad->update(raw);
+				}
 			}
 
 		}
