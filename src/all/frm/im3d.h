@@ -12,6 +12,7 @@
 namespace Im3d {
 
 typedef frm::mat4   Mat4;
+typedef frm::vec2   Vec2;
 typedef frm::vec3   Vec3;
 typedef frm::vec4   Vec4;
 typedef frm::quat   Quat;
@@ -135,6 +136,7 @@ void DrawSphere(const Vec3& _origin, float _radius, int _detail = 24);
 void DrawBox(const Vec3& _min, const Vec3& _max);
 void DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int _detail = 24);
 void DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int _detail = 12);
+void DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength = 0.1f); // _headLength is fraction of the total length
 
 inline void Vertex(float _x, float _y, float _z)                    { Vertex(Vec3(_x, _y, _z)); }
 inline void Vertex(float _x, float _y, float _z, Color _color)      { Vertex(Vec3(_x, _y, _z), _color); }
@@ -184,8 +186,9 @@ public:
 	bool  m_keyDown[kKeyMax];    //< Client-provided key data.
 	int   m_keyMap[kKeyCount];   //< Map Keys enum to m_keyDown array.
 	float m_deltaTime;
-	Vec3  m_viewOriginW;
 	float m_tanHalfFov;
+	Vec3  m_viewOriginW;
+	Vec2  m_displaySize;
 
 
 
@@ -226,6 +229,12 @@ public:
 	void  setSize(float _size)           { m_sizeStack.top() = _size; }
 	float getSize() const                { return m_sizeStack.top(); }
 
+	/// Id stack.
+	void  pushId()                       { m_idStack.push(m_idStack.top()); }
+	void  popId()                        { m_idStack.pop(); }
+	void  setId(Id _id)                  { m_idStack.top() = _id; }
+	Id    getId() const                  { return m_idStack.top(); }
+
 	/// Primitive begin/end.
 	void begin(PrimitiveMode _mode);
 	void end();
@@ -243,7 +252,7 @@ public:
 	const void* getLineData() const      { return m_lines.data(); }
 	unsigned getLineCount() const        { return (unsigned)m_lines.size(); }
 
-	bool gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_);
+	bool gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_, float _screenSize = 64.0f);
 
 private:
 	static const int kMaxMatStackDepth   = 8;
@@ -267,6 +276,7 @@ private:
 	Stack<Color, kMaxStateStackDepth> m_colorStack;
 	Stack<float, kMaxStateStackDepth> m_alphaStack;
 	Stack<float, kMaxStateStackDepth> m_sizeStack;
+	Stack<Id,    kMaxStateStackDepth> m_idStack;
 
 	PrimitiveMode m_primMode;
 	unsigned m_firstVertThisPrim;        //< Index of the first vertex pushed during this primitive
@@ -276,22 +286,22 @@ private:
 
 	bool m_keyDownCurr[kKeyMax];
 	bool m_keyDownPrev[kKeyMax];
+	Id m_hotId;
 	Id m_activeId;
+	Vec3 m_translationOffset;
 
 	bool isKeyDown(Key _key)     { return m_keyDownCurr[m_keyMap[_key]]; }
 	bool wasKeyPressed(Key _key) { int k = m_keyMap[_key]; return m_keyDownPrev[k] && !m_keyDownCurr[k]; }
-	
-/* Approach for IM gizmos:
-	- Set IO information at the start of each frame (cursor ray, mouse/keyboard states).
-	- Each call to the Gizmo() function:
-		- Generate a gizmo ID (must be the same for each call to the function, hence require string)
-		- If it's active, process the state and update the outputs. You only ever need to store internal
-		  state for the currently active gizmo!
-		- If not active, make active if necessary (i.e. if no currently active gizmo and intersects the
-		  gizmo and clicking or whatever).
-		- Push draw primitives!
-*/
 
+	bool axisGizmoW(
+		Id           _id,          // id for the axis
+		Vec3*        _position_, 
+		const Vec3&  _axis, 
+		const Vec3&  _planeNormal, // normal of the motion plane
+		float        _planeOffset, // offset of the motion plane
+		const Color& _color, 
+		float        _screenScale
+		);
 };
 
 } // namespace Im3d

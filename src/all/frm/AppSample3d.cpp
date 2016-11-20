@@ -278,8 +278,9 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	im3d.m_cursorRayOriginW = cursorRayW.m_origin;
 	im3d.m_cursorRayDirectionW = cursorRayW.m_direction;
 	im3d.m_deltaTime = (float)_app->getDeltaTime();
-	im3d.m_viewOriginW = _app->m_scene.getDrawCamera()->getPosition();
 	im3d.m_tanHalfFov = _app->m_scene.getDrawCamera()->getTanFovUp();
+	im3d.m_viewOriginW = _app->m_scene.getDrawCamera()->getPosition();
+	im3d.m_displaySize = Im3d::Vec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
 
 	im3d.reset();
 }
