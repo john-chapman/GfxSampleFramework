@@ -66,9 +66,8 @@ float Ray::distance2(const Line& _l, float& tnear_) const
 	float d = dot(ldir, w );
 	float e = dot(m_direction, w);
 
- // parameters to compute s_c, t_c
-	float sn, sd, tn, td;
-	float s_c, t_c;
+ 	float sn, sd, tn, td;
+	float sc, tc;
 	float denom = a - b * b;
  // if denom is zero, try finding closest point on segment1 to origin0
     if (abs(denom) < FLT_EPSILON) {
@@ -98,22 +97,22 @@ float Ray::distance2(const Line& _l, float& tnear_) const
     // clamp t_c within [0,+inf]
     // clamp t_c to 0
     if (tn < 0.0f) {
-        t_c = 0.0f;
+        tc = 0.0f;
         if (-d < 0.0f) {
 		 // clamp s_c to 0
-            s_c = 0.0f;
+            sc = 0.0f;
 		} else if (-d > a) {
 		 // clamp s_c to 1
-		    s_c = 1.0f;
+		    sc = 1.0f;
 		} else {
-		    s_c = -d / a;
+		    sc = -d / a;
 		}
     } else {
-        t_c = tn / td;
-        s_c = sn / sd;
+        tc = tn / td;
+        sc = sn / sd;
     }
-	tnear_ = t_c;
-    return length2(w + s_c * ldir - t_c * m_direction);
+	tnear_ = tc;
+    return length2(w + sc * ldir - tc * m_direction);
 }
 
 /*******************************************************************************
@@ -371,11 +370,13 @@ bool frm::Intersect(const Ray& _r, const Plane& _p, float& t0_)
 
 bool frm::Intersects(const Ray& _r, const Cylinder& _c)
 {
-	return true;
+	APT_ASSERT(false);
+	return false;
 }
-bool frm::Intersect (const Ray& _r, const Cylinder& _c, float& t0_, float& t1_)
+bool frm::Intersect(const Ray& _r, const Cylinder& _c, float& t0_, float& t1_)
 {
-	return true;
+	APT_ASSERT(false);
+	return false;
 }
 
 bool frm::Intersects(const Ray& _r, const Capsule& _c)
@@ -384,14 +385,8 @@ bool frm::Intersects(const Ray& _r, const Capsule& _c)
 	float t0;
 	return _r.distance2(ln, t0) < (_c.m_radius * _c.m_radius);
 }
-bool frm::Intersect (const Ray& _r, const Capsule& _c, float& t0_, float& t1_)
+bool frm::Intersect(const Ray& _r, const Capsule& _c, float& t0_, float& t1_)
 {
-	Line ln(_c.m_start, _c.m_end);
-	if (_r.distance2(ln, t0_) < (_c.m_radius * _c.m_radius)) {
-		//t0_ = sqrtf(t0_);
-		t1_ = t0_;
-		return true;
-
-	}
+	APT_ASSERT(false);
 	return false;
 }

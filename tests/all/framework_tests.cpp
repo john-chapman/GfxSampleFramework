@@ -48,17 +48,24 @@ public:
 			return false;
 		}
 
-		static vec3 position(-0.5f, 0.0f, 0.5f), scale(1.0f);
-		static quat orientation(1.0f, 0.0f, 0.0f, 0.0f);
-		Im3d::Gizmo("gizmoTest", &position, &orientation, &scale);
+		static vec3 position0(-0.5f, 0.0f, 0.5f), scale0(1.0f);
+		static quat orientation0(1.0f, 0.0f, 0.0f, 0.0f);
+		Im3d::Gizmo("gizmoTest0", &position0, &orientation0, &scale0);
+
+		static vec3 position1(-2.5f, 4.0f, 2.5f), scale1(1.0f);
+		static quat orientation1(1.0f, 0.0f, 0.0f, 0.0f);
+		Im3d::Gizmo("gizmoTest1", &position1, &orientation1, &scale1);
+
 
 	 // primitive intersection tests
+		Im3d::Color kLineColor     = Im3d::Color(0.5f, 1.0f, 0.5f);
 		Im3d::Color kPlaneColor    = Im3d::Color(1.0f, 0.0f, 0.5f);
 		Im3d::Color kBoxColor      = Im3d::Color(1.0f, 0.9f, 0.0f);
 		Im3d::Color kSphereColor   = Im3d::Color(1.0f, 0.3f, 0.0f);
 		Im3d::Color kCylinderColor = Im3d::Color(0.0f, 1.0f, 0.1f);
 		Im3d::Color kCapsuleColor  = Im3d::Color(0.3f, 0.3f, 1.0f);
 
+		Line ln(vec3(-2.0f, -2.0f, -2.0f), vec3(2.0f, 2.0f, 2.0f));
 		Plane p(vec3(0.0f, 1.0f, 0.0f), 0.0f);
 		AlignedBox ab(vec3(-8.0f, 0.0f, 4.0f), vec3(-4.0f, 2.0f, 5.0f));
 		Sphere s(vec3(-1.0f, 1.0f, 4.5f), 1.5f);
@@ -70,6 +77,18 @@ public:
 		r.m_origin = m_scene.getCullCamera()->getPosition();
 		r.m_direction = m_scene.getCullCamera()->getViewVector();
 		float tnear, tfar;
+
+	 // line
+		/*Im3d::SetColor(kLineColor);
+		Im3d::BeginLines();
+			Im3d::Vertex(ln.m_start, 2.0f);
+			Im3d::Vertex(ln.m_end,   2.0f);
+		Im3d::End();
+		r.distance2(ln, tnear);
+		Im3d::BeginPoints();
+			Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f, kLineColor);
+		Im3d::End();*/
+
 	 // plane
 		if (Intersects(r, p)) {
 			Intersect(r, p, tnear);
@@ -124,14 +143,14 @@ public:
 		//		Im3d::Vertex(r.m_origin + r.m_direction * tnear, 1.0f);
 		//	Im3d::End();
 		//}
-		kCylinderColor.setA(frm::Intersects(r, cy) ? 1.0f : 0.4f);
-		Im3d::SetColor(kCylinderColor);
-		Im3d::SetSize(2.0f);
-		Im3d::DrawCylinder(cy.m_start, cy.m_end, cy.m_radius, 24);
+		//kCylinderColor.setA(frm::Intersects(r, cy) ? 1.0f : 0.4f);
+		//Im3d::SetColor(kCylinderColor);
+		//Im3d::SetSize(2.0f);
+		//Im3d::DrawCylinder(cy.m_start, cy.m_end, cy.m_radius, 24);
 
 	 // capsule
 		Im3d::SetColor(kCapsuleColor);
-		if (Intersect(r, ca, tnear, tfar)) {
+		/*if (Intersect(r, ca, tnear, tfar)) {
 			Im3d::BeginPoints();
 				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  8.0f);
 				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f);
@@ -140,7 +159,7 @@ public:
 				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  1.0f);
 				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 1.0f);
 			Im3d::End();
-		}
+		}*/
 		kCapsuleColor.setA(frm::Intersects(r, ca) ? 1.0f : 0.4f);
 		Im3d::SetColor(kCapsuleColor);
 		Im3d::SetSize(2.0f);

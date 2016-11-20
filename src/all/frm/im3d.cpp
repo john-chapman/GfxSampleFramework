@@ -163,22 +163,22 @@ void Im3d::DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int
 		for (int i = 0; i <= _detail; ++i) {
 			float rad = glm::two_pi<float>() * ((float)i / (float)_detail) - glm::half_pi<float>();
 			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(cosf(rad), sinf(rad), 0.0f) * _radius;
-			Im3d::Vertex(v);
+			Vertex(v);
 		}
 		for (int i = 0; i <= _detail; ++i) {
 			float rad = glm::two_pi<float>() * ((float)i / (float)_detail) - glm::half_pi<float>();
 			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(cosf(rad), sinf(rad), 0.0f) * _radius;
-			Im3d::Vertex(v);
+			Vertex(v);
 		}
 	End();
 
 	BeginLines();
-		Im3d::Vertex(-_radius, 0.0f, -ln);
-		Im3d::Vertex(-_radius, 0.0f,  ln);
-		Im3d::Vertex( _radius, 0.0f, -ln);
-		Im3d::Vertex( _radius, 0.0f,  ln);
-		Im3d::Vertex(0.0f, _radius, -ln);
-		Im3d::Vertex(0.0f, _radius,  ln);
+		Vertex(-_radius, 0.0f, -ln);
+		Vertex(-_radius, 0.0f,  ln);
+		Vertex( _radius, 0.0f, -ln);
+		Vertex( _radius, 0.0f,  ln);
+		Vertex(0.0f, _radius, -ln);
+		Vertex(0.0f, _radius,  ln);
 	End();
 
 	PopMatrix();
@@ -199,22 +199,22 @@ void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int 
 		for (int i = 0; i <= detail2; ++i) {
 			float rad = glm::two_pi<float>() * ((float)i / (float)detail2) - glm::half_pi<float>();
 			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(cosf(rad), sinf(rad), 0.0f) * _radius;
-			Im3d::Vertex(v);
+			Vertex(v);
 		}
 		for (int i = 0; i < _detail; ++i) {
 			float rad = glm::pi<float>() * ((float)i / (float)_detail) + glm::pi<float>();
 			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(0.0f, cosf(rad), sinf(rad)) * _radius;
-			Im3d::Vertex(v);
+			Vertex(v);
 		}
 		for (int i = 0; i < _detail; ++i) {
 			float rad = glm::pi<float>() * ((float)i / (float)_detail);
 			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(0.0f, cosf(rad), sinf(rad)) * _radius;
-			Im3d::Vertex(v);
+			Vertex(v);
 		}
 		for (int i = 0; i <= detail2; ++i) {
 			float rad = glm::two_pi<float>() * ((float)i / (float)detail2) - glm::half_pi<float>();
 			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(cosf(rad), sinf(rad), 0.0f) * _radius;
-			Im3d::Vertex(v);
+			Vertex(v);
 		}
 	End();
 
@@ -223,25 +223,37 @@ void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int 
 		for (int i = 0; i < _detail; ++i) {
 			float rad = glm::pi<float>() * ((float)i / (float)_detail) + glm::pi<float>();
 			Vec3 v = Vec3(0.0f, 0.0f, -ln) + Vec3(cosf(rad), 0.0f, sinf(rad)) * _radius;
-			Im3d::Vertex(v);
+			Vertex(v);
 		}
 		for (int i = 0; i < _detail; ++i) {
 			float rad = glm::pi<float>() * ((float)i / (float)_detail);
 			Vec3 v = Vec3(0.0f, 0.0f, ln) + Vec3(cosf(rad), 0.0f, sinf(rad)) * _radius;
-			Im3d::Vertex(v);
+			Vertex(v);
 		}
 	End();
 
 	PopMatrix();
 }
 
+void Im3d::DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength)
+{
+	Vec3 head = _start + (_end - _start) * _headLength;
+	Vec3 headStart = _end - head;
+	BeginLines();
+		Vertex(_start);
+		Vertex(headStart);
+
+		Vertex(headStart, GetCurrentContext().getSize() * 2.0f);
+		Vertex(_end, 2.0f); // can't be 0 as the AA fades to 0
+	End();
+}
+
 Im3d::Id Im3d::MakeId(const char* _str)
 {
-	static const U32 kFnv1aBase32  = 0x811C9DC5u;
 	static const U32 kFnv1aPrime32 = 0x01000193u;
 
 	APT_ASSERT(_str);
-	U32 ret = kFnv1aBase32;
+	U32 ret = (U32)GetCurrentContext().getId(); // i.e. top of Id stack
 	while (*_str) {
 		ret ^= (U32)*_str++;
 		ret *= kFnv1aPrime32;
@@ -253,6 +265,7 @@ bool Im3d::Gizmo(const char* _id, Vec3* _position_, Quat* _orientation_, Vec3* _
 {
 	Id id = MakeId(_id);
 	return GetCurrentContext().gizmo(id, _position_, _orientation_, _scale_);
+
 }
 
 /*******************************************************************************
@@ -271,6 +284,8 @@ Context::Context()
 	, m_primMode(kNone)
 	, m_firstVertThisPrim(0)
 	, m_vertCountThisPrim(0)
+	, m_idStack(0x811C9DC5u) // fnv1 32 bit hash base
+	, m_hotId(kInvalidId)
 	, m_activeId(kInvalidId)
 {
 }
@@ -361,57 +376,34 @@ void Context::reset()
 	memcpy(m_keyDownCurr, m_keyDown,     sizeof(m_keyDown));
 }
 
-bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_)
+bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_, float _screenSize)
 {
-frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
-float tnear, tfar;
+	frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
 	 
- // \todo something more scientific - maintain an exact screen space size
+ // maintain screen size 
 	float d = glm::length(*_position_ - m_viewOriginW);
-	float distanceScale = 1.0f / (2.0f * glm::atan(0.5f / d)) * 0.1f;
+	float screenScale = 2.0f / (2.0f * glm::atan(0.5f / d)) * m_tanHalfFov * _screenSize;
+	screenScale /= m_displaySize.y;
 
-	if (_id == m_activeId) {
-	} else if (isKeyDown(kMouseLeft)) {
-		static const float kCapsuleRadius = 0.05f;
-		frm::Capsule xcap(*_position_, *_position_ + Vec3(1.0f, 0.0f, 0.0f) * distanceScale, kCapsuleRadius);
-		frm::Capsule ycap(*_position_, *_position_ + Vec3(0.0f, 1.0f, 0.0f) * distanceScale, kCapsuleRadius);
-		frm::Capsule zcap(*_position_, *_position_ + Vec3(0.0f, 0.0f, 1.0f) * distanceScale, kCapsuleRadius);
-		
-		if (cursorRay.intersect(xcap, tnear, tfar) || cursorRay.intersect(ycap, tnear, tfar) || cursorRay.intersect(zcap, tnear, tfar)) {
-			m_activeId = _id;
-		} else {
-			m_activeId = kInvalidId;
-		}
-	}
-
- // draw the gizmo
-	pushAlpha();
-	if (_id != m_activeId) {
-		setAlpha(0.5f);
-	}
+	
 	PushMatrix();
 	// \todo probably don't want to scale the gizmo
-		Mat4 wm = glm::scale(glm::translate(glm::mat4(1.0f), *_position_) * glm::mat4_cast(*_orientation_), /**_scale_ **/ Vec3(distanceScale));
+		Mat4 wm = glm::scale(glm::translate(glm::mat4(1.0f), *_position_) * glm::mat4_cast(*_orientation_), /**_scale_ **/ Vec3(screenScale));
 		MulMatrix(wm);
-		
-		BeginLines();
-			Vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorRed);
-			Vertex(Vec3(1.0f, 0.0f, 0.0f), 4.0f, kColorRed);
+	
 
-			Vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorGreen);
-			Vertex(Vec3(0.0f, 1.0f, 0.0f), 4.0f, kColorGreen);
+		SetSize(4.0f);
+		bool ret = false;
+		pushId();
+			setId(_id);
+			ret = axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y, kColorRed,   screenScale);
+			ret = axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), m_cursorRayDirectionW,  length(*_position_ - m_cursorRayOriginW), kColorGreen, screenScale);
+			ret = axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y, kColorBlue,  screenScale);
+		popId();
 
-			Vertex(Vec3(0.0f, 0.0f, 0.0f), 4.0f, kColorBlue);
-			Vertex(Vec3(0.0f, 0.0f, 1.0f), 4.0f, kColorBlue);
-		End();
-
-		BeginPoints();
-			Vertex(Vec3(0.0f), 10.0f, kColorWhite);
-		End();
 	PopMatrix();
-	popAlpha();
 
-	return true;
+	return ret;
 }
 
 // PRIVATE
@@ -440,3 +432,77 @@ void Context::Stack<tType, kMaxDepth>::pop()
 template struct Context::Stack<Mat4,  Context::kMaxMatStackDepth>;
 template struct Context::Stack<Color, Context::kMaxStateStackDepth>;
 template struct Context::Stack<float, Context::kMaxStateStackDepth>;
+
+
+bool Context::axisGizmoW(
+	Id           _id,
+	Vec3*        _position_, 
+	const Vec3&  _axis, 
+	const Vec3&  _planeNormal,
+	float        _planeOffset,
+	const Color& _color, 
+	float        _screenScale
+	)
+{
+	frm::Capsule cp(*_position_, *_position_ + _axis * _screenScale, 0.05f * _screenScale);
+	frm::Plane pl(_planeNormal, _planeOffset);
+	frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
+
+	bool ret = false;
+	pushAlpha();
+	setAlpha(0.5f);
+	setColor(_color);
+	if (_id == m_activeId) {
+		setAlpha(1.0f);
+		if (isKeyDown(kMouseLeft)) {
+		 // active, move _position_
+			float t;
+			if (frm::Intersect(cursorRay, pl, t)) {
+				Vec3 displacement = cursorRay.m_origin + cursorRay.m_direction * t + m_translationOffset;
+				displacement = (displacement - *_position_) * _axis; // constrain movement to axis
+				*_position_ += displacement;
+			}
+			
+		 // draw the axis
+			pushSize();
+				setSize(1.0f);
+				setAlpha(0.5f);
+				BeginLines();
+					Vertex(-_axis * 9999.0f);
+					Vertex( _axis * 9999.0f);
+				End();
+				setAlpha(1.0f);
+			popSize();
+
+			ret = true;
+		} else {
+		 // deactivate
+			m_hotId = m_activeId = kInvalidId;
+		}
+
+	} else if (_id == m_hotId) {
+		setAlpha(1.0f);
+		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, cp)) {
+			if (isKeyDown(kMouseLeft)) {
+			 // activate, store offset
+				m_activeId = _id;
+				float t;
+				APT_VERIFY(frm::Intersect(cursorRay, pl, t)); // should always intersect in this case
+				m_translationOffset = *_position_ - (cursorRay.m_origin + cursorRay.m_direction * t);
+			}
+		} else {
+			m_hotId = kInvalidId;
+		}
+		
+	} else {
+	 // intersect, make hot
+		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, cp)) {
+			m_hotId = _id;
+		}
+	}
+	DrawArrow(Vec3(0.0f, 0.0f, 0.0f), _axis, 0.2f);
+	
+	popAlpha();
+
+	return ret;
+}
