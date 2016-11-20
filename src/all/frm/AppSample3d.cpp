@@ -219,8 +219,8 @@ AppSample3d::~AppSample3d()
 
 *******************************************************************************/
 
-static Shader *s_shIm3dPoints, *s_shIm3dLines;
-static Mesh   *s_msIm3dPoints, *s_msIm3dLines;
+static Shader *s_shIm3dPoints, *s_shIm3dLines, *s_shIm3dTriangles;
+static Mesh   *s_msIm3dPoints, *s_msIm3dLines, *s_msIm3dTriangles;
 
 bool AppSample3d::Im3d_Init()
 {
@@ -246,6 +246,11 @@ bool AppSample3d::Im3d_Init()
 	s_shIm3dPoints->setName("#Im3d_POINTS");
 
 	sd.clearDefines();
+	sd.addGlobalDefine("TRIANGLES");
+	APT_VERIFY(s_shIm3dTriangles = Shader::Create(sd));
+	s_shIm3dTriangles->setName("#Im3d_TRIANGLES");
+
+	sd.clearDefines();
 	sd.setPath(GL_GEOMETRY_SHADER, "shaders/Im3d_gs.glsl");
 	sd.addGlobalDefine("LINES");
 	APT_VERIFY(s_shIm3dLines = Shader::Create(sd));
@@ -256,18 +261,24 @@ bool AppSample3d::Im3d_Init()
 	meshDesc.addVertexAttr(VertexAttr::kColors,    4, DataType::kUint8N);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::Vertex));
 	s_msIm3dPoints = Mesh::Create(meshDesc);
+
 	meshDesc.setPrimitive(MeshDesc::kLines);
 	s_msIm3dLines= Mesh::Create(meshDesc);
+
+	meshDesc.setPrimitive(MeshDesc::kTriangles);
+	s_msIm3dTriangles= Mesh::Create(meshDesc);
 
 	return s_shIm3dPoints && s_msIm3dPoints;
 }
 
 void AppSample3d::Im3d_Shutdown()
 {
-	if (s_shIm3dPoints) Shader::Destroy(s_shIm3dPoints);
-	if (s_shIm3dLines)  Shader::Destroy(s_shIm3dLines);
-	if (s_msIm3dPoints) Mesh::Destroy(s_msIm3dPoints);
-	if (s_msIm3dLines)  Mesh::Destroy(s_msIm3dLines);
+	if (s_shIm3dPoints)     Shader::Destroy(s_shIm3dPoints);
+	if (s_shIm3dLines)      Shader::Destroy(s_shIm3dLines);
+	if (s_shIm3dTriangles)  Shader::Destroy(s_shIm3dTriangles);
+	if (s_msIm3dPoints)     Mesh::Destroy(s_msIm3dPoints);
+	if (s_msIm3dLines)      Mesh::Destroy(s_msIm3dLines);
+	if (s_msIm3dTriangles)  Mesh::Destroy(s_msIm3dTriangles);
 }
 
 void AppSample3d::Im3d_Update(AppSample3d* _app)
@@ -301,6 +312,14 @@ void AppSample3d::Im3d_Render(Im3d::Context& _im3dCtx, const Camera& _cam, bool 
 	}
     
 	vec2 viewport = vec2(ctx->getViewportWidth(), ctx->getViewportHeight());
+
+ // triangles
+	s_msIm3dTriangles->setVertexData(im3dCtx.getTriangleData(), im3dCtx.getTriangleCount(), GL_STREAM_DRAW);
+	ctx->setShader(s_shIm3dTriangles);
+	ctx->setUniform("uViewProjMatrix", _cam.getViewProjMatrix());
+	ctx->setUniform("uViewport", viewport);
+	ctx->setMesh(s_msIm3dTriangles);
+	ctx->draw();
 
  // lines
 	s_msIm3dLines->setVertexData(im3dCtx.getLineData(), im3dCtx.getLineCount(), GL_STREAM_DRAW);

@@ -6,10 +6,6 @@
 
 #include <cstring>
 
-	// \todo tmp debug stuff, remove
-	#include <apt/log.h>
-	#include <frm/Input.h>
-
 #define Im3dAssert(_x) APT_ASSERT(_x)
 
 using namespace Im3d;
@@ -37,11 +33,13 @@ void  Im3d::BeginPoints()                { GetCurrentContext().begin(Context::kP
 void  Im3d::BeginLines()                 { GetCurrentContext().begin(Context::kLines); }
 void  Im3d::BeginLineStrip()             { GetCurrentContext().begin(Context::kLineStrip); }
 void  Im3d::BeginLineLoop()              { GetCurrentContext().begin(Context::kLineLoop); }
+void  Im3d::BeginTriangles()             { GetCurrentContext().begin(Context::kTriangles); }
+void  Im3d::BeginTriangleStrip()         { GetCurrentContext().begin(Context::kTriangleStrip); }
 void  Im3d::End()                        { GetCurrentContext().end(); }
 void  Im3d::SetColor(Color _color)       { GetCurrentContext().setColor(_color); }
 Color Im3d::GetColor()                   { return GetCurrentContext().getColor(); }
-void  SetAlpha(float _alpha)             { GetCurrentContext().setAlpha(_alpha); }
-float GetAlpha()                         { return GetCurrentContext().getAlpha(); }
+void  Im3d::SetAlpha(float _alpha)       { GetCurrentContext().setAlpha(_alpha); }
+float Im3d::GetAlpha()                   { return GetCurrentContext().getAlpha(); }
 void  Im3d::SetSize(float _width)        { GetCurrentContext().setSize(_width); }
 float Im3d::GetSize()                    { return GetCurrentContext().getSize(); }
 void  Im3d::PushMatrix()                 { GetCurrentContext().pushMatrix(); }
@@ -100,6 +98,26 @@ void Im3d::DrawXyzAxes()
 		SetColor(0.0f, 0.0f, 1.0f);
 		Vertex(0.0f, 0.0f, 0.0f);
 		Vertex(0.0f, 0.0f, -1.0f);
+	End();
+}
+
+void Im3d::DrawQuad(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d)
+{
+	BeginLineLoop();
+		Vertex(_a);
+		Vertex(_b);
+		Vertex(_c);
+		Vertex(_d);
+	End();
+}
+
+void Im3d::DrawQuadFilled(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d)
+{
+	BeginTriangleStrip();
+		Vertex(_a);
+		Vertex(_b);
+		Vertex(_c);
+		Vertex(_d);
 	End();
 }
 
@@ -308,6 +326,10 @@ void Context::begin(PrimitiveMode _mode)
 	case kLineLoop:
 		m_firstVertThisPrim = (unsigned)m_lines.size();
 		break;
+	case kTriangles:
+	case kTriangleStrip:
+		m_firstVertThisPrim = (unsigned)m_triangles.size();
+		break;
 	default:
 		break;
 	};
@@ -331,7 +353,12 @@ void Context::end()
 		m_lines.push_back(m_lines.back());
 		m_lines.push_back(m_lines[m_firstVertThisPrim]);
 		break;
-	
+	case kTriangles:
+		Im3dAssert(m_vertCountThisPrim % 3 == 0);
+		break;
+	case kTriangleStrip:
+		Im3dAssert(m_vertCountThisPrim >= 3);
+		break;
 	default:
 		break;
 	};
@@ -359,6 +386,17 @@ void Context::vertex(const Vec3& _position, float _width, Color _color)
 		}
 		m_lines.push_back(struct Vertex(_position, _width, _color));
 		break;
+	case kTriangles:
+		m_triangles.push_back(struct Vertex(_position, _width, _color));
+		break;
+	case kTriangleStrip:
+		if (m_vertCountThisPrim >= 3) {
+			m_triangles.push_back(*(m_triangles.end() - 2));
+			m_triangles.push_back(*(m_triangles.end() - 2));
+			m_vertCountThisPrim += 2;
+		}
+		m_triangles.push_back(struct Vertex(_position, _width, _color));
+		break;
 	default:
 		break;
 	};
@@ -370,6 +408,7 @@ void Context::reset()
 	Im3dAssert(m_primMode == kNone);
 	m_points.clear();
 	m_lines.clear();
+	m_triangles.clear();
 
  // copy keydown array internally so that we can make a delta to detect key presses
 	memcpy(m_keyDownPrev, m_keyDownCurr, sizeof(m_keyDown)); // \todo avoid this copy, use an index
@@ -399,6 +438,32 @@ bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_
 			ret = axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y, kColorRed,   screenScale);
 			ret = axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), m_cursorRayDirectionW,  length(*_position_ - m_cursorRayOriginW), kColorGreen, screenScale);
 			ret = axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y, kColorBlue,  screenScale);
+		
+		// \todo quads in perspective are not very friendly, use point-based buttons
+			{	Vec3 qa(0.1f, 0.0f, 0.1f);
+				Vec3 qb(0.5f, 0.0f, 0.1f);
+				Vec3 qc(0.1f, 0.0f, 0.5f);
+				Vec3 qd(0.5f, 0.0f, 0.5f);
+				setColor(kColorBlue);
+				DrawQuadFilled(qa, qb, qc, qd);
+			}
+
+			{	Vec3 qa(0.1f, 0.1f, 0.0f);
+				Vec3 qb(0.1f, 0.5f, 0.0f);
+				Vec3 qc(0.5f, 0.1f, 0.0f);
+				Vec3 qd(0.5f, 0.5f, 0.0f);
+				setColor(kColorRed);
+				DrawQuadFilled(qa, qb, qc, qd);
+			}
+
+			{	Vec3 qa(0.0f, 0.1f, 0.1f);
+				Vec3 qb(0.0f, 0.5f, 0.1f);
+				Vec3 qc(0.0f, 0.1f, 0.5f);
+				Vec3 qd(0.0f, 0.5f, 0.5f);
+				setColor(kColorGreen);
+				DrawQuadFilled(qa, qb, qc, qd);
+			}
+
 		popId();
 
 	PopMatrix();
@@ -444,9 +509,9 @@ bool Context::axisGizmoW(
 	float        _screenScale
 	)
 {
-	frm::Capsule cp(*_position_, *_position_ + _axis * _screenScale, 0.05f * _screenScale);
-	frm::Plane pl(_planeNormal, _planeOffset);
-	frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
+	const frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
+	const frm::Plane pl(_planeNormal, _planeOffset);
+	const frm::Capsule cp(*_position_, *_position_ + _axis * _screenScale, 0.05f * _screenScale);
 
 	bool ret = false;
 	pushAlpha();
@@ -505,4 +570,21 @@ bool Context::axisGizmoW(
 	popAlpha();
 
 	return ret;
+}
+
+void Context::movePlanar(
+	Vec3*        _position_, 
+	const Vec3&  _constraint, 
+	const Vec3&  _planeNormal, 
+	float        _planeOffset
+	)	
+{
+	const frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
+	const frm::Plane pl(_planeNormal, _planeOffset);
+	float t;
+	if (frm::Intersect(cursorRay, pl, t)) {
+		Vec3 displacement = cursorRay.m_origin + cursorRay.m_direction * t + m_translationOffset;
+		displacement = (displacement - *_position_) * _constraint;
+		*_position_ += displacement;
+	}
 }

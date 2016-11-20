@@ -99,6 +99,8 @@ void BeginPoints();
 void BeginLines();
 void BeginLineLoop();
 void BeginLineStrip();
+void BeginTriangles();
+void BeginTriangleStrip();
 
 /// End primitive rendering.
 void End();
@@ -130,8 +132,9 @@ void  Translate(float _x, float _y, float _z);
 void  Scale(float _x, float _y, float _z);
 
 /// High order shapes.
-/// \todo Filled* variants, at least for box/quad.
 void DrawXyzAxes();
+void DrawQuad(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d);
+void DrawQuadFilled(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d);
 void DrawSphere(const Vec3& _origin, float _radius, int _detail = 24);
 void DrawBox(const Vec3& _min, const Vec3& _max);
 void DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int _detail = 24);
@@ -198,7 +201,9 @@ public:
 		kPoints,
 		kLines,
 		kLineStrip,
-		kLineLoop
+		kLineLoop,
+		kTriangles,
+		kTriangleStrip
 	};
 
 	Context();
@@ -252,6 +257,9 @@ public:
 	const void* getLineData() const      { return m_lines.data(); }
 	unsigned getLineCount() const        { return (unsigned)m_lines.size(); }
 
+	const void* getTriangleData() const  { return m_triangles.data(); }
+	unsigned getTriangleCount()          { return (unsigned)m_triangles.size(); }
+
 	bool gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_, float _screenSize = 64.0f);
 
 private:
@@ -283,6 +291,7 @@ private:
 	unsigned m_vertCountThisPrim;        //< # calls to vertex() since the last call to begin()
 	std::vector<struct Vertex> m_points;
 	std::vector<struct Vertex> m_lines;
+	std::vector<struct Vertex> m_triangles;
 
 	bool m_keyDownCurr[kKeyMax];
 	bool m_keyDownPrev[kKeyMax];
@@ -301,6 +310,13 @@ private:
 		float        _planeOffset, // offset of the motion plane
 		const Color& _color, 
 		float        _screenScale
+		);
+
+	void movePlanar(
+		Vec3*        _position_, 
+		const Vec3&  _constraint, 
+		const Vec3&  _planeNormal, 
+		float        _planeOffset
 		);
 };
 
