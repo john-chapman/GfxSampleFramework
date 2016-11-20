@@ -171,6 +171,17 @@ public:
 			Im3d::Vertex(r.m_origin + r.m_direction, 3.0f, Im3d::Color(0.0f, 1.0f, 0.0f));
 		Im3d::End();
 
+		Im3d::BeginTriangles();
+		Im3d::SetAlpha(0.5f);
+			Im3d::Vertex(vec3(-1.0f,  0.0f,  0.0f), Im3d::kColorRed);
+			Im3d::Vertex(vec3( 0.0f,  1.0f,  0.0f), Im3d::kColorBlue);
+			Im3d::Vertex(vec3( 1.0f,  0.0f,  0.0f), Im3d::kColorGreen);
+			
+			Im3d::Vertex(vec3( 2.0f,  1.0f,  0.0f), Im3d::kColorRed);
+			Im3d::Vertex(vec3( 3.0f,  0.0f,  0.0f), Im3d::kColorBlue);
+			Im3d::Vertex(vec3( 4.0f,  1.0f,  0.0f), Im3d::kColorGreen);
+		Im3d::End();
+
 		return true;
 	}
 
