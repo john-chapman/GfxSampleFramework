@@ -8,6 +8,10 @@
 
 #define Im3dAssert(_x) APT_ASSERT(_x)
 
+static float Remap(float _x, float _start, float _end) {
+	return glm::clamp(_x * (1.0f / (_end - _start)) + (-_start / (_end - _start)), 0.0f, 1.0f);
+}
+
 using namespace Im3d;
 
 const Im3d::Color Im3d::kColorBlack   = Im3d::Color(0.0f, 0.0f, 0.0f);
@@ -438,35 +442,19 @@ bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_
 			ret = axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y, kColorRed,   screenScale);
 			ret = axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), m_cursorRayDirectionW,  length(*_position_ - m_cursorRayOriginW), kColorGreen, screenScale);
 			ret = axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y, kColorBlue,  screenScale);
-		
-		// \todo quads in perspective are not very friendly, use point-based buttons
-			{	Vec3 qa(0.1f, 0.0f, 0.1f);
-				Vec3 qb(0.5f, 0.0f, 0.1f);
-				Vec3 qc(0.1f, 0.0f, 0.5f);
-				Vec3 qd(0.5f, 0.0f, 0.5f);
-				setColor(kColorBlue);
-				DrawQuadFilled(qa, qb, qc, qd);
+	
+			if (handle(MakeId("xzdrag"), Vec3(0.5f, 0.0f, 0.5f), kColorGreen, 12.0f)) {
+				movePlanar(_position_, Vec3(1.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y);
 			}
-
-			{	Vec3 qa(0.1f, 0.1f, 0.0f);
-				Vec3 qb(0.1f, 0.5f, 0.0f);
-				Vec3 qc(0.5f, 0.1f, 0.0f);
-				Vec3 qd(0.5f, 0.5f, 0.0f);
-				setColor(kColorRed);
-				DrawQuadFilled(qa, qb, qc, qd);
+			if (handle(MakeId("xydrag"), Vec3(0.5f, 0.5f, 0.0f), kColorBlue, 12.0f)) {
+				movePlanar(_position_, Vec3(1.0f), Vec3(0.0f, 0.0f, 1.0f), _position_->z);
 			}
-
-			{	Vec3 qa(0.0f, 0.1f, 0.1f);
-				Vec3 qb(0.0f, 0.5f, 0.1f);
-				Vec3 qc(0.0f, 0.1f, 0.5f);
-				Vec3 qd(0.0f, 0.5f, 0.5f);
-				setColor(kColorGreen);
-				DrawQuadFilled(qa, qb, qc, qd);
+			if (handle(MakeId("zydrag"), Vec3(0.0f, 0.5f, 0.5f), kColorRed, 12.0f)) {
+				movePlanar(_position_, Vec3(1.0f), Vec3(1.0f, 0.0f, 0.0f), _position_->x);
 			}
-
 		popId();
-
 	PopMatrix();
+
 
 	return ret;
 }
@@ -509,16 +497,22 @@ bool Context::axisGizmoW(
 	float        _screenScale
 	)
 {
+	float alignedAlpha = 1.0f - glm::abs(glm::dot(_axis, glm::normalize(m_cursorRayOriginW - *_position_)));
+	alignedAlpha = Remap(alignedAlpha, 0.1f, 0.2f);
+	if (!(alignedAlpha > 0.0f)) {
+		return false;
+	}
+
 	const frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
 	const frm::Plane pl(_planeNormal, _planeOffset);
 	const frm::Capsule cp(*_position_, *_position_ + _axis * _screenScale, 0.05f * _screenScale);
 
 	bool ret = false;
 	pushAlpha();
-	setAlpha(0.5f);
+	pushColor();
 	setColor(_color);
+	float alpha = 1.0f;
 	if (_id == m_activeId) {
-		setAlpha(1.0f);
 		if (isKeyDown(kMouseLeft)) {
 		 // active, move _position_
 			float t;
@@ -536,7 +530,6 @@ bool Context::axisGizmoW(
 					Vertex(-_axis * 9999.0f);
 					Vertex( _axis * 9999.0f);
 				End();
-				setAlpha(1.0f);
 			popSize();
 
 			ret = true;
@@ -546,7 +539,6 @@ bool Context::axisGizmoW(
 		}
 
 	} else if (_id == m_hotId) {
-		setAlpha(1.0f);
 		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, cp)) {
 			if (isKeyDown(kMouseLeft)) {
 			 // activate, store offset
@@ -560,13 +552,71 @@ bool Context::axisGizmoW(
 		}
 		
 	} else {
+		alpha = 0.75f;
 	 // intersect, make hot
 		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, cp)) {
 			m_hotId = _id;
 		}
 	}
-	DrawArrow(Vec3(0.0f, 0.0f, 0.0f), _axis, 0.2f);
 	
+	setAlpha(alpha * alignedAlpha);
+	DrawArrow(_axis * 0.1f, _axis, 0.1f);
+
+	popColor();
+	popAlpha();
+
+	return ret;
+}
+
+bool Context::handle(
+	Id            _id,
+	const Vec3&   _position,
+	const Color&  _color,
+	float         _size
+	)
+{
+	const frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
+	frm::Sphere s(_position, 0.2f);
+	s.transform(getMatrix());
+
+	bool ret = false;
+	pushAlpha();
+	pushColor();
+	setColor(_color);
+	float alpha = 1.0f;
+	if (_id == m_activeId) {
+		if (isKeyDown(kMouseLeft)) {
+		 // active
+			ret = true;
+		} else {
+		 // deactivate
+			m_hotId = m_activeId = kInvalidId;
+		}
+	} else if (_id == m_hotId) {
+		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, s)) {
+			if (isKeyDown(kMouseLeft)) {
+			 // activate
+				m_activeId = _id;
+			}
+		} else {
+			m_hotId = kInvalidId;
+		}
+
+	} else {
+		alpha = 0.75f;
+	 // intersect, make hot
+		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, s)) {
+			m_hotId = _id;
+		}
+	}
+
+	setAlpha(alpha);
+	setSize(_size);
+	BeginPoints();
+		Vertex(_position);
+	End();
+
+	popColor();
 	popAlpha();
 
 	return ret;

@@ -302,6 +302,13 @@ private:
 	bool isKeyDown(Key _key)     { return m_keyDownCurr[m_keyMap[_key]]; }
 	bool wasKeyPressed(Key _key) { int k = m_keyMap[_key]; return m_keyDownPrev[k] && !m_keyDownCurr[k]; }
 
+	bool handle(
+		Id            _id,
+		const Vec3&   _position,
+		const Color&  _color,
+		float         _size
+		);
+
 	bool axisGizmoW(
 		Id           _id,          // id for the axis
 		Vec3*        _position_, 

@@ -47,16 +47,15 @@ public:
 		if (!AppBase::update()) {
 			return false;
 		}
-
+		
 		static vec3 position0(-0.5f, 0.0f, 0.5f), scale0(1.0f);
 		static quat orientation0(1.0f, 0.0f, 0.0f, 0.0f);
 		Im3d::Gizmo("gizmoTest0", &position0, &orientation0, &scale0);
 
-		static vec3 position1(-2.5f, 4.0f, 2.5f), scale1(1.0f);
-		static quat orientation1(1.0f, 0.0f, 0.0f, 0.0f);
-		Im3d::Gizmo("gizmoTest1", &position1, &orientation1, &scale1);
-
-
+//		static vec3 position1(-2.5f, 4.0f, 2.5f), scale1(1.0f);
+//		static quat orientation1(1.0f, 0.0f, 0.0f, 0.0f);
+//		Im3d::Gizmo("gizmoTest1", &position1, &orientation1, &scale1);
+/*
 	 // primitive intersection tests
 		Im3d::Color kLineColor     = Im3d::Color(0.5f, 1.0f, 0.5f);
 		Im3d::Color kPlaneColor    = Im3d::Color(1.0f, 0.0f, 0.5f);
@@ -78,16 +77,6 @@ public:
 		r.m_direction = m_scene.getCullCamera()->getViewVector();
 		float tnear, tfar;
 
-	 // line
-		/*Im3d::SetColor(kLineColor);
-		Im3d::BeginLines();
-			Im3d::Vertex(ln.m_start, 2.0f);
-			Im3d::Vertex(ln.m_end,   2.0f);
-		Im3d::End();
-		r.distance2(ln, tnear);
-		Im3d::BeginPoints();
-			Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f, kLineColor);
-		Im3d::End();*/
 
 	 // plane
 		if (Intersects(r, p)) {
@@ -150,7 +139,7 @@ public:
 
 	 // capsule
 		Im3d::SetColor(kCapsuleColor);
-		/*if (Intersect(r, ca, tnear, tfar)) {
+		if (Intersect(r, ca, tnear, tfar)) {
 			Im3d::BeginPoints();
 				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  8.0f);
 				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 8.0f);
@@ -159,7 +148,7 @@ public:
 				Im3d::Vertex(r.m_origin + r.m_direction * tfar,  1.0f);
 				Im3d::Vertex(r.m_origin + r.m_direction * tnear, 1.0f);
 			Im3d::End();
-		}*/
+		}
 		kCapsuleColor.setA(frm::Intersects(r, ca) ? 1.0f : 0.4f);
 		Im3d::SetColor(kCapsuleColor);
 		Im3d::SetSize(2.0f);
@@ -181,7 +170,7 @@ public:
 			Im3d::Vertex(vec3( 3.0f,  0.0f,  0.0f), Im3d::kColorBlue);
 			Im3d::Vertex(vec3( 4.0f,  1.0f,  0.0f), Im3d::kColorGreen);
 		Im3d::End();
-
+	*/
 		return true;
 	}
 
