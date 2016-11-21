@@ -5,4 +5,4 @@
 		smooth vec4 m_color; \
 	}
 
-#define kAntialiasing 1.5
+#define kAntialiasing 2.0
