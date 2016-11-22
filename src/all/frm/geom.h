@@ -207,7 +207,7 @@ struct Line
 			return length2(w) - proj * proj / ln2;
 		}
 	}
-
+	
 	/// \return Nearest point to _p which lies on the line, unconstrained by
 	///   the endpoints.
 	vec3 nearest(const vec3& _p) const
@@ -307,8 +307,7 @@ struct Ray
 	}
 
 	/// \return square distance between the nearest points on the ray and line.
-	///   tnear_ receives the distance along the ray to the nearest point.
-	float distance2(const Line& _l, float& tnear_) const;
+	float distance2(const Line& _l, float& tray_, float& tline_) const;
 
 	/// \return point on the ray nearest to _p.
 	vec3 nearest(const vec3& _p) const
@@ -325,7 +324,7 @@ struct Ray
 	bool intersect(const Capsule& _c, float& tnear_, float& tfar_) const
 	{
 		Line ln(_c.m_start, _c.m_end);
-		if (distance2(ln, tnear_) < (_c.m_radius * _c.m_radius)) {
+		if (distance2(ln, tnear_, tfar_) < (_c.m_radius * _c.m_radius)) {
 
 			return true;
 		}

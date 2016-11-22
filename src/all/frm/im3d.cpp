@@ -439,11 +439,11 @@ bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_
 		bool ret = false;
 		pushId();
 			setId(_id);
-			ret = axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y, kColorRed,   screenScale);
-			ret = axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), m_cursorRayDirectionW,  length(*_position_ - m_cursorRayOriginW), kColorGreen, screenScale);
-			ret = axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y, kColorBlue,  screenScale);
+			ret = axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), kColorRed,   screenScale);
+			ret = axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), kColorGreen, screenScale);
+			ret = axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), kColorBlue,  screenScale);
 	
-			if (handle(MakeId("xzdrag"), Vec3(0.5f, 0.0f, 0.5f), kColorGreen, 12.0f)) {
+			/*if (handle(MakeId("xzdrag"), Vec3(0.5f, 0.0f, 0.5f), kColorGreen, 12.0f)) {
 				movePlanar(_position_, Vec3(1.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y);
 			}
 			if (handle(MakeId("xydrag"), Vec3(0.5f, 0.5f, 0.0f), kColorBlue, 12.0f)) {
@@ -451,10 +451,9 @@ bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_
 			}
 			if (handle(MakeId("zydrag"), Vec3(0.0f, 0.5f, 0.5f), kColorRed, 12.0f)) {
 				movePlanar(_position_, Vec3(1.0f), Vec3(1.0f, 0.0f, 0.0f), _position_->x);
-			}
+			}*/
 		popId();
 	PopMatrix();
-
 
 	return ret;
 }
@@ -490,21 +489,13 @@ template struct Context::Stack<float, Context::kMaxStateStackDepth>;
 bool Context::axisGizmoW(
 	Id           _id,
 	Vec3*        _position_, 
-	const Vec3&  _axis, 
-	const Vec3&  _planeNormal,
-	float        _planeOffset,
+	const Vec3&  _axis,
 	const Color& _color, 
 	float        _screenScale
 	)
 {
-	float alignedAlpha = 1.0f - glm::abs(glm::dot(_axis, glm::normalize(m_cursorRayOriginW - *_position_)));
-	alignedAlpha = Remap(alignedAlpha, 0.1f, 0.2f);
-	if (!(alignedAlpha > 0.0f)) {
-		return false;
-	}
-
 	const frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
-	const frm::Plane pl(_planeNormal, _planeOffset);
+	const frm::Line ln(*_position_, *_position_ + _axis);
 	const frm::Capsule cp(*_position_, *_position_ + _axis * _screenScale, 0.05f * _screenScale);
 
 	bool ret = false;
@@ -515,12 +506,9 @@ bool Context::axisGizmoW(
 	if (_id == m_activeId) {
 		if (isKeyDown(kMouseLeft)) {
 		 // active, move _position_
-			float t;
-			if (frm::Intersect(cursorRay, pl, t)) {
-				Vec3 displacement = cursorRay.m_origin + cursorRay.m_direction * t + m_translationOffset;
-				displacement = (displacement - *_position_) * _axis; // constrain movement to axis
-				*_position_ += displacement;
-			}
+			float tr, tl;
+			cursorRay.distance2(ln, tr, tl);
+			*_position_ = *_position_ + _axis * tl - m_translationOffset;
 			
 		 // draw the axis
 			pushSize();
@@ -543,9 +531,9 @@ bool Context::axisGizmoW(
 			if (isKeyDown(kMouseLeft)) {
 			 // activate, store offset
 				m_activeId = _id;
-				float t;
-				APT_VERIFY(frm::Intersect(cursorRay, pl, t)); // should always intersect in this case
-				m_translationOffset = *_position_ - (cursorRay.m_origin + cursorRay.m_direction * t);
+				float tr, tl;
+				cursorRay.distance2(ln, tr, tl);
+				m_translationOffset = _axis * tl;
 			}
 		} else {
 			m_hotId = kInvalidId;
@@ -558,9 +546,11 @@ bool Context::axisGizmoW(
 			m_hotId = _id;
 		}
 	}
-	
+	float alignedAlpha = 1.0f - glm::abs(glm::dot(_axis, glm::normalize(m_cursorRayOriginW - *_position_)));
+	alignedAlpha = Remap(alignedAlpha, 0.1f, 0.2f);
 	setAlpha(alpha * alignedAlpha);
-	DrawArrow(_axis * 0.1f, _axis, 0.1f);
+	DrawArrow(_axis * 0.2f, _axis, 0.1f);
+
 
 	popColor();
 	popAlpha();

@@ -312,9 +312,7 @@ private:
 	bool axisGizmoW(
 		Id           _id,          // id for the axis
 		Vec3*        _position_, 
-		const Vec3&  _axis, 
-		const Vec3&  _planeNormal, // normal of the motion plane
-		float        _planeOffset, // offset of the motion plane
+		const Vec3&  _axis,
 		const Color& _color, 
 		float        _screenScale
 		);
