@@ -50,14 +50,13 @@ void Sphere::transform(const mat4& _mat)
 	m_origin = m_origin + vec3(column(_mat, 3));
 }
 
-
 /*******************************************************************************
 
                                    Ray
 
 *******************************************************************************/
 
-float Ray::distance2(const Line& _l, float& tnear_) const
+float Ray::distance2(const Line& _l, float& tray_, float& tline_) const
 {
 	vec3 w = _l.m_start - m_origin;
 	vec3 ldir = _l.m_end - _l.m_start;
@@ -81,7 +80,7 @@ float Ray::distance2(const Line& _l, float& tnear_) const
 		sn = b * e - d;
 		tn = a * e - b * d;
   
-		if (sn < 0.0f) {
+		/*if (sn < 0.0f) {
 		// clamp s_c to 0
 		    sn = 0.0f;
 		    tn = e;
@@ -91,12 +90,12 @@ float Ray::distance2(const Line& _l, float& tnear_) const
 		    sn = sd;
 		    tn = e + b;
 		    td = 1.0f;
-		}
+		}*/
 	}
 
     // clamp t_c within [0,+inf]
     // clamp t_c to 0
-    if (tn < 0.0f) {
+    /*if (tn < 0.0f) {
         tc = 0.0f;
         if (-d < 0.0f) {
 		 // clamp s_c to 0
@@ -107,11 +106,12 @@ float Ray::distance2(const Line& _l, float& tnear_) const
 		} else {
 		    sc = -d / a;
 		}
-    } else {
+    } else {*/
         tc = tn / td;
         sc = sn / sd;
-    }
-	tnear_ = tc;
+    //}
+	tray_ = tc;
+	tline_ = sc;
     return length2(w + sc * ldir - tc * m_direction);
 }
 
@@ -382,8 +382,8 @@ bool frm::Intersect(const Ray& _r, const Cylinder& _c, float& t0_, float& t1_)
 bool frm::Intersects(const Ray& _r, const Capsule& _c)
 {
 	Line ln(_c.m_start, _c.m_end);
-	float t0;
-	return _r.distance2(ln, t0) < (_c.m_radius * _c.m_radius);
+	float t0, t1;
+	return _r.distance2(ln, t0, t1) < (_c.m_radius * _c.m_radius);
 }
 bool frm::Intersect(const Ray& _r, const Capsule& _c, float& t0_, float& t1_)
 {
