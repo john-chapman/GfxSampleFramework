@@ -419,11 +419,18 @@ void Context::reset()
 	memcpy(m_keyDownCurr, m_keyDown,     sizeof(m_keyDown));
 }
 
+
+float Context::pixelsToWorldSize(const Vec3& _position, float _pixels)
+{
+	float d = glm::length(_position - m_viewOriginW);
+	return m_tanHalfFov * 2.0f * d * (_pixels / m_displaySize.y);
+}
+
 bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_, float _screenSize)
 {
 	frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
 	 
- // maintain screen size 
+ // maintain screen size
 	float d = glm::length(*_position_ - m_viewOriginW);
 	float screenScale = 2.0f / (2.0f * glm::atan(0.5f / d)) * m_tanHalfFov * _screenSize;
 	screenScale /= m_displaySize.y;
@@ -454,6 +461,14 @@ bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_
 			}*/
 		popId();
 	PopMatrix();
+
+	
+	SetSize(1.0f);
+	if (handle(MakeId("viewdrag"), *_position_, kColorWhite, 12.0f)) {
+		Vec3 n = m_viewOriginW - *_position_;
+		float ln = glm::length(n);
+		movePlanar(_position_, Vec3(1.0f), n / ln, -ln);
+	}
 
 	return ret;
 }
@@ -551,7 +566,6 @@ bool Context::axisGizmoW(
 	setAlpha(alpha * alignedAlpha);
 	DrawArrow(_axis * 0.2f, _axis, 0.1f);
 
-
 	popColor();
 	popAlpha();
 
@@ -566,8 +580,9 @@ bool Context::handle(
 	)
 {
 	const frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
-	frm::Sphere s(_position, 0.2f);
-	s.transform(getMatrix());
+ // \note the hit sphere won't match the point drawn if the fov is hight (the projection of a sphere is an ellipse)
+	float srad = pixelsToWorldSize(_position, _size) * 0.5f;
+	frm::Sphere s(_position, srad);
 
 	bool ret = false;
 	pushAlpha();
@@ -593,7 +608,7 @@ bool Context::handle(
 		}
 
 	} else {
-		alpha = 0.75f;
+		alpha = 0.5f;
 	 // intersect, make hot
 		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, s)) {
 			m_hotId = _id;
