@@ -14,12 +14,18 @@
 using namespace frm;
 using namespace apt;
 
+static ovrErrorInfo s_errInfo;
 static const char* OvrErrorString()
 {
-	static ovrErrorInfo s_errInfo;
 	ovr_GetLastErrorInfo(&s_errInfo);
 	return s_errInfo.ErrorString;
 }
+static ovrResult OvrErrorResult()
+{
+	ovr_GetLastErrorInfo(&s_errInfo);
+	return s_errInfo.Result;
+}
+
 #define ovrAssert(_call) \
 	if (OVR_FAILURE((_call))) { \
 		APT_LOG_ERR("%s", OvrErrorString()); \
@@ -98,12 +104,12 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	if (!m_txVuiScreen) return false;
 	m_txVuiScreen->setWrap(GL_CLAMP_TO_EDGE);
 
-	m_txVuiScreenButtonMove = Texture::Create("textures/button_move.dds");
-	if (!m_txVuiScreenButtonMove) return false;
-	m_txVuiScreenButtonScale = Texture::Create("textures/button_scale.dds");
-	if (!m_txVuiScreenButtonScale) return false;
-	m_txVuiScreenButtonDistance = Texture::Create("textures/button_distance.dds");
-	if (!m_txVuiScreenButtonDistance) return false;
+	//m_txVuiScreenButtonMove = Texture::Create("textures/button_move.dds");
+	//if (!m_txVuiScreenButtonMove) return false;
+	//m_txVuiScreenButtonScale = Texture::Create("textures/button_scale.dds");
+	//if (!m_txVuiScreenButtonScale) return false;
+	//m_txVuiScreenButtonDistance = Texture::Create("textures/button_distance.dds");
+	//if (!m_txVuiScreenButtonDistance) return false;
 
 	m_fbVuiScreen = Framebuffer::Create(1, m_txVuiScreen);
 	if (!m_fbVuiScreen) return false;
@@ -251,14 +257,16 @@ void AppSampleVr::drawStatusBar()
 {
 	AppSample3d::drawStatusBar();
 
-	bool orientationTracked = (m_vrCtx->m_ovrTrackingState.StatusFlags & ovrStatus_OrientationTracked) != 0;
-	bool positionTracked = (m_vrCtx->m_ovrTrackingState.StatusFlags & ovrStatus_PositionTracked) != 0;
-	ImGui::TextColored(ImColor(positionTracked ? IM_COL32_GREEN : IM_COL32_RED), " POSITION ");
-	ImGui::SameLine();
-	ImGui::TextColored(ImColor(orientationTracked ? IM_COL32_GREEN : IM_COL32_RED), "ORIENTATION ");
-	ImGui::SameLine();
-	ImGui::TextColored(ImColor(m_disableRender ? IM_COL32_RED : IM_COL32_GREEN), "RENDER");
-	ImGui::SameLine();
+	if (m_vrCtx) {
+		bool orientationTracked = (m_vrCtx->m_ovrTrackingState.StatusFlags & ovrStatus_OrientationTracked) != 0;
+		bool positionTracked = (m_vrCtx->m_ovrTrackingState.StatusFlags & ovrStatus_PositionTracked) != 0;
+		ImGui::TextColored(ImColor(positionTracked ? IM_COL32_GREEN : IM_COL32_RED), " POSITION ");
+		ImGui::SameLine();
+		ImGui::TextColored(ImColor(orientationTracked ? IM_COL32_GREEN : IM_COL32_RED), "ORIENTATION ");
+		ImGui::SameLine();
+		ImGui::TextColored(ImColor(m_disableRender ? IM_COL32_RED : IM_COL32_GREEN), "RENDER");
+		ImGui::SameLine();
+	}
 }
 
 void AppSampleVr::draw()
@@ -472,16 +480,19 @@ bool AppSampleVr::initVr()
 		return false;
 	}
 	if (OVR_FAILURE(ovr_Create(&m_vrCtx->m_ovrSession, &m_vrCtx->m_ovrGraphicsLuid))) {
-	  // \todo if ovr_Create fails due to "No HMD attached", go into non-VR mode
 		APT_LOG_ERR("%s", OvrErrorString());
+		if (OvrErrorResult() == ovrError_NoHmd) {
+			m_vrMode = false;
+			return true;
+		}
 		APT_ASSERT(false);
-		return false;
 	}
 	m_vrCtx->m_ovrHmdDesc = ovr_GetHmdDesc(m_vrCtx->m_ovrSession);
 	if (m_vrCtx->m_ovrHmdDesc.Type != ovrHmd_CV1 && m_vrCtx->m_ovrHmdDesc.Type != ovrHmd_CB) {
 		APT_LOG_ERR("Invalid HMD (only Oculus CV1 supported)");
+		m_vrMode = false;
+		return true;
 		APT_ASSERT(false);
-		return false;
 	}
 
 	String<256> descStr;
