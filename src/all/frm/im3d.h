@@ -302,6 +302,9 @@ private:
 	bool isKeyDown(Key _key)     { return m_keyDownCurr[m_keyMap[_key]]; }
 	bool wasKeyPressed(Key _key) { int k = m_keyMap[_key]; return m_keyDownPrev[k] && !m_keyDownCurr[k]; }
 
+	/// Convert pixels -> world space size based on distance between _position and m_viewOriginW.
+	float pixelsToWorldSize(const Vec3& _position, float _pixels);
+
 	bool handle(
 		Id            _id,
 		const Vec3&   _position,
