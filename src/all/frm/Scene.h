@@ -114,7 +114,7 @@ private:
 
 	Node*               m_parent;
 	std::vector<Node*>  m_children;
-	std::vector<XForm*> m_xforms;      //< Evaluated in reverse order, applied to m_localMatrix.
+	std::vector<XForm*> m_xforms;      //< Evaluated in reverse order.
 
 	NameStr             m_name;        //< Names may not be unique.
 	Id                  m_id;          //< IDs must be unique per node.
@@ -164,9 +164,9 @@ public:
 	void destroyNode(Node*& _node_);
 
 	/// Find the first node matching name, return 0 if no match was found.
-	/// \note Names are not guranteed to be unique, however you can build a list
+	/// \note Names are not guaranteed to be unique, however you can build a list
 	///   of all matching nodes by repeatedly calling findNode() and passing the
-	///   previous result to the _start parm until the function returns 0. Very
+	///   previous result to the _start param until the function returns 0. Very
 	///   stupid, very slow method, use sparingly (i.e. for UI purposes).
 	Node* findNode(const char* _name, const Node* _start = 0);
 
