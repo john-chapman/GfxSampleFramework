@@ -5,11 +5,11 @@ using namespace apt;
 
 static const float kEpsilon = FLT_EPSILON;
 
-mat4 frm::LookAt(const vec3& _from, const vec3& _to, const vec3& _up)
+mat4 frm::GetLookAtMatrix(const vec3& _from, const vec3& _to, const vec3& _up)
 {
 	vec3 z = normalize(_to - _from);
 
-	#define EQUAL(a, b) (apt::all(apt::lessThan(apt::abs(a - b), vec3(kEpsilon))))
+	#define EQUAL(a, b) (all(lessThan(abs(a - b), vec3(kEpsilon))))
 
  // orthonormal basis
 	vec3 x, y;
