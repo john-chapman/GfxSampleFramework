@@ -14,38 +14,30 @@ using namespace apt;
 
 *******************************************************************************/
 
-std::vector<XForm::ClassRef*> XForm::s_registry;
-
-void XForm::Destroy(XForm*& _xform_)
-{
-	delete _xform_;
-	_xform_ = 0;
-}
-
-
+APT_FACTORY_DEFINE(XForm);
 
 /*******************************************************************************
 
-                        XForm_PositionOrientationScale
+                        PositionOrientationScaleXForm
 
 *******************************************************************************/
 
-static XForm::AutoRegister<XForm_PositionOrientationScale> s_XForm_PositionOrientationScale_AutoRegister;
+APT_FACTORY_REGISTER_DEFAULT(XForm, PositionOrientationScaleXForm);
 
-XForm_PositionOrientationScale::XForm_PositionOrientationScale()
+PositionOrientationScaleXForm::PositionOrientationScaleXForm()
 : m_position(0.0f)
 	, m_orientation(1.0f, 0.0f, 0.0f, 0.0f)
 	, m_scale(1.0f)
 {
 };
 
-void XForm_PositionOrientationScale::apply(Node* _node_, float _dt)
+void PositionOrientationScaleXForm::apply(Node* _node_, float _dt)
 {
 	mat4 mat = scale(translate(mat4(1.0f), m_position) * mat4_cast(m_orientation), m_scale);
 	_node_->setWorldMatrix(_node_->getWorldMatrix() * mat);
 }
 
-void XForm_PositionOrientationScale::edit()
+void PositionOrientationScaleXForm::edit()
 {
 	vec3 eul = eulerAngles(m_orientation);
 	ImGui::DragFloat3("Position", &m_position.x, 0.5f);
@@ -57,13 +49,13 @@ void XForm_PositionOrientationScale::edit()
 
 /*******************************************************************************
 
-                                XForm_FreeCamera
+                                FreeCameraXForm
 
 *******************************************************************************/
 
-static XForm::AutoRegister<XForm_FreeCamera> s_XForm_FreeCamera_AutoRegister;
+APT_FACTORY_REGISTER_DEFAULT(XForm, FreeCameraXForm);
 
-XForm_FreeCamera::XForm_FreeCamera()
+FreeCameraXForm::FreeCameraXForm()
 	: m_position(0.0f)
 	, m_velocity(0.0f)
 	, m_accelTime(0.2f)
@@ -77,7 +69,7 @@ XForm_FreeCamera::XForm_FreeCamera()
 {
 }
 
-void XForm_FreeCamera::apply(Node* _node_, float _dt)
+void FreeCameraXForm::apply(Node* _node_, float _dt)
 {
  	if (!_node_->isSelected()) {
 		return;
@@ -95,6 +87,12 @@ void XForm_FreeCamera::apply(Node* _node_, float _dt)
 		dir += vec3(column(localMatrix, 0)) * x;
 		float y = gpad->getAxisState(Gamepad::kLeftStickY);
 		dir += vec3(column(localMatrix, 2)) * y;
+		if (gpad->isDown(Gamepad::kLeft1)) {
+			dir -= vec3(column(localMatrix, 1));
+		}
+		if (gpad->isDown(Gamepad::kRight1)) {
+			dir += vec3(column(localMatrix, 1));
+		}
 		isAccel = true;
 	}
 	if (keyb->isDown(Keyboard::kW)) {
@@ -111,6 +109,14 @@ void XForm_FreeCamera::apply(Node* _node_, float _dt)
 	}
 	if (keyb->isDown(Keyboard::kD)) {
 		dir += vec3(column(localMatrix, 0));
+		isAccel = true;
+	}
+	if (keyb->isDown(Keyboard::kQ)) {
+		dir -= vec3(column(localMatrix, 1));
+		isAccel = true;
+	}
+	if (keyb->isDown(Keyboard::kE)) {
+		dir += vec3(column(localMatrix, 1));
 		isAccel = true;
 	}
 	if (isAccel) {
@@ -154,7 +160,7 @@ void XForm_FreeCamera::apply(Node* _node_, float _dt)
 	
 }
 
-void XForm_FreeCamera::edit()
+void FreeCameraXForm::edit()
 {
 	ImGui::Text("Position:       %1.3f,%1.3f,%1.3f",       m_position.x, m_position.y, m_position.z);
 	ImGui::Text("Speed:          %1.3f",                   m_speed);
@@ -170,4 +176,34 @@ void XForm_FreeCamera::edit()
 	ImGui::Spacing();
 	ImGui::SliderFloat("Rotation Input Mul",  &m_rotationInputMul, 1e-4f, 0.2f, "%1.5f");
 	ImGui::SliderFloat("Rotation Damp",       &m_rotationDamp,     1e-4f, 0.2f, "%1.5f");
+}
+
+
+/*******************************************************************************
+
+                                 LookAtXForm
+
+*******************************************************************************/
+
+APT_FACTORY_REGISTER_DEFAULT(XForm, LookAtXForm);
+
+LookAtXForm::LookAtXForm()
+	: m_target(nullptr)
+	, m_offset(0.0f)
+{
+}
+
+void LookAtXForm::apply(Node* _node_, float _dt)
+{
+	vec3 posW = GetTranslation(_node_->getWorldMatrix());
+	vec3 targetW = m_offset;
+	if (m_target) {
+		targetW += GetTranslation(_node_->getWorldMatrix());
+	}
+	_node_->setWorldMatrix(GetLookAtMatrix(posW, targetW));
+}
+
+void LookAtXForm::edit()
+{
+	ImGui::DragFloat3("Offset", &m_offset.x, 0.5f);
 }

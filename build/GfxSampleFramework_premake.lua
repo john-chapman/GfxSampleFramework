@@ -7,6 +7,7 @@ local WIN_SRC_DIR     = SRC_DIR .. "win/"
 local VR_ALL_SRC_DIR  = SRC_DIR .. "vr/all/"
 local TESTS_DIR       = "../tests/"
 local ALL_TESTS_DIR   = TESTS_DIR .. "all/"
+local VR_TESTS_DIR    = TESTS_DIR .. "vr/"
 
 filter { "configurations:debug" }
 	defines { "APT_DEBUG", "FRM_DEBUG" }
@@ -115,7 +116,6 @@ workspace "GfxSampleFramework"
 				"rmdir \"$(ProjectDir)..\\..\\bin\\common\"",
 				"mklink /j \"$(ProjectDir)..\\..\\bin\\common\" " .. "\"$(ProjectDir)..\\..\\data\\common\"",
 				})
-		
 
 workspace "GfxSampleFrameworkVr"
 	location(_ACTION)
@@ -132,13 +132,15 @@ workspace "GfxSampleFrameworkVr"
 		ALL_EXTERN_DIR, 
 		APT_DIR .. "src/all/",
 		APT_DIR .. "src/all/extern",
-		})
+		})		
 	filter { "platforms:Win*" }
 		includedirs({ 
 			WIN_SRC_DIR, 
 			APT_DIR .. "src/win/",
 			APT_DIR .. "src/win/extern/",
 			})
+	filter { "platforms:Win*", "architecture:x86_64", "action:vs2012" }
+		libdirs({ "$(OVRSDKROOT)/LibOVR/Lib/Windows/x64/Release/VS2012/" }) -- \todo cleaner way to do this?
 			
 	group "libs"
 		externalproject "ApplicationTools"
@@ -173,3 +175,34 @@ workspace "GfxSampleFrameworkVr"
 				VR_ALL_SRC_DIR    .. "**.cpp",
 				})
 	group ""
+	
+	project "frameworkvr_tests"
+		kind "ConsoleApp"
+		language "C++"
+		targetdir "../bin"
+		uuid "EDBB76F7-59D2-748D-A249-00AF0E9F4515"
+		
+		vpaths({
+			["*"] = ALL_TESTS_DIR .. "**",
+			})
+		
+		includedirs({ 
+			TESTS_DIR,
+			VR_ALL_SRC_DIR,
+			})
+		files({ 
+			VR_TESTS_DIR .. "**.h", 
+			VR_TESTS_DIR .. "**.hpp", 
+			VR_TESTS_DIR .. "**.c", 
+			VR_TESTS_DIR .. "**.cpp",
+			})
+					
+		links { "ApplicationTools", "framework", "frameworkvr", }
+		filter { "platforms:Win*" }
+			links { "shlwapi", "hid", "opengl32", "LibOVR" }
+
+		filter { "action:vs*" }
+			postbuildcommands({
+				"rmdir \"$(ProjectDir)..\\..\\bin\\common\"",
+				"mklink /j \"$(ProjectDir)..\\..\\bin\\common\" " .. "\"$(ProjectDir)..\\..\\data\\common\"",
+				})
