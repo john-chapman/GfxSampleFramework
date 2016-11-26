@@ -112,7 +112,8 @@ workspace "GfxSampleFramework"
 
 		filter { "action:vs*" }
 			postbuildcommands({
-				"xcopy \"$(ProjectDir)..\\..\\data\\*.*\"" .. " \"$(ProjectDir)..\\..\\bin\\*.*\"" .. " /y /d /i /e",
+				"rmdir \"$(ProjectDir)..\\..\\bin\\common\"",
+				"mklink /j \"$(ProjectDir)..\\..\\bin\\common\" " .. "\"$(ProjectDir)..\\..\\data\\common\"",
 				})
 		
 

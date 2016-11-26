@@ -69,7 +69,8 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)..\..\data\*.*" "$(ProjectDir)..\..\bin\*.*" /y /d /i /e</Command>
+      <Command>rmdir "$(ProjectDir)..\..\bin\common"
+mklink /j "$(ProjectDir)..\..\bin\common" "$(ProjectDir)..\..\data\common"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Win64|x64'">
@@ -95,7 +96,8 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)..\..\data\*.*" "$(ProjectDir)..\..\bin\*.*" /y /d /i /e</Command>
+      <Command>rmdir "$(ProjectDir)..\..\bin\common"
+mklink /j "$(ProjectDir)..\..\bin\common" "$(ProjectDir)..\..\data\common"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
