@@ -45,6 +45,8 @@ void PositionOrientationScaleXForm::edit()
 		m_orientation = quat(eul);
 	}
 	ImGui::DragFloat3("Scale", &m_scale.x, 0.2f);
+
+	Im3d::Gizmo("PositionOrientationScaleXForm", &m_position, &m_orientation, &m_scale);
 }
 
 /*******************************************************************************

@@ -101,7 +101,7 @@ void Im3d::DrawXyzAxes()
 
 		SetColor(0.0f, 0.0f, 1.0f);
 		Vertex(0.0f, 0.0f, 0.0f);
-		Vertex(0.0f, 0.0f, -1.0f);
+		Vertex(0.0f, 0.0f, 1.0f);
 	End();
 }
 
@@ -437,10 +437,8 @@ bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_
 
 	
 	PushMatrix();
-	// \todo probably don't want to scale the gizmo
-		Mat4 wm = glm::scale(glm::translate(glm::mat4(1.0f), *_position_) * glm::mat4_cast(*_orientation_), /**_scale_ **/ Vec3(screenScale));
+		Mat4 wm = glm::scale(glm::translate(glm::mat4(1.0f), *_position_), Vec3(screenScale)); // position the gizmo and apply screen scale
 		MulMatrix(wm);
-	
 
 		SetSize(4.0f);
 		bool ret = false;
@@ -449,26 +447,16 @@ bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_
 			ret = axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), kColorRed,   screenScale);
 			ret = axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), kColorGreen, screenScale);
 			ret = axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), kColorBlue,  screenScale);
-	
-			/*if (handle(MakeId("xzdrag"), Vec3(0.5f, 0.0f, 0.5f), kColorGreen, 12.0f)) {
-				movePlanar(_position_, Vec3(1.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y);
-			}
-			if (handle(MakeId("xydrag"), Vec3(0.5f, 0.5f, 0.0f), kColorBlue, 12.0f)) {
-				movePlanar(_position_, Vec3(1.0f), Vec3(0.0f, 0.0f, 1.0f), _position_->z);
-			}
-			if (handle(MakeId("zydrag"), Vec3(0.0f, 0.5f, 0.5f), kColorRed, 12.0f)) {
-				movePlanar(_position_, Vec3(1.0f), Vec3(1.0f, 0.0f, 0.0f), _position_->x);
-			}*/
 		popId();
 	PopMatrix();
 
 	
-	SetSize(1.0f);
+	/*SetSize(1.0f);
 	if (handle(MakeId("viewdrag"), *_position_, kColorWhite, 12.0f)) {
 		Vec3 n = m_viewOriginW - *_position_;
 		float ln = glm::length(n);
 		movePlanar(_position_, Vec3(1.0f), n / ln, -ln);
-	}
+	}*/
 
 	return ret;
 }
