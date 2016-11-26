@@ -139,8 +139,8 @@ workspace "GfxSampleFrameworkVr"
 			APT_DIR .. "src/win/",
 			APT_DIR .. "src/win/extern/",
 			})
-	filter { "platforms:Win*", "architecture:x86_64", "action:vs2012" }
-		libdirs({ "$(OVRSDKROOT)/LibOVR/Lib/Windows/x64/Release/VS2012/" }) -- \todo cleaner way to do this?
+	filter { "platforms:Win*", "architecture:x86_64", "action:vs*" }
+		libdirs({ "$(OVRSDKROOT)/LibOVR/Lib/Windows/x64/%{cfg.buildcfg}/" .. tostring(_ACTION) .. "/" }) -- \todo cleaner way to do this?
 			
 	group "libs"
 		externalproject "ApplicationTools"
