@@ -111,7 +111,7 @@ public:
 	/// Extract position from world matrix.
 	vec3           getPosition() const                { return vec3(apt::column(m_world, 3)); }
 	/// Extract view direction from world matrix.
-	vec3           getViewVector() const              { return -vec3(apt::column(m_world, 2)); }
+	vec3           getViewVector() const              { return vec3(apt::column(m_world, 2)); }
 
 	/// Construct the view matrix, view-projection matrix and world space frustum,
 	/// plus the projection matrix (if dirty).
