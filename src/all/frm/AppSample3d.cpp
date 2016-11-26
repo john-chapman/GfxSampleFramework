@@ -53,8 +53,8 @@ bool AppSample3d::init(const apt::ArgList& _args)
 	Camera* defaultCamera = m_scene.createCamera(Camera(), defaultScene);
 	Node* defaultCameraNode = defaultCamera->getNode();
 	defaultCameraNode->setSelected(true);
-	XForm_FreeCamera* freeCam = new XForm_FreeCamera;
-	freeCam->m_position = vec3(0.0f, 5.0f, 22.5f);
+	XForm* freeCam = XForm::Create("FreeCameraXForm");
+	((FreeCameraXForm*)freeCam)->m_position = vec3(0.0f, 5.0f, 22.5f);
 	defaultCameraNode->addXForm(freeCam);
 
 	return true;

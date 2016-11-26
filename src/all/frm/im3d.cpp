@@ -175,7 +175,7 @@ void Im3d::DrawBox(const Vec3& _min, const Vec3& _max)
 void Im3d::DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int _detail)
 {
 	Vec3 org = _start + (_end - _start) * 0.5f;
-	Mat4 cmat = frm::LookAt(org, _end);
+	Mat4 cmat = frm::GetLookAtMatrix(org, _end);
 	float ln = glm::length(_end - _start) * 0.5f;
 
 	PushMatrix();
@@ -209,7 +209,7 @@ void Im3d::DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int
 void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int _detail)
 {
 	Vec3 org = _start + (_end - _start) * 0.5f;
-	Mat4 cmat = frm::LookAt(org, _end);
+	Mat4 cmat = frm::GetLookAtMatrix(org, _end);
 	float ln = glm::length(_end - _start) * 0.5f;
 	int detail2 = _detail * 2; // force cap base detail to match ends
 

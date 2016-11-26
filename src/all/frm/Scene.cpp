@@ -4,6 +4,7 @@
 #include <frm/Profiler.h>
 #include <frm/XForm.h>
 
+#include <apt/log.h>
 #include <apt/String.h>
 
 #include <algorithm> // std::find
@@ -361,6 +362,11 @@ static bool DrawNodeGraphCallback(Node* _node)
 	Im3d::BeginPoints();			
 		Im3d::Vertex(pos, 4.0f, Im3d::Color(kNodeGraphColor.r, kNodeGraphColor.g, kNodeGraphColor.b, 0.75f));
 	Im3d::End();
+	Im3d::SetSize(1.0f);
+	Im3d::PushMatrix();
+		Im3d::MulMatrix(_node->getWorldMatrix());
+		Im3d::DrawXyzAxes();
+	Im3d::PopMatrix();
 	if (_node->getParent()) {
 		const Im3d::Vec3 parentPos = GetTranslation(_node->getParent()->getWorldMatrix());
 		Im3d::BeginLines();
@@ -436,7 +442,7 @@ void SceneEditor::edit()
 	}
 	ImGui::Spacing();
 	ImGui::Checkbox("Show Node Graph", &m_showNodeGraph3d);
-	if (m_showNodeGraph3d) {
+	if (m_showNodeGraph3d) {		
 		m_scene->traverse(DrawNodeGraphCallback, &m_scene->m_root);
 	}
 	ImGui::Checkbox("Show Cameras", &m_showCameras);
@@ -891,10 +897,10 @@ XForm* SceneEditor::createXForm(XForm* _current)
 		filter.Draw("Filter##XForm");
 		XForm::ClassRef* xformRef = 0;
 		for (int i = 0; i < XForm::GetClassRefCount(); ++i) {
-			XForm::ClassRef* xformRef = XForm::GetClassRef(i);
-			if (filter.PassFilter(xformRef->m_name)) {
-				if (ImGui::Selectable(xformRef->m_name)) {
-					ret = xformRef->create();
+			const XForm::ClassRef* cref = XForm::GetClassRef(i);
+			if (filter.PassFilter(cref->getName())) {
+				if (ImGui::Selectable(cref->getName())) {
+					ret = XForm::Create(cref);
 					break;
 				}
 			}

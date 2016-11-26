@@ -22,7 +22,8 @@ using apt::quat;
 
 using apt::LCG;
 
-mat4 LookAt(const vec3& _from, const vec3& _to, const vec3& _up = vec3(0.0f, 1.0f, 0.0f));
+/// \return Matrix with position = _from and forward vector = (_to - _from).
+mat4 GetLookAtMatrix(const vec3& _from, const vec3& _to, const vec3& _up = vec3(0.0f, 1.0f, 0.0f));
 
 inline vec3 GetTranslation(const mat4& _mat) { return vec3(apt::column(_mat, 3)); }
 

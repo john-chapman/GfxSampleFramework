@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "framework", "framework.vcxp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "frameworkvr", "frameworkvr.vcxproj", "{9BEAA512-07A0-1E08-9094-18DFFC48150C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "frameworkvr_tests", "frameworkvr_tests.vcxproj", "{EDBB76F7-59D2-748D-A249-00AF0E9F4515}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win64 = Debug|Win64
@@ -27,6 +29,10 @@ Global
 		{9BEAA512-07A0-1E08-9094-18DFFC48150C}.Debug|Win64.Build.0 = Debug Win64|x64
 		{9BEAA512-07A0-1E08-9094-18DFFC48150C}.Release|Win64.ActiveCfg = Release Win64|x64
 		{9BEAA512-07A0-1E08-9094-18DFFC48150C}.Release|Win64.Build.0 = Release Win64|x64
+		{EDBB76F7-59D2-748D-A249-00AF0E9F4515}.Debug|Win64.ActiveCfg = Debug Win64|x64
+		{EDBB76F7-59D2-748D-A249-00AF0E9F4515}.Debug|Win64.Build.0 = Debug Win64|x64
+		{EDBB76F7-59D2-748D-A249-00AF0E9F4515}.Release|Win64.ActiveCfg = Release Win64|x64
+		{EDBB76F7-59D2-748D-A249-00AF0E9F4515}.Release|Win64.Build.0 = Release Win64|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -8,11 +8,7 @@
 #include <frm/Input.h>
 #include <frm/Scene.h>
 
-#include <apt/log.h>
-#include <apt/String.h>
-#include <apt/StringHash.h>
-
-#include <vector>
+#include <apt/Factory.h>
 
 namespace frm
 {
@@ -21,69 +17,58 @@ class Node;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class XForm
+/// Base class/factory for XForms.
 ////////////////////////////////////////////////////////////////////////////////
-class XForm
+class XForm: public apt::Factory<XForm>
 {
 public:
-
-	virtual const char* getName() const                = 0;
-	virtual void        apply(Node* _node_, float _dt) = 0;	
-	virtual void        edit()                         = 0;
-
-
-
-	static XForm* Create(apt::StringHash _nameHash);
-	static void Destroy(XForm*& _xform_);
-	
-	struct ClassRef
+	enum CompleteBehavior
 	{
-		const char*      m_name;
-		apt::StringHash  m_nameHash;
-
-		ClassRef(const char* _name)
-			: m_name(_name)
-			, m_nameHash(_name)
-		{
-			s_registry.push_back(this);
-		}
-
-		virtual XForm* create() = 0;
+		kDestroy,
+		kRepeat,
+		kReverse
 	};
-
 	
-	static int GetClassRefCount() { return (int)s_registry.size(); }
-	static ClassRef* GetClassRef(int _i) { return s_registry[_i]; }
-
-	template <typename tSubClass>
-	struct AutoRegister: public ClassRef
-	{
-		AutoRegister(): ClassRef(tSubClass::GetName()) {}
-		virtual XForm* create() override { return new tSubClass(); }
-	};
-
-private:
-	static std::vector<ClassRef*> s_registry;
-
+	virtual void apply(Node* _node_, float _dt) = 0;	
+	virtual void edit()                         = 0;
+	
+	const char* getName() const { return getClassRef()->getName(); }
+	
 }; // class XForm
 
 
-struct XForm_PositionOrientationScale: public XForm
+////////////////////////////////////////////////////////////////////////////////
+/// \class PositionOrientationScaleXForm
+////////////////////////////////////////////////////////////////////////////////
+struct PositionOrientationScaleXForm: public XForm
 {
 	vec3  m_position;
 	quat  m_orientation;
 	vec3  m_scale;
 
-	static const char* GetName() { return "PositionOrientationScale"; }
+	PositionOrientationScaleXForm();
+	virtual ~PositionOrientationScaleXForm() {}
 
-	XForm_PositionOrientationScale();
-	virtual ~XForm_PositionOrientationScale() {}
-
-	virtual const char* getName() const override { return GetName(); }
-	virtual void        apply(Node* _node_, float _dt) override;
-	virtual void        edit() override;
+	virtual void apply(Node* _node_, float _dt) override;
+	virtual void edit() override;
 };
 
-struct XForm_FreeCamera: public XForm
+////////////////////////////////////////////////////////////////////////////////
+/// \class FreeCameraXForm
+/// Apply keyboard/gamepad input.
+/// Mouse/Keyboard:
+///   - W/A/S/D = forward/left/backward/right
+///   - Q/E = down/up
+///   - Left Shift = accelerate
+///   - Mouse = look
+///
+/// Gamepad:
+///    - Left Stick = move
+///    - Left/Right shoulder buttons = down/up
+///    - Right Trigger = accelerate
+///    - Right Stick = look
+////////////////////////////////////////////////////////////////////////////////
+struct FreeCameraXForm: public XForm
 {
 	vec3  m_position;
 	vec3  m_velocity;
@@ -98,15 +83,29 @@ struct XForm_FreeCamera: public XForm
 	float m_rotationInputMul;   //< Scale rotation inputs (should be relative to fov/screen size).
 	float m_rotationDamp;       //< Adhoc damping factor.
 
-	static const char* GetName() { return "FreeCamera"; }
+	
+	FreeCameraXForm();
+	virtual ~FreeCameraXForm() {}
 
-	XForm_FreeCamera();
-	virtual ~XForm_FreeCamera() {}
-
-	virtual const char* getName() const override { return GetName(); }
-	virtual void        apply(Node* _node_, float _dt) override;
-	virtual void        edit() override;
+	virtual void apply(Node* _node_, float _dt) override;
+	virtual void edit() override;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+/// \class LookAtXForm
+/// Overrides the world matrix with a 'look at' matrix.
+////////////////////////////////////////////////////////////////////////////////
+struct LookAtXForm: public XForm
+{
+	const Node* m_target; //< Node to look at (can be 0).
+	vec3 m_offset;        //< Offset from target, or world space if target is 0.
+
+	LookAtXForm();
+	virtual ~LookAtXForm() {}
+
+	virtual void apply(Node* _node_, float _dt) override;
+	virtual void edit() override;
+}; 
 
 } // namespace frm
 
