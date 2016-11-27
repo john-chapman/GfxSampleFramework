@@ -73,6 +73,8 @@ struct frm::AppSampleVr::VrContext
 
 };
 
+
+// \todo move somehwer global (App3d?)
 static void DrawFrustum(const Frustum& _frustum)
 {
 	const vec3* verts = _frustum.m_vertices;
@@ -105,6 +107,21 @@ static void DrawFrustum(const Frustum& _frustum)
 	Im3d::End();
 }
 
+void SetCombinedProjection(const Camera& _left, const Camera& _right, Camera& ret_)
+{
+	ret_.setClipNear(APT_MIN(_left.getClipNear(), _right.getClipNear()));
+	ret_.setClipFar(APT_MIN(_left.getClipFar(), _right.getClipFar()));
+
+ // up/down should be symmetrical for both eyes
+	ret_.setTanFovUp(APT_MAX(_left.getTanFovUp(), _right.getTanFovUp()));
+	ret_.setTanFovDown(APT_MIN(_left.getTanFovDown(), _right.getTanFovDown()));
+
+ // left/right are combined
+	float hfov = (_right.getLocalFrustum().m_vertices[5].x - _left.getLocalFrustum().m_vertices[4].x) * 0.5f / ret_.getClipFar();
+	ret_.setTanFovLeft(hfov);
+	ret_.setTanFovRight(hfov);
+}
+
 
 // PUBLIC
 
@@ -125,9 +142,9 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	m_eyeFovScale = 1.0f;
 	m_clipNear = 0.05f;
 	m_clipFar = 1000.0f;
-	m_nodeLoco = m_scene.createNode("VrLoco", Node::kTypeRoot);
-	m_nodeLoco->addXForm(new FreeCameraXForm);
-	m_nodeHead = m_scene.createNode("VrHead", Node::kTypeRoot, m_nodeLoco);
+	m_nodeOrigin = m_scene.createNode("VrOrigin", Node::kTypeRoot);
+	m_nodeOrigin->addXForm(new FreeCameraXForm);
+	m_nodeHead = m_scene.createNode("VrHead", Node::kTypeRoot, m_nodeOrigin);
 	m_vrDrawCamera = m_scene.createCamera(Camera(), m_nodeHead);
 	pollHmd(); // update head position
 
@@ -168,6 +185,39 @@ bool AppSampleVr::update()
 		return false;
 	}
 
+	if (*m_showVrOptions) {
+		ImGui::Begin("VR");
+			ImGui::AlignFirstTextHeightToWidgets();
+			if (ImGui::Button("Recenter") || Input::GetGamepad() && Input::GetGamepad()->wasPressed(Gamepad::kStart)) {
+				recenter();
+			}
+			ImGui::SameLine();
+			ImGui::Text("%1.3f, %1.3f, %1.3f", m_headOffset.x, m_headOffset.y, m_headOffset.z);
+			ImGui::Checkbox("Show Tracking Frusta", m_showTrackingFrusta);
+		ImGui::End();
+	}
+	if (*m_showTrackingFrusta) {
+		unsigned trackerCount = ovr_GetTrackerCount(m_vrCtx->m_ovrSession);
+		for (unsigned i = 0; i < trackerCount; ++i) {		 
+			float tanV = apt::tan(m_vrCtx->m_ovrTrackerDesc[i].FrustumVFovInRadians * 0.5f);
+			float tanH = apt::tan(m_vrCtx->m_ovrTrackerDesc[i].FrustumHFovInRadians * 0.5f);
+			Frustum f(
+				tanV, tanV,
+				tanH, tanH,
+			 // oculus tracker projection oriented along +z, so negate here
+				-m_vrCtx->m_ovrTrackerDesc[i].FrustumNearZInMeters,
+				-m_vrCtx->m_ovrTrackerDesc[i].FrustumFarZInMeters
+				);
+			mat4 wm = OvrPoseToMat4(ovr_GetTrackerPose(m_vrCtx->m_ovrSession, i).Pose);
+			wm = translate(mat4(1.0f), m_headOffset) * wm;
+			Im3d::PushMatrix();
+				Im3d::SetMatrix(m_nodeOrigin->getWorldMatrix());
+				Im3d::MulMatrix(wm);
+				DrawFrustum(f);
+				Im3d::DrawXyzAxes();
+			Im3d::PopMatrix();
+		}
+	}
 
 	AUTO_MARKER("AppSampleVR::update");
 	ovrSessionStatus sessionStatus;
@@ -192,7 +242,7 @@ bool AppSampleVr::update()
 		APT_LOG("Entering VR mode");
 		m_scene.setDrawCamera(m_vrDrawCamera);
 		m_scene.setCullCamera(m_vrDrawCamera);
-		m_nodeLoco->setSelected(true);
+		m_nodeOrigin->setSelected(true);
 		io.FontGlobalScale = 2.0f;
 		m_vrMode = true;
 	}
@@ -200,7 +250,7 @@ bool AppSampleVr::update()
 		APT_LOG("Leaving VR mode");
 		m_scene.setDrawCamera(m_sceneDrawCamera);
 		m_scene.setCullCamera(m_sceneDrawCamera);
-		m_nodeLoco->setSelected(false);
+		m_nodeOrigin->setSelected(false);
 		io.FontGlobalScale = 1.0f;
 		m_vrMode = false;
 	}
@@ -296,7 +346,7 @@ void AppSampleVr::drawMainMenuBar()
 	AppSample3d::drawMainMenuBar();
 	if (ImGui::BeginMenu("VR")) {
 		if (ImGui::MenuItem("Options")) {
-			m_showVrOptions = !m_showVrOptions;
+			*m_showVrOptions = !*m_showVrOptions;
 		}		
 
 		ImGui::EndMenu();
@@ -324,7 +374,7 @@ void AppSampleVr::drawStatusBar()
 void AppSampleVr::draw()
 {
 	GlContext* ctx = getGlContext();
-
+	
 	if (m_vrMode) {
 		setDefaultFramebuffer(m_fbVuiScreen);
 		ctx->setFramebufferAndViewport(m_fbVuiScreen);
@@ -395,16 +445,19 @@ AppSampleVr::AppSampleVr(const char* _title, const char* _appDataPath)
 	, m_scaleVuiScreen(false)
 	, m_distVuiScreen(false)
 	, m_showVuiScreen(true)
-	, m_showVrOptions(false)
 {
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSampleVr");
 	//             name                   display name              default                    min        max      hidden
+	props.addBool ("ShowVrOptions",       "Show VR Options",        false,                                         true);
+	props.addBool ("ShowTrackingFrusta",  "Show Tracking Frusta",   false,                                         false);
 	props.addVec3 ("VuiScreenOrigin",     "Vui Screen Origin",      vec3(0.0f, 1.0f, -1.0f),  -1000.0f,  1000.0f,  false);
 	props.addFloat("VuiScreenDistance",   "Vui Screen Distance",    2.0f,                     0.0f,      1000.0f,  false);
 	props.addFloat("VuiScreenSize",       "Vui Screen Size",        0.4f,                     0.1f,      1000.0f,  false);
 	props.addFloat("VuiScreenAspect",     "Vui Screen Aspect",      16.0f/9.0f,               0.5f,      4.0f,     false);
 
+	m_showVrOptions      = &props["ShowVrOptions"].getValue<bool>();
+	m_showTrackingFrusta = &props["ShowTrackingFrusta"].getValue<bool>();
 	m_vuiScreenOrigin    = &props["VuiScreenOrigin"].getValue<vec3>();
 	m_vuiScreenDistance  = &props["VuiScreenDistance"].getValue<float>();
 	m_vuiScreenSize      = &props["VuiScreenSize"].getValue<float>();
@@ -484,6 +537,7 @@ void AppSampleVr::pollHmd()
 		
 		double sampleTime = ovr_GetTimeInSeconds();
 		mat4 headMat = OvrPoseToMat4(trackState.HeadPose.ThePose);
+		headMat = translate(mat4(1.0f), m_headOffset) * headMat;
 		float oldHeadPitch = dot(vec3(column(m_nodeHead->getWorldMatrix(), 3)), vec3(0.0f, 1.0f, 0.0));
 		float newHeadPitch = dot(vec3(column(headMat, 3)), vec3(0.0f, 1.0f, 0.0));
 		m_headRotationDelta.y = newHeadPitch - oldHeadPitch;
@@ -516,7 +570,8 @@ void AppSampleVr::pollHmd()
 			m_eyeCameras[i].setTanFovLeft(eyeDesc.Fov.LeftTan * m_eyeFovScale);
 			m_eyeCameras[i].setTanFovRight(eyeDesc.Fov.RightTan * m_eyeFovScale);
 		
-			mat4 eyeMat = m_nodeLoco->getWorldMatrix() * OvrPoseToMat4(eyePose);
+			mat4 eyeMat = m_nodeOrigin->getWorldMatrix() * OvrPoseToMat4(eyePose);
+			eyeMat = translate(mat4(1.0f), m_headOffset) * eyeMat;
 			m_eyeCameras[i].setWorldMatrix(eyeMat);
 			m_eyeCameras[i].build();
 
@@ -529,13 +584,20 @@ void AppSampleVr::pollHmd()
 		}
 
 		// build combined frustum
-		m_vrDrawCamera->setTanFovUp   (APT_MAX(m_eyeCameras[0].getTanFovUp(),    m_eyeCameras[1].getTanFovUp()));
-		m_vrDrawCamera->setTanFovDown (APT_MIN(m_eyeCameras[0].getTanFovDown(),  m_eyeCameras[1].getTanFovDown()));
-		m_vrDrawCamera->setTanFovRight(m_eyeCameras[kEyeRight].getTanFovRight());
-		m_vrDrawCamera->setTanFovLeft (m_eyeCameras[kEyeLeft].getTanFovLeft());
+		//m_vrDrawCamera->setTanFovUp   (APT_MAX(m_eyeCameras[0].getTanFovUp(),    m_eyeCameras[1].getTanFovUp()));
+		//m_vrDrawCamera->setTanFovDown (APT_MIN(m_eyeCameras[0].getTanFovDown(),  m_eyeCameras[1].getTanFovDown()));
+		//m_vrDrawCamera->setTanFovRight(m_eyeCameras[kEyeRight].getTanFovRight() + m_eyeCameras[kEyeRight].getTanFovLeft());
+		//m_vrDrawCamera->setTanFovLeft (m_eyeCameras[kEyeLeft].getTanFovLeft() + m_eyeCameras[kEyeLeft].getTanFovRight());
+		SetCombinedProjection(m_eyeCameras[kEyeLeft], m_eyeCameras[kEyeRight], *m_vrDrawCamera);
 		m_vrDrawCamera->setClipNear(m_clipNear);
 		m_vrDrawCamera->setClipFar(m_clipFar * 0.005f);
 	}
+}
+
+void AppSampleVr::recenter()
+{
+	m_headOffset = -GetTranslation(m_nodeHead->getLocalMatrix());
+	m_headOffset.y = 1.6f; // \todo head height
 }
 
 // PRIVATE
@@ -561,6 +623,11 @@ bool AppSampleVr::initVr()
 		m_vrMode = false;
 		return true;
 		APT_ASSERT(false);
+	}
+
+	unsigned trackerCount = APT_MAX(ovr_GetTrackerCount(m_vrCtx->m_ovrSession), APT_ARRAY_COUNT(m_vrCtx->m_ovrTrackerDesc));
+	for (unsigned i = 0; i < trackerCount; ++i) {
+		m_vrCtx->m_ovrTrackerDesc[i] = ovr_GetTrackerDesc(m_vrCtx->m_ovrSession, i);
 	}
 
 	String<256> descStr;
