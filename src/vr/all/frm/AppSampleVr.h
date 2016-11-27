@@ -54,7 +54,6 @@ protected:
 	bool isVrMode() const                 { return m_vrMode; }
 
 	const Camera&  getEyeCamera(Eye _eye) { return m_eyeCameras[_eye]; }
-	const Frustum& getCombinedFrustumW()  { return m_frustumCombinedW; }
 
 	/// \return Current texture for the specified _eye/_layer.
 	const Texture* getEyeTexture(Eye _eye, Layer _layer);
@@ -77,7 +76,9 @@ private:
 	float        m_clipNear, m_clipFar;
 
 	Camera       m_eyeCameras[2];
-	Frustum      m_frustumCombinedW;   //< Combines left + right eye world frusta, use for global culling.
+	Camera*      m_vrDrawCamera;        //< Combined eye cameras, override scene cull/draw camera for Im3d, etc.
+	Camera*      m_sceneDrawCamera;     //< Store/restore when entering/leaving VR mode.
+	Node*        m_nodeLoco;
 	Node*        m_nodeHead;
 	
 	vec2         m_headRotationDelta; // \todo encapsulte in gaze cursor?

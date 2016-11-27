@@ -7,6 +7,7 @@
 #include <frm/Shader.h>
 #include <frm/Texture.h>
 #include <frm/ui/TextureViewer.h>
+#include <frm/XForm.h>
 
 #include <OVR_CAPI.h>
 #include <OVR_CAPI_GL.h>
@@ -72,6 +73,39 @@ struct frm::AppSampleVr::VrContext
 
 };
 
+static void DrawFrustum(const Frustum& _frustum)
+{
+	const vec3* verts = _frustum.m_vertices;
+
+ // edges
+	Im3d::SetColor(0.5f, 0.5f, 0.5f);
+	Im3d::BeginLines();
+		Im3d::Vertex(verts[0]); Im3d::Vertex(verts[4]);
+		Im3d::Vertex(verts[1]); Im3d::Vertex(verts[5]);
+		Im3d::Vertex(verts[2]); Im3d::Vertex(verts[6]);
+		Im3d::Vertex(verts[3]); Im3d::Vertex(verts[7]);
+	Im3d::End();
+
+ // near plane
+	Im3d::SetColor(1.0f, 1.0f, 0.25f);
+	Im3d::BeginLineLoop();
+		Im3d::Vertex(verts[0]); 
+		Im3d::Vertex(verts[1]);
+		Im3d::Vertex(verts[2]);
+		Im3d::Vertex(verts[3]);
+	Im3d::End();
+
+ // far plane
+	Im3d::SetColor(1.0f, 0.25f, 1.0f);
+	Im3d::BeginLineLoop();
+		Im3d::Vertex(verts[4]); 
+		Im3d::Vertex(verts[5]);
+		Im3d::Vertex(verts[6]);
+		Im3d::Vertex(verts[7]);
+	Im3d::End();
+}
+
+
 // PUBLIC
 
 bool AppSampleVr::init(const apt::ArgList& _args)
@@ -79,9 +113,10 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	if (!AppSample3d::init(_args)) {
 		return false;
 	}
+	m_sceneDrawCamera = m_scene.getDrawCamera();
 	getGlContext()->setVsyncMode(GlContext::VsyncMode::kOff);
 
-	m_vrMode = true;
+	m_vrMode = false;
 	m_vrCtx = new VrContext;
 	if (!initVr()) {
 		return false;
@@ -90,8 +125,12 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	m_eyeFovScale = 1.0f;
 	m_clipNear = 0.05f;
 	m_clipFar = 1000.0f;
-	m_nodeHead = m_scene.createNode("Head", Node::kTypeRoot);
+	m_nodeLoco = m_scene.createNode("VrLoco", Node::kTypeRoot);
+	m_nodeLoco->addXForm(new FreeCameraXForm);
+	m_nodeHead = m_scene.createNode("VrHead", Node::kTypeRoot, m_nodeLoco);
+	m_vrDrawCamera = m_scene.createCamera(Camera(), m_nodeHead);
 	pollHmd(); // update head position
+
 
 	m_shHmdMirror = Shader::CreateVsFs("shaders/Basic_vs.glsl", "shaders/Basic_fs.glsl");
 	if (!m_shHmdMirror) return false;
@@ -104,12 +143,12 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	if (!m_txVuiScreen) return false;
 	m_txVuiScreen->setWrap(GL_CLAMP_TO_EDGE);
 
-	//m_txVuiScreenButtonMove = Texture::Create("textures/button_move.dds");
-	//if (!m_txVuiScreenButtonMove) return false;
-	//m_txVuiScreenButtonScale = Texture::Create("textures/button_scale.dds");
-	//if (!m_txVuiScreenButtonScale) return false;
-	//m_txVuiScreenButtonDistance = Texture::Create("textures/button_distance.dds");
-	//if (!m_txVuiScreenButtonDistance) return false;
+	m_txVuiScreenButtonMove = Texture::Create("textures/button_move.dds");
+	if (!m_txVuiScreenButtonMove) return false;
+	m_txVuiScreenButtonScale = Texture::Create("textures/button_scale.dds");
+	if (!m_txVuiScreenButtonScale) return false;
+	m_txVuiScreenButtonDistance = Texture::Create("textures/button_distance.dds");
+	if (!m_txVuiScreenButtonDistance) return false;
 
 	m_fbVuiScreen = Framebuffer::Create(1, m_txVuiScreen);
 	if (!m_fbVuiScreen) return false;
@@ -140,23 +179,36 @@ bool AppSampleVr::update()
 		APT_LOG("VR Display lost");
 		shutdownVr();
 		if (!initVr()) {
-			APT_LOG("Failed to reacquire display, switching to non-VR mode");
-			m_vrMode = false; // \todo re-enter VR mode if the HMD is reconnected?
-			return true;
+			APT_LOG_ERR("Failed to reacquire display");
+			sessionStatus.IsVisible = 0; // force leave VR modes
 		}
 	}
 	if (sessionStatus.ShouldRecenter) {
 		// \todo
-	}
-	m_vrMode = sessionStatus.IsVisible != 0;
-
+	}	
+	
 	ImGuiIO& io = ImGui::GetIO();
-	io.FontGlobalScale = 1.0f; // 1 for non-vr mode
+	if (sessionStatus.IsVisible && !m_vrMode) {
+		APT_LOG("Entering VR mode");
+		m_scene.setDrawCamera(m_vrDrawCamera);
+		m_scene.setCullCamera(m_vrDrawCamera);
+		m_nodeLoco->setSelected(true);
+		io.FontGlobalScale = 2.0f;
+		m_vrMode = true;
+	}
+	if (!sessionStatus.IsVisible && m_vrMode) {
+		APT_LOG("Leaving VR mode");
+		m_scene.setDrawCamera(m_sceneDrawCamera);
+		m_scene.setCullCamera(m_sceneDrawCamera);
+		m_nodeLoco->setSelected(false);
+		io.FontGlobalScale = 1.0f;
+		m_vrMode = false;
+	}
 	if (!m_vrMode) {
+		pollHmd();
 		return true;
 	}
-	io.FontGlobalScale = 2.0f;
-
+	
 	ImGui::Begin("##vuiscreenmove", 0,
 		ImGuiWindowFlags_NoTitleBar |
 		ImGuiWindowFlags_NoResize |
@@ -206,7 +258,7 @@ bool AppSampleVr::update()
 	}
 
  // update mipmap for txVuiScreen (rendered last frame)
-	m_vuiScreenWorldMatrix = LookAt(*m_vuiScreenOrigin, *m_vuiScreenOrigin + m_vuiScreenPlane.m_normal);
+	m_vuiScreenWorldMatrix = GetLookAtMatrix(*m_vuiScreenOrigin, *m_vuiScreenOrigin + m_vuiScreenPlane.m_normal);
 	m_txVuiScreen->generateMipmap();
 
 	for (int i = 0; i < kLayerCount; ++i) {
@@ -297,6 +349,12 @@ void AppSampleVr::draw()
 	} else {
 		setDefaultFramebuffer(0); // default framebuffer is window
 		drawVuiScreen(*m_scene.getDrawCamera());
+
+		if (m_showHelpers) {
+		 // draw the HMD position/combined eye frustum
+			DrawFrustum(m_eyeCameras[0].getWorldFrustum());
+			DrawFrustum(m_eyeCameras[1].getWorldFrustum());
+		}
 	}
 
 	AppSample3d::draw();
@@ -368,7 +426,7 @@ void AppSampleVr::ImGui_OverrideIo()
 	if (m_vrMode) {
 		io.MouseDrawCursor = false;
 
-	 // gaze cursor -> vrui screen
+	 // gaze cursor -> vui screen
 		Ray gazeW = getCursorRayW();
 		float tnear;
 		if (gazeW.intersect(m_vuiScreenPlane, tnear)) {
@@ -446,15 +504,20 @@ void AppSampleVr::pollHmd()
 			};
 		ovr_CalcEyePoses(trackState.HeadPose.ThePose, hmdToEyeOffset, m_vrCtx->m_ovrEyePose);
 
+
 		// build eye cameras
 		for (int i = 0; i < kEyeCount; ++i) {
 			const ovrEyeRenderDesc& eyeDesc = m_vrCtx->m_ovrEyeDesc[i];
 			const ovrPosef& eyePose = m_vrCtx->m_ovrEyePose[i];
+			m_eyeCameras[i].setClipNear(m_clipNear);
+			m_eyeCameras[i].setClipFar(m_clipFar);
 			m_eyeCameras[i].setTanFovUp(eyeDesc.Fov.UpTan * m_eyeFovScale);
 			m_eyeCameras[i].setTanFovDown(eyeDesc.Fov.DownTan * m_eyeFovScale);
 			m_eyeCameras[i].setTanFovLeft(eyeDesc.Fov.LeftTan * m_eyeFovScale);
 			m_eyeCameras[i].setTanFovRight(eyeDesc.Fov.RightTan * m_eyeFovScale);
-			m_eyeCameras[i].setWorldMatrix(OvrPoseToMat4(eyePose));
+		
+			mat4 eyeMat = m_nodeLoco->getWorldMatrix() * OvrPoseToMat4(eyePose);
+			m_eyeCameras[i].setWorldMatrix(eyeMat);
 			m_eyeCameras[i].build();
 
 			for (int j = 0; j < kLayerCount; ++j) {
@@ -466,7 +529,12 @@ void AppSampleVr::pollHmd()
 		}
 
 		// build combined frustum
-		m_frustumCombinedW = Frustum(m_eyeCameras[0].getWorldFrustum(), m_eyeCameras[1].getWorldFrustum());
+		m_vrDrawCamera->setTanFovUp   (APT_MAX(m_eyeCameras[0].getTanFovUp(),    m_eyeCameras[1].getTanFovUp()));
+		m_vrDrawCamera->setTanFovDown (APT_MIN(m_eyeCameras[0].getTanFovDown(),  m_eyeCameras[1].getTanFovDown()));
+		m_vrDrawCamera->setTanFovRight(m_eyeCameras[kEyeRight].getTanFovRight());
+		m_vrDrawCamera->setTanFovLeft (m_eyeCameras[kEyeLeft].getTanFovLeft());
+		m_vrDrawCamera->setClipNear(m_clipNear);
+		m_vrDrawCamera->setClipFar(m_clipFar * 0.005f);
 	}
 }
 
