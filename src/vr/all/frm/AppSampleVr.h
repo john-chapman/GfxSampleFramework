@@ -68,6 +68,9 @@ protected:
 	/// Poll the HMD position, update eye poses.
 	void pollHmd();
 
+	/// Recent origin to HMD position (+ vertical offset).
+	void recenter();
+
 private:
 	bool         m_vrMode;
 	bool         m_disableRender;
@@ -78,7 +81,8 @@ private:
 	Camera       m_eyeCameras[2];
 	Camera*      m_vrDrawCamera;        //< Combined eye cameras, override scene cull/draw camera for Im3d, etc.
 	Camera*      m_sceneDrawCamera;     //< Store/restore when entering/leaving VR mode.
-	Node*        m_nodeLoco;
+	Node*        m_nodeOrigin;          //< VR origin (parent of head).
+	vec3         m_headOffset;
 	Node*        m_nodeHead;
 	
 	vec2         m_headRotationDelta; // \todo encapsulte in gaze cursor?
@@ -101,7 +105,8 @@ private:
 	bool         m_moveVuiScreen, m_scaleVuiScreen, m_distVuiScreen;
 
 	bool         m_showVuiScreen;
-	bool         m_showVrOptions;
+	bool*        m_showVrOptions;
+	bool*        m_showTrackingFrusta;
 
 
 	struct VrContext;
