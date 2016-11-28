@@ -196,13 +196,9 @@ AppSample3d::AppSample3d(const char* _title, const char* _appDataPath)
 {
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSample3d");
-	//             name                   display name                     default              min    max    hidden
-	props.addBool ("ShowHelpers",         "Helpers",                       true,                              true);
-	props.addBool ("ShowSceneEditor",     "Scene Editor",                  false,                             true);
-
-	m_showHelpers     = &props["ShowHelpers"].getValue<bool>();
-	m_showSceneEditor = &props["ShowSceneEditor"].getValue<bool>();
-	
+	//                                name                   display name                     default              min    max    hidden
+	m_showHelpers     = props.addBool("ShowHelpers",         "Helpers",                       true,                              true);
+	m_showSceneEditor = props.addBool("ShowSceneEditor",     "Scene Editor",                  false,                             true);
 }
 
 AppSample3d::~AppSample3d()

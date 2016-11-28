@@ -292,53 +292,53 @@ void frm::swap(AppPropertyGroup& _a, AppPropertyGroup& _b)
 	swap(_a.m_props, _b.m_props);
 }
 
-AppProperty& AppPropertyGroup::addBool(const char* _name, const char* _displayName, bool _default, bool _isHidden)
+bool* AppPropertyGroup::addBool(const char* _name, const char* _displayName, bool _default, bool _isHidden)
 {
-	return *add(_name, _displayName, AppProperty::kBool, 1, _isHidden, &_default, &_default, 0, 0);
+	return &add(_name, _displayName, AppProperty::kBool, 1, _isHidden, &_default, &_default, 0, 0)->getValue<bool>();
 }
-AppProperty& AppPropertyGroup::addInt(const char* _name, const char* _displayName, int _default, int _min, int _max, bool _isHidden)
+int* AppPropertyGroup::addInt(const char* _name, const char* _displayName, int _default, int _min, int _max, bool _isHidden)
 {
-	return *add(_name, _displayName, AppProperty::kInt, 1, _isHidden, &_default, &_default, &_min, &_max);
+	return &add(_name, _displayName, AppProperty::kInt, 1, _isHidden, &_default, &_default, &_min, &_max)->getValue<int>();
 }
-AppProperty& AppPropertyGroup::addFloat(const char* _name, const char* _displayName, float _default, float _min, float _max, bool _isHidden)
+float* AppPropertyGroup::addFloat(const char* _name, const char* _displayName, float _default, float _min, float _max, bool _isHidden)
 {
-	return *add(_name, _displayName, AppProperty::kFloat, 1, _isHidden, &_default, &_default, &_min, &_max);
+	return &add(_name, _displayName, AppProperty::kFloat, 1, _isHidden, &_default, &_default, &_min, &_max)->getValue<float>();
 }
-AppProperty& AppPropertyGroup::addVec2(const char* _name, const char* _displayName, const vec2& _default, float _min, float _max, bool _isHidden)
+vec2* AppPropertyGroup::addVec2(const char* _name, const char* _displayName, const vec2& _default, float _min, float _max, bool _isHidden)
 {
-	return *add(_name, _displayName, AppProperty::kFloat, 2, _isHidden, &_default, &_default, &_min, &_max);
+	return &add(_name, _displayName, AppProperty::kFloat, 2, _isHidden, &_default, &_default, &_min, &_max)->getValue<vec2>();
 }
-AppProperty& AppPropertyGroup::addVec3(const char* _name, const char* _displayName, const vec3& _default, float _min, float _max, bool _isHidden)
+vec3* AppPropertyGroup::addVec3(const char* _name, const char* _displayName, const vec3& _default, float _min, float _max, bool _isHidden)
 {
-	return *add(_name, _displayName, AppProperty::kFloat, 3, _isHidden, &_default, &_default, &_min, &_max);
+	return &add(_name, _displayName, AppProperty::kFloat, 3, _isHidden, &_default, &_default, &_min, &_max)->getValue<vec3>();
 }
-AppProperty& AppPropertyGroup::addVec4(const char* _name, const char* _displayName, const vec4& _default, float _min, float _max, bool _isHidden)
+vec4* AppPropertyGroup::addVec4(const char* _name, const char* _displayName, const vec4& _default, float _min, float _max, bool _isHidden)
 {
-	return *add(_name, _displayName, AppProperty::kFloat, 4, _isHidden, &_default, &_default, &_min, &_max);
+	return &add(_name, _displayName, AppProperty::kFloat, 4, _isHidden, &_default, &_default, &_min, &_max)->getValue<vec4>();
 }
-AppProperty& AppPropertyGroup::addVec2i(const char* _name, const char* _displayName, const ivec2& _default, int _min, int _max, bool _isHidden)
+ivec2* AppPropertyGroup::addVec2i(const char* _name, const char* _displayName, const ivec2& _default, int _min, int _max, bool _isHidden)
 {
-	return *add(_name, _displayName, AppProperty::kInt, 2, _isHidden, &_default, &_default, &_min, &_max);
+	return &add(_name, _displayName, AppProperty::kInt, 2, _isHidden, &_default, &_default, &_min, &_max)->getValue<ivec2>();
 }
-AppProperty& AppPropertyGroup::addVec3i(const char* _name, const char* _displayName, const ivec3& _default, int _min, int _max, bool _isHidden)
+ivec3* AppPropertyGroup::addVec3i(const char* _name, const char* _displayName, const ivec3& _default, int _min, int _max, bool _isHidden)
 {
-	return *add(_name, _displayName, AppProperty::kInt, 3, _isHidden, &_default, &_default, &_min, &_max);
+	return &add(_name, _displayName, AppProperty::kInt, 3, _isHidden, &_default, &_default, &_min, &_max)->getValue<ivec3>();
 }
-AppProperty& AppPropertyGroup::addVec4i(const char* _name, const char* _displayName, const ivec4& _default, int _min, int _max, bool _isHidden)
+ivec4* AppPropertyGroup::addVec4i(const char* _name, const char* _displayName, const ivec4& _default, int _min, int _max, bool _isHidden)
 {
-	return *add(_name, _displayName, AppProperty::kInt, 4, _isHidden, &_default, &_default, &_min, &_max);
+	return &add(_name, _displayName, AppProperty::kInt, 4, _isHidden, &_default, &_default, &_min, &_max)->getValue<ivec4>();
 }
-AppProperty& AppPropertyGroup::addRgb(const char* _name, const char* _displayName, const vec3& _default, bool _isHidden)
+vec3* AppPropertyGroup::addRgb(const char* _name, const char* _displayName, const vec3& _default, bool _isHidden)
 {
 	AppProperty* ret = add(_name, _displayName, AppProperty::kFloat, 3, _isHidden, &_default, &_default, 0, 0);
 	ret->m_pfEdit = &ColorEdit;
-	return *ret;
+	return &ret->getValue<vec3>();
 }
-AppProperty& AppPropertyGroup::addRgba(const char* _name, const char* _displayName, const vec4& _default, bool _isHidden)
+vec4* AppPropertyGroup::addRgba(const char* _name, const char* _displayName, const vec4& _default, bool _isHidden)
 {
 	AppProperty* ret = add(_name, _displayName, AppProperty::kFloat, 4, _isHidden, &_default, &_default, 0, 0);
 	ret->m_pfEdit = &ColorEdit;
-	return *ret;
+	return &ret->getValue<vec4>();
 }
 
 AppProperty& AppPropertyGroup::operator[](const char* _name)

@@ -127,17 +127,17 @@ public:
 	AppPropertyGroup& operator=(AppPropertyGroup&& _rhs);
 	friend void swap(AppPropertyGroup& _a, AppPropertyGroup& _b);
 
-	AppProperty& addBool (const char* _name, const char* _displayName, bool _default, bool _isHidden = false);
-	AppProperty& addInt  (const char* _name, const char* _displayName, int  _default, int _min, int _max, bool _isHidden = false);
-	AppProperty& addFloat(const char* _name, const char* _displayName, float _default, float _min, float _max, bool _isHidden = false);
-	AppProperty& addVec2 (const char* _name, const char* _displayName, const vec2& _default, float _min, float _max, bool _isHidden = false);
-	AppProperty& addVec3 (const char* _name, const char* _displayName, const vec3& _default, float _min, float _max, bool _isHidden = false);
-	AppProperty& addVec4 (const char* _name, const char* _displayName, const vec4& _default, float _min, float _max, bool _isHidden = false);
-	AppProperty& addVec2i(const char* _name, const char* _displayName, const ivec2& _default, int _min, int _max, bool _isHidden = false);
-	AppProperty& addVec3i(const char* _name, const char* _displayName, const ivec3& _default, int _min, int _max, bool _isHidden = false);
-	AppProperty& addVec4i(const char* _name, const char* _displayName, const ivec4& _default, int _min, int _max, bool _isHidden = false);
-	AppProperty& addRgb  (const char* _name, const char* _displayName, const vec3& _default, bool _isHidden = false);
-	AppProperty& addRgba (const char* _name, const char* _displayName, const vec4& _default, bool _isHidden = false);
+	bool*  addBool (const char* _name, const char* _displayName, bool         _default,                         bool _isHidden = false);
+	int*   addInt  (const char* _name, const char* _displayName, int          _default, int _min,   int _max,   bool _isHidden = false);
+	float* addFloat(const char* _name, const char* _displayName, float        _default, float _min, float _max, bool _isHidden = false);
+	vec2*  addVec2 (const char* _name, const char* _displayName, const vec2&  _default, float _min, float _max, bool _isHidden = false);
+	vec3*  addVec3 (const char* _name, const char* _displayName, const vec3&  _default, float _min, float _max, bool _isHidden = false);
+	vec4*  addVec4 (const char* _name, const char* _displayName, const vec4&  _default, float _min, float _max, bool _isHidden = false);
+	ivec2* addVec2i(const char* _name, const char* _displayName, const ivec2& _default, int _min,   int _max,   bool _isHidden = false);
+	ivec3* addVec3i(const char* _name, const char* _displayName, const ivec3& _default, int _min,   int _max,   bool _isHidden = false);
+	ivec4* addVec4i(const char* _name, const char* _displayName, const ivec4& _default, int _min,   int _max,   bool _isHidden = false);
+	vec3*  addRgb  (const char* _name, const char* _displayName, const vec3&  _default,                         bool _isHidden = false);
+	vec4*  addRgba (const char* _name, const char* _displayName, const vec4&  _default,                         bool _isHidden = false);
 
 	AppProperty&       operator[](const char* _name);
 	const AppProperty& operator[](const char* _name) const;

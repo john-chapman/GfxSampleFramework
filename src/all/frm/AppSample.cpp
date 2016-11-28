@@ -418,26 +418,19 @@ AppSample::AppSample(const char* _name, const char* _appDataPath)
 	s_current = this;
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSample");
-	//             name                   display name                     default              min    max    hidden
-	props.addVec2i("Resolution",          "Resolution",                    ivec2(-1, -1),       1,     8192,  false);
-	props.addVec2i("WindowSize",          "Window Size",                   ivec2(-1, -1),      -1,     8192,  true);
-	props.addInt  ("VsyncMode",           "Vsync Mode",                    0,                   0,     5,     true);
-	props.addVec2i("GlVersion",           "OpenGL Version",                ivec2(4, 5),         1,     5,     true);
-	props.addBool ("GlCompatibility",     "OpenGL Compatibility Profile",  false,                             true);
-	props.addBool ("ShowMenu",            "Menu",                          true,                              true);
-	props.addBool ("ShowLog",             "Log",                           false,                             true);
-	props.addBool ("ShowPropertyEditor",  "Property Editor",               false,                             true);
-	props.addBool ("ShowProfiler",        "Profiler",                      false,                             true);
-	props.addBool ("ShowTextureViewer",   "Texture Viewer",                false,                             true);
-	props.addBool ("ShowShaderViewer",    "Shader Viewer",                 false,                             true);
+	//                                    name                   display name                     default              min    max    hidden
+	                       props.addVec2i("Resolution",          "Resolution",                    ivec2(-1, -1),       1,     8192,  false);
+	                       props.addVec2i("WindowSize",          "Window Size",                   ivec2(-1, -1),      -1,     8192,  true);
+	                       props.addVec2i("GlVersion",           "OpenGL Version",                ivec2(4, 5),         1,     5,     true);
+	                       props.addBool ("GlCompatibility",     "OpenGL Compatibility Profile",  false,                             true);
+	m_vsyncMode          = props.addInt  ("VsyncMode",           "Vsync Mode",                    0,                   0,     5,     true);
+	m_showMenu           = props.addBool ("ShowMenu",            "Menu",                          true,                              true);
+	m_showLog            = props.addBool ("ShowLog",             "Log",                           false,                             true);
+	m_showPropertyEditor = props.addBool ("ShowPropertyEditor",  "Property Editor",               false,                             true);
+	m_showProfilerViewer = props.addBool ("ShowProfiler",        "Profiler",                      false,                             true);
+	m_showTextureViewer  = props.addBool ("ShowTextureViewer",   "Texture Viewer",                false,                             true);
+	m_showShaderViewer   = props.addBool ("ShowShaderViewer",    "Shader Viewer",                 false,                             true);
 
-	m_vsyncMode          = &props["VsyncMode"].getValue<int>();
-	m_showMenu           = &props["ShowMenu"].getValue<bool>();
-	m_showLog            = &props["ShowLog"].getValue<bool>();
-	m_showPropertyEditor = &props["ShowPropertyEditor"].getValue<bool>();
-	m_showProfilerViewer = &props["ShowProfiler"].getValue<bool>();
-	m_showTextureViewer  = &props["ShowTextureViewer"].getValue<bool>();
-	m_showShaderViewer   = &props["ShowShaderViewer"].getValue<bool>();
 }
 
 AppSample::~AppSample()
