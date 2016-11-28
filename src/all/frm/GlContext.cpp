@@ -195,6 +195,31 @@ void GlContext::setUniformArray<vec4>(const char* _name, const vec4* _val, GLsiz
 	glAssert(glUniform4fv(m_currentShader->getUniformLocation(_name), _count, (const GLfloat*)_val));
 }
 template <>
+void GlContext::setUniformArray<ivec2>(const char* _name, const ivec2* _val, GLsizei _count)
+{
+	glAssert(glUniform2iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
+}
+template <>
+void GlContext::setUniformArray<ivec3>(const char* _name, const ivec3* _val, GLsizei _count)
+{
+	glAssert(glUniform3iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
+}
+template <>
+void GlContext::setUniformArray<ivec4>(const char* _name, const ivec4* _val, GLsizei _count)
+{
+	glAssert(glUniform4iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
+}
+template <>
+void GlContext::setUniformArray<uvec2>(const char* _name, const uvec2* _val, GLsizei _count)
+{
+	glAssert(glUniform2uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
+}
+template <>
+void GlContext::setUniformArray<uvec3>(const char* _name, const uvec3* _val, GLsizei _count)
+{
+	glAssert(glUniform3uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
+}
+template <>
 void GlContext::setUniformArray<uvec4>(const char* _name, const uvec4* _val, GLsizei _count)
 {
 	glAssert(glUniform4uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
