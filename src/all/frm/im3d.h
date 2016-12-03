@@ -76,6 +76,9 @@ extern const Color kColorWhite;
 extern const Color kColorRed;
 extern const Color kColorGreen;
 extern const Color kColorBlue;
+extern const Color kColorCyan;
+extern const Color kColorMagenta;
+extern const Color kColorYellow;
 
 struct Vertex
 {
@@ -115,6 +118,8 @@ void  Vertex(const Vec3& _position, Color _color);
 void  Vertex(const Vec3& _position, float _size, Color _color);
 
 /// Current draw state (affects all subsequent vertices).
+void  PushDrawState();
+void  PopDrawState();
 void  SetColor(Color _color);
 Color GetColor();
 void  SetAlpha(float _alpha);
@@ -134,6 +139,7 @@ void  Scale(float _x, float _y, float _z);
 /// High order shapes.
 void DrawXyzAxes();
 void DrawQuad(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d);
+void DrawQuad(const Vec3& _origin, const Vec3& _normal, const Vec2& _scale);
 void DrawQuadFilled(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d);
 void DrawSphere(const Vec3& _origin, float _radius, int _detail = 24);
 void DrawBox(const Vec3& _min, const Vec3& _max);
@@ -317,7 +323,7 @@ private:
 		Vec3*        _position_, 
 		const Vec3&  _axis,
 		const Color& _color, 
-		float        _screenScale
+		float        _sizePixels
 		);
 
 	void movePlanar(

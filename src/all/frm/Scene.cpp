@@ -378,38 +378,6 @@ static bool DrawNodeGraphCallback(Node* _node)
 	return true;
 }
 
-static void DrawFrustum(const Frustum& _frustum)
-{
-	const vec3* verts = _frustum.m_vertices;
-
- // edges
-	Im3d::SetColor(0.5f, 0.5f, 0.5f);
-	Im3d::BeginLines();
-		Im3d::Vertex(verts[0]); Im3d::Vertex(verts[4]);
-		Im3d::Vertex(verts[1]); Im3d::Vertex(verts[5]);
-		Im3d::Vertex(verts[2]); Im3d::Vertex(verts[6]);
-		Im3d::Vertex(verts[3]); Im3d::Vertex(verts[7]);
-	Im3d::End();
-
- // near plane
-	Im3d::SetColor(1.0f, 1.0f, 0.25f);
-	Im3d::BeginLineLoop();
-		Im3d::Vertex(verts[0]); 
-		Im3d::Vertex(verts[1]);
-		Im3d::Vertex(verts[2]);
-		Im3d::Vertex(verts[3]);
-	Im3d::End();
-
- // far plane
-	Im3d::SetColor(1.0f, 0.25f, 1.0f);
-	Im3d::BeginLineLoop();
-		Im3d::Vertex(verts[4]); 
-		Im3d::Vertex(verts[5]);
-		Im3d::Vertex(verts[6]);
-		Im3d::Vertex(verts[7]);
-	Im3d::End();
-}
-
 // PUBLIC
 
 SceneEditor::SceneEditor(Scene* _scene_)
@@ -418,7 +386,6 @@ SceneEditor::SceneEditor(Scene* _scene_)
 	, m_editCamera(0)
 	, m_editXForm(0)
 	, m_showNodeGraph3d(false)
-	, m_showCameras(false)
 {
 }
 
@@ -445,21 +412,6 @@ void SceneEditor::edit()
 	if (m_showNodeGraph3d) {		
 		m_scene->traverse(DrawNodeGraphCallback, &m_scene->m_root);
 	}
-	ImGui::Checkbox("Show Cameras", &m_showCameras);
-	if (m_showCameras) {
-		for (int i = 0; i < m_scene->getCameraCount(); ++i) {
-			Camera* camera = m_scene->getCamera(i);
-			if (camera == m_scene->m_drawCamera) {
-				continue;
-			}
-			Im3d::PushMatrix();
-				Im3d::MulMatrix(camera->getWorldMatrix());
-				Im3d::DrawXyzAxes();
-			Im3d::PopMatrix();
-			DrawFrustum(camera->getWorldFrustum());
-		}
-	}
-
 
  // NODES
 	ImGui::Spacing();
