@@ -36,6 +36,8 @@ public:
 	virtual Ray getCursorRayV() const;
 
 protected:		
+	static void DrawFrustum(const Frustum& _frustum);
+
 	AppSample3d(const char* _title, const char* _appDataPath = 0);
 	virtual ~AppSample3d();
 
@@ -51,7 +53,6 @@ protected:
 	bool* m_showSceneEditor;
 
 	Im3d::Context m_im3dCtx;
-
 	static bool Im3d_Init();
 	static void Im3d_Shutdown();
 	static void Im3d_Update(AppSample3d* _app);

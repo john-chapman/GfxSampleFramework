@@ -219,8 +219,7 @@ private:
 		Camera*  m_editCamera;
 		XForm*   m_editXForm;
 
-		bool     m_showNodeGraph3d; //< Show graph in 3d viewport.
-		bool     m_showCameras;     //< Show camera frusta.
+		bool     m_showNodeGraph3d; //< Show node graph in 3d viewport.
 
 		void beginSelectNode();
 		Node* selectNode(Node* _current, Node::Type _type = Node::kTypeCount);

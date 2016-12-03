@@ -19,6 +19,9 @@ const Im3d::Color Im3d::kColorWhite   = Im3d::Color(1.0f, 1.0f, 1.0f);
 const Im3d::Color Im3d::kColorRed     = Im3d::Color(1.0f, 0.0f, 0.0f);
 const Im3d::Color Im3d::kColorGreen   = Im3d::Color(0.0f, 1.0f, 0.0f);
 const Im3d::Color Im3d::kColorBlue    = Im3d::Color(0.0f, 0.0f, 1.0f);
+const Im3d::Color Im3d::kColorCyan    = Im3d::Color(0.0f, 1.0f, 1.0f);
+const Im3d::Color Im3d::kColorMagenta = Im3d::Color(1.0f, 0.0f, 1.0f);
+const Im3d::Color Im3d::kColorYellow  = Im3d::Color(1.0f, 1.0f, 0.0f);
 
 static Context  kDefaultContext;
 static Context* g_currentContext = &kDefaultContext; 
@@ -40,12 +43,29 @@ void  Im3d::BeginLineLoop()              { GetCurrentContext().begin(Context::kL
 void  Im3d::BeginTriangles()             { GetCurrentContext().begin(Context::kTriangles); }
 void  Im3d::BeginTriangleStrip()         { GetCurrentContext().begin(Context::kTriangleStrip); }
 void  Im3d::End()                        { GetCurrentContext().end(); }
+
+void  Im3d::PushDrawState()
+{
+	Context& ctx = GetCurrentContext();
+	ctx.pushSize();
+	ctx.pushColor();
+	ctx.pushAlpha();
+}
+void  Im3d::PopDrawState()
+{
+	Context& ctx = GetCurrentContext();
+	ctx.popAlpha();
+	ctx.popColor();
+	ctx.popSize();
+}
 void  Im3d::SetColor(Color _color)       { GetCurrentContext().setColor(_color); }
 Color Im3d::GetColor()                   { return GetCurrentContext().getColor(); }
 void  Im3d::SetAlpha(float _alpha)       { GetCurrentContext().setAlpha(_alpha); }
 float Im3d::GetAlpha()                   { return GetCurrentContext().getAlpha(); }
 void  Im3d::SetSize(float _width)        { GetCurrentContext().setSize(_width); }
 float Im3d::GetSize()                    { return GetCurrentContext().getSize(); }
+
+
 void  Im3d::PushMatrix()                 { GetCurrentContext().pushMatrix(); }
 void  Im3d::PopMatrix()                  { GetCurrentContext().popMatrix(); }
 void  Im3d::SetMatrix(const Mat4& _mat)  { GetCurrentContext().setMatrix(_mat); }
@@ -113,6 +133,21 @@ void Im3d::DrawQuad(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& 
 		Vertex(_c);
 		Vertex(_d);
 	End();
+}
+
+void Im3d::DrawQuad(const Vec3& _origin, const Vec3& _normal, const Vec2& _scale)
+{
+ // \todo better way of doing this?
+	PushMatrix();
+		MulMatrix(frm::GetLookAtMatrix(_origin, _normal));
+		Vec2 s = _scale * 0.5f;
+		DrawQuad(
+			Vec3(-s.x, -s.y, 0.0f),
+			Vec3( s.x, -s.y, 0.0f),
+			Vec3( s.x,  s.y, 0.0f),
+			Vec3(-s.x,  s.y, 0.0f)
+			);
+	PopMatrix();
 }
 
 void Im3d::DrawQuadFilled(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d)
@@ -259,13 +294,11 @@ void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int 
 
 void Im3d::DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength)
 {
-	Vec3 head = _start + (_end - _start) * _headLength;
-	Vec3 headStart = _end - head;
+	Vec3 head = _start + (_end - _start) * (1.0f - _headLength);
 	BeginLines();
 		Vertex(_start);
-		Vertex(headStart);
-
-		Vertex(headStart, GetCurrentContext().getSize() * 2.0f);
+		Vertex(head);
+		Vertex(head, GetCurrentContext().getSize() * 2.0f);
 		Vertex(_end, 2.0f); // can't be 0 as the AA fades to 0
 	End();
 }
@@ -429,35 +462,15 @@ float Context::pixelsToWorldSize(const Vec3& _position, float _pixels)
 bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_, float _screenSize)
 {
 	frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
-	 
- // maintain screen size
-	float d = glm::length(*_position_ - m_viewOriginW);
-	float screenScale = 2.0f / (2.0f * glm::atan(0.5f / d)) * m_tanHalfFov * _screenSize;
-	screenScale /= m_displaySize.y;
-
 	
-	PushMatrix();
-		Mat4 wm = glm::scale(glm::translate(glm::mat4(1.0f), *_position_), Vec3(screenScale)); // position the gizmo and apply screen scale
-		MulMatrix(wm);
-
-		SetSize(4.0f);
-		bool ret = false;
-		pushId();
-			setId(_id);
-			ret = axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), kColorRed,   screenScale);
-			ret = axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), kColorGreen, screenScale);
-			ret = axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), kColorBlue,  screenScale);
-		popId();
-	PopMatrix();
-
-	
-	/*SetSize(1.0f);
-	if (handle(MakeId("viewdrag"), *_position_, kColorWhite, 12.0f)) {
-		Vec3 n = m_viewOriginW - *_position_;
-		float ln = glm::length(n);
-		movePlanar(_position_, Vec3(1.0f), n / ln, -ln);
-	}*/
-
+	bool ret = false;
+	pushId();
+		setId(_id);
+	// \todo sort by depth so that they are called in the right order
+		ret |= axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), kColorRed,  64.0f);
+		ret |= axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), kColorGreen,64.0f);
+		ret |= axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), kColorBlue, 64.0f);
+	popId();
 	return ret;
 }
 
@@ -494,35 +507,37 @@ bool Context::axisGizmoW(
 	Vec3*        _position_, 
 	const Vec3&  _axis,
 	const Color& _color, 
-	float        _screenScale
+	float        _sizePixels
 	)
 {
+	float screenScale = pixelsToWorldSize(*_position_, _sizePixels);
 	const frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
-	const frm::Line ln(*_position_, *_position_ + _axis);
-	const frm::Capsule cp(*_position_, *_position_ + _axis * _screenScale, 0.05f * _screenScale);
+	const frm::Line ln(*_position_, _axis);
+	const frm::Capsule cp(
+		*_position_ + _axis * screenScale * 0.2f, // leave a small space at the origin
+		*_position_ + _axis * screenScale, 
+		0.05f * screenScale
+		);
 
-	bool ret = false;
-	pushAlpha();
-	pushColor();
+	PushDrawState(); // push color, alpha, size
 	setColor(_color);
+	
 	float alpha = 1.0f;
+	bool ret = false;
 	if (_id == m_activeId) {
 		if (isKeyDown(kMouseLeft)) {
 		 // active, move _position_
 			float tr, tl;
-			cursorRay.distance2(ln, tr, tl);
+			frm::Nearest(cursorRay, ln, tr, tl);
 			*_position_ = *_position_ + _axis * tl - m_translationOffset;
-			
 		 // draw the axis
-			pushSize();
-				setSize(1.0f);
-				setAlpha(0.5f);
-				BeginLines();
-					Vertex(-_axis * 9999.0f);
-					Vertex( _axis * 9999.0f);
-				End();
-			popSize();
-
+			setSize(1.0f);
+			setAlpha(0.5f);
+			BeginLines();
+				Vertex(*_position_ - _axis * 9999.0f);
+				Vertex(*_position_ + _axis * 9999.0f);
+			End();
+			
 			ret = true;
 		} else {
 		 // deactivate
@@ -535,7 +550,7 @@ bool Context::axisGizmoW(
 			 // activate, store offset
 				m_activeId = _id;
 				float tr, tl;
-				cursorRay.distance2(ln, tr, tl);
+				frm::Nearest(cursorRay, ln, tr, tl);
 				m_translationOffset = _axis * tl;
 			}
 		} else {
@@ -543,19 +558,20 @@ bool Context::axisGizmoW(
 		}
 		
 	} else {
-		alpha = 0.75f;
 	 // intersect, make hot
 		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, cp)) {
 			m_hotId = _id;
 		}
+		alpha = 0.5f;
 	}
+	
 	float alignedAlpha = 1.0f - glm::abs(glm::dot(_axis, glm::normalize(m_cursorRayOriginW - *_position_)));
 	alignedAlpha = Remap(alignedAlpha, 0.1f, 0.2f);
 	setAlpha(alpha * alignedAlpha);
-	DrawArrow(_axis * 0.2f, _axis, 0.1f);
-
-	popColor();
-	popAlpha();
+	setSize(4.0f);
+	DrawArrow(cp.m_start, cp.m_end, 0.2f);	
+	
+	PopDrawState();
 
 	return ret;
 }

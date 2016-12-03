@@ -50,9 +50,10 @@ namespace frm {
 	struct Capsule;
 	struct Cylinder;
 	struct Line;
-	struct Ray;
-	struct Sphere;	
+	struct LineSegment;
 	struct Plane;
+	struct Ray;
+	struct Sphere;
 }
 
 #endif // frm_def_h

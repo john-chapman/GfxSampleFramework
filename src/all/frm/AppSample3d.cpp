@@ -99,7 +99,6 @@ bool AppSample3d::update()
 	Keyboard* keyb = Input::GetKeyboard();
 	if (keyb->wasPressed(Keyboard::kF2)) {
 		*m_showHelpers = !*m_showHelpers;
-		m_sceneEditor.m_showCameras = !m_sceneEditor.m_showCameras;
 	}
 	if (ImGui::IsKeyPressed(Keyboard::kO) && ImGui::IsKeyDown(Keyboard::kLCtrl)) {
 		*m_showSceneEditor = !*m_showSceneEditor;
@@ -122,17 +121,35 @@ bool AppSample3d::update()
 	if (*m_showHelpers) {
 		const int   kGridSize = 20;
 		const float kGridHalf = (float)kGridSize * 0.5f;
-		Im3d::SetSize(1.0f);
-		Im3d::BeginLines();
-			for (int x = 0; x <= kGridSize; ++x) {
-				Im3d::Vertex(-kGridHalf, 0.0f, (float)x - kGridHalf,  Im3d::Color(0.0f, 0.0f, 0.0f));
-				Im3d::Vertex( kGridHalf, 0.0f, (float)x - kGridHalf,  Im3d::Color(1.0f, 0.0f, 0.0f));
+		Im3d::PushDrawState();
+			Im3d::SetAlpha(1.0f);
+			Im3d::SetSize(1.0f);
+
+		 // origin XZ grid
+			Im3d::BeginLines();
+				for (int x = 0; x <= kGridSize; ++x) {
+					Im3d::Vertex(-kGridHalf, 0.0f, (float)x - kGridHalf,  Im3d::Color(0.0f, 0.0f, 0.0f));
+					Im3d::Vertex( kGridHalf, 0.0f, (float)x - kGridHalf,  Im3d::Color(1.0f, 0.0f, 0.0f));
+				}
+				for (int z = 0; z <= kGridSize; ++z) {
+					Im3d::Vertex((float)z - kGridHalf, 0.0f, -kGridHalf,  Im3d::Color(0.0f, 0.0f, 0.0f));
+					Im3d::Vertex((float)z - kGridHalf, 0.0f,  kGridHalf,  Im3d::Color(0.0f, 0.0f, 1.0f));
+				}
+			Im3d::End();
+
+		 // scene cameras
+			for (int i = 0; i < m_scene.getCameraCount(); ++i) {
+				Camera* camera = m_scene.getCamera(i);
+				if (camera == m_scene.getDrawCamera()) {
+					continue;
+				}
+				Im3d::PushMatrix();
+					Im3d::MulMatrix(camera->getWorldMatrix());
+					Im3d::DrawXyzAxes();
+				Im3d::PopMatrix();
+				DrawFrustum(camera->getWorldFrustum());
 			}
-			for (int z = 0; z <= kGridSize; ++z) {
-				Im3d::Vertex((float)z - kGridHalf, 0.0f, -kGridHalf,  Im3d::Color(0.0f, 0.0f, 0.0f));
-				Im3d::Vertex((float)z - kGridHalf, 0.0f,  kGridHalf,  Im3d::Color(0.0f, 0.0f, 1.0f));
-			}
-		Im3d::End();
+		Im3d::PopDrawState();
 	}
 
 	return true;
@@ -184,6 +201,38 @@ Ray AppSample3d::getCursorRayV() const
 }
 
 // PROTECTED
+
+void AppSample3d::DrawFrustum(const Frustum& _frustum)
+{
+	const vec3* verts = _frustum.m_vertices;
+
+ // edges
+	Im3d::SetColor(0.5f, 0.5f, 0.5f);
+	Im3d::BeginLines();
+		Im3d::Vertex(verts[0]); Im3d::Vertex(verts[4]);
+		Im3d::Vertex(verts[1]); Im3d::Vertex(verts[5]);
+		Im3d::Vertex(verts[2]); Im3d::Vertex(verts[6]);
+		Im3d::Vertex(verts[3]); Im3d::Vertex(verts[7]);
+	Im3d::End();
+
+ // near plane
+	Im3d::SetColor(1.0f, 1.0f, 0.25f);
+	Im3d::BeginLineLoop();
+		Im3d::Vertex(verts[0]); 
+		Im3d::Vertex(verts[1]);
+		Im3d::Vertex(verts[2]);
+		Im3d::Vertex(verts[3]);
+	Im3d::End();
+
+ // far plane
+	Im3d::SetColor(1.0f, 0.25f, 1.0f);
+	Im3d::BeginLineLoop();
+		Im3d::Vertex(verts[4]); 
+		Im3d::Vertex(verts[5]);
+		Im3d::Vertex(verts[6]);
+		Im3d::Vertex(verts[7]);
+	Im3d::End();
+}
 
 AppSample3d::AppSample3d(const char* _title, const char* _appDataPath)
 	: AppSample(_title, _appDataPath)
