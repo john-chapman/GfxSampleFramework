@@ -110,6 +110,7 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	m_clipFar = 1000.0f;
 	m_nodeOrigin = m_scene.createNode("VrOrigin", Node::kTypeRoot);
 	m_nodeOrigin->setLocalMatrix(translate(mat4(1.0f), vec3(0.0f, *m_userHeight, 0.0f)));
+	m_nodeOrigin->addXForm(XForm::Create("VRGamepadXForm"));
 
 	m_nodeHead = m_scene.createNode("VrHead", Node::kTypeRoot, m_nodeOrigin);
 	m_vrDrawCamera = m_scene.createCamera(Camera(), m_nodeHead);

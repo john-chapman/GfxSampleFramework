@@ -209,3 +209,97 @@ void LookAtXForm::edit()
 {
 	ImGui::DragFloat3("Offset", &m_offset.x, 0.5f);
 }
+
+/*******************************************************************************
+
+                                VRGamepadXForm
+
+*******************************************************************************/
+
+
+struct VRGamepadXForm: public XForm
+{
+	vec3  m_position;
+	vec3  m_velocity;
+	float m_speed;
+	float m_maxSpeed;
+	float m_maxSpeedMul; //< Multiplies m_speed for speed 'boost'.
+	float m_accelTime;   //< Acceleration ramp length in seconds.
+	float m_accelCount;  //< Current ramp position in [0,m_accelTime].
+	
+	float m_orientation;        //< 
+	float m_yaw;                //< Angular velocity in rads/sec.
+	float m_rotationInputMul;   //< Scale rotation inputs (should be relative to fov/screen size).
+	float m_rotationDamp;       //< Adhoc damping factor.
+
+	VRGamepadXForm::VRGamepadXForm()
+		: m_position(0.0f)
+		, m_velocity(0.0f)
+		, m_accelTime(0.1f)
+		, m_accelCount(0.0f)
+		, m_maxSpeed(2.0f)
+		, m_maxSpeedMul(5.0f)
+		, m_orientation(0.0f)
+		, m_yaw(0.0f)
+		, m_rotationInputMul(0.1f)
+		, m_rotationDamp(0.0001f)
+	{
+	}
+
+
+	void VRGamepadXForm::apply(Node* _node_, float _dt)
+	{
+ 		if (!_node_->isSelected()) {
+			return;
+		}
+		const Gamepad* gpad = Input::GetGamepad();
+		if (!gpad) {
+			return;
+		}
+
+		float cosTheta = cosf(m_orientation);
+		float sinTheta = sinf(m_orientation);
+	
+		bool isAccel = false;		
+		vec3 dir = vec3(0.0);		
+		float x = gpad->getAxisState(Gamepad::kLeftStickX);
+		dir += vec3(cosTheta, 0.0f, -sinTheta) * x;
+		float y = gpad->getAxisState(Gamepad::kLeftStickY);
+		dir += vec3(sinTheta, 0.0f, cosTheta) * y;
+		if (gpad->isDown(Gamepad::kLeft1)) {
+			dir -= vec3(0.0f, 1.0f, 0.0f);
+		}
+		if (gpad->isDown(Gamepad::kRight1)) {
+			dir += vec3(0.0f, 1.0f, 0.0f);
+		}
+		isAccel = true;
+
+		if (isAccel) {
+		 // if we're accelerating, zero the velocity here to allow instantaneous direction changes
+			m_velocity = vec3(0.0f);
+		}
+		m_velocity += dir;
+				
+		m_accelCount += isAccel ? _dt : -_dt;
+		m_accelCount = apt::clamp(m_accelCount, 0.0f, m_accelTime);
+		m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
+		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::kRightTrigger);
+		float len = apt::length(m_velocity);
+		if (len > 0.0f) {
+			m_velocity = (m_velocity / len) * m_speed;
+		}
+		m_position += m_velocity * _dt;
+	
+		m_yaw -= gpad->getAxisState(Gamepad::kRightStickX) * 0.5f * _dt;//* m_rotationInputMul * 6.0f;
+		m_orientation += m_yaw;
+		m_yaw *= powf(m_rotationDamp, _dt);
+
+		_node_->setWorldMatrix(translate(_node_->getLocalMatrix(), m_position) * mat4_cast(angleAxis(m_orientation, vec3(0.0f, 1.0f, 0.0f))));
+	}
+
+	void VRGamepadXForm::edit()
+	{
+	}
+
+}; // struct VRGamepadXForm
+APT_FACTORY_REGISTER_DEFAULT(XForm, VRGamepadXForm);
