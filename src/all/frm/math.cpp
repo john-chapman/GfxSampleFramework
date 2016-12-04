@@ -7,7 +7,7 @@ static const float kEpsilon = FLT_EPSILON;
 
 mat4 frm::GetLookAtMatrix(const vec3& _from, const vec3& _to, const vec3& _up)
 {
-	vec3 z = -normalize(_to - _from); // negated, cameras look along -z hence we 
+	vec3 z = -normalize(_to - _from); // negated to conform with camera projection along -z
 
 	#define EQUAL(a, b) (all(lessThan(abs(a - b), vec3(kEpsilon))))
 

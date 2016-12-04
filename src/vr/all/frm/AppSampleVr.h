@@ -74,6 +74,7 @@ protected:
 private:
 	bool         m_vrMode;
 	bool         m_disableRender;
+	bool         m_showGazeCursor;
 
 	float        m_eyeFovScale;         //< Global fov scale (use with caution).
 	float        m_clipNear, m_clipFar;
