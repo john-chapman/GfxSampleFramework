@@ -204,6 +204,12 @@ void TextureViewer::draw(bool* _open_)
 		if (ImGui::Combo("Mag Filter", &fm, "NEAREST\0LINEAR\0")) { // must match order of internal::kTextureWrapModes (gl.cpp)
 			tx->setMagFilter(internal::kTextureFilterModes[fm]);
 		}
+
+	 // anisotropy
+		float aniso = tx->getAnisotropy();
+		if (ImGui::SliderFloat("Anisotropy", &aniso, 1.0f, 16.0f)) {
+			tx->setAnisotropy(aniso);
+		}
 	
 	 // wrap mode
 		ImGui::Spacing();
