@@ -373,6 +373,26 @@ GLenum Texture::getMagFilter() const
 	return (GLenum)ret;
 }
 
+void Texture::setAnisotropy(GLfloat _anisotropy)
+{
+	APT_ASSERT(m_handle);
+	//if (GLEW_EXT_texture_filter_anisotropic) {
+		float mx;
+		glAssert(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &mx));
+		glAssert(glTextureParameterf(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, APT_CLAMP(_anisotropy, 1.0f, mx)));
+	//}
+}
+
+GLfloat Texture::getAnisotropy() const
+{
+	APT_ASSERT(m_handle);
+	GLfloat ret = -1.0f;
+	//if (GLEW_EXT_texture_filter_anisotropic) {
+		glAssert(glGetTextureParameterfv(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, &ret));
+	//}
+	return ret;
+}
+
 void Texture::setWrap(GLenum _mode)
 {
 	APT_ASSERT(m_handle);

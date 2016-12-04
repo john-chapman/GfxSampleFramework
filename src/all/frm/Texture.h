@@ -79,6 +79,10 @@ public:
 	GLenum  getMinFilter() const;
 	GLenum  getMagFilter() const;
 
+	/// Anisotropy (values >1 enable anisotropic filtering).
+	void    setAnisotropy(GLfloat _anisotropy);
+	GLfloat getAnisotropy() const;
+
 	/// Wrap mode. UVW = STR.
 	void    setWrap(GLenum _mode);
 	void    setWrapU(GLenum _mode);
