@@ -73,40 +73,6 @@ struct frm::AppSampleVr::VrContext
 
 };
 
-
-// \todo move somehwer global (App3d?)
-static void DrawFrustum(const Frustum& _frustum)
-{
-	const vec3* verts = _frustum.m_vertices;
-
- // edges
-	Im3d::SetColor(0.5f, 0.5f, 0.5f);
-	Im3d::BeginLines();
-		Im3d::Vertex(verts[0]); Im3d::Vertex(verts[4]);
-		Im3d::Vertex(verts[1]); Im3d::Vertex(verts[5]);
-		Im3d::Vertex(verts[2]); Im3d::Vertex(verts[6]);
-		Im3d::Vertex(verts[3]); Im3d::Vertex(verts[7]);
-	Im3d::End();
-
- // near plane
-	Im3d::SetColor(1.0f, 1.0f, 0.25f);
-	Im3d::BeginLineLoop();
-		Im3d::Vertex(verts[0]); 
-		Im3d::Vertex(verts[1]);
-		Im3d::Vertex(verts[2]);
-		Im3d::Vertex(verts[3]);
-	Im3d::End();
-
- // far plane
-	Im3d::SetColor(1.0f, 0.25f, 1.0f);
-	Im3d::BeginLineLoop();
-		Im3d::Vertex(verts[4]); 
-		Im3d::Vertex(verts[5]);
-		Im3d::Vertex(verts[6]);
-		Im3d::Vertex(verts[7]);
-	Im3d::End();
-}
-
 void SetCombinedProjection(const Camera& _left, const Camera& _right, Camera& ret_)
 {
 	ret_.setClipNear(APT_MIN(_left.getClipNear(), _right.getClipNear()));
@@ -143,7 +109,8 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	m_clipNear = 0.05f;
 	m_clipFar = 1000.0f;
 	m_nodeOrigin = m_scene.createNode("VrOrigin", Node::kTypeRoot);
-	m_nodeOrigin->addXForm(new FreeCameraXForm);
+	m_nodeOrigin->setLocalMatrix(translate(mat4(1.0f), vec3(0.0f, *m_userHeight, 0.0f)));
+
 	m_nodeHead = m_scene.createNode("VrHead", Node::kTypeRoot, m_nodeOrigin);
 	m_vrDrawCamera = m_scene.createCamera(Camera(), m_nodeHead);
 	pollHmd(); // update head position
@@ -193,8 +160,9 @@ bool AppSampleVr::update()
 			if (ImGui::Button("Recenter") || Input::GetGamepad() && Input::GetGamepad()->wasPressed(Gamepad::kStart)) {
 				recenter();
 			}
-			ImGui::SameLine();
-			ImGui::Text("%1.3f, %1.3f, %1.3f", m_headOffset.x, m_headOffset.y, m_headOffset.z);
+			if (ImGui::SliderFloat("User Height (m)", m_userHeight, 0.0f, 2.0f)) {
+				m_nodeOrigin->setLocalMatrix(translate(mat4(1.0f), vec3(0.0f, *m_userHeight, 0.0f)));
+			}
 			ImGui::Checkbox("Show Tracking Frusta", m_showTrackingFrusta);
 		ImGui::End();
 	}
@@ -211,7 +179,6 @@ bool AppSampleVr::update()
 				-m_vrCtx->m_ovrTrackerDesc[i].FrustumFarZInMeters
 				);
 			mat4 wm = OvrPoseToMat4(ovr_GetTrackerPose(m_vrCtx->m_ovrSession, i).Pose);
-			wm = translate(mat4(1.0f), m_headOffset) * wm;
 			Im3d::PushMatrix();
 				Im3d::SetMatrix(m_nodeOrigin->getWorldMatrix());
 				Im3d::MulMatrix(wm);
@@ -331,7 +298,8 @@ bool AppSampleVr::update()
 		}
 	}
 
-	if (m_vrMode && m_showGazeCursor) {
+ // draw cursor beam
+	if (m_showGazeCursor) {
 		Ray r = getCursorRayW();
 		float t0;
 		if (Intersect(r, Plane(vec3(0.0f, 1.0f, 0.0f), 0.0f), t0)) {
@@ -353,6 +321,24 @@ bool AppSampleVr::update()
 			Im3d::End();
 		Im3d::PopDrawState();		
 	}
+
+ // VR origin/head origin
+	if (*m_showTrackingFrusta) {
+		Im3d::PushDrawState();
+			Im3d::SetSize(1.0f);
+			Im3d::PushMatrix();
+				Im3d::SetMatrix(m_nodeOrigin->getWorldMatrix());
+				Im3d::SetColor(Im3d::kColorMagenta);
+				Im3d::DrawBox(vec3(-0.05f), vec3(0.05f));
+			Im3d::PopMatrix();
+			//Im3d::PushMatrix();
+			//	Im3d::SetMatrix(m_nodeHead->getWorldMatrix());
+			//	Im3d::SetColor(Im3d::kColorCyan);
+			//	Im3d::DrawSphere(vec3(0.0f), 0.2f, 32);
+			//Im3d::PopMatrix();	
+		Im3d::PopDrawState();
+	}
+
 
 	GlContext* ctx = getGlContext();
 	for (int i = 0; i < kEyeCount; ++i) {
@@ -476,6 +462,7 @@ AppSampleVr::AppSampleVr(const char* _title, const char* _appDataPath)
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSampleVr");
 	//                                    name                   display name              default                    min        max      hidden
+	m_userHeight         = props.addFloat("UserHeight",          "User Height",            1.6f,                     0.0f,      3.0f,     false);
 	m_showVrOptions      = props.addBool ("ShowVrOptions",       "Show VR Options",        false,                                         true);
 	m_showTrackingFrusta = props.addBool ("ShowTrackingFrusta",  "Show Tracking Frusta",   false,                                         false);
 	m_vuiScreenOrigin    = props.addVec3 ("VuiScreenOrigin",     "Vui Screen Origin",      vec3(0.0f, 1.0f, -1.0f),  -1000.0f,  1000.0f,  false);
@@ -564,7 +551,6 @@ void AppSampleVr::pollHmd()
 		
 		double sampleTime = ovr_GetTimeInSeconds();
 		mat4 headMat = OvrPoseToMat4(trackState.HeadPose.ThePose);
-		headMat = translate(mat4(1.0f), m_headOffset) * headMat;
 		float oldHeadPitch = dot(vec3(column(m_nodeHead->getWorldMatrix(), 3)), vec3(0.0f, 1.0f, 0.0));
 		float newHeadPitch = dot(vec3(column(headMat, 3)), vec3(0.0f, 1.0f, 0.0));
 		m_headRotationDelta.y = newHeadPitch - oldHeadPitch;
@@ -598,7 +584,6 @@ void AppSampleVr::pollHmd()
 			m_eyeCameras[i].setTanFovRight(eyeDesc.Fov.RightTan * m_eyeFovScale);
 		
 			mat4 eyeMat = m_nodeOrigin->getWorldMatrix() * OvrPoseToMat4(eyePose);
-			eyeMat = translate(mat4(1.0f), m_headOffset) * eyeMat;
 			m_eyeCameras[i].setWorldMatrix(eyeMat);
 			m_eyeCameras[i].build();
 
@@ -623,8 +608,8 @@ void AppSampleVr::pollHmd()
 
 void AppSampleVr::recenter()
 {
-	m_headOffset = -GetTranslation(m_nodeHead->getLocalMatrix());
-	m_headOffset.y = 1.6f; // \todo head height
+	ovrAssert(ovr_RecenterTrackingOrigin(m_vrCtx->m_ovrSession));
+	m_nodeOrigin->setLocalMatrix(translate(mat4(1.0f), vec3(0.0f, 1.6f, 0.0f)));
 }
 
 // PRIVATE

@@ -83,8 +83,8 @@ private:
 	Camera*      m_vrDrawCamera;        //< Combined eye cameras, override scene cull/draw camera for Im3d, etc.
 	Camera*      m_sceneDrawCamera;     //< Store/restore when entering/leaving VR mode.
 	Node*        m_nodeOrigin;          //< VR origin (parent of head).
-	vec3         m_headOffset;
 	Node*        m_nodeHead;
+	float*       m_userHeight;          //< User height property, meters.
 	
 	vec2         m_headRotationDelta; // \todo encapsulte in gaze cursor?
 
