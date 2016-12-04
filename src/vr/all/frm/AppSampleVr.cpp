@@ -159,6 +159,7 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	m_txVuiScreen = Texture::Create2d(1920, 1080, GL_RGBA8, APT_MIN(Texture::GetMaxMipCount(1920, 1080), 8));
 	if (!m_txVuiScreen) return false;
 	m_txVuiScreen->setWrap(GL_CLAMP_TO_EDGE);
+	m_txVuiScreen->setAnisotropy(8.0f);
 
 	m_txVuiScreenButtonMove = Texture::Create("textures/button_move.dds");
 	if (!m_txVuiScreenButtonMove) return false;
@@ -184,6 +185,7 @@ bool AppSampleVr::update()
 	if (!AppSample3d::update()) {
 		return false;
 	}
+	AUTO_MARKER("AppSampleVR::update");
 
 	if (*m_showVrOptions) {
 		ImGui::Begin("VR");
@@ -219,7 +221,6 @@ bool AppSampleVr::update()
 		}
 	}
 
-	AUTO_MARKER("AppSampleVR::update");
 	ovrSessionStatus sessionStatus;
 	ovr_GetSessionStatus(m_vrCtx->m_ovrSession, &sessionStatus);
 	if (sessionStatus.ShouldQuit) {
@@ -308,7 +309,7 @@ bool AppSampleVr::update()
 	}
 
  // update mipmap for txVuiScreen (rendered last frame)
-	m_vuiScreenWorldMatrix = GetLookAtMatrix(*m_vuiScreenOrigin, *m_vuiScreenOrigin + m_vuiScreenPlane.m_normal);
+	m_vuiScreenWorldMatrix = GetLookAtMatrix(*m_vuiScreenOrigin, *m_vuiScreenOrigin - m_vuiScreenPlane.m_normal);
 	m_txVuiScreen->generateMipmap();
 
 	for (int i = 0; i < kLayerCount; ++i) {
@@ -328,6 +329,29 @@ bool AppSampleVr::update()
 				
 			#endif
 		}
+	}
+
+	if (m_vrMode && m_showGazeCursor) {
+		Ray r = getCursorRayW();
+		float t0;
+		if (Intersect(r, Plane(vec3(0.0f, 1.0f, 0.0f), 0.0f), t0)) {
+			t0 = min(t0, 1.0f);
+		} else {
+			t0 = 1.0f;
+		}
+
+		Im3d::PushDrawState();
+			Im3d::SetColor(Im3d::Color(1.0f, 0.1f, 0.8f));
+			Im3d::BeginLines();
+				Im3d::SetAlpha(0.0f);
+				Im3d::Vertex(r.m_origin + vec3(column(m_nodeHead->getWorldMatrix(), 1)) * 0.05f, 4.0f); // shift line start 5cm up
+				Im3d::SetAlpha(1.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * t0, 2.0f);
+			Im3d::End();
+			Im3d::BeginPoints();
+				Im3d::Vertex(r.m_origin + r.m_direction * t0, 8.0f);
+			Im3d::End();
+		Im3d::PopDrawState();		
 	}
 
 	GlContext* ctx = getGlContext();
@@ -435,12 +459,15 @@ Ray AppSampleVr::getCursorRayV() const
 
 AppSampleVr::AppSampleVr(const char* _title, const char* _appDataPath)
 	: AppSample3d(_title, _appDataPath)
-	, m_vrCtx(0)
-	, m_txVuiScreen(0)
-	, m_fbVuiScreen(0)
-	, m_vuiScreenDistance(0)
-	, m_vuiScreenSize(0)
-	, m_vuiScreenAspect(0)
+	, m_vrMode(false)
+	, m_disableRender(false)
+	, m_showGazeCursor(true)
+	, m_vrCtx(nullptr)
+	, m_txVuiScreen(nullptr)
+	, m_fbVuiScreen(nullptr)
+	, m_vuiScreenDistance(nullptr)
+	, m_vuiScreenSize(nullptr)
+	, m_vuiScreenAspect(nullptr)
 	, m_moveVuiScreen(false)
 	, m_scaleVuiScreen(false)
 	, m_distVuiScreen(false)
@@ -448,21 +475,13 @@ AppSampleVr::AppSampleVr(const char* _title, const char* _appDataPath)
 {
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSampleVr");
-	//             name                   display name              default                    min        max      hidden
-	props.addBool ("ShowVrOptions",       "Show VR Options",        false,                                         true);
-	props.addBool ("ShowTrackingFrusta",  "Show Tracking Frusta",   false,                                         false);
-	props.addVec3 ("VuiScreenOrigin",     "Vui Screen Origin",      vec3(0.0f, 1.0f, -1.0f),  -1000.0f,  1000.0f,  false);
-	props.addFloat("VuiScreenDistance",   "Vui Screen Distance",    2.0f,                     0.0f,      1000.0f,  false);
-	props.addFloat("VuiScreenSize",       "Vui Screen Size",        0.4f,                     0.1f,      1000.0f,  false);
-	props.addFloat("VuiScreenAspect",     "Vui Screen Aspect",      16.0f/9.0f,               0.5f,      4.0f,     false);
-
-	m_showVrOptions      = &props["ShowVrOptions"].getValue<bool>();
-	m_showTrackingFrusta = &props["ShowTrackingFrusta"].getValue<bool>();
-	m_vuiScreenOrigin    = &props["VuiScreenOrigin"].getValue<vec3>();
-	m_vuiScreenDistance  = &props["VuiScreenDistance"].getValue<float>();
-	m_vuiScreenSize      = &props["VuiScreenSize"].getValue<float>();
-	m_vuiScreenAspect    = &props["VuiScreenAspect"].getValue<float>();
-
+	//                                    name                   display name              default                    min        max      hidden
+	m_showVrOptions      = props.addBool ("ShowVrOptions",       "Show VR Options",        false,                                         true);
+	m_showTrackingFrusta = props.addBool ("ShowTrackingFrusta",  "Show Tracking Frusta",   false,                                         false);
+	m_vuiScreenOrigin    = props.addVec3 ("VuiScreenOrigin",     "Vui Screen Origin",      vec3(0.0f, 1.0f, -1.0f),  -1000.0f,  1000.0f,  false);
+	m_vuiScreenDistance  = props.addFloat("VuiScreenDistance",   "Vui Screen Distance",    2.0f,                     0.0f,      1000.0f,  false);
+	m_vuiScreenSize      = props.addFloat("VuiScreenSize",       "Vui Screen Size",        0.4f,                     0.1f,      1000.0f,  false);
+	m_vuiScreenAspect    = props.addFloat("VuiScreenAspect",     "Vui Screen Aspect",      16.0f/9.0f,               0.5f,      4.0f,     false);
 }
 
 AppSampleVr::~AppSampleVr()
@@ -479,24 +498,32 @@ void AppSampleVr::ImGui_OverrideIo()
 	if (m_vrMode) {
 		io.MouseDrawCursor = false;
 
+// tmp, gamepad a = left click
+Gamepad* gpad = Input::GetGamepad();
+if (gpad) {
+	io.MouseDown[0] = gpad->isDown(Gamepad::kA);
+	Im3d::GetCurrentContext().m_keyDown[0] = io.MouseDown[0];
+}
+
 	 // gaze cursor -> vui screen
 		Ray gazeW = getCursorRayW();
-		float tnear;
-		if (gazeW.intersect(m_vuiScreenPlane, tnear)) {
-			vec3 pw = gazeW.m_origin + gazeW.m_direction * tnear;
+		float t0;
+		if (Intersect(gazeW, m_vuiScreenPlane, t0)) {
+			vec3 pw = gazeW.m_origin + gazeW.m_direction * t0;
 			vec4 pndc = inverse(m_vuiScreenWorldMatrix) * vec4(pw, 1.0f);
 			vec2 sz(*m_vuiScreenSize * *m_vuiScreenAspect, *m_vuiScreenSize);
 			pndc.x /= sz.x;
 			pndc.y /= sz.y;
 			if ((abs(pndc.x) < 1.0f) && (abs(pndc.y) < 1.0f)) {
+				m_showGazeCursor = false;
 				io.MouseDrawCursor = true;
 				io.MousePos.x = (pndc.x * 0.5f + 0.5f) * (float)m_txVuiScreen->getWidth();
 				io.MousePos.y = (-pndc.y * 0.5f + 0.5f) * (float)m_txVuiScreen->getHeight();
+			} else {
+				m_showGazeCursor = true;
 			}
 		}
 	}
-
-
 }
 
 const Texture* AppSampleVr::getEyeTexture(Eye _eye, Layer _layer)
