@@ -60,7 +60,7 @@ struct PositionOrientationScaleXForm: public XForm
 ///   - W/A/S/D = forward/left/backward/right
 ///   - Q/E = down/up
 ///   - Left Shift = accelerate
-///   - Mouse = look
+///   - Mouse + Mouse Right = look
 ///
 /// Gamepad:
 ///    - Left Stick = move
@@ -79,7 +79,7 @@ struct FreeCameraXForm: public XForm
 	float m_accelCount;         //< Current ramp position in [0,m_accelTime].
 
 	quat  m_orientation;
-	vec3  m_pitchYawRoll;       //< Angular velocit in rads/sec.
+	vec3  m_pitchYawRoll;       //< Angular velocity in rads/sec.
 	float m_rotationInputMul;   //< Scale rotation inputs (should be relative to fov/screen size).
 	float m_rotationDamp;       //< Adhoc damping factor.
 
