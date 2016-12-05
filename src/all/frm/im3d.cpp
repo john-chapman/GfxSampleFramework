@@ -23,6 +23,9 @@ const Im3d::Color Im3d::kColorCyan    = Im3d::Color(0.0f, 1.0f, 1.0f);
 const Im3d::Color Im3d::kColorMagenta = Im3d::Color(1.0f, 0.0f, 1.0f);
 const Im3d::Color Im3d::kColorYellow  = Im3d::Color(1.0f, 1.0f, 0.0f);
 
+static const Im3d::Color kColorHighlight = Im3d::Color(1.0f, 1.0f, 0.3f);
+static const Im3d::Color kColorInvisible = Im3d::Color(0.0f, 0.0f, 0.0f, 0.0f);
+
 static Context  kDefaultContext;
 static Context* g_currentContext = &kDefaultContext; 
 
@@ -466,10 +469,46 @@ bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_
 	bool ret = false;
 	pushId();
 		setId(_id);
+
+		Im3d::Color colX = kColorRed;
+		Im3d::Color colY = kColorGreen;
+		Im3d::Color colZ = kColorBlue;
+
 	// \todo sort by depth so that they are called in the right order
-		ret |= axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), kColorRed,  64.0f);
-		ret |= axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), kColorGreen,64.0f);
-		ret |= axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), kColorBlue, 64.0f);
+		float screenScale = pixelsToWorldSize(*_position_, 64.0f);
+		const float kHandleOffset = 0.25f * screenScale;
+		const float kPlaneOffset = kHandleOffset * 2.0f;
+		if (handle(MakeId("xzdrag"), *_position_ + Vec3(kHandleOffset, 0.0f, kHandleOffset), kColorInvisible, 12.0f)) {
+			m_translationOffset = Vec3(-kHandleOffset, 0.0f, -kHandleOffset);
+			movePlanar(_position_, Vec3(1.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y);
+			colX = colZ = kColorHighlight;
+			ret = true;
+		}
+		if (handle(MakeId("xydrag"), *_position_ + Vec3(kHandleOffset, kHandleOffset, 0.0f), kColorInvisible, 12.0f)) {
+			m_translationOffset = Vec3(-kHandleOffset, -kHandleOffset, 0.0f);
+			movePlanar(_position_, Vec3(1.0f), Vec3(0.0f, 0.0f, 1.0f), _position_->z);
+			colX = colY = kColorHighlight;
+			ret = true;
+		}
+		if (handle(MakeId("zydrag"), *_position_ + Vec3(0.0f, kHandleOffset, kHandleOffset), kColorInvisible, 12.0f)) {
+			m_translationOffset = Vec3(0.0f, -kHandleOffset, -kHandleOffset);
+			movePlanar(_position_, Vec3(1.0f), Vec3(1.0f, 0.0f, 0.0f), _position_->x);
+			colZ = colY = kColorHighlight;
+			ret = true;
+		}
+		begin(kLineLoop);
+			vertex(*_position_ + Vec3(kPlaneOffset, 0.0f, 0.0f),         1.0f, kColorHighlight);
+			vertex(*_position_ + Vec3(kPlaneOffset, 0.0f, kPlaneOffset), 1.0f, kColorHighlight);
+			vertex(*_position_ + Vec3(0.0f, 0.0f, kPlaneOffset),         1.0f, kColorHighlight);
+			vertex(*_position_ + Vec3(0.0f, kPlaneOffset, kPlaneOffset), 1.0f, kColorHighlight);
+			vertex(*_position_ + Vec3(0.0f, kPlaneOffset, 0.0f),         1.0f, kColorHighlight);
+			vertex(*_position_ + Vec3(kPlaneOffset, kPlaneOffset, 0.0f), 1.0f, kColorHighlight);
+		End();
+		
+		ret |= axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), colX, 64.0f);
+		ret |= axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), colY, 64.0f);
+		ret |= axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), colZ, 64.0f);
+		
 	popId();
 	return ret;
 }
@@ -522,7 +561,6 @@ bool Context::axisGizmoW(
 	PushDrawState(); // push color, alpha, size
 	setColor(_color);
 	
-	float alpha = 1.0f;
 	bool ret = false;
 	if (_id == m_activeId) {
 		if (isKeyDown(kMouseLeft)) {
@@ -537,12 +575,12 @@ bool Context::axisGizmoW(
 				Vertex(*_position_ - _axis * 9999.0f);
 				Vertex(*_position_ + _axis * 9999.0f);
 			End();
-			
 			ret = true;
 		} else {
 		 // deactivate
 			m_hotId = m_activeId = kInvalidId;
 		}
+		setColor(kColorHighlight);
 
 	} else if (_id == m_hotId) {
 		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, cp)) {
@@ -556,18 +594,19 @@ bool Context::axisGizmoW(
 		} else {
 			m_hotId = kInvalidId;
 		}
+		setColor(kColorHighlight);
 		
 	} else {
 	 // intersect, make hot
 		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, cp)) {
 			m_hotId = _id;
 		}
-		alpha = 0.5f;
+		setColor(_color);
 	}
 	
 	float alignedAlpha = 1.0f - glm::abs(glm::dot(_axis, glm::normalize(m_cursorRayOriginW - *_position_)));
 	alignedAlpha = Remap(alignedAlpha, 0.1f, 0.2f);
-	setAlpha(alpha * alignedAlpha);
+	setAlpha(alignedAlpha);
 	setSize(4.0f);
 	DrawArrow(cp.m_start, cp.m_end, 0.2f);	
 	
