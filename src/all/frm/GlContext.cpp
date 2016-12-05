@@ -253,6 +253,7 @@ void GlContext::bindBuffer(const char* _location, const Buffer* _buffer)
 
 void GlContext::bindBufferRange(const char* _location, const Buffer* _buffer, GLintptr _offset, GLsizeiptr _size)
 {
+	APT_ASSERT(_location);
 	APT_ASSERT(m_currentShader);
 	APT_ASSERT(_buffer->getTarget() == GL_UNIFORM_BUFFER || 
 	           _buffer->getTarget() == GL_SHADER_STORAGE_BUFFER ||
@@ -326,6 +327,7 @@ void GlContext::clearBufferBindings()
 
 void GlContext::bindTexture(const char* _location, const Texture* _texture)
 {
+	APT_ASSERT(_location);
 	APT_ASSERT(m_currentShader);
 	GLint loc = m_currentShader->getUniformLocation(_location);
 	if (loc != GL_INVALID_INDEX) {
@@ -361,6 +363,7 @@ void GlContext::clearTextureBindings()
 
 void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum _access)
 {
+	APT_ASSERT(_location);
 	APT_ASSERT(m_currentShader);
 	GLint loc = m_currentShader->getUniformLocation(_location);
 	if (loc != GL_INVALID_INDEX) {
