@@ -52,3 +52,9 @@ namespace ImGui
 }
 */
 
+namespace ImGui
+{
+	bool ComboInt(const char* label, int* current_value, const char* items_separated_by_zeros, const int* item_values, int value_count);
+	bool ComboFloat(const char* label, float* current_value, const char* items_separated_by_zeros, const float* item_values, int value_count);
+
+}

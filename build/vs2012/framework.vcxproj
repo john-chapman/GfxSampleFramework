@@ -156,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c" />
+    <ClCompile Include="..\..\src\all\extern\imgui\imconfig.cpp" />
     <ClCompile Include="..\..\src\all\extern\imgui\imgui.cpp" />
     <ClCompile Include="..\..\src\all\extern\imgui\imgui_demo.cpp" />
     <ClCompile Include="..\..\src\all\extern\imgui\imgui_draw.cpp" />
