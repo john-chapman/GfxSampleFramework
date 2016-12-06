@@ -419,8 +419,8 @@ AppSample::AppSample(const char* _name, const char* _appDataPath)
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSample");
 	//                                    name                   display name                     default              min    max    hidden
-	                       props.addVec2i("Resolution",          "Resolution",                    ivec2(-1, -1),       1,     8192,  false);
-	                       props.addVec2i("WindowSize",          "Window Size",                   ivec2(-1, -1),      -1,     8192,  true);
+	m_resolution         = props.addVec2i("Resolution",          "Resolution",                    ivec2(-1, -1),       1,     8192,  false);
+	m_windowSize         = props.addVec2i("WindowSize",          "Window Size",                   ivec2(-1, -1),      -1,     8192,  true);
 	                       props.addVec2i("GlVersion",           "OpenGL Version",                ivec2(4, 5),         1,     5,     true);
 	                       props.addBool ("GlCompatibility",     "OpenGL Compatibility Profile",  false,                             true);
 	m_vsyncMode          = props.addInt  ("VsyncMode",           "Vsync Mode",                    0,                   0,     5,     true);

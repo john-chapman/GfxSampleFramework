@@ -55,6 +55,8 @@ protected:
 	virtual void ImGui_OverrideIo() {}
 
 	AppProperties      m_properties;
+	ivec2*             m_resolution;
+	ivec2*             m_windowSize;
 
 private:
 	PathStr            m_name;
