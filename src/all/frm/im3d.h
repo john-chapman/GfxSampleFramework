@@ -85,8 +85,8 @@ struct Vertex
 	Vec4  m_positionSize; //< xyz = position, w = line/point size (in pixels)
 	Color m_color;        //< rgba
 
-	Vertex(Vec3 _position, float _width, Color _color)
-		: m_positionSize(_position, _width)
+	Vertex(Vec3 _position, float _size, Color _color)
+		: m_positionSize(_position, _size)
 		, m_color(_color)
 	{
 	}
@@ -149,7 +149,7 @@ void DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength = 0.1f); 
 
 inline void Vertex(float _x, float _y, float _z)                    { Vertex(Vec3(_x, _y, _z)); }
 inline void Vertex(float _x, float _y, float _z, Color _color)      { Vertex(Vec3(_x, _y, _z), _color); }
-inline void Vertex(float _x, float _y, float _z, float _width)      { Vertex(Vec3(_x, _y, _z), _width); }
+inline void Vertex(float _x, float _y, float _z, float _size)       { Vertex(Vec3(_x, _y, _z), _size); }
 inline void SetColor(float _r, float _g, float _b, float _a = 1.0f) { SetColor(Color(_r, _g, _b, _a)); }
 
 
@@ -212,6 +212,14 @@ public:
 		kTriangleStrip
 	};
 
+	
+	enum UiState
+	{
+		kCold   = 0,
+		kHot    = 1 << 0,
+		kActive = 1 << 1
+	};
+
 	Context();
 	~Context();
 
@@ -266,7 +274,7 @@ public:
 	const void* getTriangleData() const  { return m_triangles.data(); }
 	unsigned getTriangleCount()          { return (unsigned)m_triangles.size(); }
 
-	bool gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_, float _screenSize = 64.0f);
+	UiState gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_, float _screenSize = 64.0f);
 
 private:
 	static const int kMaxMatStackDepth   = 8;
@@ -311,19 +319,29 @@ private:
 	/// Convert pixels -> world space size based on distance between _position and m_viewOriginW.
 	float pixelsToWorldSize(const Vec3& _position, float _pixels);
 
-	bool handle(
-		Id            _id,
-		const Vec3&   _position,
-		const Color&  _color,
-		float         _size
-		);
 
-	bool axisGizmoW(
-		Id           _id,          // id for the axis
+	UiState axisGizmoW(
+		Id           _id,
 		Vec3*        _position_, 
 		const Vec3&  _axis,
 		const Color& _color, 
 		float        _sizePixels
+		);
+
+	UiState planarGizmoW(
+		Id           _id,
+		Vec3*        _position_,
+		const Vec3&  _planeNormal,
+		const Vec3&  _planeOrigin,
+		float        _sizeW
+		);
+
+	
+	UiState handle(
+		Id            _id,
+		const Vec3&   _position,
+		const Color&  _color,
+		float         _size
 		);
 
 	void movePlanar(
