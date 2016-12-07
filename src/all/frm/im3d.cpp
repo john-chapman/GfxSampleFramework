@@ -65,7 +65,7 @@ void  Im3d::SetColor(Color _color)       { GetCurrentContext().setColor(_color);
 Color Im3d::GetColor()                   { return GetCurrentContext().getColor(); }
 void  Im3d::SetAlpha(float _alpha)       { GetCurrentContext().setAlpha(_alpha); }
 float Im3d::GetAlpha()                   { return GetCurrentContext().getAlpha(); }
-void  Im3d::SetSize(float _width)        { GetCurrentContext().setSize(_width); }
+void  Im3d::SetSize(float _size)         { GetCurrentContext().setSize(_size); }
 float Im3d::GetSize()                    { return GetCurrentContext().getSize(); }
 
 
@@ -92,11 +92,11 @@ void Im3d::Vertex(const Vec3& _position)
 	Vec3 pos = Vec3(ctx.getMatrix() * Vec4(_position, 1.0f));
 	ctx.vertex(Vec3(pos), ctx.getSize(), ctx.getColor());
 }
-void Im3d::Vertex(const Vec3& _position, float _width)
+void Im3d::Vertex(const Vec3& _position, float _size)
 {
 	Context& ctx = GetCurrentContext();
 	Vec3 pos = Vec3(ctx.getMatrix() * Vec4(_position, 1.0f));
-	ctx.vertex(pos, _width, ctx.getColor());
+	ctx.vertex(pos, _size, ctx.getColor());
 }
 void Im3d::Vertex(const Vec3& _position, Color _color)
 {
@@ -322,7 +322,7 @@ Im3d::Id Im3d::MakeId(const char* _str)
 bool Im3d::Gizmo(const char* _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_)
 {
 	Id id = MakeId(_id);
-	return GetCurrentContext().gizmo(id, _position_, _orientation_, _scale_);
+	return GetCurrentContext().gizmo(id, _position_, _orientation_, _scale_) == Context::kActive;
 
 }
 
@@ -406,17 +406,17 @@ void Context::end()
 	m_primMode = kNone;
 }
 
-void Context::vertex(const Vec3& _position, float _width, Color _color)
+void Context::vertex(const Vec3& _position, float _size, Color _color)
 {
 	Im3dAssert(m_primMode != kNone);
 
 	_color.scaleAlpha(getAlpha());
 	switch (m_primMode) {
 	case kPoints:
-		m_points.push_back(struct Vertex(_position, _width, _color));
+		m_points.push_back(struct Vertex(_position, _size, _color));
 		break;
 	case kLines:
-		m_lines.push_back(struct Vertex(_position, _width, _color));
+		m_lines.push_back(struct Vertex(_position, _size, _color));
 		break;
 	case kLineStrip:
 	case kLineLoop:
@@ -424,10 +424,10 @@ void Context::vertex(const Vec3& _position, float _width, Color _color)
 			m_lines.push_back(m_lines.back());
 			++m_vertCountThisPrim;
 		}
-		m_lines.push_back(struct Vertex(_position, _width, _color));
+		m_lines.push_back(struct Vertex(_position, _size, _color));
 		break;
 	case kTriangles:
-		m_triangles.push_back(struct Vertex(_position, _width, _color));
+		m_triangles.push_back(struct Vertex(_position, _size, _color));
 		break;
 	case kTriangleStrip:
 		if (m_vertCountThisPrim >= 3) {
@@ -435,7 +435,7 @@ void Context::vertex(const Vec3& _position, float _width, Color _color)
 			m_triangles.push_back(*(m_triangles.end() - 2));
 			m_vertCountThisPrim += 2;
 		}
-		m_triangles.push_back(struct Vertex(_position, _width, _color));
+		m_triangles.push_back(struct Vertex(_position, _size, _color));
 		break;
 	default:
 		break;
@@ -462,11 +462,11 @@ float Context::pixelsToWorldSize(const Vec3& _position, float _pixels)
 	return m_tanHalfFov * 2.0f * d * (_pixels / m_displaySize.y);
 }
 
-bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_, float _screenSize)
+Context::UiState Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_, float _screenSize)
 {
 	frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
 	
-	bool ret = false;
+	int ret = kCold;
 	pushId();
 		setId(_id);
 
@@ -474,43 +474,98 @@ bool Context::gizmo(Id _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_
 		Im3d::Color colY = kColorGreen;
 		Im3d::Color colZ = kColorBlue;
 
-	// \todo sort by depth so that they are called in the right order
 		float screenScale = pixelsToWorldSize(*_position_, 64.0f);
-		const float kHandleOffset = 0.25f * screenScale;
-		const float kPlaneOffset = kHandleOffset * 2.0f;
-		if (handle(MakeId("xzdrag"), *_position_ + Vec3(kHandleOffset, 0.0f, kHandleOffset), kColorInvisible, 12.0f)) {
-			m_translationOffset = Vec3(-kHandleOffset, 0.0f, -kHandleOffset);
-			movePlanar(_position_, Vec3(1.0f), Vec3(0.0f, 1.0f, 0.0f), _position_->y);
-			colX = colZ = kColorHighlight;
-			ret = true;
+		const float kPlaneSize = 0.2f * screenScale;
+		const float kPlaneOffset = kPlaneSize + 0.02f * screenScale;
+		
+		{ // XZ plane
+			int xzState = kCold;
+			Vec3 planeNormal = Vec3(0.0f, 1.0f, 0.0f);
+			Vec3 planeOrigin = *_position_ + Vec3(kPlaneOffset, 0.0f, kPlaneOffset);
+			float alignedAlpha = glm::abs(glm::dot(planeNormal, glm::normalize(m_viewOriginW - planeOrigin)));
+			alignedAlpha = Remap(alignedAlpha, 0.2f, 0.3f);
+
+			Id xzId = MakeId("xzplane");
+			if (m_activeId == xzId || alignedAlpha > 0.0f) {
+				xzState = planarGizmoW(xzId, _position_, planeNormal, planeOrigin, kPlaneSize);
+				if (xzState != kCold) {
+					colX = colZ = kColorHighlight;
+					ret |= xzState;
+				}
+
+				PushDrawState();
+					setColor(kColorHighlight);
+					setAlpha(xzState == kCold ? 0.2f : 1.0f);
+					DrawQuadFilled(
+						planeOrigin + Vec3(-1.0f,  0.0f, -1.0f) * kPlaneSize,
+						planeOrigin + Vec3( 1.0f,  0.0f, -1.0f) * kPlaneSize,
+						planeOrigin + Vec3(-1.0f,  0.0f,  1.0f) * kPlaneSize,
+						planeOrigin + Vec3( 1.0f,  0.0f,  1.0f) * kPlaneSize
+						);
+				PopDrawState();
+			}
 		}
-		if (handle(MakeId("xydrag"), *_position_ + Vec3(kHandleOffset, kHandleOffset, 0.0f), kColorInvisible, 12.0f)) {
-			m_translationOffset = Vec3(-kHandleOffset, -kHandleOffset, 0.0f);
-			movePlanar(_position_, Vec3(1.0f), Vec3(0.0f, 0.0f, 1.0f), _position_->z);
-			colX = colY = kColorHighlight;
-			ret = true;
+		{ // XY plane
+			int xyState = kCold;
+			Vec3 planeNormal = Vec3(0.0f, 0.0f, 1.0f);
+			Vec3 planeOrigin = *_position_ + Vec3(kPlaneOffset, kPlaneOffset, 0.0f);
+			float alignedAlpha = glm::abs(glm::dot(planeNormal, glm::normalize(m_viewOriginW - planeOrigin)));
+			alignedAlpha = Remap(alignedAlpha, 0.2f, 0.3f);
+
+			Id xyId = MakeId("xyplane");
+			if (m_activeId == xyId || alignedAlpha > 0.0f) {
+				xyState = planarGizmoW(xyId, _position_, planeNormal, planeOrigin, kPlaneSize);
+				if (xyState != kCold) {
+					colX = colY = kColorHighlight;
+					ret |= xyState;
+				}
+
+				PushDrawState();
+					setColor(kColorHighlight);
+					setAlpha(xyState == kCold ? 0.2f : 1.0f);
+					DrawQuadFilled(
+						planeOrigin + Vec3(-1.0f, -1.0f,  0.0f) * kPlaneSize,
+						planeOrigin + Vec3( 1.0f, -1.0f,  0.0f) * kPlaneSize,
+						planeOrigin + Vec3(-1.0f,  1.0f,  0.0f) * kPlaneSize,
+						planeOrigin + Vec3( 1.0f,  1.0f,  0.0f) * kPlaneSize
+						);
+				PopDrawState();
+			}
 		}
-		if (handle(MakeId("zydrag"), *_position_ + Vec3(0.0f, kHandleOffset, kHandleOffset), kColorInvisible, 12.0f)) {
-			m_translationOffset = Vec3(0.0f, -kHandleOffset, -kHandleOffset);
-			movePlanar(_position_, Vec3(1.0f), Vec3(1.0f, 0.0f, 0.0f), _position_->x);
-			colZ = colY = kColorHighlight;
-			ret = true;
+		{ // ZY plane
+			int zyState = kCold;
+			Vec3 planeNormal = Vec3(1.0f, 0.0f, 0.0f);
+			Vec3 planeOrigin = *_position_ + Vec3(0.0f, kPlaneOffset, kPlaneOffset);
+			float alignedAlpha = glm::abs(glm::dot(planeNormal, glm::normalize(m_viewOriginW - planeOrigin)));
+			alignedAlpha = Remap(alignedAlpha, 0.2f, 0.3f);
+
+			Id zyId = MakeId("zyplane");
+			if (m_activeId == zyId || alignedAlpha > 0.0f) {
+				zyState = planarGizmoW(zyId, _position_, planeNormal, planeOrigin, kPlaneSize);
+				if (zyState != kCold) {
+					colZ = colY = kColorHighlight;
+					ret |= zyState;
+				}
+
+				PushDrawState();
+					setColor(kColorHighlight);
+					setAlpha(zyState == kCold ? 0.2f : 1.0f);
+					DrawQuadFilled(
+						planeOrigin + Vec3(0.0f, -1.0f, -1.0f) * kPlaneSize,
+						planeOrigin + Vec3(0.0f,  1.0f, -1.0f) * kPlaneSize,
+						planeOrigin + Vec3(0.0f, -1.0f,  1.0f) * kPlaneSize,
+						planeOrigin + Vec3(0.0f,  1.0f,  1.0f) * kPlaneSize
+						);
+				PopDrawState();
+			}
 		}
-		begin(kLineLoop);
-			vertex(*_position_ + Vec3(kPlaneOffset, 0.0f, 0.0f),         1.0f, kColorHighlight);
-			vertex(*_position_ + Vec3(kPlaneOffset, 0.0f, kPlaneOffset), 1.0f, kColorHighlight);
-			vertex(*_position_ + Vec3(0.0f, 0.0f, kPlaneOffset),         1.0f, kColorHighlight);
-			vertex(*_position_ + Vec3(0.0f, kPlaneOffset, kPlaneOffset), 1.0f, kColorHighlight);
-			vertex(*_position_ + Vec3(0.0f, kPlaneOffset, 0.0f),         1.0f, kColorHighlight);
-			vertex(*_position_ + Vec3(kPlaneOffset, kPlaneOffset, 0.0f), 1.0f, kColorHighlight);
-		End();
 		
 		ret |= axisGizmoW(MakeId("xaxis"), _position_, Vec3(1.0f, 0.0f, 0.0f), colX, 64.0f);
 		ret |= axisGizmoW(MakeId("yaxis"), _position_, Vec3(0.0f, 1.0f, 0.0f), colY, 64.0f);
 		ret |= axisGizmoW(MakeId("zaxis"), _position_, Vec3(0.0f, 0.0f, 1.0f), colZ, 64.0f);
 		
 	popId();
-	return ret;
+	return (UiState)ret;
 }
 
 // PRIVATE
@@ -541,7 +596,7 @@ template struct Context::Stack<Color, Context::kMaxStateStackDepth>;
 template struct Context::Stack<float, Context::kMaxStateStackDepth>;
 
 
-bool Context::axisGizmoW(
+Context::UiState Context::axisGizmoW(
 	Id           _id,
 	Vec3*        _position_, 
 	const Vec3&  _axis,
@@ -561,7 +616,7 @@ bool Context::axisGizmoW(
 	PushDrawState(); // push color, alpha, size
 	setColor(_color);
 	
-	bool ret = false;
+	UiState ret = kCold;
 	if (_id == m_activeId) {
 		if (isKeyDown(kMouseLeft)) {
 		 // active, move _position_
@@ -575,7 +630,7 @@ bool Context::axisGizmoW(
 				Vertex(*_position_ - _axis * 9999.0f);
 				Vertex(*_position_ + _axis * 9999.0f);
 			End();
-			ret = true;
+			ret = kActive;
 		} else {
 		 // deactivate
 			m_hotId = m_activeId = kInvalidId;
@@ -584,6 +639,7 @@ bool Context::axisGizmoW(
 
 	} else if (_id == m_hotId) {
 		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, cp)) {
+			ret = kHot;
 			if (isKeyDown(kMouseLeft)) {
 			 // activate, store offset
 				m_activeId = _id;
@@ -604,7 +660,7 @@ bool Context::axisGizmoW(
 		setColor(_color);
 	}
 	
-	float alignedAlpha = 1.0f - glm::abs(glm::dot(_axis, glm::normalize(m_cursorRayOriginW - *_position_)));
+	float alignedAlpha = 1.0f - glm::abs(glm::dot(_axis, glm::normalize(m_viewOriginW - *_position_)));
 	alignedAlpha = Remap(alignedAlpha, 0.1f, 0.2f);
 	setAlpha(alignedAlpha);
 	setSize(4.0f);
@@ -615,7 +671,66 @@ bool Context::axisGizmoW(
 	return ret;
 }
 
-bool Context::handle(
+Context::UiState Context::planarGizmoW(
+	Id           _id,
+	Vec3*        _position_,
+	const Vec3&  _planeNormal,
+	const Vec3&  _planeOrigin,
+	float        _sizeW
+	)
+{
+	const frm::Ray cursorRay(m_cursorRayOriginW, m_cursorRayDirectionW);
+	const frm::Plane plane(_planeNormal, _planeOrigin);
+	float t0;
+	bool intersects = frm::Intersect(cursorRay, plane, t0);
+	
+	UiState ret = kCold;
+	if (_id == m_activeId) {
+		if (isKeyDown(kMouseLeft)) {
+		 // active, move _position_
+			if (intersects) {
+				*_position_ = cursorRay.m_origin + cursorRay.m_direction * t0 - m_translationOffset;
+				ret = kActive;
+
+			 // \todo draw some additional info here?
+			}
+		} else {
+		 // deactivate
+			m_hotId = m_activeId = kInvalidId;
+		}
+
+	} else if (_id == m_hotId) {
+		Vec3 p = cursorRay.m_origin + cursorRay.m_direction * t0;
+		Vec3 delta = glm::abs(p - _planeOrigin);
+		if (intersects && glm::all(glm::lessThan(delta, Vec3(_sizeW)))) {
+			ret = kHot;
+			if (m_activeId == kInvalidId) {
+				if (isKeyDown(kMouseLeft)) {
+				 // activate, store offset
+					Vec3 p = cursorRay.m_origin + cursorRay.m_direction * t0;
+					m_activeId = _id;
+					m_translationOffset = p - *_position_;
+				}
+			}
+		} else {
+			m_hotId = kInvalidId;
+		}
+		
+	} else {
+	 // intersect, make hot
+		if (m_activeId == kInvalidId && intersects) {
+			Vec3 p = cursorRay.m_origin + cursorRay.m_direction * t0;
+			Vec3 delta = glm::abs(p - _planeOrigin);
+			if (glm::all(glm::lessThan(delta, Vec3(_sizeW)))) {
+				m_hotId = _id;
+			}
+		}
+	}
+	
+	return ret;
+}
+
+Context::UiState Context::handle(
 	Id            _id,
 	const Vec3&   _position,
 	const Color&  _color,
@@ -627,7 +742,7 @@ bool Context::handle(
 	float srad = pixelsToWorldSize(_position, _size) * 0.5f;
 	frm::Sphere s(_position, srad);
 
-	bool ret = false;
+	UiState ret = kCold;
 	pushAlpha();
 	pushColor();
 	setColor(_color);
@@ -635,13 +750,14 @@ bool Context::handle(
 	if (_id == m_activeId) {
 		if (isKeyDown(kMouseLeft)) {
 		 // active
-			ret = true;
+			ret = kActive;
 		} else {
 		 // deactivate
 			m_hotId = m_activeId = kInvalidId;
 		}
 	} else if (_id == m_hotId) {
 		if (m_activeId == kInvalidId && frm::Intersects(cursorRay, s)) {
+			ret = kHot;
 			if (isKeyDown(kMouseLeft)) {
 			 // activate
 				m_activeId = _id;
