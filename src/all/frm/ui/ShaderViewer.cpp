@@ -116,90 +116,92 @@ void ShaderViewer::draw(bool* _open_)
 							ImGui::TreePop();
 						}
 					 // resources
-						static const int kMaxResNameLength = 128;
-						char resName[kMaxResNameLength];
+						if (sh->getHandle() != 0) { // introspection only if shader was loaded
+							static const int kMaxResNameLength = 128;
+							char resName[kMaxResNameLength];
 
-						GLint uniformCount;
-						static bool s_showBlockUniforms = false;
-						glAssert(glGetProgramInterfaceiv(sh->getHandle(), GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniformCount));
-						if (uniformCount > 0 && ImGui::TreeNode("Uniforms")) {
-							ImGui::Checkbox("Show Block Uniforms", &s_showBlockUniforms);
-							ImGui::Columns(5);
-							ImGui::Text("Name");     ImGui::NextColumn();
-							ImGui::Text("Index");    ImGui::NextColumn();
-							ImGui::Text("Location"); ImGui::NextColumn();
-							ImGui::Text("Type");     ImGui::NextColumn();
-							ImGui::Text("Count");    ImGui::NextColumn();
-							ImGui::Separator();
+							GLint uniformCount;
+							static bool s_showBlockUniforms = false;
+							glAssert(glGetProgramInterfaceiv(sh->getHandle(), GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniformCount));
+							if (uniformCount > 0 && ImGui::TreeNode("Uniforms")) {
+								ImGui::Checkbox("Show Block Uniforms", &s_showBlockUniforms);
+								ImGui::Columns(5);
+								ImGui::Text("Name");     ImGui::NextColumn();
+								ImGui::Text("Index");    ImGui::NextColumn();
+								ImGui::Text("Location"); ImGui::NextColumn();
+								ImGui::Text("Type");     ImGui::NextColumn();
+								ImGui::Text("Count");    ImGui::NextColumn();
+								ImGui::Separator();
 
-							for (int i = 0; i < uniformCount; ++i) {
-								GLenum type;
-								GLint count;
-								GLint loc;
-								glAssert(glGetActiveUniform(sh->getHandle(), i, kMaxResNameLength - 1, 0, &count, &type, resName));
-								glAssert(loc = glGetProgramResourceLocation(sh->getHandle(), GL_UNIFORM, resName));
-								if (loc == -1 && !s_showBlockUniforms) {
-									continue;
+								for (int i = 0; i < uniformCount; ++i) {
+									GLenum type;
+									GLint count;
+									GLint loc;
+									glAssert(glGetActiveUniform(sh->getHandle(), i, kMaxResNameLength - 1, 0, &count, &type, resName));
+									glAssert(loc = glGetProgramResourceLocation(sh->getHandle(), GL_UNIFORM, resName));
+									if (loc == -1 && !s_showBlockUniforms) {
+										continue;
+									}
+									ImGui::Text(resName);                   ImGui::NextColumn();
+									ImGui::Text("%d", i);                   ImGui::NextColumn();
+									ImGui::Text("%d", loc);                 ImGui::NextColumn();
+									ImGui::Text(internal::GlEnumStr(type)); ImGui::NextColumn();
+									ImGui::Text("[%d]", count);             ImGui::NextColumn();
 								}
-								ImGui::Text(resName);                   ImGui::NextColumn();
-								ImGui::Text("%d", i);                   ImGui::NextColumn();
-								ImGui::Text("%d", loc);                 ImGui::NextColumn();
-								ImGui::Text(internal::GlEnumStr(type)); ImGui::NextColumn();
-								ImGui::Text("[%d]", count);             ImGui::NextColumn();
+
+								ImGui::Columns(1);
+								ImGui::TreePop();
+								ImGui::Spacing();
 							}
 
-							ImGui::Columns(1);
-							ImGui::TreePop();
-							ImGui::Spacing();
-						}
+							GLint uniformBlockCount;
+							glAssert(glGetProgramInterfaceiv(sh->getHandle(), GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &uniformBlockCount));
+							if (uniformBlockCount > 0 && ImGui::TreeNode("Uniform Blocks")) {
+								ImGui::Columns(3);
+								ImGui::Text("Name");         ImGui::NextColumn();
+								ImGui::Text("Index");        ImGui::NextColumn();
+								ImGui::Text("Size");         ImGui::NextColumn();
+								ImGui::Separator();
 
-						GLint uniformBlockCount;
-						glAssert(glGetProgramInterfaceiv(sh->getHandle(), GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &uniformBlockCount));
-						if (uniformBlockCount > 0 && ImGui::TreeNode("Uniform Blocks")) {
-							ImGui::Columns(3);
-							ImGui::Text("Name");         ImGui::NextColumn();
-							ImGui::Text("Index");        ImGui::NextColumn();
-							ImGui::Text("Size");         ImGui::NextColumn();
-							ImGui::Separator();
+								for (int i = 0; i < uniformBlockCount; ++i) {
+									glAssert(glGetProgramResourceName(sh->getHandle(), GL_UNIFORM_BLOCK, i, kMaxResNameLength - 1, 0, resName));
+									static const GLenum kProps[] = { GL_BUFFER_DATA_SIZE };
+									GLint props[1];
+									glAssert(glGetProgramResourceiv(sh->getHandle(), GL_UNIFORM_BLOCK, i, 1, kProps, 1, 0, props));
+									ImGui::Text(resName);              ImGui::NextColumn();
+									ImGui::Text("%d", i);              ImGui::NextColumn();
+									ImGui::Text("%d bytes", props[0]); ImGui::NextColumn();
+								}
 
-							for (int i = 0; i < uniformBlockCount; ++i) {
-								glAssert(glGetProgramResourceName(sh->getHandle(), GL_UNIFORM_BLOCK, i, kMaxResNameLength - 1, 0, resName));
-								static const GLenum kProps[] = { GL_BUFFER_DATA_SIZE };
-								GLint props[1];
-								glAssert(glGetProgramResourceiv(sh->getHandle(), GL_UNIFORM_BLOCK, i, 1, kProps, 1, 0, props));
-								ImGui::Text(resName);              ImGui::NextColumn();
-								ImGui::Text("%d", i);              ImGui::NextColumn();
-								ImGui::Text("%d bytes", props[0]); ImGui::NextColumn();
+								ImGui::Columns(1);
+								ImGui::TreePop();
+								ImGui::Spacing();
 							}
 
-							ImGui::Columns(1);
-							ImGui::TreePop();
-							ImGui::Spacing();
-						}
+							GLint storageBlockCount;
+							glAssert(glGetProgramInterfaceiv(sh->getHandle(), GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &storageBlockCount));
+							if (storageBlockCount> 0 && ImGui::TreeNode("Shader Storage Blocks")) {
+								ImGui::Columns(3);
+								ImGui::Text("Name");     ImGui::NextColumn();
+								ImGui::Text("Index");    ImGui::NextColumn();
+								ImGui::Text("Size");     ImGui::NextColumn();
+								ImGui::Separator();
 
-						GLint storageBlockCount;
-						glAssert(glGetProgramInterfaceiv(sh->getHandle(), GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &storageBlockCount));
-						if (storageBlockCount> 0 && ImGui::TreeNode("Shader Storage Blocks")) {
-							ImGui::Columns(3);
-							ImGui::Text("Name");     ImGui::NextColumn();
-							ImGui::Text("Index");    ImGui::NextColumn();
-							ImGui::Text("Size");     ImGui::NextColumn();
-							ImGui::Separator();
+								for (int i = 0; i < storageBlockCount; ++i) {
+									glAssert(glGetProgramResourceName(sh->getHandle(), GL_SHADER_STORAGE_BLOCK, i, kMaxResNameLength - 1, 0, resName));
+									static const GLenum kProps[] = { GL_BUFFER_DATA_SIZE };
+									GLint props[1];
+									glAssert(glGetProgramResourceiv(sh->getHandle(), GL_SHADER_STORAGE_BLOCK, i, 1, kProps, 1, 0, props));
+									ImGui::Text(resName); ImGui::NextColumn();
+									ImGui::Text("%d", i);        ImGui::NextColumn();
+									ImGui::Text("%d bytes", props[0]); ImGui::NextColumn();
+								}
 
-							for (int i = 0; i < storageBlockCount; ++i) {
-								glAssert(glGetProgramResourceName(sh->getHandle(), GL_SHADER_STORAGE_BLOCK, i, kMaxResNameLength - 1, 0, resName));
-								static const GLenum kProps[] = { GL_BUFFER_DATA_SIZE };
-								GLint props[1];
-								glAssert(glGetProgramResourceiv(sh->getHandle(), GL_SHADER_STORAGE_BLOCK, i, 1, kProps, 1, 0, props));
-								ImGui::Text(resName); ImGui::NextColumn();
-								ImGui::Text("%d", i);        ImGui::NextColumn();
-								ImGui::Text("%d bytes", props[0]); ImGui::NextColumn();
+								ImGui::Columns(1);
+								ImGui::TreePop();
+								ImGui::Spacing();
 							}
-
-							ImGui::Columns(1);
-							ImGui::TreePop();
-							ImGui::Spacing();
-						}
+						} // if (sh->getHandle() != 0)
 
 
 						if (ImGui::TreeNode("Source")) {

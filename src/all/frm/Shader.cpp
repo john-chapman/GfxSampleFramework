@@ -242,16 +242,26 @@ bool Shader::reload()
 		
 		GLint linkStatus = GL_FALSE;
 		glAssert(glGetProgramiv(handle, GL_LINK_STATUS, &linkStatus));
-		if (ret == GL_FALSE) {
+		if (linkStatus == GL_FALSE) {
 			APT_LOG_ERR("Program %d link failed:", handle);
-			APT_LOG_ERR("\tstages:");
+			APT_LOG("\tstages:");
 			for (int i = 0; i < internal::kShaderStageCount; ++i) {
-				if (m_desc.m_stages[i].isEnabled()) {
-					APT_LOG_ERR("\t\t%s", internal::GlEnumStr(internal::kShaderStages[i]));
+				const ShaderDesc::StageDesc& stage = m_desc.m_stages[i];
+				if (stage.isEnabled()) {
+					APT_LOG("\t\t%s", internal::GlEnumStr(internal::kShaderStages[i]));
+					if (!stage.m_path.isEmpty()) {
+						APT_LOG("\t\tpath: '%s'", (const char*)stage.m_path);
+					}
+					if (stage.m_defines.size() > 0) {
+						APT_LOG("\t\tdefines:");
+						for (auto it = stage.m_defines.begin(); it != stage.m_defines.end(); ++it) {
+							APT_LOG("\t\t\t%s", (const char*)*it);
+						}
+					}
 				}
 			}
 			const char* log = GetProgramInfoLog(handle);
-			APT_LOG_ERR("\tlog: %s", log);
+			APT_LOG("\tlog:\n%s", log);
 			FreeProgramInfoLog(log);
 
 			glAssert(glDeleteProgram(handle));
@@ -275,7 +285,6 @@ bool Shader::reload()
 			setState(State::kError);
 		}
 	}
-
 	return ret;
 }
 
