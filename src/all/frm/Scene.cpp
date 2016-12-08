@@ -1,5 +1,66 @@
 #include <frm/Scene.h>
 
+#include <algorithm> // std::find
+
+using namespace frm;
+using namespace apt;
+
+/*******************************************************************************
+
+                                   Node
+
+*******************************************************************************/
+
+static const char* kNodeTypeStr[] =
+{
+	"Root",
+	"Camera",
+	"Object",
+	"Light"
+};
+
+// PUBLIC
+
+void Node::setNamef(const char* _fmt, ...)
+{
+	va_list args;
+	va_start(args, _fmt);
+	m_name.setfv(_fmt, args);
+	va_end(args);
+}
+
+void Node::setParent(Node* _node)
+{
+	APT_ASSERT(_node);
+	_node->addChild(this); // addChild sets m_parent implicitly
+}
+
+void Node::addChild(Node* _node)
+{
+	APT_ASSERT(_node);
+	APT_ASSERT(std::find(m_children.begin(), m_children.end(), _node) == m_children.end()); // added the same child multiple times?
+	m_children.push_back(_node);
+	if (_node->m_parent && _node->m_parent != this) {
+		_node->m_parent->removeChild(_node);
+	}
+	_node->m_parent = this;
+}
+
+void Node::removeChild(Node* _node)
+{
+	APT_ASSERT(_node);
+	auto it = std::find(m_children.begin(), m_children.end(), _node);
+	if (it != m_children.end()) {
+		(*it)->m_parent = nullptr;
+		m_children.erase(it);
+	}
+}
+
+
+// PRIVATE
+
+
+// --- old
 #include <frm/Camera.h>
 #include <frm/Profiler.h>
 #include <frm/XForm.h>
@@ -9,8 +70,7 @@
 
 #include <algorithm> // std::find
 
-using namespace frm;
-using namespace apt;
+namespace old {
 
 static const char* kNodeTypeStr[] =
 {
@@ -889,3 +949,5 @@ void SceneEditor::drawHierarchy(Node* _node, int _depth)
 }
 
 #endif // frm_Scene_ENABLE_EDIT
+
+} // namespace old
