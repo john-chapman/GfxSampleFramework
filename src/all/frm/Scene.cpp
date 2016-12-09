@@ -1,5 +1,9 @@
 #include <frm/Scene.h>
 
+#include <frm/Camera.h>
+#include <frm/Profiler.h>
+#include <frm/XForm.h>
+
 #include <algorithm> // std::find
 
 using namespace frm;
@@ -59,103 +63,15 @@ void Node::removeChild(Node* _node)
 
 // PRIVATE
 
-
-// --- old
-#include <frm/Camera.h>
-#include <frm/Profiler.h>
-#include <frm/XForm.h>
-
-#include <apt/log.h>
-#include <apt/String.h>
-
-#include <algorithm> // std::find
-
-namespace old {
-
-static const char* kNodeTypeStr[] =
-{
-	"Root",
-	"Camera",
-	"Light",
-	"Object"
-};
-
-/*******************************************************************************
-
-                                   Node
-
-*******************************************************************************/
-
-// PUBLIC
-
-void Node::applyXForms(float _dt)
-{
-	m_worldMatrix = m_localMatrix;
-	for (int i = (int)m_xforms.size() - 1; i != -1; --i) {
-		m_xforms[i]->apply(this, _dt);
-	}
-}
-
-void Node::addXForm(XForm* _xform)
-{
-	m_xforms.push_back(_xform);
-}
-
-void Node::removeXForm(XForm* _xform)
-{
-	auto it = std::find(m_xforms.begin(), m_xforms.end(), _xform);
-	APT_ASSERT(it != m_xforms.end()); // not found, removing an xform you didn't add?
-	m_xforms.erase(it);
-}
-
-void Node::setParent(Node* _parent)
-{
-	APT_ASSERT(_parent);
-	_parent->addChild(this); // add child sets m_parent implicitly
-}
-
-void Node::addChild(Node* _child)
-{
-	APT_ASSERT(std::find(m_children.begin(), m_children.end(), _child) == m_children.end()); // added the same child multiple times?
-	m_children.push_back(_child);
-	if (_child->m_parent && _child->m_parent != this) {
-		_child->m_parent->removeChild(_child);
-	}
-	_child->m_parent = this;
-}
-
-void Node::removeChild(Node* _child)
-{
-	auto it = std::find(m_children.begin(), m_children.end(), _child);
-	if (it != m_children.end()) {
-		(*it)->m_parent = 0;
-		m_children.erase(it);
-	}
-}
-
-void Node::setNamef(const char* _fmt, ...)
-{
-	va_list args;
-	va_start(args, _fmt);
-	m_name.setfv(_fmt, args);
-	va_end(args);
-}
-
-
-// PRIVATE
-
-Node::Node(Id _id, const char* _name, Node::Type _type, uint8 _stateMask, const void* _userData)
-	: m_localMatrix(mat4(1.0f))
-	, m_type((uint8)_type)
-	, m_stateMask(_stateMask)
-	, m_userData(_userData)
-	, m_parent(0)
+Node::Node(Id _id, const char* _name, Node::Type _type, uint8 _stateMask, uint64 _userData)
+	: m_id(_id)
 	, m_name(_name)
-	, m_id(_id)
+	, m_type((uint8)_type)
+	, m_state(_stateMask)
+	, m_userData(_userData)
+	, m_localMatrix(mat4(1.0f))
+	, m_parent(0)
 {
-	if (m_name.isEmpty()) {
-		AutoName(_type, m_name);
-	}
 }
 
 Node::~Node()
@@ -170,28 +86,115 @@ Node::~Node()
 	}
 }
 
-void Node::moveXForm(const XForm* _xform, int _dir)
+int Node::moveXForm(int _i, int _dir)
 {
-	for (int i = 0; i < (int)m_xforms.size(); ++i) {
-		if (m_xforms[i] == _xform) {
-			int j = APT_CLAMP(i + _dir, 0, (int)(m_xforms.size() - 1));
-			std::swap(m_xforms[i], m_xforms[j]);
-			return;
-		}
-	}
+	int j = APT_CLAMP(_i + _dir, 0, (int)(m_xforms.size() - 1));
+	std::swap(m_xforms[_i], m_xforms[j]);
+	return j;
 }
 
-static unsigned s_typeCounters[Node::kTypeCount] = {};
+static unsigned s_typeCounters[Node::kTypeCount] = {}; // incremented by Scene::createNode
 void Node::AutoName(Type _type, NameStr& out_)
 {
 	out_.setf("%s_%03u", kNodeTypeStr[_type], s_typeCounters[_type]);
 }
+
 
 /*******************************************************************************
 
                                    Scene
 
 *******************************************************************************/
+
+// PUBLIC
+
+Scene::Scene()
+	: m_root(s_nextNodeId++, "root", Node::kTypeRoot, Node::kStateActive | Node::kStateDynamic, (uint64)this)
+	, m_nodePool(128)
+	, m_cameraPool(16)
+{
+}
+
+Scene::~Scene()
+{
+	while (!m_cameras.empty()) {
+		m_cameraPool.free(m_cameras.back());
+		m_cameras.pop_back();
+	}
+	for (int i = 0; i < Node::kTypeCount; ++i) {
+		while (!m_nodes[i].empty()) {
+			m_nodePool.free(m_nodes[i].back());
+			m_nodes[i].pop_back();
+		}
+	}
+}
+
+void Scene::update(float _dt, uint8 _stateMask)
+{
+	CPU_AUTO_MARKER("Scene::update");
+	
+	traverse([](Node* _node_) {
+		// construct the node matrices
+			_node_->applyXForms(_dt);
+			if (_node_->m_parent) {
+				_node_->m_worldMatrix = _node_->m_parent->m_worldMatrix * _node_->m_worldMatrix;
+			}
+
+		// type-specific update
+			switch (_node_->getType()) {
+				case Node::kTypeCamera:
+				 // copy world matrix into the camera
+					if (_node_->m_userData) {
+						Camera* camera = (Camera*)_node_->m_userData;
+						APT_ASSERT(camera->getNode() == _node_);
+						camera->build();
+					}
+					break;
+				default: 
+					break;
+			};
+			return true;
+		},
+		&m_root,
+		_stateMask
+		);
+
+}
+
+bool Scene::traverse(OnVisit* _callback, Node* _root_, uint8 _stateMask)
+{
+	CPU_AUTO_MARKER("Scene::traverse");
+
+	if (_root_->getStateMask() & _stateMask) {
+		if (!_callback(_root_)) {
+			return false;
+		}
+		for (int i = 0; i < _root_->getChildCount(); ++i) {
+			if (!traverse(_callback, _root_->getChild(i), _stateMask)) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+// PRIVATE
+
+Node::Id Scene::s_nextNodeId = 0;
+
+
+
+// --- old
+#include <frm/Camera.h>
+#include <frm/Profiler.h>
+#include <frm/XForm.h>
+
+#include <apt/log.h>
+#include <apt/String.h>
+
+#include <algorithm> // std::find
+
+namespace old {
 
 // PUBLIC
 

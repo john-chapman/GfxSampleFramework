@@ -43,19 +43,25 @@
 #include <frm/def.h>
 #include <frm/math.h>
 
+#include <apt/Pool.h>
 #include <apt/String.h>
 
 #include <vector>
 
 namespace frm {
 
+class Camera;
 class XForm;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class Node
+/// Basic scene unit; comprises a local/world matrix, metadata and hierarchical
+/// information.
+/// \note Don't create loops in the hiearchy.
 ////////////////////////////////////////////////////////////////////////////////
 class Node
 {
+	friend class apt::Pool<Node>;
 	friend class Scene;
 public:
 	typedef apt::String<24> NameStr;
@@ -136,9 +142,75 @@ private:
 	Node*               m_parent;      //< Parent node.
 	std::vector<Node*>  m_children;    //< Child nodes.
 
+
+	Node(
+		Id          _id, 
+		const char* _name, 
+		Type        _type, 
+		uint8       _stateMask, 
+		uint64      _userData
+		);
+
+	/// Maintains traversability by reparenting child nodes to m_parent.	
+	~Node();
+
+	/// Move _ith XForm within the stack; _dir is an offset from the current index.
+	/// \return new index.
+	int moveXForm(int _i, int _dir);
+
+	/// Auto name based on type, e.g. Camera_001, Object_123
+	static void AutoName(Type _type, NameStr& out_);
+
 }; // class Node
 
+
+////////////////////////////////////////////////////////////////////////////////
+/// \class Scene
+/// Manages nodes/cameras. 
+////////////////////////////////////////////////////////////////////////////////
+class Scene
+{
+public:
+	typedef bool (OnVisit)(Node* _node_);
+
+	static Scene& GetCurrent();
+	static void   SetCurrent(Scene& _scene);
+
+	Scene();
+	~Scene();
+
+	/// Update all nodes matching _stateMask. If a node does not match _stateMask 
+	/// then none of its children are updated.
+	void update(float _dt, uint8 _stateMask = Node::kStateActive | Node::kStateDynamic);
+
+	/// Pre-order traversal of the node graph starting at _root_, calling _callback 
+	/// at every node which matches _stateMask. The callback should return false if 
+	/// the traversal should stop.
+	bool traverse(OnVisit* _callback, Node* _root_, uint8 _stateMask = Node::kStateAny);
+
+private:
+ // nodes
+	static Node::Id         s_nextNodeId;               //< Monotonically increasing id for nodes.
+	Node                    m_root;                     //< Everything is a child of root.              
+	std::vector<Node*>      m_nodes[Node::kTypeCount];  //< Nodes binned by type.
+	apt::Pool<Node>         m_nodePool;
+
+ // cameras
+	Camera*                 m_drawCamera;
+	Camera*                 m_cullCamera;
+	std::vector<Camera*>    m_cameras;
+	apt::Pool<Camera>       m_cameraPool;
+
+}; // class Scene
+
+
 } // namespace frm
+
+
+
+
+
+
 
 // -- old
 #include <frm/def.h>
@@ -155,123 +227,6 @@ private:
 namespace old {
 namespace frm
 {
-
-class XForm;
-
-////////////////////////////////////////////////////////////////////////////////
-/// \class Node
-/// Basic scene unit; comprises a local/world matrix, metadata and hierarchical
-/// information. Nodes may only be indirectly created via a Scene object.
-/// \note Don't create loops in the hieararchy!
-/// \note XForms may be shared between nodes - this allows additional 
-///    flexibility, e.g. attach multiple nodes to an input controller without 
-///    creating a common root node.
-/// \note All operations maintain the traversability of the hierarchy, it 
-///    shouldn't be possible to 'orphan' a node.
-/// \todo const-ness is incosistent - you can implicitly modify a Node via a 
-///    const ptr to it:
-///    const Node* n;
-///    n->getChild(0)->setParent(x); // modifies n!
-////////////////////////////////////////////////////////////////////////////////
-class Node
-{
-	friend class apt::Pool<Node>;
-	friend class Scene;
-	friend class SceneEditor;
-public:
-	typedef apt::String<24> NameStr;
-	typedef uint64 Id;
-
-	enum State
-	{
-		kStateActive   = 1 << 0, //< Enable/disable update.
-		kStateStatic   = 1 << 1, //< Update manually or only on load.
-		kStateDynamic  = 1 << 2, //< Update every frame.
-		kStateSelected = 1 << 3, //< Activates certain xforms (e.g. which receive input).
-
-		kStateAny = 0xff
-	};
-
-	enum Type
-	{
-		kTypeRoot,
-		kTypeCamera,
-		kTypeLight,
-		kTypeObject,
-
-		kTypeCount
-	};
-
-	/// Apply transforms to construct the local matrix at this node.
-	void        applyXForms(float _dt);
-
-	/// Add a transform to the top of the transform stack. Transforms may be shared
-	/// between nodes.
-	void        addXForm(XForm* _xform);
-	/// Remove a transform from the stack. 
-	void        removeXForm(XForm* _xform);
-	
-	/// Modify the parent-child hierachy. Both ends of the relationship are updated
-	/// (i.e. addChild() set's _child's m_parent to this, etc.).
-	/// \note Don't create loops in the hiearchy!
-	void        setParent(Node* _parent);
-	void        addChild(Node* _child);
-	void        removeChild(Node* _child);
-
-	void        setName(const char* _name)         { m_name.set(_name); }
-	void        setNamef(const char* _fmt, ...);
-	void        setLocalMatrix(const mat4& _local) { m_localMatrix = _local; }
-	void        setWorldMatrix(const mat4& _world) { m_worldMatrix = _world; }
-	void        setType(Type _type)                { m_type = (uint8)_type; }
-	void        setUserData(const void* _userData) { m_userData = _userData; }
-
-	const char* getName() const                    { return (const char*)m_name; }
-	Id          getId() const                      { return m_id; }
-	const mat4& getLocalMatrix() const             { return m_localMatrix; }
-	const mat4& getWorldMatrix() const             { return m_worldMatrix; }
-	Type        getType() const                    { return (Type)m_type; }
-	uint8       getStateMask() const               { return m_stateMask; }
-	const void* getUserData() const                { return m_userData; }
-	Node*       getParent() const                  { return m_parent; }
-	Node*       getChild(int _i) const             { APT_ASSERT(_i < (int)m_children.size()); return m_children[_i]; }
-	int         getChildCount() const              { return (int)m_children.size(); }
-
-	void        setStateMask(uint8 _mask)          { m_stateMask = _mask; }
-	void        setActive(bool _state)             { m_stateMask = _state ? (m_stateMask | (uint8)kStateActive)   : (m_stateMask & ~(uint8)kStateActive); }
-	void        setSelected(bool _state)           { m_stateMask = _state ? (m_stateMask | (uint8)kStateSelected) : (m_stateMask & ~(uint8)kStateSelected); }
-	void        setDynamic(bool _state)            { m_stateMask = _state ? (m_stateMask | (uint8)kStateDynamic)  : (m_stateMask & ~(uint8)kStateDynamic); }
-	bool        isActive() const                   { return (getStateMask() & (uint8)kStateActive)   != 0; }
-	bool        isSelected() const                 { return (getStateMask() & (uint8)kStateSelected) != 0; }
-	bool        isDynamic() const                  { return (getStateMask() & (uint8)kStateDynamic) != 0; }
-
-private:
-	mat4                m_localMatrix; //< Constructed from the xform stack.
-	mat4                m_worldMatrix; //< Constructed from the scene hierarchy.
-	
-	uint8               m_type;        //< See NodeType.
-	uint8               m_stateMask;   //< Combination of State 
-	const void*         m_userData;    //< Render info, etc.
-
-	Node*               m_parent;
-	std::vector<Node*>  m_children;
-	std::vector<XForm*> m_xforms;      //< Evaluated in reverse order.
-
-	NameStr             m_name;        //< Names may not be unique.
-	Id                  m_id;          //< IDs must be unique per node.
-	
-
-	Node(Id _id, const char* _name = 0, Type _type = kTypeRoot, uint8 _stateMask = 0, const void* _userData = 0);
-
-	/// Maintains traversability by reparenting child nodes to m_parent.	
-	~Node();
-
-	/// Move _xform within the stack; _dir is an offset from the current index.
-	void moveXForm(const XForm* _xform, int _dir);
-
-	/// Auto name based on type, e.g. Camera_001, Drawable_123
-	static void AutoName(Type _type, NameStr& out_);
-
-}; // class Node
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class Scene
