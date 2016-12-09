@@ -66,7 +66,9 @@ private:
 	uint8 m_dataType;  //< Data type per component.
 	uint8 m_count;     //< Number of components (1,2,3 or 4).
 	uint8 m_offset;    //< Byte offset of the first component.
-};
+
+}; // class VertexAttr
+
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class MeshDesc
@@ -115,16 +117,16 @@ private:
 	uint8             m_vertexAttrCount;
 	uint8             m_vertexSize;
 	uint8             m_primitive;
-};
+
+}; // class MeshDesc
+
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class MeshData
-/// Cpu-side mesh data/mesh tools.
+/// Cpu-side mesh data.
 /// \note The first submesh always represents the entire mesh data. Additional
 ///   submeshes are optional.
 /// \todo Submesh API.
-/// \todo Vertex data conversion (i.e. convert to a compact format before upload
-///    to gpu).
 ////////////////////////////////////////////////////////////////////////////////
 class MeshData: private apt::non_copyable<MeshData>
 {
@@ -174,7 +176,7 @@ public:
 	/// Copy semantic data from _src, converting from _srcType.
 	void setVertexData(VertexAttr::Semantic _semantic, DataType _srcType, uint _srcCount, const void* _src);
 	
-	/// Copy index data from _data. The layout of _data must match the index data type/count.
+	/// Copy index data from _src. The layout of _src must match the index data type/count.
 	void setIndexData(const void* _src);
 	/// Copy index data from _src, converting from _srcType.
 	void setIndexData(DataType _srcType, const void* _src);
@@ -214,6 +216,10 @@ private:
 }; // class MeshData
 
 
+////////////////////////////////////////////////////////////////////////////////
+/// \class MeshBuilder
+/// Mesh construction/manipulation tools.
+////////////////////////////////////////////////////////////////////////////////
 class MeshBuilder
 {
 	friend class MeshData;
@@ -271,7 +277,8 @@ private:
 
 	AlignedBox m_boundingBox;
 	Sphere     m_boundingSphere;
-};
+
+}; // class MeshBuilder
 
 } // namespace frm
 
