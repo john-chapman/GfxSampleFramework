@@ -1,17 +1,7 @@
 #pragma once
 #ifndef frm_Scene_h
 #define frm_Scene_h
-/*	Purpose of the scene graph is to maintain spatial/hierarchical information and allow
-	this to be coupled to render data, therfore each 'node' in the hierarchy must finally
-	provide a world matrix, plus some other information about how to draw the node (in
-	practice a a node 'type' + userdata param will be enough).
-
-	Node updates: during update, first 'reset' the world matrix with the local matrix, then
-	apply xforms, then apply the parent's world matrix, then update the children. In theory
-	xforms could be split into 'local' (applied first) and 'world' (applied after the parent's
-	transform), but it's probably overkill here. 
-
-	Xforms are attached to one node only (in order to make lifetime management easier - no
+/*	Xforms are attached to one node only (in order to make lifetime management easier - no
 	refcounting). Some XForms may support 'OnComplete' behavior and call a callback or 
 	delete themselves when done, which allows for simple chaining and animation. Note that
 	not all xforms need support callbacks, as long as each XForm has a reference to its
@@ -48,9 +38,12 @@
 
 #include <vector>
 
+#define frm_Scene_ENABLE_EDIT
+
 namespace frm {
 
 class Camera;
+class Scene;
 class XForm;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -108,6 +101,9 @@ public:
 	uint64       getUserData() const                 { return m_userData; }
 	void         setUserData(uint64 _data)           { m_userData = _data; }
 
+	uint64       getSceneData() const                { return m_sceneData; }
+	Camera*      getSceneDataCamera() const          { APT_ASSERT(m_type == kTypeCamera); return (Camera*)m_sceneData; }
+	Scene*       getSceneDataScene() const           { APT_ASSERT(m_type == kTypeRoot); return (Scene*)m_sceneData; }
 
 	const mat4&  getLocalMatrix() const              { return m_localMatrix; }
 	void         setLocalMatrix(const mat4& _mat)    { m_localMatrix = _mat; }
@@ -132,6 +128,7 @@ private:
 	uint8               m_type;        //< Node type (see Type enum).
 	uint8               m_state;       //< State mask (see State enum).
 	uint64              m_userData;    //< Application-defined node data.
+	uint64              m_sceneData;   //< Scene-defined data.
 
  // spatial
 	mat4                m_localMatrix; //< Initial (local) transformation.
@@ -143,13 +140,7 @@ private:
 	std::vector<Node*>  m_children;    //< Child nodes.
 
 
-	Node(
-		Id          _id, 
-		const char* _name, 
-		Type        _type, 
-		uint8       _stateMask, 
-		uint64      _userData
-		);
+	Node(Id _id);
 
 	/// Maintains traversability by reparenting child nodes to m_parent.	
 	~Node();
@@ -158,8 +149,8 @@ private:
 	/// \return new index.
 	int moveXForm(int _i, int _dir);
 
-	/// Auto name based on type, e.g. Camera_001, Object_123
-	static void AutoName(Type _type, NameStr& out_);
+	void setSceneDataCamera(Camera* _camera) { APT_ASSERT(m_type == kTypeCamera); m_userData = (uint64)_camera; }
+	void setSceneDataScene(Scene* _scene)    { APT_ASSERT(m_type == kTypeRoot);   m_userData = (uint64)_scene; }
 
 }; // class Node
 
@@ -173,8 +164,8 @@ class Scene
 public:
 	typedef bool (OnVisit)(Node* _node_);
 
-	static Scene& GetCurrent();
-	static void   SetCurrent(Scene& _scene);
+	static Scene& GetCurrent()                      { return *s_currentScene; }
+	static void   SetCurrent(Scene& _scene)         { s_currentScene = &_scene; }
 
 	Scene();
 	~Scene();
@@ -188,7 +179,29 @@ public:
 	/// the traversal should stop.
 	bool traverse(OnVisit* _callback, Node* _root_, uint8 _stateMask = Node::kStateAny);
 
+	Node*   createNode(Node::Type _type, Node* _parent = nullptr);
+	void    destroyNode(Node*& _node_);
+	Node*   findNode(Node::Id _id, Node::Type _typeHint = Node::kTypeCount);
+	int     getNodeCount(Node::Type _type) const    { return (int)m_nodes[_type].size(); }
+	Node*   getNode(Node::Type _type, int _i) const { return m_nodes[_type][_i]; }
+
+	/// Create a camera with parameters from _copyFrom, plus a new camera node.
+	Camera* createCamera(const Camera& _copyFrom, Node* _parent = nullptr);
+	void    destroyCamera(Camera*& _camera_);
+	int     getCameraCount() const                  { return (int)m_cameras.size(); }
+	Camera* getCamera(int _i) const                 { return m_cameras[_i]; }
+	Camera* getDrawCamera() const                   { return m_drawCamera; }
+	void    setDrawCamera(Camera* _camera)          { m_drawCamera = _camera; }
+	Camera* getCullCamera() const                   { return m_cullCamera; }
+	void    setCullCamera(Camera* _camera)          { m_cullCamera = _camera; }
+
+#ifdef frm_Scene_ENABLE_EDIT
+	void edit();
+#endif
+
 private:
+	static Scene*           s_currentScene;
+
  // nodes
 	static Node::Id         s_nextNodeId;               //< Monotonically increasing id for nodes.
 	Node                    m_root;                     //< Everything is a child of root.              
@@ -201,140 +214,18 @@ private:
 	std::vector<Camera*>    m_cameras;
 	apt::Pool<Camera>       m_cameraPool;
 
-}; // class Scene
+	/// Recursive update, called by update().
+	void update(Node* _node_, float _dt, uint8 _stateMask);
 
-
-} // namespace frm
-
-
-
-
-
-
-
-// -- old
-#include <frm/def.h>
-#include <frm/math.h>
-
-#include <apt/Pool.h>
-#include <apt/String.h>
-#include <apt/StringHash.h>
-
-#include <vector>
-
-#define frm_Scene_ENABLE_EDIT
-
-namespace old {
-namespace frm
-{
-
-////////////////////////////////////////////////////////////////////////////////
-/// \class Scene
-/// \note find() and destroyNode() methods will be fairly slow as they just
-///   do a linear search of the node bins.
-////////////////////////////////////////////////////////////////////////////////
-class Scene
-{
-	friend class SceneEditor;
-public:
-	typedef bool (VisitNode)(Node* _node_);
-
-	Scene();
-	~Scene();
-
-	/// Update all nodes in the hierarchy who match _stateMask. If a node does
-	/// not match _stateMask then none of its children are updated.
-	void update(float _dt, uint8 _stateMask = Node::kStateActive | Node::kStateDynamic);
-
-	/// Traverse the node graph starting at _root_, calling _callback at every node 
-	/// which matches _stateMask. VisitNodeCallback should return false if the traversal
-	/// should stop.
-	bool traverse(VisitNode* _callback, Node* _root_, uint8 _stateMask = Node::kStateAny);
-
-	/// Create a new node, return a ptr to it.
-	/// \note The ptr is guranteed to be persistent for the lifetime of the scene.
-	Node* createNode(const char* _name, Node::Type _type, Node* _parent_ = 0, const void* _userData = 0);
-
-	/// Destroy _node_.
-	void destroyNode(Node*& _node_);
-
-	/// Find the first node matching name, return 0 if no match was found.
-	/// \note Names are not guaranteed to be unique, however you can build a list
-	///   of all matching nodes by repeatedly calling findNode() and passing the
-	///   previous result to the _start param until the function returns 0. Very
-	///   stupid, very slow method, use sparingly (i.e. for UI purposes).
-	Node* findNode(const char* _name, const Node* _start = 0);
-
-	/// Find node matching _id, return 0 if no match was found. Ids are 
-	/// guaranteed to be unique.
-	Node* findNode(Node::Id _id);
-
-
-	int         getNodeCount(Node::Type _type) const  { return (int)m_nodes[(int)_type].size(); }
-	Node*       getNode(Node::Type _type, int _i)     { APT_ASSERT(_i < getNodeCount(_type)); return m_nodes[(int)_type][_i]; }
-	const Node* getRoot() const                       { return &m_root; }
-
-
-	Camera*     createCamera(const Camera& _copyFrom, Node* _parent = 0);
-	void        destroyCamera(Camera*& _camera_);
-	int         getCameraCount() const                { return (int)m_cameras.size(); }
-	Camera*     getCamera(int _i)                     { APT_ASSERT(_i < getCameraCount()); return m_cameras[_i]; }
-	Camera*     getDrawCamera() const                 { return m_drawCamera; }
-	void        setDrawCamera(Camera* _camera)        { m_drawCamera = _camera; }
-	Camera*     getCullCamera() const                 { return m_cullCamera; }
-	void        setCullCamera(Camera* _camera)        { m_cullCamera = _camera; }
-	
-private:
-	static Node::Id         s_nextNodeId;               //< Monotonically increasing id for nodes.
-	Node                    m_root;                     //< Everything is a child of root.              
-	std::vector<Node*>      m_nodes[Node::kTypeCount];  //< Nodes binned by type.
-	apt::Pool<Node>         m_nodePool;
-
-	std::vector<Camera*>    m_cameras;
-	apt::Pool<Camera>       m_cameraPool;
-	Camera*                 m_drawCamera;
-	Camera*                 m_cullCamera;
-
-	/// Recursive node update (called by update()).
-	void update(Node* _node, float _dt, uint8 _stateMask);
-
-}; // class Scene
+	/// Auto name based on type, e.g. Camera_001, Object_123
+	static void AutoName(Node::Type _type, Node::NameStr& out_);
 
 #ifdef frm_Scene_ENABLE_EDIT
 
-	class SceneEditor
-	{
-	public:
-		SceneEditor(Scene* _scene_);
+#endif
 
-		void edit();
-
-		Scene*   m_scene;
-		Node*    m_editNode;
-		Camera*  m_editCamera;
-		XForm*   m_editXForm;
-
-		bool     m_showNodeGraph3d; //< Show node graph in 3d viewport.
-
-		void beginSelectNode();
-		Node* selectNode(Node* _current, Node::Type _type = Node::kTypeCount);
-
-		void beginSelectCamera();
-		Camera* selectCamera(Camera* _current);
-
-		void beginCreateNode();
-		Node* createNode(Node* _current);
-
-		void beginCreateXForm();
-		XForm* createXForm(XForm* _current);
-
-		void drawHierarchy(Node* _node, int _depth = 0);
-	};
-
-#endif // frm_Scene_ENABLE_EDIT
+}; // class Scene
 
 } // namespace frm
-
-} // namespace old
 
 #endif // frm_Scene_h
