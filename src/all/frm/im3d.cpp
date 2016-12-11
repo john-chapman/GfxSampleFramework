@@ -73,6 +73,7 @@ void  Im3d::PushMatrix()                 { GetCurrentContext().pushMatrix(); }
 void  Im3d::PopMatrix()                  { GetCurrentContext().popMatrix(); }
 void  Im3d::SetMatrix(const Mat4& _mat)  { GetCurrentContext().setMatrix(_mat); }
 const Mat4& Im3d::GetMatrix()            { return GetCurrentContext().getMatrix(); }
+void  Im3d::SetIdentity()                { SetMatrix(Mat4(1.0f)); }
 void  Im3d::MulMatrix(const Mat4& _mat)  { GetCurrentContext().mulMatrix(_mat); }
 
 void Im3d::Translate(float _x, float _y, float _z)
@@ -81,7 +82,7 @@ void Im3d::Translate(float _x, float _y, float _z)
 	GetCurrentContext().mulMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(_x, _y, _z)));
 }
 
-void  Im3d::Scale(float _x, float _y, float _z)
+void Im3d::Scale(float _x, float _y, float _z)
 {
 	GetCurrentContext().mulMatrix(glm::scale(glm::mat4(1.0f), glm::vec3(_x, _y, _z)));
 }
@@ -297,11 +298,12 @@ void Im3d::DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int 
 
 void Im3d::DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength)
 {
-	Vec3 head = _start + (_end - _start) * (1.0f - _headLength);
+	float normHeadLength = _headLength / length(_end - _start);
+	Vec3 head = _start + (_end - _start) * (1.0f - normHeadLength);
 	BeginLines();
 		Vertex(_start);
 		Vertex(head);
-		Vertex(head, GetCurrentContext().getSize() * 2.0f);
+		Vertex(head, glm::max(GetCurrentContext().getSize() * 2.0f, 4.0f));
 		Vertex(_end, 2.0f); // can't be 0 as the AA fades to 0
 	End();
 }
@@ -310,7 +312,7 @@ Im3d::Id Im3d::MakeId(const char* _str)
 {
 	static const U32 kFnv1aPrime32 = 0x01000193u;
 
-	APT_ASSERT(_str);
+	Im3dAssert(_str);
 	U32 ret = (U32)GetCurrentContext().getId(); // i.e. top of Id stack
 	while (*_str) {
 		ret ^= (U32)*_str++;
@@ -319,11 +321,26 @@ Im3d::Id Im3d::MakeId(const char* _str)
 	return (Id)ret;
 }
 
+bool Im3d::Gizmo(const char* _id, Mat4* _matrix_)
+{
+	Im3dAssert(_matrix_);
+ // \todo decompose matrix
+	Vec3 position, scale;
+	Quat orientation;
+	position = Vec3(glm::column(*_matrix_, 3));
+	bool ret = Gizmo(_id, &position, &orientation, &scale);
+	if (ret) {
+	// \todo recompose matrix
+		*_matrix_ = glm::column(*_matrix_, 3, Vec4(position, 1.0f));
+	}
+
+	return ret;
+}
+
 bool Im3d::Gizmo(const char* _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_)
 {
 	Id id = MakeId(_id);
 	return GetCurrentContext().gizmo(id, _position_, _orientation_, _scale_) == Context::kActive;
-
 }
 
 /*******************************************************************************
@@ -664,7 +681,7 @@ Context::UiState Context::axisGizmoW(
 	alignedAlpha = Remap(alignedAlpha, 0.1f, 0.2f);
 	setAlpha(alignedAlpha);
 	setSize(4.0f);
-	DrawArrow(cp.m_start, cp.m_end, 0.2f);	
+	DrawArrow(cp.m_start, cp.m_end, 0.2f * screenScale);	
 	
 	PopDrawState();
 

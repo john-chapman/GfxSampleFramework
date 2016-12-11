@@ -21,6 +21,7 @@ class Node;
 ////////////////////////////////////////////////////////////////////////////////
 class XForm: public apt::Factory<XForm>
 {
+	Node* m_node;
 public:
 	enum CompleteBehavior
 	{
@@ -34,6 +35,15 @@ public:
 	
 	const char* getName() const { return getClassRef()->getName(); }
 	
+	Node* getNode() const       { return m_node; }
+	void  setNode(Node* _node)  { m_node = _node; }
+
+protected:
+	XForm()
+		: m_node(nullptr)
+	{
+	}
+
 }; // class XForm
 
 

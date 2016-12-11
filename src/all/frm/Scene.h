@@ -42,10 +42,6 @@
 
 namespace frm {
 
-class Camera;
-class Scene;
-class XForm;
-
 ////////////////////////////////////////////////////////////////////////////////
 /// \class Node
 /// Basic scene unit; comprises a local/world matrix, metadata and hierarchical
@@ -111,6 +107,8 @@ public:
 	const mat4&  getWorldMatrix() const              { return m_worldMatrix; }
 	void         setWorldMatrix(const mat4& _mat)    { m_worldMatrix = _mat; }
 	
+	void         addXForm(XForm* _xform);
+	void         removeXForm(XForm* _xform);
 	int          getXFormCount() const               { return (int)m_xforms.size(); }
 	XForm*       getXForm(int _i)                    { return m_xforms[_i]; }
 
@@ -149,8 +147,8 @@ private:
 	/// \return new index.
 	int moveXForm(int _i, int _dir);
 
-	void setSceneDataCamera(Camera* _camera) { APT_ASSERT(m_type == kTypeCamera); m_userData = (uint64)_camera; }
-	void setSceneDataScene(Scene* _scene)    { APT_ASSERT(m_type == kTypeRoot);   m_userData = (uint64)_scene; }
+	void setSceneDataCamera(Camera* _camera) { APT_ASSERT(m_type == kTypeCamera); m_sceneData = (uint64)_camera; }
+	void setSceneDataScene(Scene* _scene)    { APT_ASSERT(m_type == kTypeRoot);   m_sceneData = (uint64)_scene; }
 
 }; // class Node
 
@@ -177,7 +175,9 @@ public:
 	/// Pre-order traversal of the node graph starting at _root_, calling _callback 
 	/// at every node which matches _stateMask. The callback should return false if 
 	/// the traversal should stop.
-	bool traverse(OnVisit* _callback, Node* _root_, uint8 _stateMask = Node::kStateAny);
+	bool traverse(Node* _root_, uint8 _stateMask, OnVisit* _callback);
+
+	Node*   getRoot()                               { return &m_root; }
 
 	Node*   createNode(Node::Type _type, Node* _parent = nullptr);
 	void    destroyNode(Node*& _node_);
@@ -221,7 +221,27 @@ private:
 	static void AutoName(Node::Type _type, Node::NameStr& out_);
 
 #ifdef frm_Scene_ENABLE_EDIT
+	bool      m_showNodeGraph3d;
+	Node*     m_editNode;
+	XForm*    m_editXForm;
+	Camera*   m_editCamera;
 
+	void      editNodes();
+	void      editCameras();
+
+	void      beginSelectNode();
+	Node*     selectNode(Node* _current, Node::Type _type = Node::kTypeCount);
+
+	void      beginSelectCamera();
+	Camera*   selectCamera(Camera* _current);
+
+	void      beginCreateNode();
+	Node*     createNode(Node* _current);
+
+	void      beginCreateXForm();
+	XForm*    createXForm(XForm* _current);
+
+	void      drawHierarchy(Node* _node);
 #endif
 
 }; // class Scene

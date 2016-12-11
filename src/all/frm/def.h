@@ -30,6 +30,9 @@ namespace frm {
 	using apt::DataType;
 
  // forward declarations
+	class App;
+	class AppSample;
+	class AppSample3d;
 	class Buffer;
 	class Camera;
 	class Framebuffer;
@@ -45,6 +48,7 @@ namespace frm {
 	class Texture;
 	class TextureAtlas;
 	class Window;
+	class XForm;
 
 	struct AlignedBox;
 	struct Capsule;

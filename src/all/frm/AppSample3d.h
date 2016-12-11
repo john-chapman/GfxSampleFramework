@@ -45,10 +45,7 @@ protected:
 	std::vector<Node*>  m_sceneRoots;      //< Ptrs to sub-scene root nodes inside m_scene.
 	uint                m_currentScene;    //< Index m_sceneRoots.
 	Camera*             m_dbgCullCamera;
-#ifdef frm_Scene_ENABLE_EDIT
-	SceneEditor	        m_sceneEditor;
-#endif
-	
+
 	bool* m_showHelpers;
 	bool* m_showSceneEditor;
 
