@@ -65,7 +65,7 @@ public:
 		static vec3 testPos1(-10.0f, 0.0f, 0.0f); 
 		static vec3 testScale(1.0f);
 		static quat testOri = quat(1.0f, 0.0f, 0.0f, 0.0f);
-		Im3d::Gizmo("TestGizmo0", &testPos0, &testOri, &testScale);
+		//Im3d::Gizmo("TestGizmo0", &testPos0, &testOri, &testScale);
 		//Im3d::Gizmo("TestGizmo1", &testPos1, &testOri, &testScale);
 	
 		return true;

@@ -45,14 +45,13 @@ bool AppSample3d::init(const apt::ArgList& _args)
 
 
  // create default scene root
-	Node* defaultScene = m_scene.createNode("SceneDefault", Node::kTypeRoot);
-	m_sceneRoots.push_back(defaultScene);
+	m_sceneRoots.push_back(m_scene.getRoot());
 	m_currentScene = 0;
 
  // create default camera
-	Camera* defaultCamera = m_scene.createCamera(Camera(), defaultScene);
+	Camera* defaultCamera = m_scene.createCamera(Camera());
 	Node* defaultCameraNode = defaultCamera->getNode();
-	defaultCameraNode->setSelected(true);
+	defaultCameraNode->setStateMask(Node::kStateActive | Node::kStateDynamic | Node::kStateSelected);
 	XForm* freeCam = XForm::Create("FreeCameraXForm");
 	((FreeCameraXForm*)freeCam)->m_position = vec3(0.0f, 5.0f, 22.5f);
 	defaultCameraNode->addXForm(freeCam);
@@ -74,10 +73,11 @@ bool AppSample3d::update()
 	Im3d::SetCurrentContext(m_im3dCtx);
 	Im3d_Update(this);
 
+	Scene::SetCurrent(m_scene);
 	m_scene.update((float)m_deltaTime, Node::kStateActive | Node::kStateDynamic);
 	#ifdef frm_Scene_ENABLE_EDIT
 		if (*m_showSceneEditor) {
-			m_sceneEditor.edit();
+			m_scene.edit();
 		}
 	#endif
 
@@ -239,9 +239,6 @@ AppSample3d::AppSample3d(const char* _title, const char* _appDataPath)
 	, m_showHelpers(0)
 	, m_showSceneEditor(0)
 	, m_dbgCullCamera(0)
-#ifdef frm_Scene_ENABLE_EDIT
-	, m_sceneEditor(&m_scene)
-#endif
 {
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSample3d");

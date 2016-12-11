@@ -133,6 +133,7 @@ void  PopMatrix();
 void  SetMatrix(const Mat4& _mat);
 void  MulMatrix(const Mat4& _mat);
 const Mat4& GetMatrix();
+void  SetIdentity();
 void  Translate(float _x, float _y, float _z);
 void  Scale(float _x, float _y, float _z);
 
@@ -145,7 +146,7 @@ void DrawSphere(const Vec3& _origin, float _radius, int _detail = 24);
 void DrawBox(const Vec3& _min, const Vec3& _max);
 void DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int _detail = 24);
 void DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int _detail = 12);
-void DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength = 0.1f); // _headLength is fraction of the total length
+void DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength = 0.05f);
 
 inline void Vertex(float _x, float _y, float _z)                    { Vertex(Vec3(_x, _y, _z)); }
 inline void Vertex(float _x, float _y, float _z, Color _color)      { Vertex(Vec3(_x, _y, _z), _color); }
@@ -159,6 +160,7 @@ Id MakeId(const char* _str);
 
 /// Manipulate position/orientation/scale via a gizmo.
 /// \return true if the gizmo is active.
+bool Gizmo(const char* _id, Mat4* _matrix_);
 bool Gizmo(const char* _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_);
 bool PositionGizmo(const char* _id, Vec3* _position_);
 bool OrientationGizmo(const char* _id, Quat* _orientation_);
