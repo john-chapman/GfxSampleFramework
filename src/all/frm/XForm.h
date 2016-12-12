@@ -22,14 +22,8 @@ class Node;
 class XForm: public apt::Factory<XForm>
 {
 	Node* m_node;
+
 public:
-	enum CompleteBehavior
-	{
-		kDestroy,
-		kRepeat,
-		kReverse
-	};
-	
 	virtual void apply(Node* _node_, float _dt) = 0;	
 	virtual void edit()                         = 0;
 	
@@ -46,6 +40,34 @@ protected:
 
 }; // class XForm
 
+
+////////////////////////////////////////////////////////////////////////////////
+/// \class BasicAnimationXForm
+////////////////////////////////////////////////////////////////////////////////
+struct BasicAnimationXForm: public XForm
+{
+	typedef void (OnComplete)(BasicAnimationXForm* _xform_);
+	OnComplete* m_onComplete;
+	bool        m_active;
+
+	BasicAnimationXForm()
+		: m_onComplete(nullptr)
+		, m_active(true)
+	{
+	}
+
+	/// Reset initial state.
+	virtual void reset() {}
+	static  void Reset(BasicAnimationXForm* _xform_)         { _xform_->reset(); }
+
+	/// Initial state + current state.
+	virtual void relativeReset() {}
+	static  void RelativeReset(BasicAnimationXForm* _xform_) { _xform_->relativeReset(); }
+
+	/// Reverse operation.
+	virtual void reverse() {}
+	static  void Reverse(BasicAnimationXForm* _xform_)       { _xform_->reverse(); }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class PositionOrientationScaleXForm

@@ -60,10 +60,11 @@ APT_FACTORY_REGISTER_DEFAULT(XForm, FreeCameraXForm);
 FreeCameraXForm::FreeCameraXForm()
 	: m_position(0.0f)
 	, m_velocity(0.0f)
-	, m_accelTime(0.2f)
-	, m_accelCount(0.0f)
+	, m_speed(0.0f)
 	, m_maxSpeed(10.0f)
 	, m_maxSpeedMul(5.0f)
+	, m_accelTime(0.1f)
+	, m_accelCount(0.0f)
 	, m_orientation(1.0f, 0.0f, 0.0f, 0.0f)
 	, m_pitchYawRoll(0.0f)
 	, m_rotationInputMul(0.1f)
@@ -82,20 +83,16 @@ void FreeCameraXForm::apply(Node* _node_, float _dt)
 	const Gamepad* gpad = Input::GetGamepad();
 	const Keyboard* keyb = Input::GetKeyboard();
 
-	bool isAccel = false;		
+	bool isAccel = false;
 	vec3 dir = vec3(0.0);		
 	if (gpad) {			
 		float x = gpad->getAxisState(Gamepad::kLeftStickX);
-		dir += vec3(column(localMatrix, 0)) * x;
 		float y = gpad->getAxisState(Gamepad::kLeftStickY);
+		float z = gpad->isDown(Gamepad::kRight1) ? 1.0f : (gpad->isDown(Gamepad::kLeft1) ? -1.0f : 0.0f);
+		dir += vec3(column(localMatrix, 0)) * x;
 		dir += vec3(column(localMatrix, 2)) * y;
-		if (gpad->isDown(Gamepad::kLeft1)) {
-			dir -= vec3(column(localMatrix, 1));
-		}
-		if (gpad->isDown(Gamepad::kRight1)) {
-			dir += vec3(column(localMatrix, 1));
-		}
-		isAccel = true;
+		dir += vec3(column(localMatrix, 1)) * z;
+		isAccel = abs(x + y + z) > 0.0f;
 	}
 	if (keyb->isDown(Keyboard::kW)) {
 		dir -= vec3(column(localMatrix, 2));
@@ -122,13 +119,13 @@ void FreeCameraXForm::apply(Node* _node_, float _dt)
 		isAccel = true;
 	}
 	if (isAccel) {
-	 // if we're accelerating, zero the velocity here to allow instantaneous direction changes
+	 // if accelerating, zero the velocity here to allow instantaneous direction changes
 		m_velocity = vec3(0.0f);
 	}
 	m_velocity += dir;
 			
 	m_accelCount += isAccel ? _dt : -_dt;
-	m_accelCount = apt::clamp(m_accelCount, 0.0f, m_accelTime);
+	m_accelCount = clamp(m_accelCount, 0.0f, m_accelTime);
 	m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
 	if (gpad) {
 		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::kRightTrigger);
@@ -136,9 +133,9 @@ void FreeCameraXForm::apply(Node* _node_, float _dt)
 	if (keyb->isDown(Keyboard::kLShift)) {
 		m_speed *= m_maxSpeedMul;
 	}
-	float len = apt::length(m_velocity);
-	if (len > 0.0f) {
-		m_velocity = (m_velocity / len) * m_speed;
+	float len2 = apt::length2(m_velocity);
+	if (len2 > 0.0f) {
+		m_velocity = (m_velocity / sqrt(len2)) * m_speed;
 	}		
 	m_position += m_velocity * _dt;
 
@@ -169,7 +166,6 @@ void FreeCameraXForm::edit()
 	ImGui::Text("Accel:          %1.3f",                   m_accelCount);
 	ImGui::Text("Velocity:       %1.3f,%1.3f,%1.3f",       m_velocity.x, m_velocity.y, m_velocity.z);
 	ImGui::Spacing();
-	ImGui::Text("Orientation:    %1.3f,%1.3f,%1.3f,%1.3f", m_orientation.w, m_orientation.x, m_orientation.y, m_orientation.z);
 	ImGui::Text("Pitch/Yaw/Roll: %1.3f,%1.3f,%1.3f",       m_pitchYawRoll.x, m_pitchYawRoll.y, m_pitchYawRoll.z);
 	ImGui::Spacing();
 	ImGui::SliderFloat("Max Speed",           &m_maxSpeed,         0.0f,  500.0f);
