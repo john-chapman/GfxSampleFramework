@@ -22,6 +22,9 @@ using apt::quat;
 
 using apt::LCG;
 
+using apt::pi;
+using apt::two_pi;
+
 /// \return Matrix with position = _from and forward vector = (_to - _from).
 mat4 GetLookAtMatrix(const vec3& _from, const vec3& _to, const vec3& _up = vec3(0.0f, 1.0f, 0.0f));
 
