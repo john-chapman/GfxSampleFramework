@@ -854,7 +854,7 @@ void Scene::update(Node* _node_, float _dt, uint8 _stateMask)
 
  // apply xforms
 	for (auto it = _node_->m_xforms.begin(); it != _node_->m_xforms.end(); ++it) {
-		(*it)->apply(_node_, _dt);
+		(*it)->apply(_dt);
 	}
 
  // move to parent space

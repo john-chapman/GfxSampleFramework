@@ -1,5 +1,6 @@
 #include <frm/def.h>
 
+#include <frm/interpolation.h>
 #include <frm/AppSample3d.h>
 #include <frm/AppProperty.h>
 #include <frm/GlContext.h>
@@ -48,6 +49,39 @@ public:
 			return false;
 		}
 		
+		static int s_sampleCount = 200;
+        static int s_funcType = 0;
+		static float s_min = 0.0f;
+		static float s_max = 1.0f;
+
+
+	 // interpolationt vis
+		struct Funcs {
+			static float GetDelta(int _i)        { return s_min + ((float)_i / (float)s_sampleCount) * (s_max - s_min); }
+            static float Lerp(void*, int _i)     { return lerp(0.0f, 1.0f, GetDelta(_i)); }
+            static float Coserp(void*, int _i)   { return coserp(0.0f, 1.0f, GetDelta(_i)); }
+			static float Cuberp(void*, int _i)   { return cuberp(0.0f, 0.25f, 0.75f, 1.0f, GetDelta(_i)); }
+			static float Smooth(void*, int _i)   { return smooth(0.0f, 1.0f, GetDelta(_i)); }
+			static float Accelerp(void*, int _i) { return accelerp(0.0f, 1.0f, GetDelta(_i)); }
+			static float Decelerp(void*, int _i) { return decelerp(0.0f, 1.0f, GetDelta(_i)); }
+        };
+		ImGui::SliderFloat("Min", &s_min, -0.1f, 1.1f);
+		ImGui::SliderFloat("Max", &s_max, -0.1f, 1.1f);
+		ImGui::PushItemWidth(100.0f);
+			ImGui::Combo("##Interp", &s_funcType, "lerp\0coserp\0cuberp\0smooth\0accelerp\0decelerp\0");;
+		ImGui::PopItemWidth();
+        float (*func)(void*, int) = NULL;
+		switch (s_funcType) {
+			case 5:  func = Funcs::Decelerp; break;
+			case 4:  func = Funcs::Accelerp; break;
+			case 3:  func = Funcs::Smooth; break;
+			case 2:  func = Funcs::Cuberp; break;
+			case 1:  func = Funcs::Coserp; break;
+			case 0:
+			default: func = Funcs::Lerp; break;
+		};
+		ImGui::SameLine();
+		ImGui::PlotLines("##Lines", func, NULL, 200, 0, NULL, 0.0f, 1.0f, ImVec2(0,80));
 
 		Ray r;
 		r.m_origin = m_scene.getCullCamera()->getPosition();

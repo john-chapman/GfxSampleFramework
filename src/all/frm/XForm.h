@@ -21,22 +21,19 @@ class Node;
 ////////////////////////////////////////////////////////////////////////////////
 class XForm: public apt::Factory<XForm>
 {
-	Node* m_node;
-
 public:
-	virtual void apply(Node* _node_, float _dt) = 0;	
-	virtual void edit()                         = 0;
+	virtual void apply(float _dt) = 0;	
+	virtual void edit()           = 0;
 	
-	const char* getName() const { return getClassRef()->getName(); }
+	const char* getName() const   { return getClassRef()->getName(); }
 	
-	Node* getNode() const       { return m_node; }
-	void  setNode(Node* _node)  { m_node = _node; }
+	Node* getNode() const         { return m_node; }
+	void  setNode(Node* _node)    { m_node = _node; }
 
 protected:
-	XForm()
-		: m_node(nullptr)
-	{
-	}
+	XForm(): m_node(nullptr)      {}
+
+	Node* m_node;
 
 }; // class XForm
 
@@ -67,26 +64,26 @@ struct BasicAnimationXForm: public XForm
 	/// Reverse operation.
 	virtual void reverse() {}
 	static  void Reverse(BasicAnimationXForm* _xform_)       { _xform_->reverse(); }
-}
+};
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class PositionOrientationScaleXForm
+/// \class XForm_PositionOrientationScale
 ////////////////////////////////////////////////////////////////////////////////
-struct PositionOrientationScaleXForm: public XForm
+struct XForm_PositionOrientationScale: public XForm
 {
 	vec3  m_position;
 	quat  m_orientation;
 	vec3  m_scale;
 
-	PositionOrientationScaleXForm();
-	virtual ~PositionOrientationScaleXForm() {}
+	XForm_PositionOrientationScale();
+	virtual ~XForm_PositionOrientationScale() {}
 
-	virtual void apply(Node* _node_, float _dt) override;
+	virtual void apply(float _dt) override;
 	virtual void edit() override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class FreeCameraXForm
+/// \class XForm_FreeCamera
 /// Apply keyboard/gamepad input.
 /// Mouse/Keyboard:
 ///   - W/A/S/D = forward/left/backward/right
@@ -100,7 +97,7 @@ struct PositionOrientationScaleXForm: public XForm
 ///    - Right Trigger = accelerate
 ///    - Right Stick = look
 ////////////////////////////////////////////////////////////////////////////////
-struct FreeCameraXForm: public XForm
+struct XForm_FreeCamera: public XForm
 {
 	vec3  m_position;
 	vec3  m_velocity;
@@ -116,28 +113,45 @@ struct FreeCameraXForm: public XForm
 	float m_rotationDamp;       //< Adhoc damping factor.
 
 	
-	FreeCameraXForm();
-	virtual ~FreeCameraXForm() {}
+	XForm_FreeCamera();
+	virtual ~XForm_FreeCamera() {}
 
-	virtual void apply(Node* _node_, float _dt) override;
+	virtual void apply(float _dt) override;
 	virtual void edit() override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class LookAtXForm
+/// \class XForm_LookAt
 /// Overrides the world matrix with a 'look at' matrix.
 ////////////////////////////////////////////////////////////////////////////////
-struct LookAtXForm: public XForm
+struct XForm_LookAt: public XForm
 {
 	const Node* m_target; //< Node to look at (can be 0).
 	vec3 m_offset;        //< Offset from target, or world space if target is 0.
 
-	LookAtXForm();
-	virtual ~LookAtXForm() {}
+	XForm_LookAt();
+	virtual ~XForm_LookAt() {}
 
-	virtual void apply(Node* _node_, float _dt) override;
+	virtual void apply(float _dt) override;
 	virtual void edit() override;
-}; 
+};
+
+////////////////////////////////////////////////////////////////////////////////
+/// \class XForm_Spin
+/// Constant rotation at m_rate around m_axis.
+////////////////////////////////////////////////////////////////////////////////
+struct XForm_Spin: public XForm
+{
+	vec3  m_axis;      //< Axis of rotation.
+	float m_rate;      //< Rate of rotation, radians/s.
+	float m_rotation;  //< Current rotation.
+
+	XForm_Spin();
+	virtual ~XForm_Spin();
+
+	virtual void apply(float _dt) override;
+	virtual void edit() override;
+};
 
 } // namespace frm
 
