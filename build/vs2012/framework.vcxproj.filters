@@ -158,6 +158,7 @@
     <ClInclude Include="..\..\src\all\frm\ui\TextureViewer.h">
       <Filter>ui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\interpolation.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">
