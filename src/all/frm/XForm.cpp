@@ -18,26 +18,25 @@ APT_FACTORY_DEFINE(XForm);
 
 /*******************************************************************************
 
-                        PositionOrientationScaleXForm
+                        XForm_PositionOrientationScale
 
 *******************************************************************************/
+APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionOrientationScale);
 
-APT_FACTORY_REGISTER_DEFAULT(XForm, PositionOrientationScaleXForm);
-
-PositionOrientationScaleXForm::PositionOrientationScaleXForm()
-: m_position(0.0f)
+XForm_PositionOrientationScale::XForm_PositionOrientationScale()
+	: m_position(0.0f)
 	, m_orientation(1.0f, 0.0f, 0.0f, 0.0f)
 	, m_scale(1.0f)
 {
 };
 
-void PositionOrientationScaleXForm::apply(Node* _node_, float _dt)
+void XForm_PositionOrientationScale::apply(float _dt)
 {
 	mat4 mat = scale(translate(mat4(1.0f), m_position) * mat4_cast(m_orientation), m_scale);
-	_node_->setWorldMatrix(_node_->getWorldMatrix() * mat);
+	m_node->setWorldMatrix(m_node->getWorldMatrix() * mat);
 }
 
-void PositionOrientationScaleXForm::edit()
+void XForm_PositionOrientationScale::edit()
 {
 	vec3 eul = eulerAngles(m_orientation);
 	ImGui::DragFloat3("Position", &m_position.x, 0.5f);
@@ -46,18 +45,17 @@ void PositionOrientationScaleXForm::edit()
 	}
 	ImGui::DragFloat3("Scale", &m_scale.x, 0.2f);
 
-	Im3d::Gizmo("PositionOrientationScaleXForm", &m_position, &m_orientation, &m_scale);
+	Im3d::Gizmo("XForm_PositionOrientationScale", &m_position, &m_orientation, &m_scale);
 }
 
 /*******************************************************************************
 
-                                FreeCameraXForm
+                                XForm_FreeCamera
 
 *******************************************************************************/
+APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_FreeCamera);
 
-APT_FACTORY_REGISTER_DEFAULT(XForm, FreeCameraXForm);
-
-FreeCameraXForm::FreeCameraXForm()
+XForm_FreeCamera::XForm_FreeCamera()
 	: m_position(0.0f)
 	, m_velocity(0.0f)
 	, m_speed(0.0f)
@@ -72,13 +70,13 @@ FreeCameraXForm::FreeCameraXForm()
 {
 }
 
-void FreeCameraXForm::apply(Node* _node_, float _dt)
+void XForm_FreeCamera::apply(float _dt)
 {
- 	if (!_node_->isSelected()) {
+ 	if (!m_node->isSelected()) {
 		return;
 	}
 
-	const mat4& localMatrix = _node_->getLocalMatrix();
+	const mat4& localMatrix = m_node->getLocalMatrix();
 
 	const Gamepad* gpad = Input::GetGamepad();
 	const Keyboard* keyb = Input::GetKeyboard();
@@ -155,11 +153,11 @@ void FreeCameraXForm::apply(Node* _node_, float _dt)
 	m_orientation   = qyaw * qpitch * qroll * m_orientation;
 	m_pitchYawRoll *= powf(m_rotationDamp, _dt);
 
-	_node_->setLocalMatrix(translate(mat4(1.0f), m_position) * mat4_cast(m_orientation));
+	m_node->setLocalMatrix(translate(mat4(1.0f), m_position) * mat4_cast(m_orientation));
 	
 }
 
-void FreeCameraXForm::edit()
+void XForm_FreeCamera::edit()
 {
 	ImGui::Text("Position:       %1.3f,%1.3f,%1.3f",       m_position.x, m_position.y, m_position.z);
 	ImGui::Text("Speed:          %1.3f",                   m_speed);
@@ -179,41 +177,85 @@ void FreeCameraXForm::edit()
 
 /*******************************************************************************
 
-                                 LookAtXForm
+                                 XForm_LookAt
 
 *******************************************************************************/
+APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_LookAt);
 
-APT_FACTORY_REGISTER_DEFAULT(XForm, LookAtXForm);
-
-LookAtXForm::LookAtXForm()
+XForm_LookAt::XForm_LookAt()
 	: m_target(nullptr)
 	, m_offset(0.0f)
 {
 }
 
-void LookAtXForm::apply(Node* _node_, float _dt)
+void XForm_LookAt::apply(float _dt)
 {
-	vec3 posW = GetTranslation(_node_->getWorldMatrix());
+	vec3 posW = GetTranslation(m_node->getWorldMatrix());
 	vec3 targetW = m_offset;
 	if (m_target) {
-		targetW += GetTranslation(_node_->getWorldMatrix());
+		targetW += GetTranslation(m_node->getWorldMatrix());
 	}
-	_node_->setWorldMatrix(GetLookAtMatrix(posW, targetW));
+	m_node->setWorldMatrix(GetLookAtMatrix(posW, targetW));
 }
 
-void LookAtXForm::edit()
+void XForm_LookAt::edit()
 {
 	ImGui::DragFloat3("Offset", &m_offset.x, 0.5f);
 }
 
+
 /*******************************************************************************
 
-                                VRGamepadXForm
+                                XForm_Spin
+
+*******************************************************************************/
+APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_Spin);
+
+XForm_Spin::XForm_Spin()
+	: m_axis(0.0f, 0.0f, 1.0f)
+	, m_rate(pi<float>())
+	, m_rotation(0.0f)
+{
+}
+
+XForm_Spin::~XForm_Spin()
+{
+}
+
+void XForm_Spin::apply(float _dt)
+{
+	m_rotation += m_rate * _dt;
+	m_node->setWorldMatrix(rotate(m_node->getWorldMatrix(), m_rotation, m_axis));
+}
+
+void XForm_Spin::edit()
+{
+	ImGui::SliderFloat("Rate (radians/sec)", &m_rate, -8.0f, 8.0f);
+	ImGui::SliderFloat3("Axis", &m_axis.x, -1.0f, 1.0f);
+	m_axis = normalize(m_axis);
+
+	Im3d::PushDrawState();
+		Im3d::SetColor(Im3d::kColorYellow);
+		Im3d::SetAlpha(1.0f);
+		Im3d::SetSize(2.0f);
+		Im3d::BeginLines();
+			vec3 p = GetTranslation(m_node->getWorldMatrix());
+			Im3d::Vertex(p - m_axis * 9999.0f);
+			Im3d::Vertex(p + m_axis * 9999.0f);
+		Im3d::End();
+	Im3d::PopDrawState();
+}
+
+
+
+/*******************************************************************************
+
+                                XForm_VRGamepad
 
 *******************************************************************************/
 
 
-struct VRGamepadXForm: public XForm
+struct XForm_VRGamepad: public XForm
 {
 	vec3  m_position;
 	vec3  m_velocity;
@@ -228,7 +270,7 @@ struct VRGamepadXForm: public XForm
 	float m_rotationInputMul;   //< Scale rotation inputs (should be relative to fov/screen size).
 	float m_rotationDamp;       //< Adhoc damping factor.
 
-	VRGamepadXForm::VRGamepadXForm()
+	XForm_VRGamepad::XForm_VRGamepad()
 		: m_position(0.0f)
 		, m_velocity(0.0f)
 		, m_accelTime(0.1f)
@@ -243,9 +285,9 @@ struct VRGamepadXForm: public XForm
 	}
 
 
-	void VRGamepadXForm::apply(Node* _node_, float _dt)
+	void XForm_VRGamepad::apply(float _dt)
 	{
- 		if (!_node_->isSelected()) {
+ 		if (!m_node->isSelected()) {
 			return;
 		}
 		const Gamepad* gpad = Input::GetGamepad();
@@ -290,12 +332,12 @@ struct VRGamepadXForm: public XForm
 		m_orientation += m_yaw;
 		m_yaw *= powf(m_rotationDamp, _dt);
 
-		_node_->setWorldMatrix(translate(_node_->getLocalMatrix(), m_position) * mat4_cast(angleAxis(m_orientation, vec3(0.0f, 1.0f, 0.0f))));
+		m_node->setWorldMatrix(translate(m_node->getLocalMatrix(), m_position) * mat4_cast(angleAxis(m_orientation, vec3(0.0f, 1.0f, 0.0f))));
 	}
 
-	void VRGamepadXForm::edit()
+	void XForm_VRGamepad::edit()
 	{
 	}
 
-}; // struct VRGamepadXForm
-APT_FACTORY_REGISTER_DEFAULT(XForm, VRGamepadXForm);
+}; // struct XForm_VRGamepad
+APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_VRGamepad);
