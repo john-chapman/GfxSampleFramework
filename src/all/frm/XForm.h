@@ -39,15 +39,15 @@ protected:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class BasicAnimationXForm
+/// \class BasicAnimation
 ////////////////////////////////////////////////////////////////////////////////
-struct BasicAnimationXForm: public XForm
+struct BasicAnimation
 {
-	typedef void (OnComplete)(BasicAnimationXForm* _xform_);
+	typedef void (OnComplete)(BasicAnimation* _xform_);
 	OnComplete* m_onComplete;
 	bool        m_active;
 
-	BasicAnimationXForm()
+	BasicAnimation()
 		: m_onComplete(nullptr)
 		, m_active(true)
 	{
@@ -55,15 +55,15 @@ struct BasicAnimationXForm: public XForm
 
 	/// Reset initial state.
 	virtual void reset() {}
-	static  void Reset(BasicAnimationXForm* _xform_)         { _xform_->reset(); }
+	static  void Reset(BasicAnimation* _xform_)         { _xform_->reset(); }
 
 	/// Initial state + current state.
 	virtual void relativeReset() {}
-	static  void RelativeReset(BasicAnimationXForm* _xform_) { _xform_->relativeReset(); }
+	static  void RelativeReset(BasicAnimation* _xform_) { _xform_->relativeReset(); }
 
 	/// Reverse operation.
 	virtual void reverse() {}
-	static  void Reverse(BasicAnimationXForm* _xform_)       { _xform_->reverse(); }
+	static  void Reverse(BasicAnimation* _xform_)       { _xform_->reverse(); }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -142,15 +142,38 @@ struct XForm_LookAt: public XForm
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_Spin: public XForm
 {
-	vec3  m_axis;      //< Axis of rotation.
-	float m_rate;      //< Rate of rotation, radians/s.
-	float m_rotation;  //< Current rotation.
+	vec3  m_axis;
+	float m_rate;      // radians/s
+	float m_rotation;
 
 	XForm_Spin();
 	virtual ~XForm_Spin();
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+/// \class XForm_PositionTarget
+/// Translate between m_start -> m_end over m_duration seconds.
+////////////////////////////////////////////////////////////////////////////////
+struct XForm_PositionTarget: public XForm, public BasicAnimation
+{
+	vec3  m_start;
+	vec3  m_end;
+	vec3  m_currentPosition;
+	float m_duration;
+	float m_currentTime;
+
+	XForm_PositionTarget();
+	virtual ~XForm_PositionTarget();
+
+	virtual void apply(float _dt) override;
+	virtual void edit() override;
+
+	virtual void reset() override;
+	virtual void relativeReset() override;
+	virtual void reverse() override;
 };
 
 } // namespace frm
