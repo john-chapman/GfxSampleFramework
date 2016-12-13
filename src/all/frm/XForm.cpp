@@ -1,5 +1,6 @@
 #include <frm/XForm.h>
 
+#include <frm/interpolation.h>
 #include <frm/Scene.h>
 
 #include <imgui/imgui.h>
@@ -230,7 +231,7 @@ void XForm_Spin::apply(float _dt)
 
 void XForm_Spin::edit()
 {
-	ImGui::SliderFloat("Rate (radians/sec)", &m_rate, -8.0f, 8.0f);
+	ImGui::SliderFloat("Rate (radians/s)", &m_rate, -8.0f, 8.0f);
 	ImGui::SliderFloat3("Axis", &m_axis.x, -1.0f, 1.0f);
 	m_axis = normalize(m_axis);
 
@@ -246,6 +247,82 @@ void XForm_Spin::edit()
 	Im3d::PopDrawState();
 }
 
+
+/*******************************************************************************
+
+                              XForm_PositionTarget
+
+*******************************************************************************/
+APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionTarget);
+
+XForm_PositionTarget::XForm_PositionTarget()
+	: m_start(0.0f, 0.0f, 1.0f)
+	, m_end(0.0f, 1.0f, 0.0f)
+	, m_duration(1.0f)
+	, m_currentTime(0.0f)
+{
+}
+
+XForm_PositionTarget::~XForm_PositionTarget()
+{
+}
+
+void XForm_PositionTarget::apply(float _dt)
+{
+	m_currentTime = APT_MIN(m_currentTime + _dt, m_duration);
+	if (m_onComplete && m_currentTime > m_duration) {
+		m_onComplete(this);
+	}
+	m_currentPosition = smooth(m_start, m_end, m_currentTime / m_duration);
+	m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), m_currentPosition));
+}
+
+void XForm_PositionTarget::edit()
+{
+	ImGui::SliderFloat("Duration (s)", &m_duration, 0.0f, 10.0f);
+	if (ImGui::Button("Reset")) {
+		reset();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Relative Reset")) {
+		relativeReset();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Reverse")) {
+		reverse();
+	}
+
+	Im3d::GizmoPosition("XForm_PositionTarget::m_start", &m_start);
+	Im3d::GizmoPosition("XForm_PositionTarget::m_end",   &m_end);
+	Im3d::PushDrawState();
+		Im3d::SetColor(Im3d::kColorYellow);
+		Im3d::SetSize(2.0f);
+		Im3d::BeginLines();
+			Im3d::SetAlpha(0.2f);
+			Im3d::Vertex(m_start);
+			Im3d::SetAlpha(1.0f);
+			Im3d::Vertex(m_end);
+		Im3d::End();
+	Im3d::PopDrawState();
+}
+
+void XForm_PositionTarget::reset()
+{
+	m_currentTime = 0.0f;
+}
+
+void XForm_PositionTarget::relativeReset()
+{
+	m_end = m_currentPosition +	(m_end - m_start);
+	m_start = m_currentPosition;
+	m_currentTime = 0.0f;
+}
+
+void XForm_PositionTarget::reverse()
+{
+	std::swap(m_start, m_end);
+	m_currentTime = APT_MAX(m_duration - m_currentTime, 0.0f);
+}
 
 
 /*******************************************************************************

@@ -5,6 +5,7 @@
 #include <frm/XForm.h>
 
 #include <apt/log.h>
+#include <apt/Json.h>
 
 #include <algorithm> // std::find
 
@@ -291,6 +292,20 @@ void Scene::destroyCamera(Camera*& _camera_)
 		m_cullCamera = nullptr;
 	}
 	_camera_ = nullptr;
+}
+
+bool Scene::serialize(JsonSerializer& _serializer_)
+{
+	bool ret = true;
+
+ 	_serializer_.beginArray("Nodes");
+	_serializer_.endArray();
+
+	_serializer_.beginArray("Cameras");
+	_serializer_.endArray();
+
+
+	return ret;
 }
 
 #ifdef frm_Scene_ENABLE_EDIT
