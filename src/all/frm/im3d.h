@@ -162,9 +162,9 @@ Id MakeId(const char* _str);
 /// \return true if the gizmo is active.
 bool Gizmo(const char* _id, Mat4* _matrix_);
 bool Gizmo(const char* _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_);
-bool PositionGizmo(const char* _id, Vec3* _position_);
-bool OrientationGizmo(const char* _id, Quat* _orientation_);
-bool ScaleGizmo(const char* _id, Vec3* _scale_);
+bool GizmoPosition(const char* _id, Vec3* _position_);
+bool GizmoOrientation(const char* _id, Quat* _orientation_);
+bool GizmoScale(const char* _id, Vec3* _scale_);
 
 
 ////////////////////////////////////////////////////////////////////////////////
