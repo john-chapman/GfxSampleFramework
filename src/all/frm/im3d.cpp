@@ -339,8 +339,27 @@ bool Im3d::Gizmo(const char* _id, Mat4* _matrix_)
 
 bool Im3d::Gizmo(const char* _id, Vec3* _position_, Quat* _orientation_, Vec3* _scale_)
 {
-	Id id = MakeId(_id);
-	return GetCurrentContext().gizmo(id, _position_, _orientation_, _scale_) == Context::kActive;
+	return GetCurrentContext().gizmo(MakeId(_id), _position_, _orientation_, _scale_) == Context::kActive;
+}
+
+bool Im3d::GizmoPosition(const char* _id, Vec3* _position_)
+{
+ // \todo remove the temporaries
+	Vec3 scale;
+	Quat orientation;
+	return GetCurrentContext().gizmo(MakeId(_id), _position_, &orientation, &scale) == Context::kActive;
+}
+
+bool Im3d::GizmoOrientation(const char* _id, Quat* _orientation_)
+{
+	Im3dAssert(false); // \todo
+	return false;
+}
+
+bool Im3d::GizmoScale(const char* _id, Vec3* _scale_)
+{
+	Im3dAssert(false); // \todo
+	return false;
 }
 
 /*******************************************************************************
