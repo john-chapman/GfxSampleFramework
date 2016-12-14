@@ -3,6 +3,8 @@
 #include <frm/interpolation.h>
 #include <frm/Scene.h>
 
+#include <apt/log.h>
+
 #include <imgui/imgui.h>
 #include <frm/im3d.h>
 
@@ -16,6 +18,47 @@ using namespace apt;
 *******************************************************************************/
 
 APT_FACTORY_DEFINE(XForm);
+
+XForm::Callback::Callback(const char* _name, OnComplete* _callback)
+	: m_callback(_callback)
+	, m_name(_name)
+	, m_nameHash(_name)
+{
+	APT_ASSERT(FindCallback(m_nameHash) == nullptr);
+	if (FindCallback(m_nameHash) != nullptr) {
+		APT_LOG_ERR("XForm: Callback '%s' already exists", _name);
+		APT_ASSERT(false);
+		return;
+	}
+	s_callbackRegistry.push_back(this);
+}
+
+int XForm::GetCallbackCount()
+{
+	return (int)s_callbackRegistry.size();
+}
+const XForm::Callback* XForm::GetCallback(int _i)
+{
+	return s_callbackRegistry[_i];
+}
+const XForm::Callback* XForm::FindCallback(StringHash _nameHash)
+{
+	for (auto& ret : s_callbackRegistry) {
+		if (ret->m_nameHash == _nameHash) {
+			return ret;
+		}
+	}
+	return nullptr;
+}
+const XForm::Callback* XForm::FindCallback(OnComplete* _callback)
+{
+	for (auto& ret : s_callbackRegistry) {
+		if (ret->m_callback == _callback) {
+			return ret;
+		}
+	}
+	return nullptr;
+}
 
 /*******************************************************************************
 

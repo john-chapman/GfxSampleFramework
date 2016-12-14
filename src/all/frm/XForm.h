@@ -10,6 +10,8 @@
 
 #include <apt/Factory.h>
 
+#include <vector>
+
 namespace frm
 {
 
@@ -22,6 +24,20 @@ class Node;
 class XForm: public apt::Factory<XForm>
 {
 public:
+	typedef void (OnComplete)(XForm* _xform_);
+	struct Callback
+	{
+		OnComplete* m_callback;
+		const char* m_name;
+		StringHash  m_nameHash;
+
+		Callback(const char* _name, OnComplete* _callback);
+	};
+	static int GetCallbackCount();
+	static const Callback* GetCallback(int _i);
+	static const Callback* FindCallback(StringHash _nameHash);
+	static const Callback* FindCallback(OnComplete* _callback);
+
 	virtual void apply(float _dt) = 0;	
 	virtual void edit()           = 0;
 	
@@ -31,12 +47,16 @@ public:
 	void  setNode(Node* _node)    { m_node = _node; }
 
 protected:
+	static std::vector<const Callback*> s_callbackRegistry;
+
 	XForm(): m_node(nullptr)      {}
 
 	Node* m_node;
 
 }; // class XForm
 
+#define XFORM_REGISTER_CALLBACK(_callback) \
+	static XForm::Callback APT_UNIQUE_NAME(XForm_Callback_)(#_callback, _callback);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class BasicAnimation
