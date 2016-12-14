@@ -8,6 +8,7 @@
 #include <frm/Input.h>
 #include <frm/Scene.h>
 
+#include <apt/StringHash.h>
 #include <apt/Factory.h>
 
 #include <vector>
@@ -27,24 +28,35 @@ public:
 	typedef void (OnComplete)(XForm* _xform_);
 	struct Callback
 	{
-		OnComplete* m_callback;
-		const char* m_name;
-		StringHash  m_nameHash;
-
+		OnComplete*     m_callback;
+		const char*     m_name;
+		apt::StringHash m_nameHash;
+		
 		Callback(const char* _name, OnComplete* _callback);
 	};
-	static int GetCallbackCount();
+	static int             GetCallbackCount();
 	static const Callback* GetCallback(int _i);
-	static const Callback* FindCallback(StringHash _nameHash);
+	static const Callback* FindCallback(apt::StringHash _nameHash);
 	static const Callback* FindCallback(OnComplete* _callback);
 
-	virtual void apply(float _dt) = 0;	
-	virtual void edit()           = 0;
-	
-	const char* getName() const   { return getClassRef()->getName(); }
-	
-	Node* getNode() const         { return m_node; }
-	void  setNode(Node* _node)    { m_node = _node; }
+	/// Reset initial state.
+	virtual void reset() {}
+	static  void Reset(XForm* _xform_)         { _xform_->reset(); }
+
+	/// Initial state + current state.
+	virtual void relativeReset() {}
+	static  void RelativeReset(XForm* _xform_) { _xform_->relativeReset(); }
+
+	/// Reverse operation.
+	virtual void reverse() {}
+	static  void Reverse(XForm* _xform_)       { _xform_->reverse(); }
+
+	virtual void apply(float _dt)              = 0;	
+	virtual void edit()                        = 0;
+
+	const char*  getName() const               { return getClassRef()->getName(); }	
+	Node*        getNode() const               { return m_node; }
+	void         setNode(Node* _node)          { m_node = _node; }
 
 protected:
 	static std::vector<const Callback*> s_callbackRegistry;
@@ -57,34 +69,6 @@ protected:
 
 #define XFORM_REGISTER_CALLBACK(_callback) \
 	static XForm::Callback APT_UNIQUE_NAME(XForm_Callback_)(#_callback, _callback);
-
-////////////////////////////////////////////////////////////////////////////////
-/// \class BasicAnimation
-////////////////////////////////////////////////////////////////////////////////
-struct BasicAnimation
-{
-	typedef void (OnComplete)(BasicAnimation* _xform_);
-	OnComplete* m_onComplete;
-	bool        m_active;
-
-	BasicAnimation()
-		: m_onComplete(nullptr)
-		, m_active(true)
-	{
-	}
-
-	/// Reset initial state.
-	virtual void reset() {}
-	static  void Reset(BasicAnimation* _xform_)         { _xform_->reset(); }
-
-	/// Initial state + current state.
-	virtual void relativeReset() {}
-	static  void RelativeReset(BasicAnimation* _xform_) { _xform_->relativeReset(); }
-
-	/// Reverse operation.
-	virtual void reverse() {}
-	static  void Reverse(BasicAnimation* _xform_)       { _xform_->reverse(); }
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class XForm_PositionOrientationScale
@@ -177,13 +161,15 @@ struct XForm_Spin: public XForm
 /// \class XForm_PositionTarget
 /// Translate between m_start -> m_end over m_duration seconds.
 ////////////////////////////////////////////////////////////////////////////////
-struct XForm_PositionTarget: public XForm, public BasicAnimation
+struct XForm_PositionTarget: public XForm
 {
 	vec3  m_start;
 	vec3  m_end;
 	vec3  m_currentPosition;
 	float m_duration;
 	float m_currentTime;
+
+	OnComplete* m_onComplete;
 
 	XForm_PositionTarget();
 	virtual ~XForm_PositionTarget();
