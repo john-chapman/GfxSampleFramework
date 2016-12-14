@@ -195,7 +195,7 @@ public:
 	Camera* getCullCamera() const                   { return m_cullCamera; }
 	void    setCullCamera(Camera* _camera)          { m_cullCamera = _camera; }
 
-	bool    serialize(JsonSerializer& _serializer_);
+	bool    serialize(apt::JsonSerializer& _serializer_);
 #ifdef frm_Scene_ENABLE_EDIT
 	void edit();
 #endif

@@ -255,6 +255,8 @@ void XForm_LookAt::edit()
 *******************************************************************************/
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_Spin);
 
+std::vector<const XForm::Callback*> XForm::s_callbackRegistry;
+
 XForm_Spin::XForm_Spin()
 	: m_axis(0.0f, 0.0f, 1.0f)
 	, m_rate(pi<float>())
@@ -290,6 +292,10 @@ void XForm_Spin::edit()
 	Im3d::PopDrawState();
 }
 
+
+XFORM_REGISTER_CALLBACK(XForm::Reset);
+XFORM_REGISTER_CALLBACK(XForm::RelativeReset);
+XFORM_REGISTER_CALLBACK(XForm::Reverse);
 
 /*******************************************************************************
 
