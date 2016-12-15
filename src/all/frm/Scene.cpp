@@ -307,6 +307,11 @@ bool Scene::serialize(JsonSerializer& _serializer_)
 {
 	bool ret = true;
 
+	ret &= serialize(_serializer_, m_root);
+
+ // \todo serialize draw/cull cameras:
+ // if writing: if draw/cull cameras have a node parent set the node ID.
+ // if reading: read node ID.
 
 	return ret;
 }
@@ -331,12 +336,21 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 		m_nodes[_node_.m_type].push_back(&_node_);
 
 		switch (_node_.m_type) {
-			case Node::kTypeRoot:
+			case Node::kTypeRoot: {
 				_node_.setSceneDataScene(this);
 				break;
-			case Node::kTypeCamera:
-			 // \todo directly serialize the camera params
+			}
+			case Node::kTypeCamera: {
+				Camera* cam = m_cameraPool.alloc();
+				cam->setNode(&_node_);
+				if (!cam->serialize(_serializer_)) {
+					m_cameraPool.free(cam);
+					return false;
+				}
+				m_cameras.push_back(cam);
+				_node_.setSceneDataCamera(cam);
 				break;
+			}
 			default:
 				break;
 		};

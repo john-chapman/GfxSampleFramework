@@ -2,6 +2,8 @@
 
 #include <frm/Scene.h>
 
+#include <apt/Json.h>
+
 using namespace frm;
 using namespace apt;
 
@@ -111,4 +113,22 @@ void Camera::build()
 	m_viewProj = m_proj * m_view;
 	m_worldFrustum = m_localFrustum;
 	m_worldFrustum.transform(m_world);
+}
+
+bool Camera::serialize(JsonSerializer& _serializer_)
+{
+	_serializer_.value("IsOrtho",     m_isOrtho);
+	_serializer_.value("IsSymmetric", m_isSymmetric);
+	_serializer_.value("Up",          m_up);
+	_serializer_.value("Down",        m_down);
+	_serializer_.value("Left",        m_left);
+	_serializer_.value("Right",       m_right);
+	_serializer_.value("ClipNear",    m_clipNear);
+	_serializer_.value("ClipFar",     m_clipFar);
+	_serializer_.value("WorldMatrix", m_world);
+
+	if (_serializer_.getMode() == JsonSerializer::kRead) {
+		m_projDirty = true;
+		build();
+	}
 }
