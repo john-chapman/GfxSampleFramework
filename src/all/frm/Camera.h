@@ -118,6 +118,8 @@ public:
 	/// plus the projection matrix (if dirty).
 	void           build();
 
+	bool           serialize(apt::JsonSerializer& _serializer_);
+
 private:
 	Node*   m_node;         //< Parent node, copy world matrix if non-null.
 	mat4    m_world;
