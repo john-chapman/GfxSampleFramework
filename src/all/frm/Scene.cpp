@@ -324,10 +324,9 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 	_serializer_.value("UserData",    _node_.m_userData);
 	_serializer_.value("LocalMatrix", _node_.m_localMatrix);
 
-	if (_serializer_.getMode() == JsonSerializer::kRead()) {
-		String<64> tmp;
-		
-		_serializer_.value("Type", (StringBase&)tmp);
+	String<64> tmp = kNodeTypeStr[_node_.m_type];
+	_serializer_.value("Type", (StringBase&)tmp);
+	if (_serializer_.getMode() == JsonSerializer::kRead) {
 		_node_.m_type = NodeTypeFromStr(tmp);
 		if (_node_.m_type == Node::kTypeCount) {
 			APT_LOG_ERR("Scene: Invalid node type '%s'", (const char*)tmp);
@@ -354,10 +353,7 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 			default:
 				break;
 		};
-
 		s_nextNodeId = APT_MAX(s_nextNodeId, _node_.m_id + 1);
-	} else {
-		_serializer_.value("Type", kNodeTypeStr[_node_.m_type]);
 	}
 
 	return true;
