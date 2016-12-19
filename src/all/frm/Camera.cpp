@@ -131,4 +131,6 @@ bool Camera::serialize(JsonSerializer& _serializer_)
 		m_projDirty = true;
 		build();
 	}
+
+	return true;
 }
