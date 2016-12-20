@@ -354,6 +354,42 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 				break;
 		};
 		s_nextNodeId = APT_MAX(s_nextNodeId, _node_.m_id + 1);
+
+		if (_serializer_.beginArray("Children")) {
+			while (_serializer_.beginObject()) {
+				Node* child = m_nodePool.alloc(Node(s_nextNodeId)); // node id gets overwritten in the next call to serialize()
+				if (!serialize(_serializer_, *child)) {
+					m_nodePool.free(child);
+					return false;
+				}
+				_node_.m_children.push_back(child);
+				_serializer_.endObject();
+			}
+			_serializer_.endArray();
+		}
+		
+	} else { // if writing
+		switch (_node_.m_type) {
+			case Node::kTypeCamera: {
+				Camera* cam = _node_.getSceneDataCamera();
+				if (!cam->serialize(_serializer_)) {
+					return false;
+				}
+				break;
+			}
+			default:
+				break;
+		};
+
+		if (!_node_.m_children.empty()) {
+			_serializer_.beginArray("Children");
+				for (auto& child : _node_.m_children) {
+					_serializer_.beginObject();
+						serialize(_serializer_, *child);
+					_serializer_.endObject();
+				}
+			_serializer_.endArray();
+		}
 	}
 
 	return true;

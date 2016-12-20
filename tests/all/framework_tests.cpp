@@ -14,6 +14,7 @@
 
 #include <apt/ArgList.h>
 #include <apt/IniFile.h>
+#include <apt/Json.h>
 
 #include <imgui/imgui.h>
 
@@ -56,7 +57,7 @@ public:
 
 
 	 // interpolationt vis
-		struct Funcs {
+	/*	struct Funcs {
 			static float GetDelta(int _i)        { return s_min + ((float)_i / (float)s_sampleCount) * (s_max - s_min); }
             static float Lerp(void*, int _i)     { return lerp(0.0f, 1.0f, GetDelta(_i)); }
             static float Coserp(void*, int _i)   { return coserp(0.0f, 1.0f, GetDelta(_i)); }
@@ -82,6 +83,19 @@ public:
 		};
 		ImGui::SameLine();
 		ImGui::PlotLines("##Lines", func, NULL, 200, 0, NULL, 0.0f, 1.0f, ImVec2(0,80));
+	*/
+		if (ImGui::Button("Save Scene")) {
+			Json json;
+			JsonSerializer jsonSerializer(&json, JsonSerializer::kWrite);
+			Scene::GetCurrent().serialize(jsonSerializer);
+			Json::Write(json, "scene.json");
+		}
+		if (ImGui::Button("Load Scene")) {
+			Json json;
+			Json::Read(json, "scene.json");
+			JsonSerializer jsonSerializer(&json, JsonSerializer::kRead);
+			Scene::GetCurrent().serialize(jsonSerializer);
+		}
 
 		Ray r;
 		r.m_origin = m_scene.getCullCamera()->getPosition();
