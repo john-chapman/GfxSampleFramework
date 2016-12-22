@@ -55,6 +55,7 @@ class Node
 public:
 	typedef apt::String<24> NameStr;
 	typedef uint64 Id;
+	static const Id kInvalidId = ~0u;
 
 	enum Type
 	{
@@ -218,6 +219,9 @@ private:
 
 	/// Recursive update, called by update().
 	void update(Node* _node_, float _dt, uint8 _stateMask);
+
+	/// Recursive clear, deletes XForms/children.
+	void reset(Node* _node_);
 
 	/// Auto name based on type, e.g. Camera_001, Object_123
 	static void AutoName(Node::Type _type, Node::NameStr& out_);
