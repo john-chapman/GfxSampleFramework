@@ -8,6 +8,7 @@
 #include <apt/Json.h>
 
 #include <algorithm> // std::find
+#include <utility> // std::swap
 
 using namespace frm;
 using namespace apt;
@@ -239,7 +240,7 @@ void Scene::destroyNode(Node*& _node_)
 	if (it != m_nodes[type].end()) {
 		m_nodes[type].erase(it);
 		m_nodePool.free(_node_);
-		_node_ = 0;
+		_node_ = nullptr;
 	}
 }
 
@@ -305,15 +306,58 @@ void Scene::destroyCamera(Camera*& _camera_)
 
 bool Scene::serialize(JsonSerializer& _serializer_)
 {
-	bool ret = true;
+	if (_serializer_.getMode() == JsonSerializer::kRead) {
+		Node::Id nextNodeId = s_nextNodeId; // store in case of failure
+		Node newRoot(0);
+		s_nextNodeId = 0;
+		if (!serialize(_serializer_, newRoot)) {
+			s_nextNodeId = nextNodeId;
+			reset(&newRoot);
+			return false;
+		}
+		reset(&m_root);
+	 	std::swap(m_root.m_children, newRoot.m_children); // \todo only swapping the children here means m_root is effectively not serialized
 
-	ret &= serialize(_serializer_, m_root);
+	#ifdef frm_Scene_ENABLE_EDIT
+		m_editNode   = nullptr;
+		m_editXForm  = nullptr;
+		m_editCamera = nullptr;
+	#endif
 
- // \todo serialize draw/cull cameras:
- // if writing: if draw/cull cameras have a node parent set the node ID.
- // if reading: read node ID.
+	} else {
+		if (!serialize(_serializer_, m_root)) {
+			return false;
+		}
+	}
+	 
+	Node::Id drawCameraId = Node::kInvalidId;
+	Node::Id cullCameraId = Node::kInvalidId;
+	if (_serializer_.getMode() == JsonSerializer::kWrite) {
+		if (m_drawCamera != nullptr && m_drawCamera->getNode() != nullptr) {
+			drawCameraId = m_drawCamera->getNode()->getId();	
+		}
+		if (m_cullCamera != nullptr && m_cullCamera->getNode() != nullptr) {
+			cullCameraId = m_cullCamera->getNode()->getId();
+		}
+	}
+	_serializer_.value("DrawCameraId", drawCameraId);
+	_serializer_.value("CullCameraId", cullCameraId);
+	if (_serializer_.getMode() == JsonSerializer::kRead) {
+		if (drawCameraId != Node::kInvalidId) {
+			Node* n = findNode(drawCameraId, Node::kTypeCamera);
+			if (n != nullptr) {
+				m_drawCamera = n->getSceneDataCamera();
+			}
+		}
+		if (cullCameraId != Node::kInvalidId) {
+			Node* n = findNode(cullCameraId, Node::kTypeCamera);
+			if (n != nullptr) {
+				m_cullCamera = n->getSceneDataCamera();
+			}
+		}
+	}
 
-	return ret;
+	return true;
 }
 
 bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
@@ -362,6 +406,7 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 					m_nodePool.free(child);
 					return false;
 				}
+				child->m_parent = &_node_;
 				_node_.m_children.push_back(child);
 				_serializer_.endObject();
 			}
@@ -982,6 +1027,23 @@ void Scene::update(Node* _node_, float _dt, uint8 _stateMask)
 	for (auto it = _node_->m_children.begin(); it != _node_->m_children.end(); ++it) {
 		update(*it, _dt, _stateMask);
 	}
+}
+
+void Scene::reset(Node* _node_)
+{
+	for (auto it = _node_->m_xforms.begin(); it != _node_->m_xforms.end(); ++it) {
+		XForm* x = *it;
+		delete x;
+	}
+	_node_->m_xforms.clear();
+
+	for (auto it = _node_->m_children.begin(); it != _node_->m_children.end(); ++it) {
+		Node* n = *it;
+		reset(n);
+		destroyNode(n);
+	}
+	_node_->m_children.clear();
+	_node_->m_parent = nullptr;
 }
 
 void Scene::AutoName(Node::Type _type, Node::NameStr& out_)
