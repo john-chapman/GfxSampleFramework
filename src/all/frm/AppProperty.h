@@ -20,15 +20,15 @@ namespace frm {
 /// \class AppProperty
 /// \note Data is conservatively aligned on 16-byte boundaries to permit 
 ///   directly casting to/from SIMD types (vec4, etc.).
+/// \note String properties are implemented as char[kMaxStringLength].
 /// \todo Validate names.
-/// \todo String properties; these might be complex to edit - do you want to
-///   store apt::string?
 ////////////////////////////////////////////////////////////////////////////////
 class AppProperty: private apt::non_copyable<AppProperty>
 {
 	friend class AppPropertyGroup;
 public:
 	typedef apt::String<32> String;
+	static const int kMaxStringLength = 1024;
 
 	typedef bool (Edit)(AppProperty& _prop);
 
@@ -37,7 +37,7 @@ public:
 		kBool,
 		kInt,
 		kFloat,
-		//kString,
+		kString,
 
 		kTypeCount
 	};
@@ -127,17 +127,19 @@ public:
 	AppPropertyGroup& operator=(AppPropertyGroup&& _rhs);
 	friend void swap(AppPropertyGroup& _a, AppPropertyGroup& _b);
 
-	bool*  addBool (const char* _name, const char* _displayName, bool         _default,                         bool _isHidden = false);
-	int*   addInt  (const char* _name, const char* _displayName, int          _default, int _min,   int _max,   bool _isHidden = false);
-	float* addFloat(const char* _name, const char* _displayName, float        _default, float _min, float _max, bool _isHidden = false);
-	vec2*  addVec2 (const char* _name, const char* _displayName, const vec2&  _default, float _min, float _max, bool _isHidden = false);
-	vec3*  addVec3 (const char* _name, const char* _displayName, const vec3&  _default, float _min, float _max, bool _isHidden = false);
-	vec4*  addVec4 (const char* _name, const char* _displayName, const vec4&  _default, float _min, float _max, bool _isHidden = false);
-	ivec2* addVec2i(const char* _name, const char* _displayName, const ivec2& _default, int _min,   int _max,   bool _isHidden = false);
-	ivec3* addVec3i(const char* _name, const char* _displayName, const ivec3& _default, int _min,   int _max,   bool _isHidden = false);
-	ivec4* addVec4i(const char* _name, const char* _displayName, const ivec4& _default, int _min,   int _max,   bool _isHidden = false);
-	vec3*  addRgb  (const char* _name, const char* _displayName, const vec3&  _default,                         bool _isHidden = false);
-	vec4*  addRgba (const char* _name, const char* _displayName, const vec4&  _default,                         bool _isHidden = false);
+	bool*  addBool  (const char* _name, const char* _displayName, bool         _default,                         bool _isHidden = false);
+	int*   addInt   (const char* _name, const char* _displayName, int          _default, int _min,   int _max,   bool _isHidden = false);
+	float* addFloat (const char* _name, const char* _displayName, float        _default, float _min, float _max, bool _isHidden = false);
+	vec2*  addVec2  (const char* _name, const char* _displayName, const vec2&  _default, float _min, float _max, bool _isHidden = false);
+	vec3*  addVec3  (const char* _name, const char* _displayName, const vec3&  _default, float _min, float _max, bool _isHidden = false);
+	vec4*  addVec4  (const char* _name, const char* _displayName, const vec4&  _default, float _min, float _max, bool _isHidden = false);
+	ivec2* addVec2i (const char* _name, const char* _displayName, const ivec2& _default, int _min,   int _max,   bool _isHidden = false);
+	ivec3* addVec3i (const char* _name, const char* _displayName, const ivec3& _default, int _min,   int _max,   bool _isHidden = false);
+	ivec4* addVec4i (const char* _name, const char* _displayName, const ivec4& _default, int _min,   int _max,   bool _isHidden = false);
+	vec3*  addRgb   (const char* _name, const char* _displayName, const vec3&  _default,                         bool _isHidden = false);
+	vec4*  addRgba  (const char* _name, const char* _displayName, const vec4&  _default,                         bool _isHidden = false);
+	char*  addString(const char* _name, const char* _displayName, const char*  _default,                         bool _isHidden = false);
+	char*  addPath  (const char* _name, const char* _displayName, const char*  _default,                         bool _isHidden = false);
 
 	AppProperty&       operator[](const char* _name);
 	const AppProperty& operator[](const char* _name) const;
