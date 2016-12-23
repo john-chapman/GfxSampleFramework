@@ -163,8 +163,14 @@ class Scene
 public:
 	typedef bool (OnVisit)(Node* _node_);
 
-	static Scene& GetCurrent()                      { return *s_currentScene; }
-	static void   SetCurrent(Scene& _scene)         { s_currentScene = &_scene; }
+	static Scene&  GetCurrent()                      { return *s_currentScene; }
+	static void    SetCurrent(Scene& _scene)         { s_currentScene = &_scene; }
+
+	/// Load scene from path, swap with scene_ if successful & return true.
+	static bool Load(const char* _path, Scene& scene_);
+
+	/// Save scene to path, return true if successful.
+	static bool Save(const char* _path, Scene& _scene);
 
 	Scene();
 	~Scene();
@@ -178,13 +184,12 @@ public:
 	/// the traversal should stop.
 	bool traverse(Node* _root_, uint8 _stateMask, OnVisit* _callback);
 
-	Node*   getRoot()                               { return &m_root; }
-
 	Node*   createNode(Node::Type _type, Node* _parent = nullptr);
 	void    destroyNode(Node*& _node_);
 	Node*   findNode(Node::Id _id, Node::Type _typeHint = Node::kTypeCount);
 	int     getNodeCount(Node::Type _type) const    { return (int)m_nodes[_type].size(); }
 	Node*   getNode(Node::Type _type, int _i) const { return m_nodes[_type][_i]; }
+	Node*   getRoot()                               { return m_root; }
 
 	/// Create a camera with parameters from _copyFrom, plus a new camera node.
 	Camera* createCamera(const Camera& _copyFrom, Node* _parent = nullptr);
@@ -201,13 +206,15 @@ public:
 #ifdef frm_Scene_ENABLE_EDIT
 	void edit();
 #endif
+	
+	friend void swap(Scene& _a, Scene& _b);
 
 private:
 	static Scene*           s_currentScene;
 
  // nodes
-	static Node::Id         s_nextNodeId;               //< Monotonically increasing id for nodes.
-	Node                    m_root;                     //< Everything is a child of root.              
+	Node::Id                m_nextNodeId;               //< Monotonically increasing id for nodes.
+	Node*                   m_root;                     //< Everything is a child of root.              
 	std::vector<Node*>      m_nodes[Node::kTypeCount];  //< Nodes binned by type.
 	apt::Pool<Node>         m_nodePool;
 
@@ -219,12 +226,10 @@ private:
 
 	/// Recursive update, called by update().
 	void update(Node* _node_, float _dt, uint8 _stateMask);
-
-	/// Recursive clear, deletes XForms/children.
-	void reset(Node* _node_);
-
+	
 	/// Auto name based on type, e.g. Camera_001, Object_123
 	static void AutoName(Node::Type _type, Node::NameStr& out_);
+
 
 #ifdef frm_Scene_ENABLE_EDIT
 	bool      m_showNodeGraph3d;

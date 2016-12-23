@@ -43,13 +43,9 @@ bool AppSample3d::init(const apt::ArgList& _args)
 	cb.m_OnKey = Im3d_OnKey;
 	getWindow()->setCallbacks(cb);
 
-
- // create default scene root
-	m_sceneRoots.push_back(m_scene.getRoot());
-	m_currentScene = 0;
-
+	
  // create default camera
-	Camera* defaultCamera = m_scene.createCamera(Camera());
+	Camera* defaultCamera = Scene::GetCurrent().createCamera(Camera());
 	Node* defaultCameraNode = defaultCamera->getNode();
 	defaultCameraNode->setStateMask(Node::kStateActive | Node::kStateDynamic | Node::kStateSelected);
 	XForm* freeCam = XForm::Create("XForm_FreeCamera");
@@ -73,15 +69,15 @@ bool AppSample3d::update()
 	Im3d::SetCurrentContext(m_im3dCtx);
 	Im3d_Update(this);
 
-	Scene::SetCurrent(m_scene);
-	m_scene.update((float)m_deltaTime, Node::kStateActive | Node::kStateDynamic);
+	Scene& scene = Scene::GetCurrent();
+	scene.update((float)m_deltaTime, Node::kStateActive | Node::kStateDynamic);
 	#ifdef frm_Scene_ENABLE_EDIT
 		if (*m_showSceneEditor) {
-			m_scene.edit();
+			Scene::GetCurrent().edit();
 		}
 	#endif
 
-	Camera* currentCamera = m_scene.getDrawCamera();
+	Camera* currentCamera = scene.getDrawCamera();
 	if (currentCamera->isSymmetric()) {
 	 // update aspect ratio to match window size
 		Window* win = getWindow();
@@ -105,16 +101,16 @@ bool AppSample3d::update()
 	}
 	if (ImGui::IsKeyPressed(Keyboard::kC) && ImGui::IsKeyDown(Keyboard::kLCtrl) && ImGui::IsKeyDown(Keyboard::kLShift)) {
 		if (m_dbgCullCamera) {
-			m_scene.destroyCamera(m_dbgCullCamera);
-			m_scene.setCullCamera(m_scene.getDrawCamera());
+			scene.destroyCamera(m_dbgCullCamera);
+			scene.setCullCamera(scene.getDrawCamera());
 		} else {
-			m_dbgCullCamera = m_scene.createCamera(*m_scene.getCullCamera());
+			m_dbgCullCamera = scene.createCamera(*scene.getCullCamera());
 			Node* node = m_dbgCullCamera->getNode();
-			node->setName("DEBUG CULL CAMERA");
+			node->setName("DBG CULL CAMERA");
 			node->setDynamic(false);
 			node->setActive(false);
-			node->setLocalMatrix(m_scene.getCullCamera()->getWorldMatrix());
-			m_scene.setCullCamera(m_dbgCullCamera);
+			node->setLocalMatrix(scene.getCullCamera()->getWorldMatrix());
+			scene.setCullCamera(m_dbgCullCamera);
 		}
 	}
 
@@ -138,9 +134,9 @@ bool AppSample3d::update()
 			Im3d::End();
 
 		 // scene cameras
-			for (int i = 0; i < m_scene.getCameraCount(); ++i) {
-				Camera* camera = m_scene.getCamera(i);
-				if (camera == m_scene.getDrawCamera()) {
+			for (int i = 0; i < scene.getCameraCount(); ++i) {
+				Camera* camera = scene.getCamera(i);
+				if (camera == scene.getDrawCamera()) {
 					continue;
 				}
 				Im3d::PushMatrix();
@@ -158,6 +154,22 @@ bool AppSample3d::update()
 void AppSample3d::drawMainMenuBar()
 {
 	if (ImGui::BeginMenu("Scene")) {
+		if (ImGui::MenuItem("Load...")) {
+			FileSystem::PathStr newPath;
+			if (FileSystem::PlatformSelect(newPath, "*.json")) {
+			}
+		}
+		if (ImGui::MenuItem("Save")) {
+
+		}
+		if (ImGui::MenuItem("Save As...")) {
+			FileSystem::PathStr newPath;
+			if (FileSystem::PlatformSelect(newPath, "*.json")) {
+			}
+		}
+
+		ImGui::Separator();
+
 		ImGui::MenuItem("Scene Editor",      "Ctrl+O",       m_showSceneEditor);
 		ImGui::MenuItem("Show Helpers",      "F2",           m_showHelpers);
 		ImGui::MenuItem("Pause Cull Camera", "Ctrl+Shift+C", m_showSceneEditor);
@@ -173,7 +185,7 @@ void AppSample3d::drawStatusBar()
 void AppSample3d::draw()
 {
 	getGlContext()->setFramebufferAndViewport(getDefaultFramebuffer());
-	Im3d_Render(m_im3dCtx, *m_scene.getDrawCamera());
+	Im3d_Render(m_im3dCtx, *Scene::GetCurrent().getDrawCamera());
 
 	AppSample::draw();
 }
@@ -181,7 +193,7 @@ void AppSample3d::draw()
 Ray AppSample3d::getCursorRayW() const
 {
 	Ray ret = getCursorRayV();
-	ret.transform(m_scene.getDrawCamera()->getWorldMatrix());
+	ret.transform(Scene::GetCurrent().getDrawCamera()->getWorldMatrix());
 	return ret;
 }
 
@@ -193,8 +205,8 @@ Ray AppSample3d::getCursorRayV() const
 	vec2 wsize = vec2((float)getWindow()->getWidth(), (float)getWindow()->getHeight());
 	mpos = (mpos / wsize) * 2.0f - 1.0f;
 	mpos.y = -mpos.y; // the cursor position is top-left relative
-	float tanHalfFov = m_scene.getDrawCamera()->getTanFovUp();
-	float aspect = m_scene.getDrawCamera()->getAspect();
+	float tanHalfFov = Scene::GetCurrent().getDrawCamera()->getTanFovUp();
+	float aspect = Scene::GetCurrent().getDrawCamera()->getAspect();
 	return Ray(vec3(0.0f), normalize(vec3(mpos.x * tanHalfFov * aspect, mpos.y * tanHalfFov, -1.0f)));
 	
 	//return Ray(vec3(0.0f), vec3(0.0f));
@@ -243,13 +255,13 @@ AppSample3d::AppSample3d(const char* _title, const char* _appDataPath)
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSample3d");
 	//                                name                   display name                     default              min    max    hidden
-	m_showHelpers     = props.addBool("ShowHelpers",         "Helpers",                       true,                              true);
-	m_showSceneEditor = props.addBool("ShowSceneEditor",     "Scene Editor",                  false,                             true);
+	m_showHelpers     = props.addBool("ShowHelpers",         "Helpers",                     true,                              true);
+	m_showSceneEditor = props.addBool("ShowSceneEditor",     "Scene Editor",                false,                             true);
+	m_scenePath       = props.addPath("ScenePath",           "Scene Path",                  "Scene.json",                      false);
 }
 
 AppSample3d::~AppSample3d()
 {
-	m_sceneRoots.clear();
 }
 
 // PRIVATE
@@ -331,8 +343,8 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	im3d.m_cursorRayOriginW = cursorRayW.m_origin;
 	im3d.m_cursorRayDirectionW = cursorRayW.m_direction;
 	im3d.m_deltaTime = (float)_app->getDeltaTime();
-	im3d.m_tanHalfFov = _app->m_scene.getDrawCamera()->getTanFovUp();
-	im3d.m_viewOriginW = _app->m_scene.getDrawCamera()->getPosition();
+	im3d.m_tanHalfFov = Scene::GetCurrent().getDrawCamera()->getTanFovUp();
+	im3d.m_viewOriginW = Scene::GetCurrent().getDrawCamera()->getPosition();
 	im3d.m_displaySize = Im3d::Vec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
 
 	im3d.reset();
