@@ -21,19 +21,12 @@ using namespace apt;
 
 *******************************************************************************/
 
-/// Type tags (convert AppProperty::Type to an actual type)
-template <AppProperty::Type T> struct PropTypeT {};
-	template<> struct PropTypeT<AppProperty::kBool>   { typedef bool  Type; };
-	template<> struct PropTypeT<AppProperty::kInt>    { typedef int   Type; };
-	template<> struct PropTypeT<AppProperty::kFloat>  { typedef float Type; };
-	//template<> struct PropTypeT<AppProperty::kString> { typedef AppProperty::String Type; };
-
 static uint kPropTypeSizes[] =
 {
 	sizeof(bool),
 	sizeof(int),
 	sizeof(float),
-	//sizeof(AppProperty::String)
+	sizeof(char*) // kString
 };
 
 // PUBLIC
@@ -78,16 +71,17 @@ AppProperty::~AppProperty()
 		APT_ASSERT_MSG(getType() == _typeEnum, "AppProperty::getDefault -- '%s' is not " # _type, getName()); \
 		return *((_type*)(m_data + m_size)); \
 	}
-DEFINE_getValue_getDefault(bool,  kBool,  1);
-DEFINE_getValue_getDefault(int,   kInt,   1);
-DEFINE_getValue_getDefault(float, kFloat, 1);
-DEFINE_getValue_getDefault(vec2,  kFloat, 2);
-DEFINE_getValue_getDefault(vec3,  kFloat, 3);
-DEFINE_getValue_getDefault(vec4,  kFloat, 4);
-DEFINE_getValue_getDefault(ivec2, kInt,   2);
-DEFINE_getValue_getDefault(ivec3, kInt,   3);
-DEFINE_getValue_getDefault(ivec4, kInt,   4);
-//DEFINE_getValue_getDefault(AppProperty::String,  kString);
+DEFINE_getValue_getDefault(bool,  kBool,   1);
+DEFINE_getValue_getDefault(int,   kInt,    1);
+DEFINE_getValue_getDefault(float, kFloat,  1);
+DEFINE_getValue_getDefault(vec2,  kFloat,  2);
+DEFINE_getValue_getDefault(vec3,  kFloat,  3);
+DEFINE_getValue_getDefault(vec4,  kFloat,  4);
+DEFINE_getValue_getDefault(ivec2, kInt,    2);
+DEFINE_getValue_getDefault(ivec3, kInt,    3);
+DEFINE_getValue_getDefault(ivec4, kInt,    4);
+DEFINE_getValue_getDefault(char*, kString, 1);
+//DEFINE_getValue_getDefault(char*, kPath, 1);
 #undef DEFINE_getValue_getDefault
 
 // getMin/getMax always defined together
@@ -111,7 +105,8 @@ DEFINE_getMin_getMax(vec4,  kFloat, 4);
 DEFINE_getMin_getMax(ivec2, kInt,   2);
 DEFINE_getMin_getMax(ivec3, kInt,   3);
 DEFINE_getMin_getMax(ivec4, kInt,   4);
-//DEFINE_getMin_getMax(AppProperty::String,  kString);
+//DEFINE_getMin_getMax(char*, kString);
+//DEFINE_getMin_getMax(char*, kPath);
 #undef DEFINE_getMin_getMax
 
 void AppProperty::reset()
@@ -184,6 +179,22 @@ bool AppProperty::edit()
 				};
 				break;
 
+			case kString:
+				switch (m_count) {
+					case 1:
+						ret |= ImGui::InputText((const char*)m_displayName, getValue<char*>(), kMaxStringLength);
+						break;
+					default: {
+						String displayName;
+						for (int i = 0; i < (int)m_count; ++i) {
+							displayName.setf("%s[%d]", (const char*)m_displayName, i); 
+						 	ret |= ImGui::InputText((const char*)displayName, getValue<char*>(), kMaxStringLength);
+						}
+						break;
+					};
+				};
+				break;
+
 			default:
 				APT_ASSERT(false);
 		};
@@ -219,7 +230,26 @@ AppProperty::AppProperty(
 	, m_data(0)
 	, m_pfEdit(_pfEdit)
 {
-	allocData(_value, _default, _min, _max);
+	if (_type == kString) {
+	 // alloc a single buffer for the value/default
+		if (_default) {
+			APT_ASSERT(strlen((const char*)_default) + 1 < kMaxStringLength);
+		} else if (_value) {
+			APT_ASSERT(strlen((const char*)_value) + 1 < kMaxStringLength);
+		}
+		char* val = new char[kMaxStringLength * 2];
+		char* def = val + kMaxStringLength;
+		if (_value) {
+			strcpy(val, (const char*)_value);
+		}
+		if (_default) {
+			strcpy(def, (const char*)_default);
+		}
+		allocData(&val, &def, 0, 0);
+
+	} else {
+		allocData(_value, _default, _min, _max);
+	}
 }
 
 void AppProperty::allocData(
@@ -247,6 +277,10 @@ void AppProperty::allocData(
 }
 void AppProperty::freeData()
 {
+	if (getType() == kString) {
+		delete[] getValue<char*>();
+	}
+
 	free_aligned(m_data);
 }
 
@@ -270,6 +304,22 @@ static bool ColorEdit(AppProperty& _prop)
 		APT_ASSERT(false);
 		break;
 	};
+	return ret;
+}
+
+static bool PathEdit(AppProperty& _prop)
+{
+	bool ret = false;
+	if (ImGui::Button(_prop.getDisplayName())) {
+		FileSystem::PathStr tmp = _prop.getValue<char*>();
+		if (FileSystem::PlatformSelect(tmp)) {
+			FileSystem::MakeRelative(tmp);
+			strncpy(_prop.getValue<char*>(), tmp, AppProperty::kMaxStringLength);
+			ret = true;
+		}
+	}
+	ImGui::SameLine();
+	ImGui::Text("-> \"%s\"", _prop.getValue<char*>());
 	return ret;
 }
 
@@ -339,6 +389,16 @@ vec4* AppPropertyGroup::addRgba(const char* _name, const char* _displayName, con
 	AppProperty* ret = add(_name, _displayName, AppProperty::kFloat, 4, _isHidden, &_default, &_default, 0, 0);
 	ret->m_pfEdit = &ColorEdit;
 	return &ret->getValue<vec4>();
+}
+char* AppPropertyGroup::addString(const char* _name, const char* _displayName, const char* _default, bool _isHidden)
+{
+	return add(_name, _displayName, AppProperty::kString, 1, _isHidden, _default, _default, 0, 0)->getValue<char*>();
+}
+char* AppPropertyGroup::addPath(const char* _name, const char* _displayName, const char* _default, bool _isHidden)
+{
+	AppProperty* ret = add(_name, _displayName, AppProperty::kString, 1, _isHidden, _default, _default, 0, 0);
+	ret->m_pfEdit = &PathEdit;
+	return ret->getValue<char*>();
 }
 
 AppProperty& AppPropertyGroup::operator[](const char* _name)
@@ -552,6 +612,11 @@ void AppProperties::setValues(const IniFile& _ini)
 					}
 					break;
 				}
+				case AppProperty::kString: {
+					char* v = prop.getValue<char*>();
+					strncpy(v, p.asString(), AppProperty::kMaxStringLength);
+					break;
+				}
 				default:
 					APT_ASSERT(false); // unsupported type
 					break;
@@ -572,6 +637,7 @@ void AppProperties::appendToIni(apt::IniFile& _ini_) const
 				case AppProperty::kBool:   _ini_.pushValueArray<bool>(prop.getName(), &prop.getValue<bool>(), prop.getCount()); break;
 				case AppProperty::kInt:    _ini_.pushValueArray<int>(prop.getName(), &prop.getValue<int>(), prop.getCount()); break;
 				case AppProperty::kFloat:  _ini_.pushValueArray<float>(prop.getName(), &prop.getValue<float>(), prop.getCount()); break;
+				case AppProperty::kString: _ini_.pushValueArray(prop.getName(), (const char**)&prop.getValue<char*>(), 1); break;
 				default: APT_ASSERT(false);
 			};
 		}
