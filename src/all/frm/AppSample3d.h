@@ -41,13 +41,11 @@ protected:
 	AppSample3d(const char* _title, const char* _appDataPath = 0);
 	virtual ~AppSample3d();
 
-	Scene               m_scene;           //< Contains all sub-scenes, this allows default cameras to be shared between scenes.
-	std::vector<Node*>  m_sceneRoots;      //< Ptrs to sub-scene root nodes inside m_scene.
-	uint                m_currentScene;    //< Index m_sceneRoots.
-	Camera*             m_dbgCullCamera;
+	Camera* m_dbgCullCamera;
 
 	bool* m_showHelpers;
 	bool* m_showSceneEditor;
+	char* m_scenePath;
 
 	Im3d::Context m_im3dCtx;
 	static bool Im3d_Init();

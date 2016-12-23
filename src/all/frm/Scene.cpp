@@ -69,8 +69,14 @@ void Node::removeXForm(XForm* _xform)
 
 void Node::setParent(Node* _node)
 {
-	APT_ASSERT(_node);
-	_node->addChild(this); // addChild sets m_parent implicitly
+	if (_node) {
+		_node->addChild(this); // addChild sets m_parent implicitly
+	} else {
+		if (m_parent) {
+			m_parent->removeChild(this);
+		}
+		m_parent = nullptr;
+	}
 }
 
 void Node::addChild(Node* _node)
@@ -111,13 +117,23 @@ Node::Node(Id _id)
 Node::~Node()
 {
  // re-parent children
-	for (int i = 0, n = (int)m_children.size(); i < n; ++i) {
-		m_children[i]->setParent(m_parent);
+	for (auto it = m_children.begin(); it != m_children.end(); ++it) {
+		Node* n = *it;
+		n->m_parent = nullptr; // prevent m_parent->addChild calling removeChild on this (invalidates it)
+		if (m_parent) {
+			m_parent->addChild(n->m_parent);
+		}
 	}
  // de-parent this
 	if (m_parent) {
 		m_parent->removeChild(this);
 	}
+
+ // delete xforms
+	for (auto it = m_xforms.begin(); it != m_xforms.end(); ++it) {
+		delete *it;
+	}
+	m_xforms.clear();
 }
 
 int Node::moveXForm(int _i, int _dir)
@@ -137,10 +153,48 @@ static Scene s_defaultScene;
 static unsigned s_typeCounters[Node::kTypeCount] = {}; // for auto name
 Scene* Scene::s_currentScene = &s_defaultScene;
 
+void frm::swap(Scene& _a, Scene& _b)
+{
+	std::swap(_a.m_nextNodeId, _b.m_nextNodeId);
+	std::swap(_a.m_root,       _b.m_root);
+	std::swap(_a.m_nodes,      _b.m_nodes);
+	apt::swap(_a.m_nodePool,   _b.m_nodePool);
+	std::swap(_a.m_drawCamera, _b.m_drawCamera);
+	std::swap(_a.m_cullCamera, _b.m_cullCamera);
+	std::swap(_a.m_cameras,    _b.m_cameras);
+	apt::swap(_a.m_cameraPool, _b.m_cameraPool);
+}
+
+
 // PUBLIC
 
+bool Scene::Load(const char* _path, Scene& scene_)
+{
+	Json json;
+	if (!Json::Read(json, _path)) {
+		return false;
+	}
+	JsonSerializer serializer(&json, JsonSerializer::kRead);
+	Scene newScene;
+	if (!newScene.serialize(serializer)) {
+		return false;
+	}
+	swap(newScene, scene_);
+	return true;
+}
+
+bool Scene::Save(const char* _path, Scene& _scene)
+{
+	Json json;
+	JsonSerializer serializer(&json, JsonSerializer::kWrite);
+	if (!_scene.serialize(serializer)) {
+		return false;
+	}
+	return Json::Write(json, _path);
+}
+
 Scene::Scene()
-	: m_root(s_nextNodeId++)
+	: m_nextNodeId(0)
 	, m_nodePool(128)
 	, m_cameraPool(16)
 	, m_drawCamera(nullptr)
@@ -152,11 +206,12 @@ Scene::Scene()
 	, m_editCamera(nullptr)
 #endif
 {
-	m_root.setName("ROOT");
-	m_root.setType(Node::kTypeRoot);
-	m_root.setStateMask(Node::kStateAny);
-	m_root.setSceneDataScene(this);
-	m_nodes[Node::kTypeRoot].push_back(&m_root);
+	m_root = m_nodePool.alloc(Node(m_nextNodeId++));
+	m_nodes[Node::kTypeRoot].push_back(m_root);
+	m_root->setName("ROOT");
+	m_root->setType(Node::kTypeRoot);
+	m_root->setStateMask(Node::kStateAny);
+	m_root->setSceneDataScene(this);
 }
 
 Scene::~Scene()
@@ -167,9 +222,7 @@ Scene::~Scene()
 	}
 	for (int i = 0; i < Node::kTypeCount; ++i) {
 		while (!m_nodes[i].empty()) {
-			if (m_nodes[i].back() != &m_root) { // root isn't from the pool
-				m_nodePool.free(m_nodes[i].back());
-			}
+			m_nodePool.free(m_nodes[i].back());
 			m_nodes[i].pop_back();
 		}
 	}
@@ -179,7 +232,7 @@ void Scene::update(float _dt, uint8 _stateMask)
 {
 	CPU_AUTO_MARKER("Scene::update");
 	
-	update(&m_root, _dt, _stateMask);
+	update(m_root, _dt, _stateMask);
 }
 
 bool Scene::traverse(Node* _root_, uint8 _stateMask, OnVisit* _callback)
@@ -203,10 +256,10 @@ Node* Scene::createNode(Node::Type _type, Node* _parent)
 {
 	CPU_AUTO_MARKER("Scene::createNode");
 
-	Node* ret = m_nodePool.alloc(Node(s_nextNodeId++));
+	Node* ret = m_nodePool.alloc(Node(m_nextNodeId++));
 	AutoName(_type, ret->m_name);
 	ret->m_type = _type;
-	_parent = _parent ? _parent : &m_root;
+	_parent = _parent ? _parent : m_root;
 	_parent->addChild(ret);
 	m_nodes[_type].push_back(ret);
 	++s_typeCounters[_type]; // auto name counter
@@ -217,7 +270,7 @@ void Scene::destroyNode(Node*& _node_)
 {
 	CPU_AUTO_MARKER("Scene::destroyNode");
 
-	APT_ASSERT(_node_ != &m_root); // can't destroy the root
+	APT_ASSERT(_node_ != m_root); // can't destroy the root
 	
 	Node::Type type = _node_->getType();
 	switch (type) {
@@ -307,16 +360,10 @@ void Scene::destroyCamera(Camera*& _camera_)
 bool Scene::serialize(JsonSerializer& _serializer_)
 {
 	if (_serializer_.getMode() == JsonSerializer::kRead) {
-		Node::Id nextNodeId = s_nextNodeId; // store in case of failure
-		Node newRoot(0);
-		s_nextNodeId = 0;
-		if (!serialize(_serializer_, newRoot)) {
-			s_nextNodeId = nextNodeId;
-			reset(&newRoot);
+		if (!serialize(_serializer_, *m_root)) {
+			APT_LOG_ERR("Scene::serialize: Read error");
 			return false;
 		}
-		reset(&m_root);
-	 	std::swap(m_root.m_children, newRoot.m_children); // \todo only swapping the children here means m_root is effectively not serialized
 
 	#ifdef frm_Scene_ENABLE_EDIT
 		m_editNode   = nullptr;
@@ -325,7 +372,7 @@ bool Scene::serialize(JsonSerializer& _serializer_)
 	#endif
 
 	} else {
-		if (!serialize(_serializer_, m_root)) {
+		if (!serialize(_serializer_, *m_root)) {
 			return false;
 		}
 	}
@@ -397,11 +444,11 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 			default:
 				break;
 		};
-		s_nextNodeId = APT_MAX(s_nextNodeId, _node_.m_id + 1);
+		m_nextNodeId = APT_MAX(m_nextNodeId, _node_.m_id + 1);
 
 		if (_serializer_.beginArray("Children")) {
 			while (_serializer_.beginObject()) {
-				Node* child = m_nodePool.alloc(Node(s_nextNodeId)); // node id gets overwritten in the next call to serialize()
+				Node* child = m_nodePool.alloc(Node(m_nextNodeId)); // node id gets overwritten in the next call to serialize()
 				if (!serialize(_serializer_, *child)) {
 					m_nodePool.free(child);
 					return false;
@@ -460,6 +507,11 @@ void Scene::edit()
 		ImGuiWindowFlags_AlwaysAutoResize
 		);
 
+	if (ImGui::Button("Load")) {
+		FileSystem::PathStr newPath;
+		FileSystem::PlatformSelect(newPath, ".json");
+	}
+
 	if (ImGui::TreeNode("Node Counters")) {
 		int totalNodes = 0;
 		for (int i = 0; i < Node::kTypeCount; ++i) {
@@ -473,7 +525,7 @@ void Scene::edit()
 	}
 
 	if (ImGui::TreeNode("Hierarchy")) {
-		drawHierarchy(&m_root);
+		drawHierarchy(m_root);
 		ImGui::TreePop();
 	}
 
@@ -483,7 +535,7 @@ void Scene::edit()
 		Im3d::PushMatrix();
 		Im3d::SetAlpha(1.0f);
 		traverse(
-			&m_root, Node::kStateAny, 
+			m_root, Node::kStateAny, 
 			[](Node* _node_)->bool {
 				Im3d::SetMatrix(_node_->getWorldMatrix());
 				Im3d::DrawXyzAxes();
@@ -988,8 +1040,6 @@ XForm* Scene::createXForm(XForm* _current)
 
 // PRIVATE
 
-Node::Id Scene::s_nextNodeId = 0;
-
 void Scene::update(Node* _node_, float _dt, uint8 _stateMask)
 {
 	if (!(_node_->m_state & _stateMask)) {
@@ -1027,23 +1077,6 @@ void Scene::update(Node* _node_, float _dt, uint8 _stateMask)
 	for (auto it = _node_->m_children.begin(); it != _node_->m_children.end(); ++it) {
 		update(*it, _dt, _stateMask);
 	}
-}
-
-void Scene::reset(Node* _node_)
-{
-	for (auto it = _node_->m_xforms.begin(); it != _node_->m_xforms.end(); ++it) {
-		XForm* x = *it;
-		delete x;
-	}
-	_node_->m_xforms.clear();
-
-	for (auto it = _node_->m_children.begin(); it != _node_->m_children.end(); ++it) {
-		Node* n = *it;
-		reset(n);
-		destroyNode(n);
-	}
-	_node_->m_children.clear();
-	_node_->m_parent = nullptr;
 }
 
 void Scene::AutoName(Node::Type _type, Node::NameStr& out_)

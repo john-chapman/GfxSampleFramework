@@ -84,22 +84,11 @@ public:
 		ImGui::SameLine();
 		ImGui::PlotLines("##Lines", func, NULL, 200, 0, NULL, 0.0f, 1.0f, ImVec2(0,80));
 	*/
-		if (ImGui::Button("Save Scene")) {
-			Json json;
-			JsonSerializer jsonSerializer(&json, JsonSerializer::kWrite);
-			Scene::GetCurrent().serialize(jsonSerializer);
-			Json::Write(json, "scene.json");
-		}
-		if (ImGui::Button("Load Scene")) {
-			Json json;
-			Json::Read(json, "scene.json");
-			JsonSerializer jsonSerializer(&json, JsonSerializer::kRead);
-			Scene::GetCurrent().serialize(jsonSerializer);
-		}
+		Scene& scene = Scene::GetCurrent();
 
 		Ray r;
-		r.m_origin = m_scene.getCullCamera()->getPosition();
-		r.m_direction = m_scene.getCullCamera()->getViewVector();
+		r.m_origin = scene.getCullCamera()->getPosition();
+		r.m_direction = scene.getCullCamera()->getViewVector();
 		//r = getCursorRayW();
 
 	 // nearest point/distance tests
