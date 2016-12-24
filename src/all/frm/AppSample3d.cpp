@@ -43,14 +43,14 @@ bool AppSample3d::init(const apt::ArgList& _args)
 	cb.m_OnKey = Im3d_OnKey;
 	getWindow()->setCallbacks(cb);
 
-	
- // create default camera
-	Camera* defaultCamera = Scene::GetCurrent().createCamera(Camera());
-	Node* defaultCameraNode = defaultCamera->getNode();
-	defaultCameraNode->setStateMask(Node::kStateActive | Node::kStateDynamic | Node::kStateSelected);
-	XForm* freeCam = XForm::Create("XForm_FreeCamera");
-	((XForm_FreeCamera*)freeCam)->m_position = vec3(0.0f, 5.0f, 22.5f);
-	defaultCameraNode->addXForm(freeCam);
+	if (!Scene::Load(m_scenePath, Scene::GetCurrent())) {
+ 		Camera* defaultCamera = Scene::GetCurrent().createCamera(Camera());
+		Node* defaultCameraNode = defaultCamera->getNode();
+		defaultCameraNode->setStateMask(Node::kStateActive | Node::kStateDynamic | Node::kStateSelected);
+		XForm* freeCam = XForm::Create("XForm_FreeCamera");
+		((XForm_FreeCamera*)freeCam)->m_position = vec3(0.0f, 5.0f, 22.5f);
+		defaultCameraNode->addXForm(freeCam);
+	}
 
 	return true;
 }

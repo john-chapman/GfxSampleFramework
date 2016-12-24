@@ -1,34 +1,6 @@
 #pragma once
 #ifndef frm_Scene_h
 #define frm_Scene_h
-/*	Xforms are attached to one node only (in order to make lifetime management easier - no
-	refcounting). Some XForms may support 'OnComplete' behavior and call a callback or 
-	delete themselves when done, which allows for simple chaining and animation. Note that
-	not all xforms need support callbacks, as long as each XForm has a reference to its
-	node. In practice, due to the serialization requirement, callbacks will need to be
-	named and registered in a global table somewhere (then you can just store the name).
-
-	The current scene should be globally accessible to make access to the current camera/cull
-	camera easier. 
-
-	The scene graph must be serializable to json - this puts limits on what you can easily
-	do with the XForms - saving the scene state at any point should just work, meaning you
-	can't really delete XForms when they're complete. Probably this is fine, though - just
-	let them go 'inactive'. For more complex stuff you could use lua directly.
-
-	Stored, re-usable scenes are not really useful without a default renderer. There should
-	be at least an 'DrawResource'-type specification which can be reused, for example:
-
-	- 'Objects' are a set of LODs, each LOD is a separate Drawable.
-	- 'Drawables' (better name?) are Mesh + Material array, + render flags 
-		(i.e. cast shadows, cast reflections, static, dynamic, etc.). Material is an 
-		array because Mesh may contain submeshes.
-	- 'Materials' are shaders (with defines set according to the render flags), some per-
-	   material static data (constant buffer), plus per-instance data (constant buffer).
-	- Renderer executes a geometry pass by: LOD select + cull all objects according to the flags/
-	  spatial data, sort draw list (save draw lists for VR?)
-	- Lights are basic points/spot/omni with some properties/flags.
-*/
 
 #include <frm/def.h>
 #include <frm/math.h>
