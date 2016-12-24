@@ -170,6 +170,7 @@ void frm::swap(Scene& _a, Scene& _b)
 
 bool Scene::Load(const char* _path, Scene& scene_)
 {
+	APT_LOG("Loading scene from '%s'", _path);
 	Json json;
 	if (!Json::Read(json, _path)) {
 		return false;
@@ -186,6 +187,7 @@ bool Scene::Load(const char* _path, Scene& scene_)
 
 bool Scene::Save(const char* _path, Scene& _scene)
 {
+	APT_LOG("Saving scene to '%s'", _path);
 	Json json;
 	JsonSerializer serializer(&json, JsonSerializer::kWrite);
 	if (!_scene.serialize(serializer)) {
@@ -535,11 +537,6 @@ void Scene::edit()
 		ImGuiWindowFlags_NoResize | 
 		ImGuiWindowFlags_AlwaysAutoResize
 		);
-
-	if (ImGui::Button("Load")) {
-		FileSystem::PathStr newPath;
-		FileSystem::PlatformSelect(newPath, ".json");
-	}
 
 	if (ImGui::TreeNode("Node Counters")) {
 		int totalNodes = 0;
