@@ -89,6 +89,11 @@ void Framebuffer::attachLayer(Texture* _texture, GLenum _attachment, GLint _laye
 	attachImpl(_texture, _attachment, _mip, _layer);
 }
 
+Texture* Framebuffer::getAttachment(GLenum _attachment) const
+{
+	return m_textures[GetAttachmentIndex(_attachment)];
+}
+
 GLenum Framebuffer::getStatus() const
 {
 	GLenum ret;
@@ -98,7 +103,7 @@ GLenum Framebuffer::getStatus() const
 
 // PRIVATE
 
-uint Framebuffer::GetAttachmentIndex(GLenum _attachment)
+int Framebuffer::GetAttachmentIndex(GLenum _attachment)
 {
 	for (int i = 0; i < kMaxAttachments; ++i) {
 		if (kAttachmentEnums[i] == _attachment) {
@@ -106,7 +111,7 @@ uint Framebuffer::GetAttachmentIndex(GLenum _attachment)
 		}
 	}
 	APT_ASSERT(false);
-	return 0u;
+	return 0;
 }
 
 Framebuffer::Framebuffer()
@@ -134,7 +139,7 @@ Framebuffer::~Framebuffer()
 
 void Framebuffer::attachImpl(Texture* _texture, GLenum _attachment, GLint _mip, GLint _layer)
 {
-	uint i = GetAttachmentIndex(_attachment);
+	int i = GetAttachmentIndex(_attachment);
 	if (m_textures[i] != 0) {
 		Texture::Unuse(m_textures[i]);
 		m_textures[i] = 0;

@@ -40,6 +40,9 @@ public:
 	/// removed.
 	void attachLayer(Texture* _texture, GLenum _attachment, GLint _layer, GLint _mip = 0);
 	
+	/// \return Texture at _attachment or 0 if no attachment was present.
+	Texture* getAttachment(GLenum _attachment) const;
+
 	/// \return the framebuffer status, which should be GL_FRAMEBUFFER_COMPLETE
 	///   in order for the framebuffer to be useable.
 	GLenum getStatus() const;
@@ -61,7 +64,7 @@ private:
 
 	/// Convert an attachment enum (e.g. GL_COLOR_ATTACHMENT0) to an index into the
 	/// attachment list.
-	static uint GetAttachmentIndex(GLenum _attachment);
+	static int GetAttachmentIndex(GLenum _attachment);
 
 	Framebuffer();
 	~Framebuffer();
