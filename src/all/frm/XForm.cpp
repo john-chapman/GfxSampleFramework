@@ -4,6 +4,7 @@
 #include <frm/Scene.h>
 
 #include <apt/log.h>
+#include <apt/Json.h>
 
 #include <imgui/imgui.h>
 #include <frm/im3d.h>
@@ -59,6 +60,24 @@ const XForm::Callback* XForm::FindCallback(OnComplete* _callback)
 	}
 	return nullptr;
 }
+bool XForm::SerializeCallback(const char* _name, OnComplete*& _callback, JsonSerializer& _serializer_)
+{
+	if (_serializer_.getMode() == JsonSerializer::kRead) {
+		String<64> tmp;
+		_serializer_.value(_name, (StringBase&)tmp);
+		const Callback* cbk = FindCallback(StringHash(tmp));
+		if (cbk == nullptr) {
+			APT_LOG_ERR("XForm: Invalid callback '%s'", (const char*)tmp);
+			_callback = nullptr;
+			return false;
+		}
+		_callback = cbk->m_callback;
+		return true;
+	} else {
+		return _serializer_.string(_name, const_cast<char*>(FindCallback(_callback)->m_name)) != 0;
+	}
+}
+
 
 /*******************************************************************************
 
@@ -90,6 +109,14 @@ void XForm_PositionOrientationScale::edit()
 	ImGui::DragFloat3("Scale", &m_scale.x, 0.2f);
 
 	Im3d::Gizmo("XForm_PositionOrientationScale", &m_position, &m_orientation, &m_scale);
+}
+
+bool XForm_PositionOrientationScale::serialize(JsonSerializer& _serializer_)
+{
+	_serializer_.value("Position",     m_position);
+	_serializer_.value("Orientation",  (vec4&)m_orientation);
+	_serializer_.value("Scale",        m_scale);
+	return true;
 }
 
 /*******************************************************************************
@@ -218,6 +245,17 @@ void XForm_FreeCamera::edit()
 	ImGui::SliderFloat("Rotation Damp",       &m_rotationDamp,     1e-4f, 0.2f, "%1.5f");
 }
 
+bool XForm_FreeCamera::serialize(JsonSerializer& _serializer_)
+{
+	_serializer_.value("Position",                m_position);
+	_serializer_.value("Orientation",             (vec4&)m_orientation);
+	_serializer_.value("MaxSpeed",                m_maxSpeed);
+	_serializer_.value("MaxSpeedMultiplier",      m_maxSpeedMul);
+	_serializer_.value("AccelerationTime",        m_accelTime);
+	_serializer_.value("RotationInputMultiplier", m_rotationInputMul);
+	_serializer_.value("RotationDamping",         m_rotationDamp);
+	return true;
+}
 
 /*******************************************************************************
 
@@ -247,6 +285,12 @@ void XForm_LookAt::edit()
 	ImGui::DragFloat3("Offset", &m_offset.x, 0.5f);
 }
 
+bool XForm_LookAt::serialize(JsonSerializer& _serializer_)
+{
+	_serializer_.value("Offset", m_offset);
+	APT_ASSERT(false); // \todo store ID + node ptr, only resolve during apply()
+	return true;
+}
 
 /*******************************************************************************
 
@@ -292,10 +336,12 @@ void XForm_Spin::edit()
 	Im3d::PopDrawState();
 }
 
-
-XFORM_REGISTER_CALLBACK(XForm::Reset);
-XFORM_REGISTER_CALLBACK(XForm::RelativeReset);
-XFORM_REGISTER_CALLBACK(XForm::Reverse);
+bool XForm_Spin::serialize(JsonSerializer& _serializer_)
+{
+	_serializer_.value("Axis", m_axis);
+	_serializer_.value("Rate", m_rate);
+	return true;
+}
 
 /*******************************************************************************
 
@@ -353,6 +399,14 @@ void XForm_PositionTarget::edit()
 			Im3d::Vertex(m_end);
 		Im3d::End();
 	Im3d::PopDrawState();
+}
+
+bool XForm_PositionTarget::serialize(JsonSerializer& _serializer_)
+{
+	_serializer_.value("Start",     m_start);
+	_serializer_.value("End",       m_end);
+	_serializer_.value("Duration",  m_duration);
+	return SerializeCallback("OnComplete", m_onComplete, _serializer_);
 }
 
 void XForm_PositionTarget::reset()
@@ -465,5 +519,21 @@ struct XForm_VRGamepad: public XForm
 	{
 	}
 
+	bool serialize(JsonSerializer& _serializer_)
+	{
+		_serializer_.value("Position",                m_position);
+		_serializer_.value("Orientation",             (vec4&)m_orientation);
+		_serializer_.value("MaxSpeed",                m_maxSpeed);
+		_serializer_.value("MaxSpeedMultiplier",      m_maxSpeedMul);
+		_serializer_.value("AccelerationTime",        m_accelTime);
+		_serializer_.value("RotationInputMultiplier", m_rotationInputMul);
+		_serializer_.value("RotationDamping",         m_rotationDamp);
+		return true;
+	}
+
 }; // struct XForm_VRGamepad
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_VRGamepad);
+
+XFORM_REGISTER_CALLBACK(XForm::Reset);
+XFORM_REGISTER_CALLBACK(XForm::RelativeReset);
+XFORM_REGISTER_CALLBACK(XForm::Reverse);

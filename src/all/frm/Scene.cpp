@@ -176,6 +176,7 @@ bool Scene::Load(const char* _path, Scene& scene_)
 	}
 	JsonSerializer serializer(&json, JsonSerializer::kRead);
 	Scene newScene;
+	
 	if (!newScene.serialize(serializer)) {
 		return false;
 	}
@@ -423,7 +424,6 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 			APT_LOG_ERR("Scene: Invalid node type '%s'", (const char*)tmp);
 			return false;
 		}
-		m_nodes[_node_.m_type].push_back(&_node_);
 
 		switch (_node_.m_type) {
 			case Node::kTypeRoot: {
@@ -455,6 +455,23 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 				}
 				child->m_parent = &_node_;
 				_node_.m_children.push_back(child);
+				m_nodes[child->m_type].push_back(child);
+				_serializer_.endObject();
+			}
+			_serializer_.endArray();
+		}
+
+		if (_serializer_.beginArray("XForms")) {
+			while (_serializer_.beginObject()) {
+				_serializer_.value("Class", (StringBase&)tmp);
+				XForm* xform = XForm::Create(StringHash(tmp));
+				if (xform) {
+					xform->serialize(_serializer_);
+					xform->setNode(&_node_);
+					_node_.m_xforms.push_back(xform);
+				} else {
+					APT_LOG_ERR("Scene: Invalid xform '%s'", (const char*)tmp);
+				}
 				_serializer_.endObject();
 			}
 			_serializer_.endArray();
@@ -478,6 +495,18 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 				for (auto& child : _node_.m_children) {
 					_serializer_.beginObject();
 						serialize(_serializer_, *child);
+					_serializer_.endObject();
+				}
+			_serializer_.endArray();
+		}
+
+		if (!_node_.m_xforms.empty()) {
+			_serializer_.beginArray("XForms");
+				for (auto& xform : _node_.m_xforms) {
+					_serializer_.beginObject();
+						const char* className = xform->getClassRef()->getName();
+						_serializer_.string("Class", const_cast<char*>(className));
+						xform->serialize(_serializer_);
 					_serializer_.endObject();
 				}
 			_serializer_.endArray();
