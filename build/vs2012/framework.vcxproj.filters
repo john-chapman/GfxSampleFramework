@@ -159,6 +159,7 @@
       <Filter>ui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\interpolation.h" />
+    <ClInclude Include="..\..\src\all\frm\Spline.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">
@@ -321,5 +322,6 @@
     <ClCompile Include="..\..\src\all\extern\imgui\imconfig.cpp">
       <Filter>extern</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\Spline.cpp" />
   </ItemGroup>
 </Project>

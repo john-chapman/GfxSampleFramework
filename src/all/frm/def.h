@@ -45,6 +45,7 @@ namespace frm {
 	class Serializer;
 	class Scene;
 	class Shader;
+	class SplinePath;
 	class Texture;
 	class TextureAtlas;
 	class Window;
