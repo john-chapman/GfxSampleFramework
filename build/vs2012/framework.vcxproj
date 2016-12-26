@@ -141,6 +141,7 @@
     <ClInclude Include="..\..\src\all\frm\Scene.h" />
     <ClInclude Include="..\..\src\all\frm\Shader.h" />
     <ClInclude Include="..\..\src\all\frm\ShaderPreprocessor.h" />
+    <ClInclude Include="..\..\src\all\frm\Spline.h" />
     <ClInclude Include="..\..\src\all\frm\Texture.h" />
     <ClInclude Include="..\..\src\all\frm\TextureAtlas.h" />
     <ClInclude Include="..\..\src\all\frm\Window.h" />
@@ -211,6 +212,7 @@
     <ClCompile Include="..\..\src\all\frm\Scene.cpp" />
     <ClCompile Include="..\..\src\all\frm\Shader.cpp" />
     <ClCompile Include="..\..\src\all\frm\ShaderPreprocessor.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Spline.cpp" />
     <ClCompile Include="..\..\src\all\frm\Texture.cpp" />
     <ClCompile Include="..\..\src\all\frm\TextureAtlas.cpp" />
     <ClCompile Include="..\..\src\all\frm\Window.cpp" />

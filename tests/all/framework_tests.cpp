@@ -9,6 +9,7 @@
 #include <frm/MeshData.h>
 #include <frm/Profiler.h>
 #include <frm/Shader.h>
+#include <frm/Spline.h>
 #include <frm/Texture.h>
 #include <frm/Window.h>
 
@@ -26,6 +27,8 @@ class AppSampleTest: public AppSample3d
 public:
 	typedef AppSample3d AppBase;
 
+	SplinePath m_splinePath;
+
 	Mesh* m_teapot;
 	Shader* m_shModel;
 
@@ -36,6 +39,17 @@ public:
 		if (!AppBase::init(_args)) {
 			return false;
 		}
+
+		LCG lcg(1223781730);
+		for (int i = 0; i < 8; ++i) {
+			m_splinePath.append(vec3(
+				lcg.frand(-10.0f, 10.0f),
+				0.0f,//lcg.frand(-3.0f,  3.0f),
+				lcg.frand(-10.0f, 10.0f)
+				));
+		}
+		m_splinePath.build();
+
 		return true;
 	}
 
@@ -57,7 +71,7 @@ public:
 
 
 	 // interpolationt vis
-	/*	struct Funcs {
+		struct Funcs {
 			static float GetDelta(int _i)        { return s_min + ((float)_i / (float)s_sampleCount) * (s_max - s_min); }
             static float Lerp(void*, int _i)     { return lerp(0.0f, 1.0f, GetDelta(_i)); }
             static float Coserp(void*, int _i)   { return coserp(0.0f, 1.0f, GetDelta(_i)); }
@@ -72,18 +86,23 @@ public:
 			ImGui::Combo("##Interp", &s_funcType, "lerp\0coserp\0cuberp\0smooth\0accelerp\0decelerp\0");;
 		ImGui::PopItemWidth();
         float (*func)(void*, int) = NULL;
+		float (*pfInterp)(float, float, float);
+		vec3 (*pfInterp3d)(const vec3&, const vec3&, float);
 		switch (s_funcType) {
-			case 5:  func = Funcs::Decelerp; break;
-			case 4:  func = Funcs::Accelerp; break;
-			case 3:  func = Funcs::Smooth; break;
-			case 2:  func = Funcs::Cuberp; break;
-			case 1:  func = Funcs::Coserp; break;
+			case 5:  func = Funcs::Decelerp; pfInterp = decelerp; pfInterp3d = decelerp; break;
+			case 4:  func = Funcs::Accelerp; pfInterp = accelerp; pfInterp3d = accelerp; break;
+			case 3:  func = Funcs::Smooth;   pfInterp = smooth;   pfInterp3d = smooth;   break;
+			case 2:  func = Funcs::Cuberp;   pfInterp = lerp;     pfInterp3d = lerp;     break;
+			case 1:  func = Funcs::Coserp;   pfInterp = coserp;   pfInterp3d = coserp;   break;
 			case 0:
-			default: func = Funcs::Lerp; break;
+			default: func = Funcs::Lerp;     pfInterp = lerp;     pfInterp3d = lerp;     break;
 		};
 		ImGui::SameLine();
 		ImGui::PlotLines("##Lines", func, NULL, 200, 0, NULL, 0.0f, 1.0f, ImVec2(0,80));
-	*/
+
+		m_splinePath.edit();
+
+
 		Scene& scene = Scene::GetCurrent();
 
 		Ray r;

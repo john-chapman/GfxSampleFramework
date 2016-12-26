@@ -190,6 +190,29 @@ struct XForm_PositionTarget: public XForm
 	virtual void reverse() override;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+/// \class XForm_SplinePath
+////////////////////////////////////////////////////////////////////////////////
+struct XForm_SplinePath: public XForm
+{
+	SplinePath* m_path;
+	float       m_duration;
+	float       m_currentTime;
+
+	OnComplete* m_onComplete;
+
+	XForm_SplinePath();
+	virtual ~XForm_SplinePath();
+
+	virtual void apply(float _dt) override;
+	virtual void edit() override;
+	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
+
+	virtual void reset() override;
+	virtual void relativeReset() override;
+	virtual void reverse() override;
+};
+
 } // namespace frm
 
 #endif // frm_XForm_h
