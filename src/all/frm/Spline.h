@@ -36,6 +36,8 @@ public:
 
 	vec3 evaluate(float _t) const;
 
+	float reparam(float _t) const;
+
 	void append(const vec3& _position);
 
 	/// Construct derived members (segment metadata, spline length).
@@ -53,6 +55,7 @@ private:
 	std::vector<Segment> m_segs;   //< Segment metadata (m_data.size()-1 segs).
 	float                m_length; //< Total length.
 
+	std::vector<vec2>    m_usTable;
 	
 	/// Find segment containing _t.
 	int findSegment(float _t) const;
@@ -64,10 +67,14 @@ private:
 	/// _p1 and _p2.
 	float arclen(
 		const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3,
-		float _threshold = FLT_EPSILON,
-		float _dbeg = 0.0f, float _dmid = 0.5f, float _dend = 1.0f,
+		float _threshold = 1e-6f,
+		float _tbeg = 0.0f, float _tmid = 0.5f, float _tend = 1.0f,
 		float _step = 0.25f
-		);
+		) const;
+
+	/// Find the arc length between parameter _t0 and _t1.
+	float arclen(float _t0, float _t1, float _threshold = 1e-6f) const;
+	float arclenTo(float _t, float _threshold = 1e-6f) const;
 
 	void getClampIndices(int _i, int& p0_, int& p1_, int& p2_, int& p3_) const;
 
