@@ -23,6 +23,28 @@ vec3 SplinePath::evaluate(float _t) const
 	return itpl(m_data[p0], m_data[p1], m_data[p2], m_data[p3], t);
 }
 
+float SplinePath::reparam(float _t) const
+{
+	float s = _t * m_length; // distance along the whole spline
+
+	int lo = 0, hi = (int)m_usTable.size() - 1;	
+	while (hi - lo > 1) {
+		int mid = (hi + lo) / 2;		
+		if (s > m_usTable[mid].y) {
+			lo = mid;
+		} else {
+			hi = mid;
+		}
+	}	
+	int seg = lo;
+	if (s > m_usTable[hi].y) {
+		seg = hi;
+	}
+
+	float d = (s - m_usTable[seg].y) / (m_usTable[seg + 1].y - m_usTable[seg].y);
+	return lerp(m_usTable[seg].x, m_usTable[seg + 1].y, d);
+}
+
 void SplinePath::append(const vec3& _position)
 {
 	m_data.push_back(_position);
@@ -51,6 +73,17 @@ void SplinePath::build()
 		m_segs[i].m_beg /= m_length;
 		m_segs[i].m_len /= m_length;
 	}
+
+ // us table
+	m_usTable.clear();
+	for (int i = 0, n = (int)m_data.size() * 10; i < n; ++i) {
+		vec2 us;
+		us.x = (float)i / (float)n;
+		us.y = arclen(0.0f, us.x);
+		m_usTable.push_back(us);
+	}
+
+	int x = 4;
 }
 
 void SplinePath::edit()
@@ -86,24 +119,42 @@ void SplinePath::edit()
 			}
 		Im3d::End();
 
+		static bool s_reparam = false;
 		static float s_t = 0.0f;
 		static vec3 pp = vec3(0.0f);
-		vec3 p = evaluate(s_t);
+		vec3 p;
+		if (s_reparam) {
+			p = evaluate(reparam(s_t));
+		} else {
+			p = evaluate(s_t);
+		}
 		ImGui::Text("Velocity %f", length(p - pp));
 		pp = p;
 		s_t += (1.0f/60.0f) / 8.0f;
 		if (s_t > 1.0f) s_t = 0.0f;
 		ImGui::SliderFloat("T", &s_t, 0.0f, 1.0f);
+		ImGui::Checkbox("Constant Speed", &s_reparam);
 		Im3d::SetColor(1.0f, 0.0f, 1.0f, 1.0f);
 		Im3d::SetSize(16.0f);
 		Im3d::BeginPoints();
 			Im3d::Vertex(p);
 		Im3d::End();
 
-	Im3d::PopDrawState();
-	
-	ImGui::Text("Path Length: %f", m_length);
+		if (ImGui::TreeNode("arclen")) {
+			static float u0 = 0.0f;
+			static float u1 = 1.0f;
+			ImGui::SliderFloat("u0", &u0, 0.0f, 1.0f);
+			ImGui::SliderFloat("u1", &u1, 0.0f, 1.0f);
+			ImGui::Text("[u0,u1] %f", arclenTo( u1));
+			Im3d::SetSize(8.0f);
+			Im3d::BeginPoints();
+				Im3d::Vertex(evaluate(u0));
+				Im3d::Vertex(evaluate(u1));
+			Im3d::End();
+			ImGui::TreePop();
+		}
 
+	Im3d::PopDrawState();
 }
 
 // PRIVATE
@@ -133,26 +184,92 @@ vec3 SplinePath::itpl(const vec3& _p0, const vec3& _p1, const vec3& _p2, const v
 float SplinePath::arclen(
 	const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3,
 	float _threshold,
-	float _dbeg, float _dmid, float _dend,
+	float _tbeg, float _tmid, float _tend,
 	float _step
-	)
+	) const
 {
-	vec3 beg = itpl(_p0, _p1, _p2, _p3, _dbeg);
-	vec3 mid = itpl(_p0, _p1, _p2, _p3, _dmid);
-	vec3 end = itpl(_p0, _p1, _p2, _p3, _dend);
+	vec3 beg = itpl(_p0, _p1, _p2, _p3, _tbeg);
+	vec3 mid = itpl(_p0, _p1, _p2, _p3, _tmid);
+	vec3 end = itpl(_p0, _p1, _p2, _p3, _tend);
 
  // \todo length2 here?
 	float a = length(mid - beg);
 	float b = length(end - mid);
 	float c = length(end - beg);
-	if (_step < FLT_EPSILON || (a + b) - c < _threshold) {
+	if ((a + b) - c < _threshold) {
 		return c;
 	}
 
 	return 
-		arclen(_p0, _p1, _p2, _p3, _threshold, _dbeg, _dmid - _step, _dmid, _step * 0.5f) +
-		arclen(_p0, _p1, _p2, _p3, _threshold, _dmid, _dmid + _step, _dend, _step * 0.5f)
+		arclen(_p0, _p1, _p2, _p3, _threshold, _tbeg, _tmid - _step, _tmid, _step * 0.5f) +
+		arclen(_p0, _p1, _p2, _p3, _threshold, _tmid, _tmid + _step, _tend, _step * 0.5f)
 		;
+}
+
+float SplinePath::arclen(float _t0, float _t1, float _threshold) const
+{
+	APT_ASSERT(m_segs.size() == m_data.size() - 1); // must call build() first
+	float ret = 0.0f;
+
+	int seg0 = findSegment(_t0);
+	int seg1 = findSegment(_t1);
+
+ // sum whole seg lengths
+	for (int i = seg0 + 1; i < seg1; ++i) {
+		ret += m_segs[i].m_len * m_length;
+	}
+
+ // find partial seg lengths
+	int p0, p1, p2, p3;
+	getClampIndices(seg0, p0, p1, p2, p3);
+	float u0 = (_t0 - m_segs[p1].m_beg) / m_segs[p1].m_len;
+	if (seg0 == seg1) {
+		float u1 = (_t1 - m_segs[p1].m_beg) / m_segs[p1].m_len;
+		ret += arclen(
+			m_data[p0], m_data[p1], m_data[p2], m_data[p3],
+			_threshold,
+			u0, (u0 + u1) * 0.5f, u1
+			);
+	} else {
+		ret += arclen(
+			m_data[p0], m_data[p1], m_data[p2], m_data[p3],
+			_threshold,
+			u0, (u0 + 1.0f) * 0.5f, 1.0f
+			);
+	
+		getClampIndices(seg1, p0, p1, p2, p3);
+		float u1 = (_t1 - m_segs[p1].m_beg) / m_segs[p1].m_len;
+		ret += arclen(
+			m_data[p0], m_data[p1], m_data[p2], m_data[p3],
+			_threshold,
+			0.0f, u1 * 0.5f, u1
+			);
+	}
+
+	return ret;
+}
+
+float SplinePath::arclenTo(float _t, float _threshold) const
+{
+	APT_ASSERT(m_segs.size() == m_data.size() - 1); // must call build() first
+	float ret = 0.0f;
+
+	int seg = findSegment(_t);
+
+ // sum whole seg lengths
+	for (int i = 0; i < seg; ++i) {
+		ret += m_segs[i].m_len * m_length;
+	}
+
+	int p0, p1, p2, p3;
+	getClampIndices(seg, p0, p1, p2, p3);
+	_t = (_t - m_segs[seg].m_beg) / m_segs[seg].m_len;
+	ret = arclen(
+		m_data[p0], m_data[p1], m_data[p2], m_data[p3],
+		_threshold,
+		0.0f, _t * 0.5f, _t
+		);
+	return ret;
 }
 
 void SplinePath::getClampIndices(int _i, int& p0_, int& p1_, int& p2_, int& p3_) const

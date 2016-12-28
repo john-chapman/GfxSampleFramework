@@ -41,12 +41,16 @@ public:
 		}
 
 		LCG lcg(1223781730);
-		for (int i = 0; i < 8; ++i) {
-			m_splinePath.append(vec3(
-				lcg.frand(-10.0f, 10.0f),
-				0.0f,//lcg.frand(-3.0f,  3.0f),
-				lcg.frand(-10.0f, 10.0f)
-				));
+		//for (int i = 0; i < 6; ++i) {
+		//	m_splinePath.append(vec3(
+		//		lcg.frand(-10.0f, 10.0f),
+		//		0.0f,//lcg.frand(-3.0f,  3.0f),
+		//		lcg.frand(-10.0f, 10.0f)
+		//		));
+		//}
+		for (int i = 0; i < 6; ++i) {
+			m_splinePath.append(vec3((float)i, 0.0f, 
+				cosf((float)i)));
 		}
 		m_splinePath.build();
 
