@@ -217,7 +217,7 @@ protected:
 ///    device if such a device is connected, i.e. if mouse 0 is disconnected
 ///    and another mouse is present, it will be reassigned to id 0.
 ////////////////////////////////////////////////////////////////////////////////
-class Input: private apt::non_copyable<Input>
+class Input
 {
 public:
 	static const int kMaxKeyboardCount = 1;
@@ -236,13 +236,11 @@ public:
 	static void ResetMouse(int _id = 0)      { GetMouse(_id)->reset(); }
 	static void ResetGamepad(int _id = 0)    { GetGamepad(_id)->reset(); }
 	
-
-protected:
 	static void Init();
 	static void Shutdown();
 
 }; // class Input
-APT_DECLARE_STATIC_INIT(Input);
+APT_DECLARE_STATIC_INIT(Input, Input::Init, Input::Shutdown);
 
 } // namespace frm
 

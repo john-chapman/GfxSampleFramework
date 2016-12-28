@@ -110,12 +110,12 @@ public:
 	};
 
 	static bool       s_pause;
-//protected:
+
 	static void Init();
 	static void Shutdown();
 
 }; // class Profiler
-APT_DECLARE_STATIC_INIT(Profiler);
+APT_DECLARE_STATIC_INIT(Profiler, Profiler::Init, Profiler::Shutdown);
 
 } // namespace frm
 
