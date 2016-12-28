@@ -67,14 +67,14 @@ private:
 	/// _p1 and _p2.
 	float arclen(
 		const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3,
-		float _threshold = 1e-6f,
+		float _threshold = 1e-7f,
 		float _tbeg = 0.0f, float _tmid = 0.5f, float _tend = 1.0f,
 		float _step = 0.25f
 		) const;
 
 	/// Find the arc length between parameter _t0 and _t1.
-	float arclen(float _t0, float _t1, float _threshold = 1e-6f) const;
-	float arclenTo(float _t, float _threshold = 1e-6f) const;
+	float arclen(float _t0, float _t1, float _threshold = 1e-7f) const;
+	float arclenTo(float _t, float _threshold = 1e-7f) const;
 
 	void getClampIndices(int _i, int& p0_, int& p1_, int& p2_, int& p3_) const;
 

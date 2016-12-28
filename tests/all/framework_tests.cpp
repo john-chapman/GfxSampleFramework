@@ -40,7 +40,7 @@ public:
 			return false;
 		}
 
-		LCG lcg(1223781730);
+		//LCG lcg(1223781730);
 		//for (int i = 0; i < 6; ++i) {
 		//	m_splinePath.append(vec3(
 		//		lcg.frand(-10.0f, 10.0f),
@@ -48,10 +48,14 @@ public:
 		//		lcg.frand(-10.0f, 10.0f)
 		//		));
 		//}
-		for (int i = 0; i < 6; ++i) {
-			m_splinePath.append(vec3((float)i, 0.0f, 
-				cosf((float)i)));
-		}
+		//for (int i = 0; i < 3; ++i) {
+		//	m_splinePath.append(vec3((float)i, 0.0f, 
+		//		cosf((float)i)));
+		//}
+		m_splinePath.append(vec3(0.0f, 0.0f, 0.0f));
+		m_splinePath.append(vec3(1.0f, 0.0f, 0.0f));
+		m_splinePath.append(vec3(2.0f, 0.0f, 0.0f));
+
 		m_splinePath.build();
 
 		return true;

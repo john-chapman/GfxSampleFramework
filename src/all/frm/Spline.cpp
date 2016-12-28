@@ -42,7 +42,7 @@ float SplinePath::reparam(float _t) const
 	}
 
 	float d = (s - m_usTable[seg].y) / (m_usTable[seg + 1].y - m_usTable[seg].y);
-	return lerp(m_usTable[seg].x, m_usTable[seg + 1].y, d);
+	return lerp(m_usTable[seg].x, m_usTable[seg + 1].x, d);
 }
 
 void SplinePath::append(const vec3& _position)
@@ -118,13 +118,17 @@ void SplinePath::edit()
 				//}
 			}
 		Im3d::End();
-
+if (Im3d::GizmoPosition("SplinePath_EditData", &m_data[1])) {
+	build();
+}
 		static bool s_reparam = false;
 		static float s_t = 0.0f;
 		static vec3 pp = vec3(0.0f);
 		vec3 p;
 		if (s_reparam) {
-			p = evaluate(reparam(s_t));
+			float rpt = reparam(s_t);
+			p = evaluate(rpt);
+			ImGui::Text("Reparam T %f", rpt);
 		} else {
 			p = evaluate(s_t);
 		}
@@ -135,12 +139,13 @@ void SplinePath::edit()
 		ImGui::SliderFloat("T", &s_t, 0.0f, 1.0f);
 		ImGui::Checkbox("Constant Speed", &s_reparam);
 		Im3d::SetColor(1.0f, 0.0f, 1.0f, 1.0f);
-		Im3d::SetSize(16.0f);
+		Im3d::SetSize(10.0f);
 		Im3d::BeginPoints();
 			Im3d::Vertex(p);
 		Im3d::End();
 
 		if (ImGui::TreeNode("arclen")) {
+			ImGui::Text("Total Length: %f", m_length);
 			static float u0 = 0.0f;
 			static float u1 = 1.0f;
 			ImGui::SliderFloat("u0", &u0, 0.0f, 1.0f);
@@ -178,7 +183,10 @@ int SplinePath::findSegment(float _t) const
 
 vec3 SplinePath::itpl(const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3, float _t)
 {
+	APT_ASSERT(_t <= 1.0f && _t >= 0.0f);
+	//return lerp(_p1, _p2, _t);
 	return cuberp(_p0, _p1, _p2, _p3, _t);
+	//return hermite(_p0, _p1, _p2, _p3, _t);
 }
 
 float SplinePath::arclen(
@@ -192,12 +200,11 @@ float SplinePath::arclen(
 	vec3 mid = itpl(_p0, _p1, _p2, _p3, _tmid);
 	vec3 end = itpl(_p0, _p1, _p2, _p3, _tend);
 
- // \todo length2 here?
-	float a = length(mid - beg);
-	float b = length(end - mid);
-	float c = length(end - beg);
-	if ((a + b) - c < _threshold) {
-		return c;
+	float a = length2(mid - beg);
+	float b = length2(end - mid);
+	float c = length2(end - beg);
+	if (((a + b) - c) < (_threshold * _threshold)) {
+		return sqrt(c);
 	}
 
 	return 
@@ -264,7 +271,7 @@ float SplinePath::arclenTo(float _t, float _threshold) const
 	int p0, p1, p2, p3;
 	getClampIndices(seg, p0, p1, p2, p3);
 	_t = (_t - m_segs[seg].m_beg) / m_segs[seg].m_len;
-	ret = arclen(
+	ret += arclen(
 		m_data[p0], m_data[p1], m_data[p2], m_data[p3],
 		_threshold,
 		0.0f, _t * 0.5f, _t
