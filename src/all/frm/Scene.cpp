@@ -495,6 +495,9 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 		if (!_node_.m_children.empty()) {
 			_serializer_.beginArray("Children");
 				for (auto& child : _node_.m_children) {
+					if (child->getName()[0] == '#') {
+						continue;
+					}
 					_serializer_.beginObject();
 						serialize(_serializer_, *child);
 					_serializer_.endObject();

@@ -173,6 +173,9 @@ public:
 	Camera* getCullCamera() const                   { return m_cullCamera; }
 	void    setCullCamera(Camera* _camera)          { m_cullCamera = _camera; }
 
+	/// Serialize to json.
+	/// \note Node names beginning with '#' are ignored during serialization (use
+	///   for any nodes added programmatcially).
 	bool    serialize(apt::JsonSerializer& _serializer_);
 	bool    serialize(apt::JsonSerializer& _serializer_, Node& _node_);
 #ifdef frm_Scene_ENABLE_EDIT
