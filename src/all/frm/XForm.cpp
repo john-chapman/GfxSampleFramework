@@ -2,6 +2,7 @@
 
 #include <frm/interpolation.h>
 #include <frm/Scene.h>
+#include <frm/Spline.h>
 
 #include <apt/log.h>
 #include <apt/Json.h>
@@ -275,7 +276,7 @@ void XForm_LookAt::apply(float _dt)
 	vec3 posW = GetTranslation(m_node->getWorldMatrix());
 	vec3 targetW = m_offset;
 	if (m_target) {
-		targetW += GetTranslation(m_node->getWorldMatrix());
+		targetW += GetTranslation(m_target->getWorldMatrix());
 	}
 	m_node->setWorldMatrix(GetLookAtMatrix(posW, targetW));
 }
@@ -355,6 +356,7 @@ XForm_PositionTarget::XForm_PositionTarget()
 	, m_end(0.0f, 1.0f, 0.0f)
 	, m_duration(1.0f)
 	, m_currentTime(0.0f)
+	, m_onComplete(nullptr)
 {
 }
 
@@ -365,7 +367,7 @@ XForm_PositionTarget::~XForm_PositionTarget()
 void XForm_PositionTarget::apply(float _dt)
 {
 	m_currentTime = APT_MIN(m_currentTime + _dt, m_duration);
-	if (m_onComplete && m_currentTime > m_duration) {
+	if (m_onComplete && m_currentTime >= m_duration) {
 		m_onComplete(this);
 	}
 	m_currentPosition = smooth(m_start, m_end, m_currentTime / m_duration);
@@ -425,6 +427,61 @@ void XForm_PositionTarget::reverse()
 {
 	std::swap(m_start, m_end);
 	m_currentTime = APT_MAX(m_duration - m_currentTime, 0.0f);
+}
+
+/*******************************************************************************
+
+                              XForm_SplinePath
+
+*******************************************************************************/
+APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_SplinePath);
+
+XForm_SplinePath::XForm_SplinePath()
+	: m_path(nullptr)
+	, m_duration(1.0f)
+	, m_currentTime(0.0f)
+	, m_onComplete(XForm::Reset)
+{
+}
+
+XForm_SplinePath::~XForm_SplinePath()
+{
+}
+
+void XForm_SplinePath::apply(float _dt)
+{
+	m_currentTime = APT_MIN(m_currentTime + _dt, m_duration);
+	if (m_onComplete && m_currentTime >= m_duration) {
+		m_onComplete(this);
+	}
+	vec3 position;
+	position = m_path->evaluateLinear(m_currentTime / m_duration);
+	//position = m_path->evaluate(m_path->reparam(m_currentTime / m_duration));
+	m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), position));
+}
+
+void XForm_SplinePath::edit()
+{
+	ImGui::SliderFloat("Duration (s)", &m_duration, 0.0f, 10.0f);
+	if (ImGui::Button("Reset")) {
+		reset();
+	}
+}
+
+bool XForm_SplinePath::serialize(JsonSerializer& _serializer_)
+{
+	_serializer_.value("Duration",  m_duration);
+	return SerializeCallback("OnComplete", m_onComplete, _serializer_);
+}
+
+void XForm_SplinePath::reset()
+{
+	m_currentTime = 0.0f;
+}
+
+void XForm_SplinePath::reverse()
+{
+	APT_ASSERT(false); // \todo
 }
 
 
