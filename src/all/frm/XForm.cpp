@@ -438,6 +438,7 @@ APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_SplinePath);
 
 XForm_SplinePath::XForm_SplinePath()
 	: m_path(nullptr)
+	, m_pathHint(0)
 	, m_duration(1.0f)
 	, m_currentTime(0.0f)
 	, m_onComplete(XForm::Reset)
@@ -455,17 +456,20 @@ void XForm_SplinePath::apply(float _dt)
 		m_onComplete(this);
 	}
 	vec3 position;
-	position = m_path->evaluateLinear(m_currentTime / m_duration);
-	//position = m_path->evaluate(m_path->reparam(m_currentTime / m_duration));
+	position = m_path->evaluate(m_currentTime / m_duration, &m_pathHint);
 	m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), position));
 }
 
 void XForm_SplinePath::edit()
 {
-	ImGui::SliderFloat("Duration (s)", &m_duration, 0.0f, 10.0f);
+	ImGui::DragFloat("Duration (s)", &m_duration, 0.1f);
+	m_duration = APT_MAX(m_duration, 0.0f);
+	m_currentTime = APT_MIN(m_currentTime, m_duration);
 	if (ImGui::Button("Reset")) {
 		reset();
 	}
+	ImGui::Text("Current Time: %.3fs", m_currentTime);
+	ImGui::Text("Path hint:    %d",    m_pathHint);
 }
 
 bool XForm_SplinePath::serialize(JsonSerializer& _serializer_)
@@ -477,6 +481,7 @@ bool XForm_SplinePath::serialize(JsonSerializer& _serializer_)
 void XForm_SplinePath::reset()
 {
 	m_currentTime = 0.0f;
+	m_pathHint = 0;
 }
 
 void XForm_SplinePath::reverse()

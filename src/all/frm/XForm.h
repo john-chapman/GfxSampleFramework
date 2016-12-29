@@ -13,8 +13,7 @@
 
 #include <vector>
 
-namespace frm
-{
+namespace frm {
 
 class Node;
 
@@ -196,6 +195,7 @@ struct XForm_PositionTarget: public XForm
 struct XForm_SplinePath: public XForm
 {
 	SplinePath* m_path;
+	int         m_pathHint;
 	float       m_duration;
 	float       m_currentTime;
 

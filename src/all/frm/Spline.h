@@ -9,84 +9,42 @@
 
 namespace frm {
 
-/*	Notes:
-	- Different requirements for 'path-based' animation and keyframe animation:
-		- Path-based (e.g. camera motion) probably requires a position spline 
-		  reparameterized by arc length to maintain a constant speed (you store a
-		  second 'time spline').
-		
-		- Keyframe animation (e.g. for a skeletal animation clip) has explicit
-		  timing associated with the data points. 
-	- Skeletal animation: 
-		- http://blog.demofox.org/2012/09/21/anatomy-of-a-skeletal-animation-system-part-1/
-		- Not all animations have a track for all bones, this way you can 'add'
-		  animations together.
-*/
-
 ////////////////////////////////////////////////////////////////////////////////
 /// \class SplinePath
 /// Spline path with cubic interpolation.
 /// \todo Avoid clamping indices everywhere by maintaining dummy positions at 
 ///   the start/end.
-/// \todo Function pointer for interpolation.
 ////////////////////////////////////////////////////////////////////////////////
 class SplinePath
 {
 public:
 	SplinePath();
 
-	vec3 evaluate(float _t) const;
+	/// Evaluate the spline at _t (in [0,1]). _hint_ is useful in the common 
+	/// case where evaluate() is called repeatedly with a monotonically increasing
+	/// _t, it avoids performing a binary search on the spline data.
+	vec3 evaluate(float _t, int* _hint_ = nullptr) const;
 
-	float reparam(float _t) const;
-
-	vec3 evaluateLinear(float _t) const;
-
+	/// Append a control point to the spline. This invalidates the internal derived
+	/// data, so build() must be called again before using the spline.
 	void append(const vec3& _position);
 
-	/// Construct derived members (segment metadata, spline length).
+	/// Construct derived members (evaluation metadata, spline length).
 	void build();
 
 	void edit();
+	bool serialize(apt::JsonSerializer& _serializer_);
+
+	float getLength() const { return m_length; }
 
 private:
-	struct Segment
-	{
-		float m_beg;               //< Normalized segment start.
-		float m_len;               //< Normalized segment length.
-	};
-	std::vector<vec3>    m_data;   //< Raw position data.
-	std::vector<Segment> m_segs;   //< Segment metadata (m_data.size()-1 segs).
-	float                m_length; //< Total length.
+	std::vector<vec3> m_raw;    //< Raw control points (for edit/serialize).
+	std::vector<vec4> m_eval;   //< Subdivided spline (for evaluation). xyz = position, w = normalized segment start.
+	float             m_length; //< Total spline length.
 
-	std::vector<vec2>    m_usTable;
-
-	std::vector<vec4>    m_subdiv; //< Subdiv data: xyz = pos, w = normalized seg start.
 	void subdiv(int _segment, float _t0 = 0.0f, float _t1 = 1.0f, float _maxError = 1e-6f, int _limit = 5);
 	
-	typedef vec3 (ItplFunc)(const vec3&, const vec3&, const vec3&, const vec3&, float);
-	ItplFunc* itpl;
-
-	/// Find segment containing _t.
-	int findSegment(float _t) const;
-
-	/// Interpolate between _p1 and _p2 by _t.
-	static vec3 itpl_lerp(const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3, float _t);
-	static vec3 itpl_cuberp(const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3, float _t);
-	static vec3 itpl_hermite(const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3, float _t);
-
-	/// Recursively compute the arc length of a subsection of the curve between
-	/// _p1 and _p2.
-	float arclen(
-		const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3,
-		float _threshold = 1e-6f,
-		float _tbeg = 0.0f, float _tmid = 0.5f, float _tend = 1.0f,
-		float _step = 0.25f
-		) const;
-
-	/// Find the arc length between parameter _t0 and _t1.
-	float arclen(float _t0, float _t1, float _threshold = 1e-6f) const;
-
-	void getClampIndices(int _i, int& p0_, int& p1_, int& p2_, int& p3_) const;
+	void getClampIndices(int _i, int& i0_, int& i1_, int& i2_, int& i3_) const;
 
 }; // class Spline
 
