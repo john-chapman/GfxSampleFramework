@@ -42,7 +42,7 @@ public:
 		}
 
 		LCG lcg(1223781730);
-		for (int i = 0; i < 16; ++i) {
+		for (int i = 0; i < 4; ++i) {
 			m_splinePath.append(vec3(
 				lcg.frand(-10.0f, 10.0f),
 				lcg.frand(2.0f,  5.0f),
