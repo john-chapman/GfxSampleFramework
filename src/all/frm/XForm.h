@@ -209,7 +209,6 @@ struct XForm_SplinePath: public XForm
 	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
 
 	virtual void reset() override;
-	virtual void relativeReset() override;
 	virtual void reverse() override;
 };
 

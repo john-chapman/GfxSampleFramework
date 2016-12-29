@@ -12,6 +12,7 @@
 #include <frm/Spline.h>
 #include <frm/Texture.h>
 #include <frm/Window.h>
+#include <frm/XForm.h>
 
 #include <apt/ArgList.h>
 #include <apt/IniFile.h>
@@ -40,24 +41,38 @@ public:
 			return false;
 		}
 
-		//LCG lcg(1223781730);
-		//for (int i = 0; i < 6; ++i) {
-		//	m_splinePath.append(vec3(
-		//		lcg.frand(-10.0f, 10.0f),
-		//		0.0f,//lcg.frand(-3.0f,  3.0f),
-		//		lcg.frand(-10.0f, 10.0f)
-		//		));
-		//}
+		LCG lcg(1223781730);
+		for (int i = 0; i < 16; ++i) {
+			m_splinePath.append(vec3(
+				lcg.frand(-10.0f, 10.0f),
+				lcg.frand(2.0f,  5.0f),
+				lcg.frand(-10.0f, 10.0f)
+				));
+		}
 		//for (int i = 0; i < 3; ++i) {
 		//	m_splinePath.append(vec3((float)i, 0.0f, 
 		//		cosf((float)i)));
 		//}
-		m_splinePath.append(vec3(0.0f, 0.0f, 0.0f));
-		m_splinePath.append(vec3(1.0f, 0.0f, 0.0f));
-		m_splinePath.append(vec3(2.0f, 0.0f, 0.0f));
+		//m_splinePath.append(vec3(0.0f, 0.0f, -1.0f));
+		//m_splinePath.append(vec3(2.0f, 0.0f, -1.0f));
+		//m_splinePath.append(vec3(2.0f, 0.0f, 1.0f));
 
 		m_splinePath.build();
 
+		Scene& scene = Scene::GetCurrent();
+		Camera* splineCam = scene.createCamera(Camera());
+		Node* splineNode = splineCam->getNode();
+		splineNode->setName("#SplineNode");
+		splineNode->setActive(true);
+		splineNode->setDynamic(true);
+		XForm_SplinePath* splineXForm = (XForm_SplinePath*)XForm::Create(StringHash("XForm_SplinePath"));
+		splineXForm->m_path = &m_splinePath;
+		splineXForm->m_duration = 50.0f;
+		splineNode->addXForm(splineXForm);
+		XForm_LookAt* lookAtXForm = (XForm_LookAt*)XForm::Create(StringHash("XForm_LookAt"));
+		lookAtXForm->m_target = scene.getRoot();
+		splineNode->addXForm(lookAtXForm);
+		
 		return true;
 	}
 
@@ -79,7 +94,7 @@ public:
 
 
 	 // interpolationt vis
-		struct Funcs {
+	/*	struct Funcs {
 			static float GetDelta(int _i)        { return s_min + ((float)_i / (float)s_sampleCount) * (s_max - s_min); }
             static float Lerp(void*, int _i)     { return lerp(0.0f, 1.0f, GetDelta(_i)); }
             static float Coserp(void*, int _i)   { return coserp(0.0f, 1.0f, GetDelta(_i)); }
@@ -107,7 +122,7 @@ public:
 		};
 		ImGui::SameLine();
 		ImGui::PlotLines("##Lines", func, NULL, 200, 0, NULL, 0.0f, 1.0f, ImVec2(0,80));
-
+	*/
 		m_splinePath.edit();
 
 

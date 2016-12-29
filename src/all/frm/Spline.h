@@ -33,10 +33,13 @@ namespace frm {
 class SplinePath
 {
 public:
+	SplinePath();
 
 	vec3 evaluate(float _t) const;
 
 	float reparam(float _t) const;
+
+	vec3 evaluateLinear(float _t) const;
 
 	void append(const vec3& _position);
 
@@ -56,25 +59,32 @@ private:
 	float                m_length; //< Total length.
 
 	std::vector<vec2>    m_usTable;
+
+	std::vector<vec4>    m_subdiv; //< Subdiv data: xyz = pos, w = normalized seg start.
+	void subdiv(int _segment, float _t0 = 0.0f, float _t1 = 1.0f, float _maxError = 1e-6f, int _limit = 5);
 	
+	typedef vec3 (ItplFunc)(const vec3&, const vec3&, const vec3&, const vec3&, float);
+	ItplFunc* itpl;
+
 	/// Find segment containing _t.
 	int findSegment(float _t) const;
 
 	/// Interpolate between _p1 and _p2 by _t.
-	static vec3 itpl(const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3, float _t);
+	static vec3 itpl_lerp(const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3, float _t);
+	static vec3 itpl_cuberp(const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3, float _t);
+	static vec3 itpl_hermite(const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3, float _t);
 
 	/// Recursively compute the arc length of a subsection of the curve between
 	/// _p1 and _p2.
 	float arclen(
 		const vec3& _p0, const vec3& _p1, const vec3& _p2, const vec3& _p3,
-		float _threshold = 1e-7f,
+		float _threshold = 1e-6f,
 		float _tbeg = 0.0f, float _tmid = 0.5f, float _tend = 1.0f,
 		float _step = 0.25f
 		) const;
 
 	/// Find the arc length between parameter _t0 and _t1.
-	float arclen(float _t0, float _t1, float _threshold = 1e-7f) const;
-	float arclenTo(float _t, float _threshold = 1e-7f) const;
+	float arclen(float _t0, float _t1, float _threshold = 1e-6f) const;
 
 	void getClampIndices(int _i, int& p0_, int& p1_, int& p2_, int& p3_) const;
 
