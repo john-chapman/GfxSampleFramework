@@ -1,25 +1,9 @@
 #pragma once
 #ifndef frm_Resource_h
 #define frm_Resource_h
-/*	Resource handles lifetime management and prevents duplicate loading via refcounting.
-	Also useful for keeping track of all instances of a particular resource, plus
-	common code.
-
-	- Calling Create implicitly calls Use - calling Use directly is supported to allow
-	  passing a resource ptr (and to inc the refcount of a 'found' resource).
-	- No more Destroy function! Call Release to decrement the refcount and implicitly
-	  destroy the object when it reaches zero.
-
-	Todo:
-	- Unique IDs: Easiest way is to use a 32-bit hash for IDs - resource IDs generated
-	  from a path/struct go in the high 32 bits, unique IDs are monotonically increasing
-	  and go in the low bits.
-*/
 
 #include <frm/def.h>
-
 #include <apt/String.h>
-
 #include <vector>
 
 namespace frm {
@@ -29,81 +13,72 @@ namespace frm {
 /// Manages a global list of instances of the deriving class. Resources have a
 /// unique id and an optional name (e.g. for display purposes). By default the
 /// id is a hash of the name but the two can be set independently.
+///
+/// Resources are refcounted; calling Use() implicitly calls load() when the
+/// refcount is 1. Calling Release() implicitly calls Destroy() when the 
+/// refcount is 0.
+///
 /// Deriving classes must:
 ///   - Add an explicit instantiation to Resource.cpp.
-///   - Implement Create(), Destroy(), reload().
+///   - Implement Create(), Destroy(), load(), reload().
 ///   - Set a unique id and optional name via one of the Resource ctors.
-///   - Correctly set the resource state.
+///   - Correctly set the resource state during load()/reload().
 ////////////////////////////////////////////////////////////////////////////////
 template <typename tDerived>
 class Resource: private apt::non_copyable<Resource<tDerived> >
 {
 public:
 	typedef tDerived Derived;
+	typedef uint64   Id;
 
-	typedef uint64 Id;
-
-	enum class State: uint8
+	enum State
 	{
-		kError = 0u, //< Resource failed to load.
-		kUnloaded,   //< Resource was created but not loaded.
-		kLoaded      //< Resource successfully loaded.
+		kError = 0u, //< Failed to load.
+		kUnloaded,   //< Created but not loaded.
+		kLoaded      //< Successfully loaded.
 	};
-
 	
-	/// Increment the reference counter for _inst.
-	static void Use(Derived* _inst);
-	/// Decrement the reference counter for _inst, set the ptr to 0. Does not
-	/// implicitly destroy the resource.
-	static void Unuse(Derived*& _inst_);
-
-	/// Search for the resource instance matching _id or _name. Note that names
-	/// are not required to be unique.
-	/// \return Ptr to the first matching instance, or 0 if no match was found.
-	static Derived* Find(Id _id);
-	static Derived* Find(const char* _name);
+	/// Increment the reference count for _inst, load if 1.
+	static void     Use(Derived* _inst_);
+	/// Decrement the reference count for _inst_, destroy if 0.
+	static void     Release(Derived*& _inst_);
 
 	/// Call reload() on all instances.
-	/// \return true if all instances were successfully reloaded, false if any
-	///    failed.
-	static bool ReloadAll();
+	/// \return true if all instances were successfully reloaded, false if any failed.
+	static bool     ReloadAll();
 
-	/// \return _ith instance.
-	static Derived* GetInstance(int _i) { APT_ASSERT(_i < GetInstanceCount()); return s_instances[_i]; }
+	static Derived* Find(Id _id);
+	static Derived* Find(const char* _name);
+	static int      GetInstanceCount()               { return (int)s_instances.size(); }
+	static Derived* GetInstance(int _i)              { APT_ASSERT(_i < GetInstanceCount()); return s_instances[_i]; }
 
-	/// \return Number of instances.
-	static int GetInstanceCount()       { return (int)s_instances.size(); }
+	Id              getId() const                    { return m_id; }
+	const char*     getName() const                  { return m_name; }
+	State           getState() const                 { return m_state; }
+	sint64          getRefCount() const              { return m_refs; }
 
-	Id          getId() const                { return m_id; }
-	const char* getName() const              { return m_name; }
-	State       getState() const             { return m_state; }
-	sint64      getRefCount() const          { return m_refs; }
-
-	void        setName(const char* _name)   { setNamef(_name); }
-	void        setNamef(const char* _fmt, ...);
+	void            setName(const char* _name)       { setNamef(_name); }
+	void            setNamef(const char* _fmt, ...);
 
 protected:
-	apt::String<32>  m_name;  //< Optional, doesn't need to be unique.
+	static Id       GetUniqueId();
+	static Id       GetHashId(const char* _str);
 
-	static Id GetUniqueId();
+	apt::String<32> m_name;
 
-	/// Resource id is a hash of _name, which should be unique.
 	Resource(const char* _name);
-	/// Separate id/name. _id should be unique, _name does not have to be unique.
 	Resource(Id _id, const char* _name);
-	/// Remove this instance from the global instance list.
 	~Resource();
 
 	void setState(State _state) { m_state = _state; }
 
 private:
-	static Id                    s_nextUniqueId;
+	static uint32                s_nextUniqueId;
 	static std::vector<Derived*> s_instances;
 	State                        m_state;
-	Id                           m_id;    //< Unique id, by default a hash of m_name
-	sint64                       m_refs;  //< Reference counter.
+	Id                           m_id;
+	sint64                       m_refs;
 
-	/// Common code for ctors.
 	void init(Id _id, const char* _name);
 
 }; // class Resource

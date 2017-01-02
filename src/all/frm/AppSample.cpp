@@ -206,9 +206,8 @@ bool AppSample::init(const apt::ArgList& _args)
 void AppSample::shutdown()
 {	
 	ImGui_Shutdown();
-	if (m_msQuad) {
-		Mesh::Destroy(m_msQuad);
-	}
+	
+	Mesh::Release(m_msQuad);
 
 	if (m_glContext) {
 		GlContext::Destroy(m_glContext);
@@ -461,7 +460,7 @@ bool AppSample::ImGui_Init()
 	
  // mesh
  	if (s_msImGui) {
-		Mesh::Destroy(s_msImGui);
+		Mesh::Release(s_msImGui);
 	}	
 	MeshDesc meshDesc(MeshDesc::kTriangles);
 	meshDesc.addVertexAttr(VertexAttr::kPositions, 2, DataType::kFloat32);
@@ -472,7 +471,7 @@ bool AppSample::ImGui_Init()
 
  // shaders
 	if (s_shImGui) {
-		Shader::Destroy(s_shImGui);
+		Shader::Release(s_shImGui);
 	}
 	APT_VERIFY(s_shImGui = Shader::CreateVsFs("shaders/ImGui_vs.glsl", "shaders/ImGui_fs.glsl"));
 	s_shImGui->setName("#ImGui");
@@ -489,7 +488,7 @@ bool AppSample::ImGui_Init()
 
  // fonts texture
 	if (s_txImGui) {
-		Texture::Destroy(s_txImGui);
+		Texture::Release(s_txImGui);
 	}
 	unsigned char* buf;
 	int txX, txY;
@@ -534,11 +533,11 @@ bool AppSample::ImGui_Init()
 void AppSample::ImGui_Shutdown()
 {
 	for (int i = 0; i < internal::kTextureTargetCount; ++i) {
-		Shader::Destroy(s_shTextureView[i]);
+		Shader::Release(s_shTextureView[i]);
 	}
-	if (s_shImGui) Shader::Destroy(s_shImGui);
-	if (s_msImGui) Mesh::Destroy(s_msImGui); 
-	if (s_txImGui) Texture::Destroy(s_txImGui);
+	Shader::Release(s_shImGui);
+	Mesh::Release(s_msImGui); 
+	Texture::Release(s_txImGui);
 	
 	ImGui::Shutdown();
 }

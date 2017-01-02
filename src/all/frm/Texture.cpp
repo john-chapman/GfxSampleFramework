@@ -4,7 +4,6 @@
 #include <frm/GlContext.h>
 #include <frm/Resource.h>
 
-#include <apt/hash.h>
 #include <apt/File.h>
 #include <apt/FileSystem.h>
 #include <apt/Image.h>
@@ -59,17 +58,16 @@ static bool GlIsTexFormatCompressed(GLenum _format)
 
 Texture* Texture::Create(const char* _path)
 {
-	uint64 id = apt::HashString<uint64>(_path);
+	Id id = GetHashId(_path);
 	Texture* ret = Find(id);
 	if (!ret) {
 		ret = new Texture(id, _path);
 		ret->m_path.set(_path);
-		if (!ret->load()) {
-			delete ret; // \todo replace with a default?
-			return 0;
-		}
 	}
 	Use(ret);
+	if (ret->getState() != kLoaded) {
+	 // \todo replace with default
+	}
 	return ret;
 }
 
@@ -96,8 +94,7 @@ Texture* Texture::Create3d(GLsizei _width, GLsizei _height, GLsizei _depth, GLen
 
 Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 {
-	uint64 id = Hash<Id>(&_handle, sizeof(GLuint));
-	id = HashString<Id>(_name, id);
+	Id id = GetUniqueId();
 
 	Texture* ret = Find(id);
 	if (ret) {
@@ -138,12 +135,7 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 
 void Texture::Destroy(Texture*& _inst_)
 {
-	APT_ASSERT(_inst_);
-	Texture* inst = _inst_; // make a copy because Unuse will nullify _inst_
-	Unuse(_inst_);
-	if (inst->getRefCount() == 0) {
-		delete inst;
-	}
+	delete _inst_;
 }
 
 GLint Texture::GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth)
@@ -520,7 +512,6 @@ Texture* Texture::Create(
 	)
 {
 	uint64 id = GetUniqueId();
-	APT_ASSERT(!Find(id)); // id collision
 	Texture* ret = new Texture(id, "", _target, _width, _height, _depth, _arrayCount, _mipCount, _format);
 	ret->setNamef("%llu", id);
 	Use(ret);

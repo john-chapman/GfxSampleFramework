@@ -34,9 +34,9 @@ public:
 	/// Create a proxy for an existing texture (i.e. a texture not directly
 	/// controlled by the application).
 	static Texture* CreateProxy(GLuint _handle, const char* _name);
-	
-	static void Destroy(Texture*& _inst_);
 
+	static void Destroy(Texture*& _inst_);
+	
 	static GLint GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth = 1);
 
 
@@ -157,15 +157,14 @@ private:
 
 struct TextureView
 {
-	const Texture* m_texture;
-	vec2           m_offset;
-	vec2           m_size;
-	GLint          m_mip;
-	GLint          m_array;
-	bool           m_rgbaMask[4];
+	Texture* m_texture;
+	vec2     m_offset;
+	vec2     m_size;
+	GLint    m_mip;
+	GLint    m_array;
+	bool     m_rgbaMask[4];
 
-	// \todo correct Use/Unuse here
-	TextureView(const Texture* _texture = 0)
+	TextureView(Texture* _texture = 0)
 		: m_texture(_texture)
 		, m_offset(0.0f, 0.0f)
 		, m_size(0.0f, 0.0f)
@@ -181,9 +180,7 @@ struct TextureView
 
 	~TextureView()
 	{
-		if (m_texture) {
-			//Texture::Unuse(m_texture)
-		}
+		//Texture::Release(m_texture);
 	}
 
 	vec2 getNormalizedOffset() const { return m_offset / vec2(m_texture->getWidth(), m_texture->getHeight()); }

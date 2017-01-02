@@ -127,7 +127,7 @@ Framebuffer::~Framebuffer()
 {
 	for (uint i = 0; i < kMaxAttachments; ++i) {
 		if (m_textures[i] != 0) {
-			Texture::Unuse(m_textures[i]);
+			Texture::Release(m_textures[i]);
 			m_textures[i] = 0;
 		}
 	}
@@ -141,7 +141,7 @@ void Framebuffer::attachImpl(Texture* _texture, GLenum _attachment, GLint _mip, 
 {
 	int i = GetAttachmentIndex(_attachment);
 	if (m_textures[i] != 0) {
-		Texture::Unuse(m_textures[i]);
+		Texture::Release(m_textures[i]);
 		m_textures[i] = 0;
 	}
 	if (_texture) {
