@@ -167,12 +167,11 @@ bool ShaderDesc::StageDesc::isEnabled() const
 
 Shader* Shader::Create(const ShaderDesc& _desc)
 {
-	uint64 id = _desc.getHash();
+	Id id = _desc.getHash();
 	Shader* ret = Find(id);
 	if (!ret) {
 		ret = new Shader(id, ""); // "" forces an auto generated name during reload()
 		ret->m_desc = _desc;
-		ret->load();
 	}
 	Use(ret);
 	return ret;
@@ -205,12 +204,7 @@ Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _loc
 
 void Shader::Destroy(Shader*& _inst_)
 {
-	APT_ASSERT(_inst_);
-	Shader* inst = _inst_; // make a copy because Unuse will nullify _inst_
-	Unuse(_inst_);
-	if (inst->getRefCount() == 0) {
-		delete inst;
-	}
+	delete _inst_;
 }
 
 bool Shader::reload()

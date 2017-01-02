@@ -107,7 +107,7 @@ public:
 	static Shader* CreateVsFs(const char* _vsPath, const char* _fsPath);
 	static Shader* CreateCs(const char* _csPath, int _localX = 1, int _localY = 1, int _localZ = 1);
 
-	static void Destroy(Shader*& _inst_);
+	static void    Destroy(Shader*& _inst_);
 
 	bool load() { return reload(); }
 
