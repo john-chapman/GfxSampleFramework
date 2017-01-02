@@ -267,6 +267,7 @@ APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_LookAt);
 
 XForm_LookAt::XForm_LookAt()
 	: m_target(nullptr)
+	, m_targetId(Node::kInvalidId)
 	, m_offset(0.0f)
 {
 }
@@ -275,6 +276,9 @@ void XForm_LookAt::apply(float _dt)
 {
 	vec3 posW = GetTranslation(m_node->getWorldMatrix());
 	vec3 targetW = m_offset;
+	if_unlikely (m_targetId != Node::kInvalidId && m_target == nullptr) {
+		m_target = Scene::GetCurrent().findNode(m_targetId);
+	}
 	if (m_target) {
 		targetW += GetTranslation(m_target->getWorldMatrix());
 	}
@@ -283,13 +287,23 @@ void XForm_LookAt::apply(float _dt)
 
 void XForm_LookAt::edit()
 {
+	Scene& scene = Scene::GetCurrent();
+	if (ImGui::Button("Target Node")) {
+		scene.beginSelectNode();
+	}
+	m_target = scene.selectNode(m_target);
+	if (m_target) {
+		ImGui::SameLine();
+		ImGui::Text(m_target->getName());
+		m_targetId = m_target->getId();
+	}
 	ImGui::DragFloat3("Offset", &m_offset.x, 0.5f);
 }
 
 bool XForm_LookAt::serialize(JsonSerializer& _serializer_)
 {
-	_serializer_.value("Offset", m_offset);
-	APT_ASSERT(false); // \todo store ID + node ptr, only resolve during apply()
+	_serializer_.value("Offset",   m_offset);
+	_serializer_.value("TargetId", m_targetId);
 	return true;
 }
 

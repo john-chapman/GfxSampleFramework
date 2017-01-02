@@ -4,7 +4,7 @@
 #include <apt/Time.h>
 #include <apt/hash.h>
 
-#include <cstdarg>   // va_list
+#include <cstdarg> // va_list
 #include <utility>
 
 
