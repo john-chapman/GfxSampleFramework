@@ -66,9 +66,9 @@ bool Resource<tDerived>::ReloadAll()
 template <typename tDerived>
 typename Resource<tDerived>::Id Resource<tDerived>::GetUniqueId()
 {
- // \todo this isn't very good - consecutive resources might get the same id if the time taken to create
- //   them is less than the timestamp resolution. A random value hashed with the time is probably better.
-	return (Id)Time::GetTimestamp().getRaw();
+	Id ret = s_nextUniqueId++;
+	APT_ASSERT(!Find(ret));
+	return ret;
 }
 
 template <typename tDerived>
@@ -105,6 +105,8 @@ void Resource<tDerived>::setNamef(const char* _fmt, ...)
 
 // PRIVATE
 
+template <typename tDerived>
+typename Resource<tDerived>::Id Resource<tDerived>::s_nextUniqueId;
 template <typename tDerived>
 std::vector<tDerived*> Resource<tDerived>::s_instances;
 
