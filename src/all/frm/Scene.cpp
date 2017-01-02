@@ -317,7 +317,7 @@ Node* Scene::findNode(Node::Id _id, Node::Type _typeHint)
 		if (i == _typeHint) {
 			continue;
 		}
-		for (auto it = m_nodes[_typeHint].begin(); it != m_nodes[_typeHint].end(); ++it) {
+		for (auto it = m_nodes[i].begin(); it != m_nodes[i].end(); ++it) {
 			if ((*it)->getId() == _id) {
 				ret = *it;
 				break;
@@ -739,7 +739,9 @@ void Scene::editNodes()
 					if (m_editXForm) {
 						ImGui::Separator();
 						ImGui::Spacing();
-						m_editXForm->edit();
+						ImGui::PushID(m_editXForm);
+							m_editXForm->edit();
+						ImGui::PopID();
 					}
 
 				}

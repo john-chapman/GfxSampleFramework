@@ -134,8 +134,9 @@ struct XForm_FreeCamera: public XForm
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_LookAt: public XForm
 {
-	const Node* m_target; //< Node to look at (can be 0).
-	vec3 m_offset;        //< Offset from target, or world space if target is 0.
+	Node*     m_target;   //< Node to look at (can be 0).
+	Node::Id  m_targetId; //< Required for serialization.
+	vec3      m_offset;   //< Offset from target, or world space if target is 0.
 
 	XForm_LookAt();
 	virtual ~XForm_LookAt() {}

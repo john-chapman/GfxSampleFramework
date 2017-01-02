@@ -180,6 +180,12 @@ public:
 	bool    serialize(apt::JsonSerializer& _serializer_, Node& _node_);
 #ifdef frm_Scene_ENABLE_EDIT
 	void edit();
+
+	// ui helpers; call beginSelect*() followed by select*()
+	void      beginSelectNode();
+	Node*     selectNode(Node* _current, Node::Type _type = Node::kTypeCount);
+	void      beginSelectCamera();
+	Camera*   selectCamera(Camera* _current);
 #endif
 	
 	friend void swap(Scene& _a, Scene& _b);
@@ -214,12 +220,6 @@ private:
 
 	void      editNodes();
 	void      editCameras();
-
-	void      beginSelectNode();
-	Node*     selectNode(Node* _current, Node::Type _type = Node::kTypeCount);
-
-	void      beginSelectCamera();
-	Camera*   selectCamera(Camera* _current);
 
 	void      beginCreateNode();
 	Node*     createNode(Node* _current);
