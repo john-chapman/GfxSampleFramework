@@ -36,27 +36,26 @@ static GLenum PrimitiveToGl(MeshDesc::Primitive _prim)
 
 Mesh* Mesh::Create(const char* _path)
 {
-	uint64 id = apt::HashString<uint64>(_path);
+	Id id = GetHashId(_path);
 	Mesh* ret = Find(id);
 	if (!ret) {
 		ret = new Mesh(id, _path);
 		ret->m_path.set(_path);
-		if (!ret->load()) {
-			delete ret; // \todo replace with a default?
-			return 0;
-		}
 	}
 	Use(ret);
+	if (ret->getState() != kLoaded) {
+	 // \todo replace with default
+	}
 	return ret;
 }
 
 Mesh* Mesh::Create(const MeshData& _data)
 {
-	uint64 id = _data.getHash();
+	Id id = _data.getHash();
 	Mesh* ret = Find(id);
 	if (!ret) {
 		ret = new Mesh(id, "");
-		ret->load(_data);
+		ret->load(_data); // explicit load from data
 	}
 	Use(ret);
 	return ret;
@@ -65,19 +64,14 @@ Mesh* Mesh::Create(const MeshData& _data)
 Mesh* Mesh::Create(const MeshDesc& _desc)
 {
 	Mesh* ret = new Mesh(GetUniqueId(), "");
-	ret->load(_desc);
+	ret->load(_desc); // explicit load from desc
 	Use(ret);
 	return ret;
 }
 
 void Mesh::Destroy(Mesh*& _inst_)
 {
-	APT_ASSERT(_inst_);
-	Mesh* inst = _inst_; // make a copy because Unuse will nullify _inst_
-	Unuse(_inst_);
-	if (inst->getRefCount() == 0) {
-		delete inst;
-	}
+	delete _inst_;
 }
 
 bool Mesh::reload()

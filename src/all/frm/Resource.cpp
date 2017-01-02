@@ -7,48 +7,36 @@
 #include <cstdarg> // va_list
 #include <utility>
 
-
 using namespace frm;
 using namespace apt;
 
 // PUBLIC
 
 template <typename tDerived>
-void Resource<tDerived>::Use(Derived* _inst)
+void Resource<tDerived>::Use(Derived* _inst_)
 {
-	APT_ASSERT(_inst);
-	++(_inst->m_refs);
-}
-
-template <typename tDerived>
-void Resource<tDerived>::Unuse(Derived*& _inst_)
-{
-	APT_ASSERT(_inst_);
-	--(_inst_->m_refs);
-	APT_ASSERT(_inst_->m_refs >= 0);
-	_inst_ = 0;
-}
-
-template <typename tDerived>
-tDerived* Resource<tDerived>::Find(Id _id)
-{
-	for (auto it = s_instances.begin(); it != s_instances.end(); ++it) {
-		if ((*it)->m_id == _id) {
-			return *it;
+	if (_inst_) {
+		++(_inst_->m_refs);
+		if (_inst_->m_refs == 1) {
+			_inst_->m_state = kError;
+			if (_inst_->load()) {
+				_inst_->m_state = kLoaded;
+			}
 		}
 	}
-	return 0;
 }
 
 template <typename tDerived>
-tDerived* Resource<tDerived>::Find(const char* _name)
+void Resource<tDerived>::Release(Derived*& _inst_)
 {
-	for (auto it = s_instances.begin(); it != s_instances.end(); ++it) {
-		if ((*it)->m_name == _name) {
-			return *it;
+	if (_inst_) {
+		--(_inst_->m_refs);
+		APT_ASSERT(_inst_->m_refs >= 0);
+		if (_inst_->m_refs == 0) {
+			Derived::Destroy(_inst_);
 		}
+		_inst_ = nullptr;
 	}
-	return 0;
 }
 
 template <typename tDerived>
@@ -61,20 +49,49 @@ bool Resource<tDerived>::ReloadAll()
 	return ret;
 }
 
+template <typename tDerived>
+tDerived* Resource<tDerived>::Find(Id _id)
+{
+	for (auto it = s_instances.begin(); it != s_instances.end(); ++it) {
+		if ((*it)->m_id == _id) {
+			return *it;
+		}
+	}
+	return nullptr;
+}
+
+template <typename tDerived>
+tDerived* Resource<tDerived>::Find(const char* _name)
+{
+	for (auto it = s_instances.begin(); it != s_instances.end(); ++it) {
+		if ((*it)->m_name == _name) {
+			return *it;
+		}
+	}
+	return nullptr;
+}
+
+
 // PROTECTED
 
 template <typename tDerived>
 typename Resource<tDerived>::Id Resource<tDerived>::GetUniqueId()
 {
- // \todo this isn't very good - consecutive resources might get the same id if the time taken to create
- //   them is less than the timestamp resolution. A random value hashed with the time is probably better.
-	return (Id)Time::GetTimestamp().getRaw();
+	Id ret = s_nextUniqueId++;
+	APT_ASSERT(!Find(ret));
+	return ret;
+}
+
+template <typename tDerived>
+typename Resource<tDerived>::Id Resource<tDerived>::GetHashId(const char* _str)
+{
+	return (Id)HashString<uint32>(_str) << 32;
 }
 
 template <typename tDerived>
 Resource<tDerived>::Resource(const char* _name)
 {
-	init(HashString<uint64>(_name), _name);
+	init(GetHashId(_name), _name);
 }
 
 template <typename tDerived>
@@ -105,8 +122,8 @@ void Resource<tDerived>::setNamef(const char* _fmt, ...)
 
 // PRIVATE
 
-template <typename tDerived>
-std::vector<tDerived*> Resource<tDerived>::s_instances;
+template <typename tDerived>  uint32 Resource<tDerived>::s_nextUniqueId;
+template <typename tDerived>  std::vector<tDerived*> Resource<tDerived>::s_instances;
 
 template <typename tDerived>
 void Resource<tDerived>::init(Id _id, const char* _name)

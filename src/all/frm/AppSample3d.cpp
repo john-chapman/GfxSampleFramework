@@ -335,12 +335,12 @@ bool AppSample3d::Im3d_Init()
 
 void AppSample3d::Im3d_Shutdown()
 {
-	if (s_shIm3dPoints)     Shader::Destroy(s_shIm3dPoints);
-	if (s_shIm3dLines)      Shader::Destroy(s_shIm3dLines);
-	if (s_shIm3dTriangles)  Shader::Destroy(s_shIm3dTriangles);
-	if (s_msIm3dPoints)     Mesh::Destroy(s_msIm3dPoints);
-	if (s_msIm3dLines)      Mesh::Destroy(s_msIm3dLines);
-	if (s_msIm3dTriangles)  Mesh::Destroy(s_msIm3dTriangles);
+	Shader::Release(s_shIm3dPoints);
+	Shader::Release(s_shIm3dLines);
+	Shader::Release(s_shIm3dTriangles);
+	Mesh::Release(s_msIm3dPoints);
+	Mesh::Release(s_msIm3dLines);
+	Mesh::Release(s_msIm3dTriangles);
 }
 
 void AppSample3d::Im3d_Update(AppSample3d* _app)
