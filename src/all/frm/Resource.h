@@ -1,6 +1,20 @@
 #pragma once
 #ifndef frm_Resource_h
 #define frm_Resource_h
+/*	Resource handles lifetime management and prevents duplicate loading via refcounting.
+	Also useful for keeping track of all instances of a particular resource, plus
+	common code.
+
+	- Calling Create implicitly calls Use - calling Use directly is supported to allow
+	  passing a resource ptr (and to inc the refcount of a 'found' resource).
+	- No more Destroy function! Call Release to decrement the refcount and implicitly
+	  destroy the object when it reaches zero.
+
+	Todo:
+	- Unique IDs: Easiest way is to use a 32-bit hash for IDs - resource IDs generated
+	  from a path/struct go in the high 32 bits, unique IDs are monotonically increasing
+	  and go in the low bits.
+*/
 
 #include <frm/def.h>
 
@@ -8,8 +22,7 @@
 
 #include <vector>
 
-namespace frm
-{
+namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class Resource
@@ -84,6 +97,7 @@ protected:
 	void setState(State _state) { m_state = _state; }
 
 private:
+	static Id                    s_nextUniqueId;
 	static std::vector<Derived*> s_instances;
 	State                        m_state;
 	Id                           m_id;    //< Unique id, by default a hash of m_name
