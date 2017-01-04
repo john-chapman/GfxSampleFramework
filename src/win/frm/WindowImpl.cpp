@@ -227,6 +227,8 @@ Window* Window::Create(int _width, int _height, const char* _title)
 		_width  -= wr.right - wr.left;
 		_height -= wr.bottom - wr.top;
 	}
+	ret->m_width = _width;
+	ret->m_height = _height;
 
 	RECT r; r.top = 0; r.left = 0; r.bottom = _height; r.right = _width;
 	APT_PLATFORM_VERIFY(AdjustWindowRectEx(&r, dwStyle, FALSE, dwExStyle));

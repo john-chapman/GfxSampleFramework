@@ -49,24 +49,22 @@ public:
 protected:		
 	typedef apt::FileSystem::PathStr PathStr;
 
-	AppSample(const char* _title, const char* _appDataPath = 0);
+	AppSample(const char* _title);
 	virtual ~AppSample();
 
 	virtual void ImGui_OverrideIo() {}
 
 	AppProperties      m_properties;
-	ivec2*             m_resolution;
-	ivec2*             m_windowSize;
+	ivec2              m_resolution;
+	ivec2              m_windowSize;
 
 private:
-	PathStr            m_name;
-
-	// \todo support string properties
-	PathStr            m_appDataPath;
-	PathStr            m_imguiIniPath;
-	PathStr            m_logPath;
-
+	apt::String<32>    m_name;
+	
+	ivec2*             m_windowSizeProp;
 	Window*            m_window;
+
+	ivec2*             m_resolutionProp;
 	GlContext*         m_glContext;
 	uint64             m_frameIndex;
 
