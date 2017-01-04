@@ -38,7 +38,7 @@ public:
 protected:		
 	static void DrawFrustum(const Frustum& _frustum);
 
-	AppSample3d(const char* _title, const char* _appDataPath = 0);
+	AppSample3d(const char* _title);
 	virtual ~AppSample3d();
 
 	Camera* m_dbgCullCamera;

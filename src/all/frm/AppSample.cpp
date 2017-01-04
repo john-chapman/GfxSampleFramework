@@ -60,99 +60,33 @@ bool AppSample::init(const apt::ArgList& _args)
 		return false;
 	}
 	
- // get FileSystem roots from _args
-	const Arg* arg;
-	if (arg = _args.find("CommonDataPath")) {
-		if (arg->getValueCount() == 1) {
-			FileSystem::SetRoot(FileSystem::kCommon, arg->getValue(0).asString());
-		} else {
-			APT_LOG_ERR("'CommonDataPath' invalid argument format (usage: '-CommonDataPath \"commonData\"')");
-		}
-	}
-	if (arg = _args.find("AppDataPath")) {
-		if (arg->getValueCount() == 1) {
-			FileSystem::SetRoot(FileSystem::kApplication, arg->getValue(0).asString());
-		} else {
-			APT_LOG_ERR("'AppDataPath' invalid argument format (usage: '-AppDataPath \"appData\"')");
-		}
-	}
-
  // init FileSystem roots
 	FileSystem::SetRoot(FileSystem::kCommon, "common");
-	FileSystem::SetRoot(FileSystem::kApplication, (const char*)m_appDataPath);
-	
+	FileSystem::SetRoot(FileSystem::kApplication, (const char*)m_name);
 
-	
  // load settings from ini
 	m_properties.setIniPath(PathStr("%s.ini", (const char*)m_name));
 	m_properties.load();
 
-	 // \todo support string properties
-		/*IniFile::Property p = ini.getProperty("AppDataPath", "AppSample");
-		if (!p.isNull()) {
-			if (p.getCount() == 1) {
-				FileSystem::SetRoot(FileSystem::kApplication, p.asString(0));
-			} else {
-				APT_LOG_ERR("'AppDataPath' invalid property (usage: 'AppDataPath = \"appData\"')");
-			}
-		}
-		p = ini.getProperty("CommonDataPath", "AppSample");
-		if (!p.isNull()) {
-			if (p.getCount() == 1) {
-				FileSystem::SetRoot(FileSystem::kCommon, p.asString(0));
-			} else {
-				APT_LOG_ERR("'CommonDataPath' invalid property (usage: 'CommonDataPath = \"commonData\"')");
-			}
-		}
-		p = ini.getProperty("LogFile", "AppSample");
-		if (!p.isNull()) {
-			if (p.getCount() == 1) {
-				m_logPath.set(p.asString(0));
-			} else {
-				APT_LOG_ERR("'LogFile' invalid property (usage: 'LogFile = \"log.txt\"')");
-			}
-		}*/
-
- // command line args overwrite settings from the ini
-	m_properties.setValues(_args);
-	if (arg = _args.find("AppDataPath")) {
-		if (arg->getValueCount() == 1) {
-			FileSystem::SetRoot(FileSystem::kApplication, arg->getValue().asString());
-		} else {
-			APT_LOG_ERR("'AppDataPath' invalid argument format (usage: '-AppDataPath \"appData\"')");
-		}
-	}
-	if (arg = _args.find("CommonDataPath")) {
-		if (arg->getValueCount() == 1) {
-			FileSystem::SetRoot(FileSystem::kCommon, arg->getValue().asString());
-		} else {
-			APT_LOG_ERR("'CommonDataPath' invalid argument format (usage: '-CommonDataPath \"commonData\"')");
-		}
-	}
-	if (arg = _args.find("LogFile")) {
-		if (arg->getValueCount() == 1) {
-			m_logPath.set(arg->getValue().asString());
-		} else {
-			APT_LOG_ERR("'LogFile' invalid argument format (usage: 'LogFile = \"log.txt\"')");
-		}
-	}
-
-
  // init the app
 	AppPropertyGroup& props = m_properties["AppSample"];
-	const ivec2& winSize = props["WindowSize"].getValue<ivec2>();
-	const ivec2& glVersion = props["GlVersion"].getValue<ivec2>();
+	m_window = Window::Create(m_windowSizeProp->x, m_windowSizeProp->y, m_name);
+		
+	const ivec2& glVersion = props["GlVersion"].getValue<ivec2>();	
 	bool glCompatibility = props["GlCompatibility"].getValue<bool>();
-	m_window    = Window::Create(winSize.x, winSize.y, m_name);
 	m_glContext = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
-	
 	m_glContext->setVsyncMode((GlContext::VsyncMode)(*m_vsyncMode - 1));
-	
-	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::kApplication);
-	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
+	FileSystem::PathStr imguiIniPath;
+	FileSystem::MakePath(imguiIniPath, "imgui.ini", FileSystem::kApplication);
+	ImGui::GetIO().IniFilename = (const char*)imguiIniPath;
 	if (!ImGui_Init()) {
 		return false;
 	}
+
+	// \hack can't change the props, but need to set m_resolution/m_windowSize to the correct values
+	m_windowSize = ivec2(m_window->getWidth(), m_window->getHeight());
+	m_resolution.x = m_resolutionProp->x == -1 ? m_windowSize.x : m_resolutionProp->x;
+	m_resolution.y = m_resolutionProp->y == -1 ? m_windowSize.y : m_resolutionProp->y;
 
 	MeshDesc quadDesc;
 	quadDesc.setPrimitive(MeshDesc::kTriangleStrip);
@@ -397,10 +331,9 @@ void AppSample::drawNdcQuad()
 
 // PROTECTED
 
-AppSample::AppSample(const char* _name, const char* _appDataPath)
+AppSample::AppSample(const char* _name)
 	: App()
 	, m_name(_name)
-	, m_appDataPath(_appDataPath ? _appDataPath : _name)
 	, m_window(0)
 	, m_glContext(0)
 	, m_frameIndex(0)
@@ -418,8 +351,8 @@ AppSample::AppSample(const char* _name, const char* _appDataPath)
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSample");
 	//                                    name                   display name                     default              min    max    hidden
-	m_resolution         = props.addVec2i("Resolution",          "Resolution",                    ivec2(-1, -1),       1,     8192,  false);
-	m_windowSize         = props.addVec2i("WindowSize",          "Window Size",                   ivec2(-1, -1),      -1,     8192,  true);
+	m_resolutionProp     = props.addVec2i("Resolution",          "Resolution",                    ivec2(-1, -1),       1,     8192,  false);
+	m_windowSizeProp     = props.addVec2i("WindowSize",          "Window Size",                   ivec2(-1, -1),      -1,     8192,  true);
 	                       props.addVec2i("GlVersion",           "OpenGL Version",                ivec2(4, 5),         1,     5,     true);
 	                       props.addBool ("GlCompatibility",     "OpenGL Compatibility Profile",  false,                             true);
 	m_vsyncMode          = props.addInt  ("VsyncMode",           "Vsync Mode",                    0,                   0,     5,     true);

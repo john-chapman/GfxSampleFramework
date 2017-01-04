@@ -254,15 +254,15 @@ void AppSample3d::DrawFrustum(const Frustum& _frustum)
 	Im3d::End();
 }
 
-AppSample3d::AppSample3d(const char* _title, const char* _appDataPath)
-	: AppSample(_title, _appDataPath)
+AppSample3d::AppSample3d(const char* _title)
+	: AppSample(_title)
 	, m_showHelpers(0)
 	, m_showSceneEditor(0)
 	, m_dbgCullCamera(0)
 {
 
 	AppPropertyGroup& props = m_properties.addGroup("AppSample3d");
-	//                                name                   display name                     default              min    max    hidden
+	//                                name                   display name                   default              min    max    hidden
 	m_showHelpers     = props.addBool("ShowHelpers",         "Helpers",                     true,                              true);
 	m_showSceneEditor = props.addBool("ShowSceneEditor",     "Scene Editor",                false,                             true);
 	m_scenePath       = props.addPath("ScenePath",           "Scene Path",                  "Scene.json",                      false);
