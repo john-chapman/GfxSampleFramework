@@ -76,9 +76,8 @@ bool AppSample::init(const apt::ArgList& _args)
 	bool glCompatibility = props["GlCompatibility"].getValue<bool>();
 	m_glContext = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
 	m_glContext->setVsyncMode((GlContext::VsyncMode)(*m_vsyncMode - 1));
-	FileSystem::PathStr imguiIniPath;
-	FileSystem::MakePath(imguiIniPath, "imgui.ini", FileSystem::kApplication);
-	ImGui::GetIO().IniFilename = (const char*)imguiIniPath;
+	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::kApplication);
+	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
 	if (!ImGui_Init()) {
 		return false;
 	}

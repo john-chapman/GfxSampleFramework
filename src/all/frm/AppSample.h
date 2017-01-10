@@ -79,6 +79,7 @@ private:
 	bool*              m_showTextureViewer;
 	bool*              m_showShaderViewer;
 
+	apt::FileSystem::PathStr m_imguiIniPath;
 	static bool ImGui_Init();
 	static void ImGui_Shutdown();
 	static void ImGui_Update(AppSample* _app);
