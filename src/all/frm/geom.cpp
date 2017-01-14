@@ -745,10 +745,8 @@ bool frm::Intersects(const Ray& _r, const Capsule& _c)
 }
 bool frm::Intersect(const Ray& _r, const Capsule& _c, float& t0_, float& t1_)
 {
- // \todo better approach than this? Find the nearest point on the capsule line segment, then intersect with a sphere there
-	float tr;
-	Nearest(_r, LineSegment(_c.m_start, _c.m_end), tr);
-	return Intersect(_r, Sphere(_r.m_origin + _r.m_direction * tr, _c.m_radius), t0_, t1_);
+	APT_ASSERT(false); // \todo
+	return false;
 }
 
 
