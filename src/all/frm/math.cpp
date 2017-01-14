@@ -3,18 +3,14 @@
 using namespace frm;
 using namespace apt;
 
-static const float kEpsilon = FLT_EPSILON;
-
 mat4 frm::GetLookAtMatrix(const vec3& _from, const vec3& _to, const vec3& _up)
 {
 	vec3 z = -normalize(_to - _from); // negated to conform with camera projection along -z
 
-	#define EQUAL(a, b) (all(lessThan(abs(a - b), vec3(kEpsilon))))
-
  // orthonormal basis
 	vec3 x, y;
-	if_unlikely (EQUAL(z, _up) || EQUAL(z, -_up)) {
-		vec3 k = _up + vec3(kEpsilon);
+	if_unlikely (fequal(z, _up) || fequal(z, -_up)) {
+		vec3 k = _up + vec3(FLT_EPSILON);
 		y = normalize(k - z * dot(k, z));
 	} else {
 		y = normalize(_up - z * dot(_up, z));
@@ -27,6 +23,4 @@ mat4 frm::GetLookAtMatrix(const vec3& _from, const vec3& _to, const vec3& _up)
 		z.x,     z.y,     z.z,     0.0f,
 		_from.x, _from.y, _from.z, 1.0f
 		);
-
-	#undef EQUAL
 }

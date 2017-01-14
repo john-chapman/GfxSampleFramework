@@ -28,8 +28,12 @@ using apt::two_pi;
 /// \return Matrix with position = _from and forward vector = (_to - _from).
 mat4 GetLookAtMatrix(const vec3& _from, const vec3& _to, const vec3& _up = vec3(0.0f, 1.0f, 0.0f));
 
-inline vec3 GetTranslation(const mat4& _mat) { return vec3(apt::column(_mat, 3)); }
+inline vec3 GetTranslation(const mat4& _mat)      { return vec3(apt::column(_mat, 3)); }
 
-}
+inline bool fequal(float _a, float _b)             { return apt::abs(_a - _b) < FLT_EPSILON; }
+inline bool fequal(const vec3& _a, const vec3& _b) { return apt::all(apt::lessThan(apt::abs(_a - _b), vec3(FLT_EPSILON))); }
+inline bool fequal(const vec4& _a, const vec4& _b) { return apt::all(apt::lessThan(apt::abs(_a - _b), vec4(FLT_EPSILON))); }
+
+} // namespace frm
 
 #endif // frm_math_h
