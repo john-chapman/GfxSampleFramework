@@ -68,6 +68,20 @@ void ShaderDesc::addDefine(GLenum _stage, const char* _name)
 	addDefine(_stage, _name, 1);
 }
 
+void ShaderDesc::addGlobalDefines(const char* _defines)
+{
+	if (_defines) {
+		while (*_defines != '\0') {
+			for (int i = 0; i < internal::kShaderStageCount; ++i) {
+				m_stages[i].m_defines.push_back(StageDesc::DefineStr(_defines));
+			}
+			_defines = strchr(_defines, 0);
+			APT_ASSERT(_defines);
+			++_defines;
+		}
+	}
+}
+
 void ShaderDesc::clearDefines()
 {
 	for (int i = 0; i < internal::kShaderStageCount; ++i) {
@@ -176,14 +190,15 @@ Shader* Shader::Create(const ShaderDesc& _desc)
 	Use(ret);
 	return ret;
 }
-Shader* Shader::CreateVsFs(const char* _vsPath, const char* _fsPath)
+Shader* Shader::CreateVsFs(const char* _vsPath, const char* _fsPath, const char* _defines)
 {
 	ShaderDesc desc;
+	desc.addGlobalDefines(_defines);
 	desc.setPath(GL_VERTEX_SHADER, _vsPath);
 	desc.setPath(GL_FRAGMENT_SHADER, _fsPath);
 	return Create(desc);
 }
-Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _localZ)
+Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _localZ, const char* _defines)
 {
 	APT_ASSERT(_localX <= GlContext::GetCurrent()->kMaxComputeLocalSize[0]);
 	APT_ASSERT(_localY <= GlContext::GetCurrent()->kMaxComputeLocalSize[1]);
@@ -191,6 +206,7 @@ Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _loc
 	APT_ASSERT((_localX * _localY * _localZ) <= GlContext::GetCurrent()->kMaxComputeInvocations);
 
 	ShaderDesc desc;
+	desc.addGlobalDefines(_defines);
 	desc.setPath(GL_COMPUTE_SHADER, _csPath);
 	desc.addDefine(GL_COMPUTE_SHADER, "LOCAL_SIZE_X", _localX);
 	desc.addDefine(GL_COMPUTE_SHADER, "LOCAL_SIZE_Y", _localY);
