@@ -141,6 +141,7 @@
     <ClInclude Include="..\..\src\all\frm\Scene.h" />
     <ClInclude Include="..\..\src\all\frm\Shader.h" />
     <ClInclude Include="..\..\src\all\frm\ShaderPreprocessor.h" />
+    <ClInclude Include="..\..\src\all\frm\Spline.h" />
     <ClInclude Include="..\..\src\all\frm\Texture.h" />
     <ClInclude Include="..\..\src\all\frm\TextureAtlas.h" />
     <ClInclude Include="..\..\src\all\frm\Window.h" />
@@ -149,6 +150,7 @@
     <ClInclude Include="..\..\src\all\frm\geom.h" />
     <ClInclude Include="..\..\src\all\frm\gl.h" />
     <ClInclude Include="..\..\src\all\frm\im3d.h" />
+    <ClInclude Include="..\..\src\all\frm\interpolation.h" />
     <ClInclude Include="..\..\src\all\frm\math.h" />
     <ClInclude Include="..\..\src\all\frm\ui\Log.h" />
     <ClInclude Include="..\..\src\all\frm\ui\ProfilerViewer.h" />
@@ -157,6 +159,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c" />
+    <ClCompile Include="..\..\src\all\extern\imgui\imconfig.cpp" />
     <ClCompile Include="..\..\src\all\extern\imgui\imgui.cpp" />
     <ClCompile Include="..\..\src\all\extern\imgui\imgui_demo.cpp" />
     <ClCompile Include="..\..\src\all\extern\imgui\imgui_draw.cpp" />
@@ -210,6 +213,7 @@
     <ClCompile Include="..\..\src\all\frm\Scene.cpp" />
     <ClCompile Include="..\..\src\all\frm\Shader.cpp" />
     <ClCompile Include="..\..\src\all\frm\ShaderPreprocessor.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Spline.cpp" />
     <ClCompile Include="..\..\src\all\frm\Texture.cpp" />
     <ClCompile Include="..\..\src\all\frm\TextureAtlas.cpp" />
     <ClCompile Include="..\..\src\all\frm\Window.cpp" />
