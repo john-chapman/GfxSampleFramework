@@ -613,17 +613,17 @@ void Scene::editNodes()
 		newEditNode = createNode(newEditNode);
 
 		if (m_editNode) {
-			bool destroy = false;
+			bool destroyNode = false;
 
 			ImGui::SameLine();
 			if (ImGui::Button("Destroy")) {
-				destroy = true;
+				destroyNode = true;
 			 // don't destroy the last root/camera
 			 // \todo modal warning when deleting a root or a node with children?
 				if (m_editNode->getType() == Node::kTypeRoot || m_editNode->getType() == Node::kTypeCamera) {
 					if (m_nodes[m_editNode->getType()].size() == 1) {
 						APT_LOG_ERR("Error: Can't delete the only %s", kNodeTypeStr[m_editNode->getType()]);
-						destroy = false;
+						destroyNode = false;
 					}
 				}
 			}
@@ -702,11 +702,21 @@ void Scene::editNodes()
 
 		 // xforms
 			if (ImGui::TreeNode("XForms")) {
+				bool destroyXForm = false;
 
 				if (ImGui::Button("Create")) {
 					beginCreateXForm();
 				}
 				XForm* newEditXForm = createXForm(m_editXForm);
+				if (newEditXForm != m_editXForm) {
+					m_editNode->addXForm(newEditXForm);
+				}
+				if (m_editXForm != nullptr) {
+					ImGui::SameLine();
+					if (ImGui::Button("Destroy")) {
+						destroyXForm = true;
+					}
+				}
 
 				if (!m_editNode->m_xforms.empty()) {
 				 // build list for xform stack
@@ -722,8 +732,7 @@ void Scene::editNodes()
 					}
 					ImGui::Spacing();
 					if (ImGui::ListBox("##XForms", &selectedXForm, xformList, (int)m_editNode->m_xforms.size())) {
-						m_editXForm = m_editNode->m_xforms[selectedXForm];
-						newEditXForm = m_editXForm;
+						newEditXForm = m_editNode->m_xforms[selectedXForm];
 					}
 
 					/*if (m_editXForm) {
@@ -746,8 +755,13 @@ void Scene::editNodes()
 
 				}
 
+				if (destroyXForm) {
+					m_editNode->removeXForm(m_editXForm);
+					XForm::Destroy(m_editXForm);
+					newEditXForm = nullptr;
+				}
+
 				if (m_editXForm != newEditXForm) {
-					m_editNode->addXForm(newEditXForm);
 					m_editXForm = newEditXForm;
 				}
 
@@ -755,15 +769,15 @@ void Scene::editNodes()
 			}
 
 		 // deferred destroy
-			if (destroy) {
+			if (destroyNode) {
 				if (m_editNode->getType() == Node::kTypeCamera) {
 				 // destroyNode will implicitly destroy camera, so deselect camera if selected
 					if (m_editNode->getSceneDataCamera() == m_editCamera) {
 						m_editCamera = nullptr;
 					}
 				}
-				destroyNode(m_editNode);
-				newEditNode = nullptr; // prevent dangling ptr
+				Scene::destroyNode(m_editNode);
+				newEditNode = nullptr;
 			}
 		}
 	 // deferred select
