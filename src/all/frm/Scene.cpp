@@ -67,6 +67,17 @@ void Node::removeXForm(XForm* _xform)
 	}
 }
 
+void Node::moveXForm(const XForm* _xform, int _dir)
+{
+	for (int i = 0, n = getXFormCount(); i < n; ++i) {
+		if (m_xforms[i] == _xform) {
+			int j = APT_CLAMP(i + _dir, 0, n - 1);
+			std::swap(m_xforms[i], m_xforms[j]);
+			return;
+		}
+	}
+}
+
 void Node::setParent(Node* _node)
 {
 	if (_node) {
@@ -716,6 +727,14 @@ void Scene::editNodes()
 					if (ImGui::Button("Destroy")) {
 						destroyXForm = true;
 					}
+					ImGui::SameLine();
+					if (ImGui::Button("Move Up")) {
+						m_editNode->moveXForm(m_editXForm, -1);
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("MoveDown")) {
+						m_editNode->moveXForm(m_editXForm, 1);
+					}
 				}
 
 				if (!m_editNode->m_xforms.empty()) {
@@ -734,16 +753,6 @@ void Scene::editNodes()
 					if (ImGui::ListBox("##XForms", &selectedXForm, xformList, (int)m_editNode->m_xforms.size())) {
 						newEditXForm = m_editNode->m_xforms[selectedXForm];
 					}
-
-					/*if (m_editXForm) {
-						if (ImGui::Button("Move Up")) {
-							m_editNode->moveXForm(m_editXForm, -1);
-						}
-						ImGui::SameLine();
-						if (ImGui::Button("MoveDown")) {
-							m_editNode->moveXForm(m_editXForm, 1);
-						}
-					}*/
 
 					if (m_editXForm) {
 						ImGui::Separator();

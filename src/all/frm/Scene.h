@@ -84,6 +84,7 @@ public:
 	void         removeXForm(XForm* _xform);
 	int          getXFormCount() const               { return (int)m_xforms.size(); }
 	XForm*       getXForm(int _i)                    { return m_xforms[_i]; }
+	void         moveXForm(const XForm* _xform, int _dir);
 
 	Node*        getParent()                         { return m_parent; }
 	void         setParent(Node* _node);
@@ -128,7 +129,7 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class Scene
-/// Manages nodes/cameras. 
+/// Manages scene objects (nodes, cameras, etc.).
 ////////////////////////////////////////////////////////////////////////////////
 class Scene
 {
