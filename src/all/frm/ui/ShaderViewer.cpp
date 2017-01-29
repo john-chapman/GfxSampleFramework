@@ -12,6 +12,7 @@ using namespace apt;
 
 void ShaderViewer::draw(bool* _open_)
 {
+	static ImGuiTextFilter filter;
 	static const vec4 kColorStage[] =
 	{
 		vec4(0.2f, 0.2f, 0.8f, 1.0f),//GL_COMPUTE_SHADER,
@@ -34,19 +35,20 @@ void ShaderViewer::draw(bool* _open_)
 	ImGui::AlignFirstTextHeightToWidgets();
 	ImGui::Text("%d shaders", Shader::GetInstanceCount());
 	ImGui::SameLine();
+	ImGui::Checkbox("Show Hidden", &m_showHidden);
+	ImGui::SameLine();
+	ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.2f);
+		filter.Draw("Filter##ShaderName");
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
 	if (ImGui::Button("Reload All (F9)")) {
 		Shader::ReloadAll();
 	}
-	ImGui::SameLine();
-	ImGui::Checkbox("Show Hidden", &m_showHidden);
 
 	ImGui::Separator();
 	ImGui::Spacing();
 
 	ImGui::BeginChild("shaderList", ImVec2(ImGui::GetWindowWidth() * 0.2f, 0.0f), true);
-		static ImGuiTextFilter filter;
-		filter.Draw("Filter##ShaderName");
-		
 		for (int i = 0; i < Shader::GetInstanceCount(); ++i) {
 			Shader* sh = Shader::GetInstance(i);
 			const ShaderDesc& desc = sh->getDesc();

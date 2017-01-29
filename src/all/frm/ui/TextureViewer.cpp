@@ -36,6 +36,7 @@ void TextureViewer::update()
 
 void TextureViewer::draw(bool* _open_)
 {
+	static ImGuiTextFilter filter;
  	static const ImVec4 kColorTxName = ImVec4(1.0f, 0.7f, 0.2f, 1.0f);
 	static const ImVec4 kColorTxInfo = ImVec4(0.8f, 0.8f, 0.8f, 1.0f);
 	static const float  kThumbHeight = 128.0f;
@@ -53,13 +54,16 @@ void TextureViewer::draw(bool* _open_)
 	if (m_selected == -1) {
 		ImGui::AlignFirstTextHeightToWidgets();
 		ImGui::Text("%d textures", Texture::GetInstanceCount());
-			
+		ImGui::SameLine();
+		ImGui::Checkbox("Show Hidden", &m_showHidden);
+		ImGui::SameLine();
+		ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.2f);
+			filter.Draw("Filter##TextureName");
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
 		if (ImGui::Button("Reload All")) {
 			Texture::ReloadAll();
 		}
-		ImGui::SameLine();
-		ImGui::Checkbox("Show Hidden", &m_showHidden);
-		
 		ImGui::SameLine();
 		if (ImGui::Button("Load")) {
 			FileSystem::PathStr pth;
@@ -76,6 +80,9 @@ void TextureViewer::draw(bool* _open_)
 		for (unsigned i = 0; i < m_txViews.size(); ++i) {
 			const TextureView*  txView = &m_txViews[i];
 			const Texture* tx = txView->m_texture;
+			if (!filter.PassFilter(tx->getName())) {
+				continue;
+			}
 	
 			if (tx->getName()[0] == '#' && !m_showHidden) {
 				continue;
@@ -139,7 +146,9 @@ void TextureViewer::draw(bool* _open_)
 		float thumbWidth  = ImGui::GetContentRegionAvailWidth();
 		float thumbHeight = (float)tx->getHeight() / (float)tx->getWidth() * thumbWidth;
 		vec2  thumbSize(thumbWidth, APT_MAX(thumbHeight, 16.0f));
-		if (ImGui::ImageButton((ImTextureID)txView, thumbSize, ImVec2(0, 0), ImVec2(1, 1), 0)) {
+		vec2  uv0 = vec2(0.0f, 0.0f);
+		vec2  uv1 = vec2(1.0f, 1.0f);
+		if (ImGui::ImageButton((ImTextureID)txView, thumbSize, uv0, uv1, 0)) {
 			//m_selected = -1;
 		}
 		if (m_showTexelGrid) {
