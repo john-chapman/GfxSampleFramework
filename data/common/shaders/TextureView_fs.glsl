@@ -32,7 +32,7 @@ layout(location=0) out vec4 fResult;
 void main() 
 {
 	vec4 ret;
-	vec2 texcoord = vec2(vUv.x, 1.0 - vUv.y);
+	vec2 texcoord = vUv;//vec2(vUv.x, 1.0 - vUv.y);
 	#if   defined(TEXTURE_1D)
 		ret = textureLod(txTexture, vUv.x * uScaleUv.x + uBiasUv.x, uMip);
 		

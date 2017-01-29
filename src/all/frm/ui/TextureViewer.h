@@ -22,9 +22,10 @@ class TextureViewer
 public:
 
 	TextureViewer() 
-		: m_showHidden(false)
-		, m_selected(-1)
+		: m_selected(-1)
+		, m_showHidden(false)
 		, m_showTexelGrid(true)
+		, m_isDragging(false)
 	{
 	}
 
@@ -33,9 +34,12 @@ public:
 
 	TextureView* findTxView(const Texture* _tx);
 
+	static vec2 ThumbToTxView(const TextureView& _txView);
+
+	int  m_selected;
 	bool m_showHidden;
-	int m_selected;
 	bool m_showTexelGrid;
+	bool m_isDragging;
 
 }; // class TextureViewer
 
