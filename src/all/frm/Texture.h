@@ -73,7 +73,7 @@ public:
 	apt::Image* downloadImage();
 
 	/// Filter mode.
-	void    setFilter(GLenum _mode);    //< \note MIPMAP filter modes cannot be applied globally
+	void    setFilter(GLenum _mode);    //< \note mipmap filter modes cannot be applied globally
 	void    setMinFilter(GLenum _mode);
 	void    setMagFilter(GLenum _mode);
 	GLenum  getMinFilter() const;

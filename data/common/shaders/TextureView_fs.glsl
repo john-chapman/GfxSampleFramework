@@ -32,27 +32,28 @@ layout(location=0) out vec4 fResult;
 void main() 
 {
 	vec4 ret;
+	vec2 texcoord = vec2(vUv.x, 1.0 - vUv.y);
 	#if   defined(TEXTURE_1D)
 		ret = textureLod(txTexture, vUv.x * uScaleUv.x + uBiasUv.x, uMip);
 		
 	#elif defined(TEXTURE_1D_ARRAY)
 		vec2 uv;
-		uv.x = vUv.x * uScaleUv.x + uBiasUv.x;
+		uv.x = texcoord.x * uScaleUv.x + uBiasUv.x;
 		uv.y = uLayer;
 		ret = textureLod(txTexture, uv, uMip);
 		
 	#elif defined(TEXTURE_2D)
-		ret = textureLod(txTexture, vUv * uScaleUv + uBiasUv, uMip);
+		ret = textureLod(txTexture, texcoord * uScaleUv + uBiasUv, uMip);
 		
 	#elif defined(TEXTURE_2D_ARRAY)
 		vec3 uvw;
-		uvw.xy = vUv * uScaleUv + uBiasUv;
+		uvw.xy = texcoord * uScaleUv + uBiasUv;
 		uvw.z  = uLayer;
 		ret = textureLod(txTexture, uvw, uMip);
 		
 	#elif defined(TEXTURE_3D)
 		vec3 uvw;
-		uvw.xy = vUv * uScaleUv + uBiasUv;
+		uvw.xy = texcoord * uScaleUv + uBiasUv;
 		uvw.z  = uLayer / float(textureSize(txTexture, int(uMip)).z);
 		ret = textureLod(txTexture, uvw, uMip);
 

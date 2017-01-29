@@ -7,6 +7,5 @@ noperspective out vec2 vUv;
 void main() 
 {
 	vUv = aPosition.xy * 0.5 + 0.5;
-	vUv.y = 1.0 - vUv.y;
 	gl_Position = vec4(aPosition.xy, 0.0, 1.0);
 }
