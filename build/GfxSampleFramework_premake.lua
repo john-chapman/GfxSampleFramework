@@ -119,7 +119,14 @@ workspace "GfxSampleFramework"
 				"mklink /j \"$(ProjectDir)..\\..\\bin\\common\" " .. "\"$(ProjectDir)..\\..\\data\\common\"",
 				})
 
-if (VR_LIB ~= nil) then
+if (OCULUS_SDK_ROOT) then
+	VR_SDK_ROOT     = OCULUS_SDK_ROOT
+	VR_LIB_DIR      = VR_SDK_ROOT .. "/LibOVR/Lib/Windows/x64/%{cfg.buildcfg}/" .. tostring(_ACTION) .. "/" -- \todo cleaner way to do this?
+	VR_INCLUDE_DIR  = VR_SDK_ROOT .. "/LibOVR/Include/"
+	VR_LINKS        = "LibOVR"
+end
+
+if (VR_SDK_ROOT ~= nil) then
 	workspace "GfxSampleFrameworkVr"
 		location(_ACTION)
 		configurations { "Debug", "Release" }
@@ -142,10 +149,7 @@ if (VR_LIB ~= nil) then
 				APT_DIR .. "src/win/",
 				APT_DIR .. "src/win/extern/",
 				})
-		filter { "platforms:Win*", "architecture:x86_64", "action:vs*" }
-			if (VR_LIB == "OCULUS") then
-				libdirs({ VR_SDK_ROOT .. "/LibOVR/Lib/Windows/x64/%{cfg.buildcfg}/" .. tostring(_ACTION) .. "/" }) -- \todo cleaner way to do this?
-			end
+		libdirs({ VR_LIB_DIR }) -- \todo VR_LIB_DIRS varies per platform, need to filter
 				
 		group "libs"
 			externalproject "ApplicationTools"
@@ -169,10 +173,7 @@ if (VR_LIB ~= nil) then
 					["*"] = VR_ALL_SRC_DIR .. "frm/**",
 					})
 				
-				includedirs({ VR_ALL_SRC_DIR })
-				if (VR_LIB == "OCULUS") then
-					includedirs({ VR_SDK_ROOT .. "/LibOVR/Include/" })
-				end
+				includedirs({ VR_ALL_SRC_DIR, VR_INCLUDE_DIR })
 				files({ 
 					VR_ALL_SRC_DIR    .. "**.h", 
 					VR_ALL_SRC_DIR    .. "**.hpp", 
@@ -202,13 +203,10 @@ if (VR_LIB ~= nil) then
 				VR_TESTS_DIR .. "**.cpp",
 				})
 						
-			links { "ApplicationTools", "framework", "frameworkvr", }
+			links({ "ApplicationTools", "framework", "frameworkvr", VR_LINKS })
 			filter { "platforms:Win*" }
-				links { "shlwapi", "hid", "opengl32" }
-				if (VR_LIB == "OCULUS") then
-					links { "LibOVR" }
-				end
-	
+				links({ "shlwapi", "hid", "opengl32" })
+				
 			filter { "action:vs*" }
 				postbuildcommands({
 					"rmdir \"$(ProjectDir)..\\..\\bin\\common\"",
