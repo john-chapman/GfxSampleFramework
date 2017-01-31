@@ -46,7 +46,7 @@ public:
 	virtual Ray getCursorRayV() const override;
 
 protected:
-	AppSampleVr(const char* _title, const char* _appDataPath = 0);
+	AppSampleVr(const char* _title);
 	virtual ~AppSampleVr();
 
 	virtual void ImGui_OverrideIo() override;

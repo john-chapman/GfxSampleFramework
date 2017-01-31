@@ -193,7 +193,7 @@ void AppSample3d::drawStatusBar()
 void AppSample3d::draw()
 {
 	getGlContext()->setFramebufferAndViewport(getDefaultFramebuffer());
-	Im3d_Render(m_im3dCtx, *Scene::GetCurrent().getDrawCamera());
+	Im3d_Render(m_im3dCtx, *Scene::GetDrawCamera());
 
 	AppSample::draw();
 }
@@ -201,7 +201,7 @@ void AppSample3d::draw()
 Ray AppSample3d::getCursorRayW() const
 {
 	Ray ret = getCursorRayV();
-	ret.transform(Scene::GetCurrent().getDrawCamera()->getWorldMatrix());
+	ret.transform(Scene::GetDrawCamera()->getWorldMatrix());
 	return ret;
 }
 
@@ -213,8 +213,8 @@ Ray AppSample3d::getCursorRayV() const
 	vec2 wsize = vec2((float)getWindow()->getWidth(), (float)getWindow()->getHeight());
 	mpos = (mpos / wsize) * 2.0f - 1.0f;
 	mpos.y = -mpos.y; // the cursor position is top-left relative
-	float tanHalfFov = Scene::GetCurrent().getDrawCamera()->getTanFovUp();
-	float aspect = Scene::GetCurrent().getDrawCamera()->getAspect();
+	float tanHalfFov = Scene::GetDrawCamera()->getTanFovUp();
+	float aspect = Scene::GetDrawCamera()->getAspect();
 	return Ray(vec3(0.0f), normalize(vec3(mpos.x * tanHalfFov * aspect, mpos.y * tanHalfFov, -1.0f)));
 	
 	//return Ray(vec3(0.0f), vec3(0.0f));
@@ -351,8 +351,8 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	im3d.m_cursorRayOriginW = cursorRayW.m_origin;
 	im3d.m_cursorRayDirectionW = cursorRayW.m_direction;
 	im3d.m_deltaTime = (float)_app->getDeltaTime();
-	im3d.m_tanHalfFov = Scene::GetCurrent().getDrawCamera()->getTanFovUp();
-	im3d.m_viewOriginW = Scene::GetCurrent().getDrawCamera()->getPosition();
+	im3d.m_tanHalfFov = Scene::GetDrawCamera()->getTanFovUp();
+	im3d.m_viewOriginW = Scene::GetDrawCamera()->getPosition();
 	im3d.m_displaySize = Im3d::Vec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
 
 	im3d.reset();
