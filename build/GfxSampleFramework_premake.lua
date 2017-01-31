@@ -1,4 +1,6 @@
-local EXTERN_DIR      = "../extern/" -- external projects
+include "GfxSampleFramework_config.lua"
+
+local EXTERN_DIR      = "../extern/"
 local APT_DIR         = EXTERN_DIR .. "ApplicationTools/"
 local SRC_DIR         = "../src/"
 local ALL_SRC_DIR     = SRC_DIR .. "all/"
@@ -117,92 +119,99 @@ workspace "GfxSampleFramework"
 				"mklink /j \"$(ProjectDir)..\\..\\bin\\common\" " .. "\"$(ProjectDir)..\\..\\data\\common\"",
 				})
 
-workspace "GfxSampleFrameworkVr"
-	location(_ACTION)
-	configurations { "Debug", "Release" }
-	platforms { "Win64" }
-	flags { "C++11", "StaticRuntime" }
-	filter { "platforms:Win64" }
-		system "windows"
-		architecture "x86_64"
-		
-	defines { "GLEW_STATIC" }
-	includedirs({ 
-		ALL_SRC_DIR, 
-		ALL_EXTERN_DIR, 
-		APT_DIR .. "src/all/",
-		APT_DIR .. "src/all/extern",
-		})		
-	filter { "platforms:Win*" }
+if (VR_LIB ~= nil) then
+	workspace "GfxSampleFrameworkVr"
+		location(_ACTION)
+		configurations { "Debug", "Release" }
+		platforms { "Win64" }
+		flags { "C++11", "StaticRuntime" }
+		filter { "platforms:Win64" }
+			system "windows"
+			architecture "x86_64"
+			
+		defines { "GLEW_STATIC" }
 		includedirs({ 
-			WIN_SRC_DIR, 
-			APT_DIR .. "src/win/",
-			APT_DIR .. "src/win/extern/",
-			})
-	filter { "platforms:Win*", "architecture:x86_64", "action:vs*" }
-		libdirs({ "$(OVRSDKROOT)/LibOVR/Lib/Windows/x64/%{cfg.buildcfg}/" .. tostring(_ACTION) .. "/" }) -- \todo cleaner way to do this?
-			
-	group "libs"
-		externalproject "ApplicationTools"
-			location(APT_DIR .. "build/" .. _ACTION)
-			uuid "6ADD11F4-56D6-3046-7F08-16CB6B601052" -- uuid from ApplicationTools_premake.lua
-			kind "StaticLib"
+			ALL_SRC_DIR, 
+			ALL_EXTERN_DIR, 
+			APT_DIR .. "src/all/",
+			APT_DIR .. "src/all/extern",
+			})		
+		filter { "platforms:Win*" }
+			includedirs({ 
+				WIN_SRC_DIR, 
+				APT_DIR .. "src/win/",
+				APT_DIR .. "src/win/extern/",
+				})
+		filter { "platforms:Win*", "architecture:x86_64", "action:vs*" }
+			if (VR_LIB == "OCULUS") then
+				libdirs({ VR_SDK_ROOT .. "/LibOVR/Lib/Windows/x64/%{cfg.buildcfg}/" .. tostring(_ACTION) .. "/" }) -- \todo cleaner way to do this?
+			end
+				
+		group "libs"
+			externalproject "ApplicationTools"
+				location(APT_DIR .. "build/" .. _ACTION)
+				uuid "6ADD11F4-56D6-3046-7F08-16CB6B601052" -- uuid from ApplicationTools_premake.lua
+				kind "StaticLib"
+				language "C++"
+				
+			externalproject "framework"
+				uuid "33827CC1-9FEC-3038-E82A-E2DD54D40E8D"
+				kind "StaticLib"
+				language "C++"
+				
+			project "frameworkvr"
+				kind "StaticLib"
+				language "C++"
+				targetdir "../lib"
+				uuid "9BEAA512-07A0-1E08-9094-18DFFC48150C"
+				
+				vpaths({
+					["*"] = VR_ALL_SRC_DIR .. "frm/**",
+					})
+				
+				includedirs({ VR_ALL_SRC_DIR })
+				if (VR_LIB == "OCULUS") then
+					includedirs({ VR_SDK_ROOT .. "/LibOVR/Include/" })
+				end
+				files({ 
+					VR_ALL_SRC_DIR    .. "**.h", 
+					VR_ALL_SRC_DIR    .. "**.hpp", 
+					VR_ALL_SRC_DIR    .. "**.c", 
+					VR_ALL_SRC_DIR    .. "**.cpp",
+					})
+		group ""
+		
+		project "frameworkvr_tests"
+			kind "ConsoleApp"
 			language "C++"
-			
-		externalproject "framework"
-			uuid "33827CC1-9FEC-3038-E82A-E2DD54D40E8D"
-			kind "StaticLib"
-			language "C++"
-			
-		project "frameworkvr"
-			kind "StaticLib"
-			language "C++"
-			targetdir "../lib"
-			uuid "9BEAA512-07A0-1E08-9094-18DFFC48150C"
+			targetdir "../bin"
+			uuid "EDBB76F7-59D2-748D-A249-00AF0E9F4515"
 			
 			vpaths({
-				["*"] = VR_ALL_SRC_DIR .. "frm/**",
+				["*"] = ALL_TESTS_DIR .. "**",
 				})
 			
-			includedirs({
+			includedirs({ 
+				TESTS_DIR,
 				VR_ALL_SRC_DIR,
-				"$(OVRSDKROOT)/LibOVR/Include/", -- \todo environment vars?
 				})
 			files({ 
-				VR_ALL_SRC_DIR    .. "**.h", 
-				VR_ALL_SRC_DIR    .. "**.hpp", 
-				VR_ALL_SRC_DIR    .. "**.c", 
-				VR_ALL_SRC_DIR    .. "**.cpp",
+				VR_TESTS_DIR .. "**.h", 
+				VR_TESTS_DIR .. "**.hpp", 
+				VR_TESTS_DIR .. "**.c", 
+				VR_TESTS_DIR .. "**.cpp",
 				})
-	group ""
+						
+			links { "ApplicationTools", "framework", "frameworkvr", }
+			filter { "platforms:Win*" }
+				links { "shlwapi", "hid", "opengl32" }
+				if (VR_LIB == "OCULUS") then
+					links { "LibOVR" }
+				end
 	
-	project "frameworkvr_tests"
-		kind "ConsoleApp"
-		language "C++"
-		targetdir "../bin"
-		uuid "EDBB76F7-59D2-748D-A249-00AF0E9F4515"
-		
-		vpaths({
-			["*"] = ALL_TESTS_DIR .. "**",
-			})
-		
-		includedirs({ 
-			TESTS_DIR,
-			VR_ALL_SRC_DIR,
-			})
-		files({ 
-			VR_TESTS_DIR .. "**.h", 
-			VR_TESTS_DIR .. "**.hpp", 
-			VR_TESTS_DIR .. "**.c", 
-			VR_TESTS_DIR .. "**.cpp",
-			})
-					
-		links { "ApplicationTools", "framework", "frameworkvr", }
-		filter { "platforms:Win*" }
-			links { "shlwapi", "hid", "opengl32", "LibOVR" }
-
-		filter { "action:vs*" }
-			postbuildcommands({
-				"rmdir \"$(ProjectDir)..\\..\\bin\\common\"",
-				"mklink /j \"$(ProjectDir)..\\..\\bin\\common\" " .. "\"$(ProjectDir)..\\..\\data\\common\"",
-				})
+			filter { "action:vs*" }
+				postbuildcommands({
+					"rmdir \"$(ProjectDir)..\\..\\bin\\common\"",
+					"mklink /j \"$(ProjectDir)..\\..\\bin\\common\" " .. "\"$(ProjectDir)..\\..\\data\\common\"",
+					})
+end
