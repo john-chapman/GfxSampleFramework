@@ -139,6 +139,9 @@ public:
 	static Scene&  GetCurrent()                      { return *s_currentScene; }
 	static void    SetCurrent(Scene& _scene)         { s_currentScene = &_scene; }
 
+	static Camera* GetDrawCamera()                   { return s_currentScene->getDrawCamera(); }
+	static Camera* GetCullCamera()                   { return s_currentScene->getCullCamera(); }
+
 	/// Load scene from path, swap with scene_ if successful & return true.
 	static bool Load(const char* _path, Scene& scene_);
 

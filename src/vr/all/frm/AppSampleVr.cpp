@@ -96,7 +96,8 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	if (!AppSample3d::init(_args)) {
 		return false;
 	}
-	m_sceneDrawCamera = m_scene.getDrawCamera();
+	Scene& scene = Scene::GetCurrent();
+	m_sceneDrawCamera = scene.getDrawCamera();
 	getGlContext()->setVsyncMode(GlContext::VsyncMode::kOff);
 
 	m_vrMode = false;
@@ -108,12 +109,14 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	m_eyeFovScale = 1.0f;
 	m_clipNear = 0.05f;
 	m_clipFar = 1000.0f;
-	m_nodeOrigin = m_scene.createNode("VrOrigin", Node::kTypeRoot);
+	m_nodeOrigin = scene.createNode(Node::kTypeRoot);
+	m_nodeOrigin->setName("#VrOrigin");
 	m_nodeOrigin->setLocalMatrix(translate(mat4(1.0f), vec3(0.0f, *m_userHeight, 0.0f)));
 	m_nodeOrigin->addXForm(XForm::Create("VRGamepadXForm"));
 
-	m_nodeHead = m_scene.createNode("VrHead", Node::kTypeRoot, m_nodeOrigin);
-	m_vrDrawCamera = m_scene.createCamera(Camera(), m_nodeHead);
+	m_nodeHead = scene.createNode(Node::kTypeRoot, m_nodeOrigin);
+	m_nodeHead->setName("#VrHead"); 
+	m_vrDrawCamera = scene.createCamera(Camera(), m_nodeHead);
 	pollHmd(); // update head position
 
 
@@ -206,19 +209,20 @@ bool AppSampleVr::update()
 		// \todo
 	}	
 	
+	Scene& scene = Scene::GetCurrent();
 	ImGuiIO& io = ImGui::GetIO();
 	if (sessionStatus.IsVisible && !m_vrMode) {
 		APT_LOG("Entering VR mode");
-		m_scene.setDrawCamera(m_vrDrawCamera);
-		m_scene.setCullCamera(m_vrDrawCamera);
+		scene.setDrawCamera(m_vrDrawCamera);
+		scene.setCullCamera(m_vrDrawCamera);
 		m_nodeOrigin->setSelected(true);
 		io.FontGlobalScale = 2.0f;
 		m_vrMode = true;
 	}
 	if (!sessionStatus.IsVisible && m_vrMode) {
 		APT_LOG("Leaving VR mode");
-		m_scene.setDrawCamera(m_sceneDrawCamera);
-		m_scene.setCullCamera(m_sceneDrawCamera);
+		scene.setDrawCamera(m_sceneDrawCamera);
+		scene.setCullCamera(m_sceneDrawCamera);
 		m_nodeOrigin->setSelected(false);
 		io.FontGlobalScale = 1.0f;
 		m_vrMode = false;
@@ -409,7 +413,7 @@ void AppSampleVr::draw()
 		drawNdcQuad();
 	} else {
 		setDefaultFramebuffer(0); // default framebuffer is window
-		drawVuiScreen(*m_scene.getDrawCamera());
+		drawVuiScreen(*Scene::GetDrawCamera());
 
 		if (m_showHelpers) {
 		 // draw the HMD position/combined eye frustum
@@ -444,8 +448,8 @@ Ray AppSampleVr::getCursorRayV() const
 
 // PROTECTED
 
-AppSampleVr::AppSampleVr(const char* _title, const char* _appDataPath)
-	: AppSample3d(_title, _appDataPath)
+AppSampleVr::AppSampleVr(const char* _title)
+	: AppSample3d(_title)
 	, m_vrMode(false)
 	, m_disableRender(false)
 	, m_showGazeCursor(true)
