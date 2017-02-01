@@ -8,6 +8,7 @@ uniform vec2  uBiasUv;
 uniform float uLayer;
 uniform float uMip;
 uniform uvec4 uRgbaMask;
+uniform int   uIsDepth;
 
 #if   defined(TEXTURE_1D)
 	#define TextureType sampler1D
@@ -44,7 +45,7 @@ void main()
 		
 	#elif defined(TEXTURE_2D)
 		ret = textureLod(txTexture, texcoord * uScaleUv + uBiasUv, uMip);
-		
+
 	#elif defined(TEXTURE_2D_ARRAY)
 		vec3 uvw;
 		uvw.xy = texcoord * uScaleUv + uBiasUv;
@@ -60,6 +61,10 @@ void main()
 	#else
 		ret = vec4(1.0, 0.0, 0.0, 1.0);
 	#endif
+
+	if (bool(uIsDepth)) {
+		ret.r = fract(ret.r * 1024.0); // \todo better depth/stencil vis
+	}
 	
 	fResult = ret;
 	fResult.a = 1.0;
