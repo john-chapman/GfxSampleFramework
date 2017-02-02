@@ -115,6 +115,7 @@ struct AlignedBox
 
 	AlignedBox() {}
 	AlignedBox(const vec3& _min, const vec3& _max);
+	AlignedBox(const Sphere& _sphere);
 
 	void transform(const mat4& _mat);	
 	vec3 getOrigin() const;
