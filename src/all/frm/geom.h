@@ -120,6 +120,9 @@ struct AlignedBox
 	void transform(const mat4& _mat);	
 	vec3 getOrigin() const;
 
+	// Generate 8 vertices, write to out_.
+	void getVertices(vec3* out_) const;
+
 }; // struct AlignedBox
 
 
