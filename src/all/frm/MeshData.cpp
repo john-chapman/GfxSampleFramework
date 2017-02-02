@@ -603,6 +603,7 @@ bool MeshData::ReadObj(MeshData& _mesh, const char* _data, uint _dataSize)
 	if (tangentAttr != 0) {
 		tmpMesh.generateTangents();
 	}
+	tmpMesh.updateBounds();
 
 Mesh_LoadObj_end:
 	if (!ret) {
