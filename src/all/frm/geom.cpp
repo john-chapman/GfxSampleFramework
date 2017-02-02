@@ -154,6 +154,12 @@ AlignedBox::AlignedBox(const vec3& _min, const vec3& _max)
 {
 }
 
+AlignedBox::AlignedBox(const Sphere& _sphere)
+{
+	m_min = _sphere.m_origin - vec3(_sphere.m_radius);
+	m_max = _sphere.m_origin + vec3(_sphere.m_radius);
+}
+
 void AlignedBox::transform(const mat4& _mat)
 {
 	vec3 mx = vec3(column(_mat, 0));
@@ -359,7 +365,7 @@ void Frustum::transform(const mat4& _mat)
 bool Frustum::intersect(const Sphere& _sphere) const
 {
 	for (int i = 0; i < 6; ++i) {
-		if (!Intersects(_sphere, m_planes[i])) {
+		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
 			return false;
 		}
 	}
@@ -386,7 +392,7 @@ bool Frustum::intersect(const AlignedBox& _box) const
 	for (int i = 0; i < 6; ++i) {
 		bool inside = false;
 		for (int j = 0; j < 8; ++j) {
-			if (Distance(m_planes[i], points[j]) < 0.0f) {
+			if (Distance(m_planes[i], points[j]) > 0.0f) {
 				inside = true;
 				break;
 			}
@@ -652,7 +658,7 @@ float frm::Distance2(const Ray& _ray, const LineSegment& _segment)
 }
 float frm::Distance(const Plane& _plane, const vec3& _point)
 { 
-	return dot(_plane.m_normal, _point) - _plane.m_offset; 
+	return _plane.m_offset - dot(_plane.m_normal, _point); 
 }
 float frm::Distance2(const AlignedBox& _box, const vec3& _point)
 {
