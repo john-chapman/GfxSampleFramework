@@ -18,57 +18,31 @@ class Camera
 {
 public:
 
-	/// Symmetrical perspective projection from a vertical fov + viewport aspect
-	/// ratio.
+	// Symmetrical perspective projection from a vertical fov + viewport aspect ratio.
 	Camera(
 		float _aspect      = 1.0f,
 		float _fovVertical = 0.873f, // 60 degrees
 		float _clipNear    = 0.1f,
 		float _clipFar     = 1000.0f
-		)
-		: m_up(tan(_fovVertical * 0.5f))
-		, m_down(m_up)
-		, m_left(m_up * _aspect)
-		, m_right(m_up * _aspect)
-		, m_clipNear(_clipNear)
-		, m_clipFar(_clipFar)
-		, m_isOrtho(false)
-		, m_isSymmetric(true)
-		, m_projDirty(true)
-		, m_world(1.0f)
-		, m_localFrustum(m_up, m_down, m_left, m_right, m_clipNear, m_clipFar)
-	{
-	}
+		);
 
-	/// General perspective projection from 4 angles (position, radians) relative
-	/// to the view axis.
+	// General perspective/ortho projection from 4 angles/positions (positive, relative to the view axis).
 	Camera(
-		float _fovUp,
-		float _fovDown,
-		float _fovLeft,
-		float _fovRight,
+		float _up,
+		float _down,
+		float _left,
+		float _right,
 		float _clipNear,
-		float _clipFar
-		)
-		: m_up(tan(_fovUp))
-		, m_down(tan(_fovDown))
-		, m_left(tan(_fovLeft))
-		, m_right(tan(_fovRight))
-		, m_clipNear(_clipNear)
-		, m_clipFar(_clipFar)
-		, m_isOrtho(false)
-		, m_projDirty(true)
-		, m_world(1.0f)
-		, m_localFrustum(m_up, m_down, m_left, m_right, m_clipNear, m_clipFar)
-	{
-	}
+		float _clipFar,
+		bool  _isOrtho = false
+		);
 
 	bool           isOrtho() const                    { return m_isOrtho; }
 	bool           isSymmetric() const                { return m_isSymmetric; }
 	void           setIsOrtho(bool _ortho);
 	void           setIsSymmetric(bool _symmetric);
 
-	/// Asymmetrical perspective projection properties.
+	// Asymmetrical perspective projection properties.
 	void           setFovUp(float _radians)           { m_up = tan(_radians); m_isSymmetric = false; m_projDirty = true; }
 	void           setFovDown(float _radians)         { m_down = tan(_radians); m_isSymmetric = false; m_projDirty = true; }
 	void           setFovLeft(float _radians)         { m_left = tan(_radians); m_isSymmetric = false; m_projDirty = true; }
@@ -82,7 +56,7 @@ public:
 	float          getTanFovLeft() const              { return m_left; }
 	float          getTanFovRight() const             { return m_right; }
 	
-	/// Symmetrical perspective projection properties.
+	// Symmetrical perspective projection properties.
 	void           setVerticalFov(float _radians);
 	void           setHorizontalFov(float _radians);
 	void           setAspect(float _aspect);
@@ -107,14 +81,12 @@ public:
 	const mat4&    getProjMatrix() const              { return m_proj; }
 	const mat4&    getViewProjMatrix() const          { return m_viewProj; }
 
-	/// Extract position from world matrix.
+	// Extract position from world matrix.
 	vec3           getPosition() const                { return vec3(apt::column(m_world, 3)); }
-	/// Extract view direction from world matrix.
-	/// \note Projection is along -z, hence the negation.
+	// Extract view direction from world matrix. Projection is along -z, hence the negation.
 	vec3           getViewVector() const              { return -vec3(apt::column(m_world, 2)); }
 
-	/// Construct the view matrix, view-projection matrix and world space frustum,
-	/// plus the projection matrix (if dirty).
+	// Construct the view matrix, view-projection matrix and world space frustum, plus the projection matrix (if dirty).
 	void           build();
 
 	bool           serialize(apt::JsonSerializer& _serializer_);

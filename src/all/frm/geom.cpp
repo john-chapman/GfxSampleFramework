@@ -183,6 +183,18 @@ vec3 AlignedBox::getOrigin() const
 	return 0.5f * (m_max + m_min);
 }
 
+void AlignedBox::getVertices(vec3* out_) const
+{
+	out_[0] = vec3(m_min.x, m_min.y, m_min.z);
+	out_[1] = vec3(m_max.x, m_min.y, m_min.z);
+	out_[2] = vec3(m_max.x, m_min.y, m_max.z);
+	out_[3] = vec3(m_min.x, m_min.y, m_max.z);
+	out_[4] = vec3(m_min.x, m_max.y, m_min.z);
+	out_[5] = vec3(m_max.x, m_max.y, m_min.z);
+	out_[6] = vec3(m_max.x, m_max.y, m_max.z);
+	out_[7] = vec3(m_min.x, m_max.y, m_max.z);
+}
+
 /*******************************************************************************
 
                                  Cylinder
