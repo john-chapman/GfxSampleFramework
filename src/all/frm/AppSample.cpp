@@ -560,6 +560,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 				ctx->setUniform ("uLayer",      (float)txView->m_array);
 				ctx->setUniform ("uMip",        (float)txView->m_mip);
 				ctx->setUniform ("uRgbaMask",   uvec4(txView->m_rgbaMask[0], txView->m_rgbaMask[1], txView->m_rgbaMask[2], txView->m_rgbaMask[3]));
+				ctx->setUniform ("uIsDepth",    (int)(txView->m_texture->getFormat() == GL_DEPTH_COMPONENT24)); // \todo better depth/stencil vis
 				ctx->bindTexture("txTexture",   txView->m_texture);
 
                 glAssert(glScissor((int)pcmd->ClipRect.x, (int)(fbY - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y)));
