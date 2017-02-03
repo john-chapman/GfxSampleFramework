@@ -9,6 +9,51 @@ using namespace apt;
 
 // PUBLIC
 
+Camera::Camera(
+	float _aspect,
+	float _fovVertical,
+	float _clipNear,
+	float _clipFar
+	)
+	: m_node(nullptr)
+	, m_up(tan(_fovVertical * 0.5f))
+	, m_down(m_up)
+	, m_left(m_up * _aspect)
+	, m_right(m_up * _aspect)
+	, m_clipNear(_clipNear)
+	, m_clipFar(_clipFar)
+	, m_isOrtho(false)
+	, m_isSymmetric(true)
+	, m_projDirty(true)
+	, m_world(1.0f)
+	, m_localFrustum(m_up, m_down, m_left, m_right, m_clipNear, m_clipFar, m_isOrtho)
+{
+}
+
+Camera::Camera(
+	float _up,
+	float _down,
+	float _left,
+	float _right,
+	float _clipNear,
+	float _clipFar,
+	bool  _isOrtho
+	)
+	: m_node(nullptr)
+	, m_up(_isOrtho ? _up : tan(_up))
+	, m_down(_isOrtho ? _down : tan(_down))
+	, m_left(_isOrtho ? _left : tan(_left))
+	, m_right(_isOrtho ? _right : tan(_right))
+	, m_clipNear(_clipNear)
+	, m_clipFar(_clipFar)
+	, m_isOrtho(_isOrtho)
+	, m_isSymmetric(fabs(m_up) == fabs(m_down) && fabs(m_right) == fabs(m_left))
+	, m_projDirty(true)
+	, m_world(1.0f)
+	, m_localFrustum(m_up, m_down, m_left, m_right, m_clipNear, m_clipFar, m_isOrtho)
+{
+}
+
 void Camera::setIsOrtho(bool _ortho)
 {
 	if (m_isOrtho != _ortho) {
