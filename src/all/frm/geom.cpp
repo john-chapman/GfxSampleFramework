@@ -160,6 +160,16 @@ AlignedBox::AlignedBox(const Sphere& _sphere)
 	m_max = _sphere.m_origin + vec3(_sphere.m_radius);
 }
 
+AlignedBox::AlignedBox(const Frustum& _frustum)
+{
+	m_min = vec3(FLT_MAX);
+	m_max = vec3(-FLT_MAX);
+	for (int i = 0; i < 8; ++i) {
+		m_min = min(m_min, _frustum.m_vertices[i]);
+		m_max = max(m_max, _frustum.m_vertices[i]);
+	}
+}
+
 void AlignedBox::transform(const mat4& _mat)
 {
 	vec3 mx = vec3(column(_mat, 0));
@@ -332,15 +342,15 @@ Frustum::Frustum(const mat4& _invMat)
 {
  // transform an NDC box by the inverse matrix
 	static const vec4 lv[8] = {
-		vec4( 1.0f,  1.0f, -1.0f,  1.0f),
 		vec4(-1.0f,  1.0f, -1.0f,  1.0f),
-		vec4(-1.0f, -1.0f, -1.0f,  1.0f),
+		vec4( 1.0f,  1.0f, -1.0f,  1.0f),
 		vec4( 1.0f, -1.0f, -1.0f,  1.0f),
+		vec4(-1.0f, -1.0f, -1.0f,  1.0f),
 
-		vec4( 1.0f,  1.0f,  1.0f,  1.0f),
 		vec4(-1.0f,  1.0f,  1.0f,  1.0f),
-		vec4(-1.0f, -1.0f,  1.0f,  1.0f),
-		vec4( 1.0f, -1.0f,  1.0f,  1.0f)
+		vec4( 1.0f,  1.0f,  1.0f,  1.0f),
+		vec4( 1.0f, -1.0f,  1.0f,  1.0f),
+		vec4(-1.0f, -1.0f,  1.0f,  1.0f)
 	};
 	vec3 lvt[8];
 	for (int i = 0; i < 8; ++i) {
@@ -361,6 +371,18 @@ Frustum::Frustum(const Frustum& _left, const Frustum& _right)
 	m_vertices[2] = _right.m_vertices[2];
 	m_vertices[5] = _right.m_vertices[5];
 	m_vertices[6] = _right.m_vertices[6];
+	initPlanes();
+}
+
+Frustum::Frustum(const Frustum& _base, float _clipNear, float _clipFar)
+{
+	float d = length(_base.m_planes[Frustum::kFar].getOrigin() - _base.m_planes[Frustum::kNear].getOrigin());
+	float n = _clipNear / d;
+	float f = _clipFar  / d;
+	for (int i = 0; i < 4; ++i) {
+		m_vertices[i]     = mix(_base.m_vertices[i], _base.m_vertices[i + 4], n);
+		m_vertices[i + 4] = mix(_base.m_vertices[i], _base.m_vertices[i + 4], f);
+	}
 	initPlanes();
 }
 
