@@ -163,6 +163,7 @@ public:
 	Node*   createNode(Node::Type _type, Node* _parent = nullptr);
 	void    destroyNode(Node*& _node_);
 	Node*   findNode(Node::Id _id, Node::Type _typeHint = Node::kTypeCount);
+	Node*   findNode(const char* _name, Node::Type _typeHint = Node::kTypeCount);
 	int     getNodeCount(Node::Type _type) const    { return (int)m_nodes[_type].size(); }
 	Node*   getNode(Node::Type _type, int _i) const { return m_nodes[_type][_i]; }
 	Node*   getRoot()                               { return m_root; }
