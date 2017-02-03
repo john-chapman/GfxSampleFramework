@@ -199,12 +199,11 @@ struct Frustum
 		);
 
 	/// Asymmetrical perspective projection or orthographic projection.
-	/// _tanFov* args are offsets in the orthographic case.
 	Frustum(
-		float _tanFovUp,
-		float _tanFovDown,
-		float _tanFovLeft,
-		float _tanFovRight,
+		float _up,          // tan(fov) if ortho
+		float _down,        //        "
+		float _left,        //        "
+		float _right,       //        "
 		float _clipNear,
 		float _clipFar,
 		bool  _isOrtho = false
@@ -218,8 +217,8 @@ struct Frustum
 
 	void transform(const mat4& _mat);
 
-	bool intersect(const Sphere& _sphere) const;
-	bool intersect(const AlignedBox& _box) const;
+	bool inside(const Sphere& _sphere) const;
+	bool inside(const AlignedBox& _box) const;
 
 private:
 	void setVertices(const vec3* _vertices);
