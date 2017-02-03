@@ -116,6 +116,7 @@ struct AlignedBox
 	AlignedBox() {}
 	AlignedBox(const vec3& _min, const vec3& _max);
 	AlignedBox(const Sphere& _sphere);
+	AlignedBox(const Frustum& _frustum);
 
 	void transform(const mat4& _mat);	
 	vec3 getOrigin() const;
@@ -214,6 +215,9 @@ struct Frustum
 
 	/// Construct from a left/right eye frustum (combined frustum for VR).
 	Frustum(const Frustum& _left, const Frustum& _right);
+
+	/// Construct from _base, adjusting the near/far clipping planes.
+	Frustum(const Frustum& _base, float _clipNear, float _clipFar);
 
 	void transform(const mat4& _mat);
 
