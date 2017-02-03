@@ -41,7 +41,7 @@ public:
 			return false;
 		}
 
-		LCG lcg(1223781730);
+		/*LCG lcg(1223781730);
 		for (int i = 0; i < 4; ++i) {
 			m_splinePath.append(vec3(
 				lcg.frand(-10.0f, 10.0f),
@@ -49,14 +49,6 @@ public:
 				lcg.frand(-10.0f, 10.0f)
 				));
 		}
-		//for (int i = 0; i < 3; ++i) {
-		//	m_splinePath.append(vec3((float)i, 0.0f, 
-		//		cosf((float)i)));
-		//}
-		//m_splinePath.append(vec3(0.0f, 0.0f, -1.0f));
-		//m_splinePath.append(vec3(2.0f, 0.0f, -1.0f));
-		//m_splinePath.append(vec3(2.0f, 0.0f, 1.0f));
-
 		m_splinePath.build();
 
 		Scene& scene = Scene::GetCurrent();
@@ -72,6 +64,7 @@ public:
 		XForm_LookAt* lookAtXForm = (XForm_LookAt*)XForm::Create(StringHash("XForm_LookAt"));
 		lookAtXForm->m_target = scene.getRoot();
 		splineNode->addXForm(lookAtXForm);
+		*/
 		
 		return true;
 	}
@@ -122,8 +115,8 @@ public:
 		};
 		ImGui::SameLine();
 		ImGui::PlotLines("##Lines", func, NULL, 200, 0, NULL, 0.0f, 1.0f, ImVec2(0,80));
-	*/
 		m_splinePath.edit();
+	*/
 
 
 		Scene& scene = Scene::GetCurrent();
@@ -140,12 +133,32 @@ public:
 		Line ln(vec3(0.0f, 2.0f, 0.0f), normalize(vec3(1.0f, 1.0f, 0.0f)));
 		LineSegment ls(vec3(-2.0f, 1.0f, 0.0f), vec3(2.0f, -1.0f, 1.0f));
 
-		static vec3 testPos0(0.0f);
-		static vec3 testPos1(-10.0f, 0.0f, 0.0f); 
-		static vec3 testScale(1.0f);
-		static quat testOri = quat(1.0f, 0.0f, 0.0f, 0.0f);
-		//Im3d::Gizmo("TestGizmo0", &testPos0, &testOri, &testScale);
-		//Im3d::Gizmo("TestGizmo1", &testPos1, &testOri, &testScale);
+		static vec3 testPos0(2.0f, 0.0, 0.0f);
+		static vec3 testPos1(-2.0f, 0.0f, 0.0f); 
+		static vec3 testPos2(0.0f, 1.0f, 0.0f); 
+		Im3d::GizmoPosition("testPos0", &testPos0);
+		Im3d::GizmoPosition("testPos1", &testPos1);
+		Im3d::GizmoPosition("testPos2", &testPos2);
+
+		Sphere testSphere(testPos0, 1.5f);
+		AlignedBox testBox(testPos1 - vec3(1.5f), testPos1 + vec3(1.5f));
+		Plane testPlane(vec3(1.0f, 0.0f, 0.0f), testPos2);
+		Camera testCamera(2.0f, -2.0f, -3.0f, 3.0f, 1.0f, 5.0f, true);
+		testCamera.setWorldMatrix(translate(mat4(1.0f), testPos2));
+		testCamera.build();
+		Im3d::PushDrawState();
+			Im3d::SetSize(12.0f);
+			Im3d::SetColor(Im3d::kColorYellow);
+			Im3d::DrawArrow(testPlane.getOrigin(), testPlane.getOrigin() + testPlane.m_normal, 0.2f);
+			Im3d::SetColor(Im3d::kColorMagenta);
+			Im3d::BeginPoints(); Im3d::Vertex(testPlane.getOrigin()); Im3d::End();
+			Im3d::SetSize(2.0f);
+			DrawFrustum(testCamera.getWorldFrustum());
+			Im3d::SetColor(/*Intersects(testSphere, testPlane)*/testCamera.getWorldFrustum().inside(testSphere) ? Im3d::kColorGreen : Im3d::kColorRed);
+			Im3d::DrawSphere(testSphere.m_origin, testSphere.m_radius);
+			Im3d::SetColor(/*Intersects(testBox, testPlane)*/testCamera.getWorldFrustum().inside(testBox) ? Im3d::kColorGreen : Im3d::kColorRed);		
+			Im3d::DrawBox(testBox.m_min, testBox.m_max);
+		Im3d::PopDrawState();
 	
 		return true;
 	}

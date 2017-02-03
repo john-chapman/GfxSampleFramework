@@ -125,7 +125,7 @@ Plane::Plane(const vec3& _p0, const vec3& _p1, const vec3& _p2)
 {
 	vec3 u(_p1 - _p0);
 	vec3 v(_p2 - _p0);
-	m_normal = normalize(cross(u, v));
+	m_normal = normalize(cross(v, u));
 	m_offset = dot(m_normal, (_p0 + _p1 + _p2) / 3.0f);
 }
 
@@ -286,12 +286,12 @@ Frustum::Frustum(float _aspect, float _tanHalfFov, float _clipNear, float _clipF
 	initPlanes();
 }
 
-Frustum::Frustum(float _tanFovUp, float _tanFovDown, float _tanFovLeft, float _tanFovRight, float _clipNear, float _clipFar, bool _isOrtho)
+Frustum::Frustum(float _up, float _down, float _left, float _right, float _clipNear, float _clipFar, bool _isOrtho)
 {
-	float yt =  _tanFovUp;
-	float yb = -_tanFovDown;
-	float xl = -_tanFovLeft;
-	float xr =  _tanFovRight;
+	float yt =  fabs(_up);
+	float yb = -fabs(_down);
+	float xl = -fabs(_left);
+	float xr =  fabs(_right);
 
  // near plane
 	float nt = yt;
@@ -374,7 +374,7 @@ void Frustum::transform(const mat4& _mat)
 	}
 }
 
-bool Frustum::intersect(const Sphere& _sphere) const
+bool Frustum::inside(const Sphere& _sphere) const
 {
 	for (int i = 0; i < 6; ++i) {
 		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
@@ -384,7 +384,7 @@ bool Frustum::intersect(const Sphere& _sphere) const
 	return true;
 }
 
-bool Frustum::intersect(const AlignedBox& _box) const
+bool Frustum::inside(const AlignedBox& _box) const
 {
 	 // todo TEST ALTERNATE METHOD AND TIME
  // build box points from extents
@@ -670,7 +670,7 @@ float frm::Distance2(const Ray& _ray, const LineSegment& _segment)
 }
 float frm::Distance(const Plane& _plane, const vec3& _point)
 { 
-	return _plane.m_offset - dot(_plane.m_normal, _point); 
+	return dot(_plane.m_normal, _point) - _plane.m_offset; 
 }
 float frm::Distance2(const AlignedBox& _box, const vec3& _point)
 {
@@ -808,12 +808,11 @@ bool frm::Intersects(const AlignedBox& _box, const Plane& _plane)
 		}
 	}
 
-	float d = dot(_plane.m_normal, dmin) + _plane.m_offset;
+	float d = dot(_plane.m_normal, dmin) - _plane.m_offset;
 	if (d > 0.0f) {
 		return false;
-	}
-	
-	d = dot(_plane.m_normal, dmax) + _plane.m_offset;
+	}	
+	d = dot(_plane.m_normal, dmax) - _plane.m_offset;
 	if (d >= 0.0f) {
 		return true;
 	}
