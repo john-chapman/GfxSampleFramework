@@ -105,7 +105,7 @@ public:
 		);
 
 	/// \return VertexAttr matching _semantic, or 0 if not present.
-	VertexAttr* findVertexAttr(VertexAttr::Semantic _semantic);
+	const VertexAttr* findVertexAttr(VertexAttr::Semantic _semantic) const;
 
 	uint64    getHash() const;
 	Primitive getPrimitive() const               { return (Primitive)m_primitive; }
