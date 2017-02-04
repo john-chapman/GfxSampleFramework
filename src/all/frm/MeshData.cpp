@@ -92,7 +92,7 @@ VertexAttr* MeshDesc::addVertexAttr(
 	return ret;
 }
 
-VertexAttr* MeshDesc::findVertexAttr(VertexAttr::Semantic _semantic)
+const VertexAttr* MeshDesc::findVertexAttr(VertexAttr::Semantic _semantic) const
 {
 	for (auto i = 0; i < kMaxVertexAttrCount; ++i) {
 		if (m_vertexDesc[i].getSemantic() == _semantic) {
@@ -267,7 +267,7 @@ void MeshData::setVertexData(VertexAttr::Semantic _semantic, DataType _srcType, 
 	APT_ASSERT(m_vertexData);
 	APT_ASSERT(_srcCount <= 4);
 	
-	VertexAttr* attr = m_desc.findVertexAttr(_semantic);
+	const VertexAttr* attr = m_desc.findVertexAttr(_semantic);
 	APT_ASSERT(attr);
 	APT_ASSERT(attr->getCount() == _srcCount); // \todo implement count conversion (trim or pad with 0s)
 
@@ -375,13 +375,13 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	, m_indexData(0)
 {
 
-	VertexAttr* positionsAttr   = m_desc.findVertexAttr(VertexAttr::kPositions);
-	VertexAttr* texcoordsAttr   = m_desc.findVertexAttr(VertexAttr::kTexcoords);
-	VertexAttr* normalsAttr     = m_desc.findVertexAttr(VertexAttr::kNormals);
-	VertexAttr* tangentsAttr    = m_desc.findVertexAttr(VertexAttr::kTangents);
-	VertexAttr* colorsAttr      = m_desc.findVertexAttr(VertexAttr::kColors);
-	VertexAttr* boneWeightsAttr = m_desc.findVertexAttr(VertexAttr::kBoneWeights);
-	VertexAttr* boneIndicesAttr = m_desc.findVertexAttr(VertexAttr::kBoneIndices);
+	const VertexAttr* positionsAttr   = m_desc.findVertexAttr(VertexAttr::kPositions);
+	const VertexAttr* texcoordsAttr   = m_desc.findVertexAttr(VertexAttr::kTexcoords);
+	const VertexAttr* normalsAttr     = m_desc.findVertexAttr(VertexAttr::kNormals);
+	const VertexAttr* tangentsAttr    = m_desc.findVertexAttr(VertexAttr::kTangents);
+	const VertexAttr* colorsAttr      = m_desc.findVertexAttr(VertexAttr::kColors);
+	const VertexAttr* boneWeightsAttr = m_desc.findVertexAttr(VertexAttr::kBoneWeights);
+	const VertexAttr* boneIndicesAttr = m_desc.findVertexAttr(VertexAttr::kBoneIndices);
 	m_vertexData = (char*)malloc(m_desc.getVertexSize() * _meshBuilder.getVertexCount());
 	for (uint32 i = 0; i < _meshBuilder.getVertexCount(); ++i) {
 		char* dst = m_vertexData + i * m_desc.getVertexSize();
@@ -428,7 +428,7 @@ MeshData::~MeshData()
 
 void MeshData::updateSubmeshBounds(Submesh& _submesh)
 {
-	VertexAttr* posAttr = m_desc.findVertexAttr(VertexAttr::kPositions);
+	const VertexAttr* posAttr = m_desc.findVertexAttr(VertexAttr::kPositions);
 	APT_ASSERT(posAttr); // no positions
 	
 	const char* data = m_vertexData + posAttr->getOffset() + _submesh.m_vertexOffset * m_desc.getVertexSize();
