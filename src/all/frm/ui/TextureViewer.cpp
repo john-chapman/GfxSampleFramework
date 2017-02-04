@@ -47,7 +47,7 @@ void TextureViewer::draw(bool* _open_)
 
 	ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiSetCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiSetCond_FirstUseEver);
-	if (!ImGui::Begin("Texture Viewer", _open_)) {
+	if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
 		ImGui::End();
 		return; // window collapsed, early-out
 	}
@@ -168,7 +168,7 @@ void TextureViewer::draw(bool* _open_)
 			vec2 drawEnd   = ImGui::GetItemRectMax();
 			ImDrawList* drawList = ImGui::GetWindowDrawList();
 			drawList->AddRect(drawStart, drawEnd, kColorGrid);
-			drawList->PushClipRect(drawStart, drawEnd);
+			drawList->PushClipRect(drawStart, min(drawEnd, vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowSize())));
 				if ((drawEnd.x - drawStart.x) > (txView->m_size.x * 3.0f)) { // only draw grid if texel density is low enough
 					float scale = thumbSize.x / txView->m_size.x;
 					float bias  = (1.0f - fract(txView->m_offset.x)) * scale;
