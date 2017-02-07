@@ -38,13 +38,12 @@ public:
 		kLoaded      //< Successfully loaded.
 	};
 	
-	/// Increment the reference count for _inst, load if 1.
+	// Increment the reference count for _inst, load if 1.
 	static void     Use(Derived* _inst_);
-	/// Decrement the reference count for _inst_, destroy if 0.
+	// Decrement the reference count for _inst_, destroy if 0.
 	static void     Release(Derived*& _inst_);
 
-	/// Call reload() on all instances.
-	/// \return true if all instances were successfully reloaded, false if any failed.
+	// Call reload() on all instances. Return true if *all* instances were successfully reloaded, false if any failed.
 	static bool     ReloadAll();
 
 	static Derived* Find(Id _id);

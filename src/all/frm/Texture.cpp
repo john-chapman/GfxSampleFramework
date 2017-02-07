@@ -13,6 +13,39 @@ using namespace apt;
 
 /*******************************************************************************
 
+                                 TextureView
+
+*******************************************************************************/
+TextureView::TextureView(Texture* _texture)
+	: m_texture(_texture)
+	, m_offset(0.0f, 0.0f)
+	, m_size(0.0f, 0.0f)
+	, m_mip(0)
+	, m_array(0)
+{
+	m_rgbaMask[0] = m_rgbaMask[1] = m_rgbaMask[2] = m_rgbaMask[3] = true;
+	if (m_texture) {
+		m_size = vec2(_texture->getWidth(), _texture->getHeight());
+		//Texture::Use(m_texture);
+	}
+}
+
+TextureView::~TextureView()
+{
+	//Texture::Release(m_texture);
+}
+
+vec2 TextureView::getNormalizedOffset() const 
+{ 
+	return m_offset / vec2(m_texture->getWidth(), m_texture->getHeight()); 
+}
+vec2 TextureView::getNormalizedSize() const
+{ 
+	return m_size / vec2(m_texture->getWidth(), m_texture->getHeight()); 
+}
+
+/*******************************************************************************
+
                                    Texture
 
 *******************************************************************************/
@@ -168,7 +201,6 @@ bool Texture::reload()
 		setState(State::kError);
 		return false;
 	}
-
 	setState(State::kLoaded);
 
 	return true;
@@ -481,6 +513,7 @@ Texture::Texture(
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_BASE_LEVEL, 0));
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAX_LEVEL, _mipCount - 1));
 	updateParams();
+	
 	setState(State::kLoaded);
 }
 
@@ -707,7 +740,7 @@ bool Texture::loadImage(const Image& _img)
 	setWrap(GL_REPEAT);
 	setMagFilter(GL_LINEAR);
 	setMinFilter(m_mipCount > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-	
+
 	return true;
 }
 
@@ -717,4 +750,5 @@ void Texture::updateParams()
 	glAssert(glGetTextureLevelParameteriv(m_handle, 0, GL_TEXTURE_WIDTH,  &m_width));
 	glAssert(glGetTextureLevelParameteriv(m_handle, 0, GL_TEXTURE_HEIGHT, &m_height));
 	glAssert(glGetTextureLevelParameteriv(m_handle, 0, GL_TEXTURE_DEPTH, m_arrayCount > 1 ? &m_arrayCount : &m_depth));
+	m_defaultTextureView = TextureView(this);
 }

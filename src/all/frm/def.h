@@ -30,26 +30,27 @@ namespace frm {
 	using apt::DataType;
 
  // forward declarations
-	class App;
-	class AppSample;
-	class AppSample3d;
-	class Buffer;
-	class Camera;
-	class Framebuffer;
-	class GlContext;
-	class Mesh;
-	class MeshBuilder;
-	class MeshData;
-	class MeshDesc;
-	class Node;
-	class Serializer;
-	class Scene;
-	class Shader;
-	class SplinePath;
-	class Texture;
-	class TextureAtlas;
-	class Window;
-	class XForm;
+	class  App;
+	class  AppSample;
+	class  AppSample3d;
+	class  Buffer;
+	class  Camera;
+	class  Framebuffer;
+	class  GlContext;
+	class  Mesh;
+	class  MeshBuilder;
+	class  MeshData;
+	class  MeshDesc;
+	class  Node;
+	class  Serializer;
+	class  Scene;
+	class  Shader;
+	class  SplinePath;
+	class  Texture;
+	class  TextureAtlas;
+	struct TextureView;
+	class  Window;
+	class  XForm;
 
 	struct AlignedBox;
 	struct Capsule;
