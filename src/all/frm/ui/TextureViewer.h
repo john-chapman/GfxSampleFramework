@@ -8,10 +8,6 @@
 
 namespace frm { 
 
-class Texture;
-struct TextureView;
-class Shader;
-
 namespace ui {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -22,21 +18,18 @@ class TextureViewer
 public:
 
 	TextureViewer() 
-		: m_selected(-1)
+		: m_selected(nullptr)
 		, m_showHidden(false)
 		, m_showTexelGrid(true)
 		, m_isDragging(false)
 	{
 	}
 
-	void update();
 	void draw(bool* _open_);
 
-	TextureView* findTxView(const Texture* _tx);
+	static vec2 ThumbToTxView(const frm::TextureView& _txView);
 
-	static vec2 ThumbToTxView(const TextureView& _txView);
-
-	int  m_selected;
+	Texture* m_selected;
 	bool m_showHidden;
 	bool m_showTexelGrid;
 	bool m_isDragging;
