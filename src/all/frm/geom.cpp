@@ -125,7 +125,7 @@ Plane::Plane(const vec3& _p0, const vec3& _p1, const vec3& _p2)
 {
 	vec3 u(_p1 - _p0);
 	vec3 v(_p2 - _p0);
-	m_normal = normalize(cross(u, v));
+	m_normal = normalize(cross(v, u));
 	m_offset = dot(m_normal, (_p0 + _p1 + _p2) / 3.0f);
 }
 
@@ -158,6 +158,16 @@ AlignedBox::AlignedBox(const Sphere& _sphere)
 {
 	m_min = _sphere.m_origin - vec3(_sphere.m_radius);
 	m_max = _sphere.m_origin + vec3(_sphere.m_radius);
+}
+
+AlignedBox::AlignedBox(const Frustum& _frustum)
+{
+	m_min = vec3(FLT_MAX);
+	m_max = vec3(-FLT_MAX);
+	for (int i = 0; i < 8; ++i) {
+		m_min = min(m_min, _frustum.m_vertices[i]);
+		m_max = max(m_max, _frustum.m_vertices[i]);
+	}
 }
 
 void AlignedBox::transform(const mat4& _mat)
@@ -286,12 +296,12 @@ Frustum::Frustum(float _aspect, float _tanHalfFov, float _clipNear, float _clipF
 	initPlanes();
 }
 
-Frustum::Frustum(float _tanFovUp, float _tanFovDown, float _tanFovLeft, float _tanFovRight, float _clipNear, float _clipFar, bool _isOrtho)
+Frustum::Frustum(float _up, float _down, float _left, float _right, float _clipNear, float _clipFar, bool _isOrtho)
 {
-	float yt =  _tanFovUp;
-	float yb = -_tanFovDown;
-	float xl = -_tanFovLeft;
-	float xr =  _tanFovRight;
+	float yt =  fabs(_up);
+	float yb = -fabs(_down);
+	float xl = -fabs(_left);
+	float xr =  fabs(_right);
 
  // near plane
 	float nt = yt;
@@ -332,15 +342,15 @@ Frustum::Frustum(const mat4& _invMat)
 {
  // transform an NDC box by the inverse matrix
 	static const vec4 lv[8] = {
-		vec4( 1.0f,  1.0f, -1.0f,  1.0f),
 		vec4(-1.0f,  1.0f, -1.0f,  1.0f),
-		vec4(-1.0f, -1.0f, -1.0f,  1.0f),
+		vec4( 1.0f,  1.0f, -1.0f,  1.0f),
 		vec4( 1.0f, -1.0f, -1.0f,  1.0f),
+		vec4(-1.0f, -1.0f, -1.0f,  1.0f),
 
-		vec4( 1.0f,  1.0f,  1.0f,  1.0f),
 		vec4(-1.0f,  1.0f,  1.0f,  1.0f),
-		vec4(-1.0f, -1.0f,  1.0f,  1.0f),
-		vec4( 1.0f, -1.0f,  1.0f,  1.0f)
+		vec4( 1.0f,  1.0f,  1.0f,  1.0f),
+		vec4( 1.0f, -1.0f,  1.0f,  1.0f),
+		vec4(-1.0f, -1.0f,  1.0f,  1.0f)
 	};
 	vec3 lvt[8];
 	for (int i = 0; i < 8; ++i) {
@@ -364,6 +374,18 @@ Frustum::Frustum(const Frustum& _left, const Frustum& _right)
 	initPlanes();
 }
 
+Frustum::Frustum(const Frustum& _base, float _clipNear, float _clipFar)
+{
+	float d = length(_base.m_planes[Frustum::kFar].getOrigin() - _base.m_planes[Frustum::kNear].getOrigin());
+	float n = _clipNear / d;
+	float f = _clipFar  / d;
+	for (int i = 0; i < 4; ++i) {
+		m_vertices[i]     = mix(_base.m_vertices[i], _base.m_vertices[i + 4], n);
+		m_vertices[i + 4] = mix(_base.m_vertices[i], _base.m_vertices[i + 4], f);
+	}
+	initPlanes();
+}
+
 void Frustum::transform(const mat4& _mat)
 {
 	for (int i = 0; i < 6; ++i) {
@@ -374,7 +396,7 @@ void Frustum::transform(const mat4& _mat)
 	}
 }
 
-bool Frustum::intersect(const Sphere& _sphere) const
+bool Frustum::inside(const Sphere& _sphere) const
 {
 	for (int i = 0; i < 6; ++i) {
 		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
@@ -384,7 +406,7 @@ bool Frustum::intersect(const Sphere& _sphere) const
 	return true;
 }
 
-bool Frustum::intersect(const AlignedBox& _box) const
+bool Frustum::inside(const AlignedBox& _box) const
 {
 	 // todo TEST ALTERNATE METHOD AND TIME
  // build box points from extents
@@ -670,7 +692,7 @@ float frm::Distance2(const Ray& _ray, const LineSegment& _segment)
 }
 float frm::Distance(const Plane& _plane, const vec3& _point)
 { 
-	return _plane.m_offset - dot(_plane.m_normal, _point); 
+	return dot(_plane.m_normal, _point) - _plane.m_offset; 
 }
 float frm::Distance2(const AlignedBox& _box, const vec3& _point)
 {
@@ -808,12 +830,11 @@ bool frm::Intersects(const AlignedBox& _box, const Plane& _plane)
 		}
 	}
 
-	float d = dot(_plane.m_normal, dmin) + _plane.m_offset;
+	float d = dot(_plane.m_normal, dmin) - _plane.m_offset;
 	if (d > 0.0f) {
 		return false;
-	}
-	
-	d = dot(_plane.m_normal, dmax) + _plane.m_offset;
+	}	
+	d = dot(_plane.m_normal, dmax) - _plane.m_offset;
 	if (d >= 0.0f) {
 		return true;
 	}
