@@ -338,6 +338,33 @@ Node* Scene::findNode(Node::Id _id, Node::Type _typeHint)
 	return ret;
 }
 
+Node* Scene::findNode(const char* _name, Node::Type _typeHint)
+{
+	CPU_AUTO_MARKER("Scene::findNode");
+
+	Node* ret = nullptr;
+	if (_typeHint != Node::kTypeCount) {
+		for (auto it = m_nodes[_typeHint].begin(); it != m_nodes[_typeHint].end(); ++it) {
+			if (strcmp((*it)->getName(), _name) == 0) {
+				ret = *it;
+				break;
+			}
+		}
+	}
+	for (int i = 0; ret == nullptr && i < Node::kTypeCount; ++i) {
+		if (i == _typeHint) {
+			continue;
+		}
+		for (auto it = m_nodes[i].begin(); it != m_nodes[i].end(); ++it) {
+			if (strcmp((*it)->getName(), _name) == 0) {
+				ret = *it;
+				break;
+			}
+		}
+	}
+	return ret;
+}
+
 Camera* Scene::createCamera(const Camera& _copyFrom, Node* _parent_)
 {
 	CPU_AUTO_MARKER("Scene::createCamera");

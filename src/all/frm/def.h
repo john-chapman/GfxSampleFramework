@@ -55,6 +55,7 @@ namespace frm {
 	struct AlignedBox;
 	struct Capsule;
 	struct Cylinder;
+	struct Frustum;
 	struct Line;
 	struct LineSegment;
 	struct Plane;
