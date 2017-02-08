@@ -81,6 +81,7 @@ private:
 
 	apt::FileSystem::PathStr m_imguiIniPath;
 	static bool ImGui_Init();
+	static void ImGui_InitStyle();
 	static void ImGui_Shutdown();
 	static void ImGui_Update(AppSample* _app);
 	static void ImGui_RenderDrawLists(ImDrawData* _drawData);
