@@ -466,48 +466,53 @@ void AppSample::ImGui_InitStyle()
 	style.WindowRounding = style.ChildWindowRounding = style.FrameRounding = style.GrabRounding = 4.0f;
 	style.ScrollbarRounding = 16.0f;
 	style.ScrollbarSize = 12.0f;
-	style.FramePadding = ImVec2(2.0f, 2.0f);
+	style.FramePadding = ImVec2(4.0f, 2.0f);
 	style.ItemSpacing = ImVec2(8.0f, 4.0f);
 	style.Alpha = 1.0f;
-	style.Colors[ImGuiCol_Text]                 = ImColor(0xffffffff);
-	style.Colors[ImGuiCol_WindowBg]             = ImColor(0xdc242424);
-	style.Colors[ImGuiCol_ChildWindowBg]        = ImColor(0xdc242424);
-	//style.Colors[ImGuiCol_FrameBg]              = ImColor(_brightness * 1.5f);
-	//style.Colors[ImGuiCol_FrameBgHovered]       = ImColor(_brightness * 2.0f);
-	//style.Colors[ImGuiCol_FrameBgActive]        = ImColor(_brightness * 2.5f);
-	style.Colors[ImGuiCol_TitleBg]              = ImColor(0xdc242424);
-	style.Colors[ImGuiCol_TitleBgCollapsed]     = ImColor(0x7f242424);
-	style.Colors[ImGuiCol_TitleBgActive]        = ImColor(0xff101010);
-	style.Colors[ImGuiCol_MenuBarBg]            = ImColor(0xff242424);
-	style.Colors[ImGuiCol_ScrollbarBg]          = ImColor(0xff101010);
-	style.Colors[ImGuiCol_ScrollbarGrab]        = ImColor(0xff4f4f4f);
-	//style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImColor(_brightness * 2.5f);
-	//style.Colors[ImGuiCol_ScrollbarGrabActive]  = ImColor(_brightness * 2.5f);
-	style.Colors[ImGuiCol_Button]               = ImColor(0xff4e3623);
-	style.Colors[ImGuiCol_ComboBg]              = ImColor(0xff4e3623);
-	//style.Colors[ImGuiCol_ButtonHovered]        = kColor;//ImColor(_brightness* 2.5f);
-	//style.Colors[ImGuiCol_ButtonActive]         = ImColor(kTextBrightness * 0.75f);
-	//style.Colors[ImGuiCol_ResizeGrip]           = ImColor(_brightness * 1.5f);
-	//style.Colors[ImGuiCol_ResizeGripHovered]    = ImColor(_brightness * 2.0f);
-	//style.Colors[ImGuiCol_ResizeGripActive]     = ImColor(_brightness * 1.5f);
-	//style.Colors[ImGuiCol_CheckMark]            = ImColor(_brightness * 4.0f);
-	//style.Colors[ImGuiCol_SliderGrab]           = ImColor(_brightness * 2.0f);
-	//style.Colors[ImGuiCol_SliderGrabActive]     = ImColor(_brightness * 4.0f);
-	//style.Colors[ImGuiCol_Header]               = style.Colors[ImGuiCol_FrameBg];
-	//style.Colors[ImGuiCol_HeaderHovered]        = style.Colors[ImGuiCol_ButtonHovered];
-	//style.Colors[ImGuiCol_HeaderActive]         = style.Colors[ImGuiCol_FrameBg];
-	//style.Colors[ImGuiCol_ModalWindowDarkening] = kColorDark;
-	//style.Colors[ImGuiCol_ModalWindowDarkening].w = 0.9f;
-	//style.Colors[ImGuiCol_Border]               = ImColor(_brightness * 1.25f);
-	//style.Colors[ImGuiCol_BorderShadow]         = ImColor(_brightness * 0.75f);
-	//style.Colors[ImGuiCol_Column]               = style.Colors[ImGuiCol_Border];
-	//style.Colors[ImGuiCol_ColumnHovered]        = style.Colors[ImGuiCol_ButtonHovered];
-	//style.Colors[ImGuiCol_ColumnActive]         = style.Colors[ImGuiCol_ButtonActive];
-	//style.Colors[ImGuiCol_TextSelectedBg]       = style.Colors[ImGuiCol_ButtonHovered];
-	//style.Colors[ImGuiCol_PlotLines]            = kColorBright;//ImColor(kTextBrightness);
-	//style.Colors[ImGuiCol_PlotLinesHovered]     = ImColor(kTextBrightness);
-	//style.Colors[ImGuiCol_PlotHistogram]        = kColorBright;
-	//style.Colors[ImGuiCol_PlotHistogramHovered] = ImColor(kTextBrightness);
+
+	style.Colors[ImGuiCol_Text]                     = ImColor(0xffdedede);
+    style.Colors[ImGuiCol_TextDisabled]             = ImColor(0xd0dedede);
+    style.Colors[ImGuiCol_WindowBg]                 = ImColor(0xdc242424);
+    style.Colors[ImGuiCol_ChildWindowBg]            = ImColor(0xff242424);
+    style.Colors[ImGuiCol_PopupBg]                  = ImColor(0xdc101010);
+    style.Colors[ImGuiCol_Border]                   = ImColor(0x08050505);
+    style.Colors[ImGuiCol_BorderShadow]             = ImColor(0x04040404);
+    style.Colors[ImGuiCol_FrameBg]                  = ImColor(0xff604328);
+    style.Colors[ImGuiCol_FrameBgHovered]           = ImColor(0xff705338);
+    style.Colors[ImGuiCol_FrameBgActive]			= ImColor(0xff705338);
+    style.Colors[ImGuiCol_TitleBg]                  = ImColor(0xdc242424);
+    style.Colors[ImGuiCol_TitleBgCollapsed]			= ImColor(0x7f242424);
+    style.Colors[ImGuiCol_TitleBgActive]			= ImColor(0xff101010);
+    style.Colors[ImGuiCol_MenuBarBg]				= ImColor(0xdc242424);
+	style.Colors[ImGuiCol_ScrollbarBg]              = ImColor(0xef0b0b0b);
+    style.Colors[ImGuiCol_ScrollbarGrab]            = ImColor(0xef4f4f4f);
+    style.Colors[ImGuiCol_ScrollbarGrabHovered]     = ImColor(0xff4f4f4f);
+    style.Colors[ImGuiCol_ScrollbarGrabActive]    = ImColor(0xff4f4f4f);
+    style.Colors[ImGuiCol_ComboBg]                  = ImColor(0xff513926);
+    //style.Colors[ImGuiCol_CheckMark]
+    style.Colors[ImGuiCol_SliderGrab]               = ImColor(0xffe0853d);
+    style.Colors[ImGuiCol_SliderGrabActive]         = ImColor(0xfff0954d);
+    style.Colors[ImGuiCol_Button]                   = ImColor(0xff714c2b);
+    style.Colors[ImGuiCol_ButtonHovered]            = ImColor(0xff815c3b);
+    style.Colors[ImGuiCol_ButtonActive]             = ImColor(0xff815c3b);
+    style.Colors[ImGuiCol_Header]                   = ImColor(0xff604328);
+    style.Colors[ImGuiCol_HeaderHovered]            = ImColor(0xff705338);
+    style.Colors[ImGuiCol_HeaderActive]             = ImColor(0xff705338);
+    //style.Colors[ImGuiCol_Column]
+    //style.Colors[ImGuiCol_ColumnHovered]
+    //style.Colors[ImGuiCol_ColumnActive]
+    //style.Colors[ImGuiCol_ResizeGrip]
+    //style.Colors[ImGuiCol_ResizeGripHovered]
+    //style.Colors[ImGuiCol_ResizeGripActive]
+    style.Colors[ImGuiCol_CloseButton]              = ImColor(0xff353535);
+    style.Colors[ImGuiCol_CloseButtonHovered]       = ImColor(0xff454545);
+    style.Colors[ImGuiCol_CloseButtonActive]        = ImColor(0xff454545);
+    //style.Colors[ImGuiCol_PlotLines]
+    //style.Colors[ImGuiCol_PlotLinesHovered]
+    //style.Colors[ImGuiCol_PlotHistogram]
+    //style.Colors[ImGuiCol_PlotHistogramHovered]
+    //style.Colors[ImGuiCol_TextSelectedBg]
+    //style.Colors[ImGuiCol_ModalWindowDarkening]
 }
 
 void AppSample::ImGui_Shutdown()
@@ -544,7 +549,7 @@ void AppSample::ImGui_Update(AppSample* _app)
 	io.DeltaTime = (float)_app->m_deltaTime;
 	ImGui::NewFrame(); // must call after m_window->pollEvents()
 
-ImGui::ShowTestWindow();
+	//ImGui::ShowTestWindow();
 }
 
 void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
