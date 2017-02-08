@@ -1,5 +1,6 @@
 #include <frm/Scene.h>
 
+#include <frm/icon_fa.h>
 #include <frm/Camera.h>
 #include <frm/Profiler.h>
 #include <frm/XForm.h>
@@ -25,6 +26,13 @@ static const char* kNodeTypeStr[] =
 	"Camera",
 	"Object",
 	"Light"
+};
+static const char* kNodeTypeIconStr[] =
+{
+	ICON_FA_COG,          // root
+	ICON_FA_VIDEO_CAMERA, // camera
+	ICON_FA_CUBE,         // object
+	ICON_FA_LIGHTBULB_O   // light
 };
 static Node::Type NodeTypeFromStr(const char* _str)
 {
@@ -579,14 +587,14 @@ void Scene::edit()
 		ImGuiWindowFlags_AlwaysAutoResize
 		);
 
-	if (ImGui::TreeNode("Node Counters")) {
+	if (ImGui::TreeNode("Scene Info")) {
 		int totalNodes = 0;
 		for (int i = 0; i < Node::kTypeCount; ++i) {
-			ImGui::Text("%-15s: %d", kNodeTypeStr[i], (int)m_nodes[i].size());
+			ImGui::Text("%d %s ", (int)m_nodes[i].size(), kNodeTypeIconStr[i]);
+			ImGui::SameLine();
 			totalNodes += (int)m_nodes[i].size();
 		}
 		ImGui::Spacing();
-		ImGui::Text("Total          : %d", totalNodes);
 
 		ImGui::TreePop();
 	}
@@ -638,14 +646,14 @@ void Scene::editNodes()
 {
 	if (ImGui::CollapsingHeader("Nodes")) {
 		ImGui::PushID("SelectNode");
-			if (ImGui::Button("Select")) {
+			if (ImGui::Button(ICON_FA_LIST_UL " Select")) {
 				beginSelectNode();
 			}
 			Node* newEditNode = selectNode(m_editNode);
 		ImGui::PopID();
 
 		ImGui::SameLine();
-		if (ImGui::Button("Create")) {
+		if (ImGui::Button(ICON_FA_FILE_O " Create")) {
 			beginCreateNode();
 		}
 		newEditNode = createNode(newEditNode);
@@ -654,7 +662,7 @@ void Scene::editNodes()
 			bool destroyNode = false;
 
 			ImGui::SameLine();
-			if (ImGui::Button("Destroy")) {
+			if (ImGui::Button(ICON_FA_TIMES " Destroy")) {
 				destroyNode = true;
 			 // don't destroy the last root/camera
 			 // \todo modal warning when deleting a root or a node with children?
@@ -696,7 +704,7 @@ void Scene::editNodes()
 		 // \todo check for loops
 			ImGui::Spacing();
 			ImGui::PushID("SelectParent");
-				if (ImGui::Button("Parent ->")) {
+				if (ImGui::Button(ICON_FA_LINK " Parent")) {
 					beginSelectNode();
 				}
 				Node* newParent = selectNode(m_editNode->getParent());
@@ -727,7 +735,7 @@ void Scene::editNodes()
 				if (ImGui::TreeNode("Children")) {
 					for (auto it = m_editNode->m_children.begin(); it != m_editNode->m_children.end(); ++it) {
 						Node* child = *it;
-						ImGui::Text("[%s] %s", kNodeTypeStr[child->getType()], child->getName());
+						ImGui::Text("%s %s", kNodeTypeIconStr[child->getType()], child->getName());
 						if (ImGui::IsItemClicked()) {
 							newEditNode = child;
 							break;
@@ -742,7 +750,7 @@ void Scene::editNodes()
 			if (ImGui::TreeNode("XForms")) {
 				bool destroyXForm = false;
 
-				if (ImGui::Button("Create")) {
+				if (ImGui::Button(ICON_FA_FILE_O " Create")) {
 					beginCreateXForm();
 				}
 				XForm* newEditXForm = createXForm(m_editXForm);
@@ -751,15 +759,15 @@ void Scene::editNodes()
 				}
 				if (m_editXForm != nullptr) {
 					ImGui::SameLine();
-					if (ImGui::Button("Destroy")) {
+					if (ImGui::Button(ICON_FA_TIMES " Destroy")) {
 						destroyXForm = true;
 					}
 					ImGui::SameLine();
-					if (ImGui::Button("Move Up")) {
+					if (ImGui::Button(ICON_FA_ARROW_UP)) {
 						m_editNode->moveXForm(m_editXForm, -1);
 					}
 					ImGui::SameLine();
-					if (ImGui::Button("MoveDown")) {
+					if (ImGui::Button(ICON_FA_ARROW_DOWN)) {
 						m_editNode->moveXForm(m_editXForm, 1);
 					}
 				}
@@ -835,14 +843,14 @@ void Scene::editCameras()
 {
 	if (ImGui::CollapsingHeader("Cameras")) {
 		ImGui::PushID("SelectCamera");
-			if (ImGui::Button("Select##Camera")) {
+			if (ImGui::Button(ICON_FA_LIST_UL " Select##Camera")) {
 				beginSelectCamera();
 			}
 			Camera* newEditCamera = selectCamera(m_editCamera);
 		ImGui::PopID();
 
 		ImGui::SameLine();
-		if (ImGui::Button("Create")) {
+		if (ImGui::Button(ICON_FA_FILE_O " Create")) {
 			newEditCamera = createCamera(Camera());
 		}
 
@@ -850,7 +858,7 @@ void Scene::editCameras()
 			bool destroy = false;
 
 			ImGui::SameLine();
-			if (ImGui::Button("Destroy")) {
+			if (ImGui::Button(ICON_FA_TIMES " Destroy")) {
 				destroy = true;
 				if (m_cameras.size() == 1) {
 					APT_LOG_ERR("Error: Can't delete the only Camera");
@@ -859,16 +867,16 @@ void Scene::editCameras()
 			}
 
 			ImGui::Separator();
-			ImGui::Spacing();
 
-			if (ImGui::Button("Set Draw Camera")) {
+			if (ImGui::Button(ICON_FA_VIDEO_CAMERA " Set Draw Camera")) {
 				m_drawCamera = m_editCamera;
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Set Cull Camera")) {
+			if (ImGui::Button(ICON_FA_CUBES " Set Cull Camera")) {
 				m_cullCamera = m_editCamera;
 			}
-			if (ImGui::Button("Set Current Node")) {
+			ImGui::SameLine();
+			if (ImGui::Button(ICON_FA_GAMEPAD " Set Current Node")) {
 			 // deselect any camera nodes
 				for (int i = 0; i < getNodeCount(Node::kTypeCamera); ++i) {
 					Node* node = getNode(Node::kTypeCamera, i);
@@ -879,6 +887,7 @@ void Scene::editCameras()
 				m_editCamera->getNode()->setSelected(true);
 			}
 
+			ImGui::Spacing();
 			ImGui::Spacing();
 			static Node::NameStr s_nameBuf;
 			s_nameBuf.set(m_editCamera->getNode()->m_name);
@@ -981,7 +990,7 @@ Node* Scene::selectNode(Node* _current, Node::Type _type)
 				if (m_nodes[type][node] == _current) {
 					continue;
 				}
-				String<32> tmp("[%s] %s", kNodeTypeStr[type], m_nodes[type][node]->getName());
+				String<32> tmp("%s %s", kNodeTypeIconStr[type], m_nodes[type][node]->getName());
 				if (filter.PassFilter(tmp)) {
 					if (ImGui::Selectable(tmp)) {
 						ret = m_nodes[type][node];
@@ -1036,7 +1045,7 @@ Node* Scene::createNode(Node* _current)
 {
 	Node* ret = _current;
 	if (ImGui::BeginPopup("Create Node")) {
-		static const char* kNodeTypeComboStr = "Root\0Camera\0Object\0Light\0";
+		static const char* kNodeTypeComboStr = ICON_FA_COG " Root\0" ICON_FA_VIDEO_CAMERA " Camera\0" ICON_FA_CUBE " Object\0" ICON_FA_LIGHTBULB_O " Light\0";
 		static int s_type = Node::kTypeObject;
 		ImGui::Combo("Type", &s_type , kNodeTypeComboStr);
 
@@ -1068,7 +1077,19 @@ Node* Scene::createNode(Node* _current)
 
 void Scene::drawHierarchy(Node* _node)
 {
-	String<32> tmp("[%s] %s %s", kNodeTypeStr[_node->getType()], _node->getName(), _node->isSelected() ? "*" : "");
+	String<32> tmp("%s %s", kNodeTypeIconStr[_node->getType()], _node->getName());
+	if (m_editNode == _node) {
+		tmp.append(" " ICON_FA_CARET_LEFT);
+	}
+	if (_node->getType() == Node::kTypeCamera && _node->isSelected()) {
+		tmp.append(" " ICON_FA_GAMEPAD);
+	}
+	if (_node->getType() == Node::kTypeCamera && m_drawCamera == _node->getSceneDataCamera()) {
+		tmp.append(" " ICON_FA_VIDEO_CAMERA);
+	}
+	if (_node->getType() == Node::kTypeCamera && m_cullCamera == _node->getSceneDataCamera()) {
+		tmp.append(" " ICON_FA_CUBES);
+	}
 	ImVec4 col = ImColor(0.1f, 0.1f, 0.1f, 1.0f); // = inactive
 	if (_node->isActive()) {
 		if (_node->isDynamic()) {

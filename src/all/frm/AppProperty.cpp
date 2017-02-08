@@ -1,5 +1,6 @@
 #include <frm/AppProperty.h>
 
+#include <frm/icon_fa.h>
 #include <frm/Input.h>
 
 #include <apt/memory.h>
@@ -319,7 +320,7 @@ static bool PathEdit(AppProperty& _prop)
 		}
 	}
 	ImGui::SameLine();
-	ImGui::Text("-> \"%s\"", _prop.getValue<char*>());
+	ImGui::Text(ICON_FA_FLOPPY_O "  \"%s\"", _prop.getValue<char*>());
 	return ret;
 }
 

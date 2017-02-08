@@ -1,6 +1,7 @@
 #include <frm/Texture.h>
 
 #include <frm/gl.h>
+#include <frm/icon_fa.h>
 #include <frm/GlContext.h>
 #include <frm/Resource.h>
 
@@ -134,11 +135,11 @@ struct TextureViewer
 				filter.Draw("Filter##TextureName");
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
-			if (ImGui::Button("Reload All")) {
+			if (ImGui::Button(ICON_FA_REFRESH " Reload All")) {
 				Texture::ReloadAll();
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Load")) {
+			if (ImGui::Button(ICON_FA_FLOPPY_O " Load")) {
 				FileSystem::PathStr pth;
 				if (FileSystem::PlatformSelect(pth)) {
 					FileSystem::StripRoot(pth, pth);
@@ -195,16 +196,16 @@ struct TextureViewer
 			Texture& tx = *txView.m_texture;
 			float txAspect = (float)tx.getWidth() / (float)tx.getHeight();
 	
-			if (ImGui::Button("<-")) {
+			if (ImGui::Button(ICON_FA_BACKWARD)) {
 				m_selected = -1;
 			}
 			if (*tx.getPath() != '\0') {
 				ImGui::SameLine();
-				if (ImGui::Button("Reload")) {
+				if (ImGui::Button(ICON_FA_REFRESH " Reload")) {
 					tx.reload();
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("Replace")) {
+				if (ImGui::Button(ICON_FA_FLOPPY_O " Replace")) {
 					FileSystem::PathStr pth;
 					if (FileSystem::PlatformSelect(pth)) {
 						tx.setPath(pth);

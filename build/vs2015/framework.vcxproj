@@ -132,6 +132,7 @@
     <ClInclude Include="..\..\src\all\frm\Camera.h" />
     <ClInclude Include="..\..\src\all\frm\Framebuffer.h" />
     <ClInclude Include="..\..\src\all\frm\GlContext.h" />
+    <ClInclude Include="..\..\src\all\frm\icon_fa.h" />
     <ClInclude Include="..\..\src\all\frm\Input.h" />
     <ClInclude Include="..\..\src\all\frm\LuaScript.h" />
     <ClInclude Include="..\..\src\all\frm\Mesh.h" />
