@@ -406,6 +406,16 @@ bool Frustum::inside(const Sphere& _sphere) const
 	return true;
 }
 
+bool Frustum::insideIgnoreNear(const Sphere& _sphere) const
+{
+	for (int i = 1; i < 6; ++i) {
+		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
+			return false;
+		}
+	}
+	return true;
+}
+
 bool Frustum::inside(const AlignedBox& _box) const
 {
 	 // todo TEST ALTERNATE METHOD AND TIME
