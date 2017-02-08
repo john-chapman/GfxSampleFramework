@@ -10,36 +10,12 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// TextureView
-/// Represents a subregion (offset, size) of a texture mip or array layer, plus
-/// a color mask.
-////////////////////////////////////////////////////////////////////////////////
-struct TextureView
-{
-	Texture* m_texture;
-	vec2     m_offset;
-	vec2     m_size;
-	GLint    m_mip;
-	GLint    m_array;
-	bool     m_rgbaMask[4];
-
-	TextureView(Texture* _texture = 0);
-	~TextureView();
-
-	vec2 getNormalizedOffset() const;
-	vec2 getNormalizedSize() const;
-
-}; // struct TextureView
-
-////////////////////////////////////////////////////////////////////////////////
 /// Texture
 /// \note When loading from a apt::Image, texture data is inverted in V.
 ////////////////////////////////////////////////////////////////////////////////
 class Texture: public Resource<Texture>
 {
 public:
-	TextureView m_defaultTextureView;
-
 	// Load from a file.
 	static Texture* Create(const char* _path);
 	// Create an empty texture (the resource name is unique).
@@ -50,10 +26,11 @@ public:
 	static Texture* Create3d(GLsizei _width, GLsizei _height, GLsizei _depth, GLenum _format, GLint _mipCount = 1);
 	// Create a proxy for an existing texture (i.e. a texture not directly controlled by the application).
 	static Texture* CreateProxy(GLuint _handle, const char* _name);
-
-	static void Destroy(Texture*& _inst_);
+	static void     Destroy(Texture*& _inst_);
 	
 	static GLint GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth = 1);
+
+	static void ShowTextureViewer(bool* _open_);
 
 	bool load()   { return reload(); }
 	bool reload();
@@ -119,6 +96,9 @@ public:
 	const char* getPath() const                 { return m_path;       }
 	void        setPath(const char* _path)      { m_path.set(_path);   }
 
+	bool        isCompressed() const;
+	bool        isDepth() const;
+
 protected:
 	Texture(uint64 _id, const char* _name);
 	Texture(
@@ -133,8 +113,6 @@ protected:
 		GLenum _format
 		);
 	~Texture();
-
-	bool isCompressed() const;
 
 private:
 	apt::String<32> m_path;  // Empty if not from a file.
@@ -168,6 +146,31 @@ private:
 	void updateParams();
 		
 }; // class Texture
+
+
+////////////////////////////////////////////////////////////////////////////////
+/// TextureView
+/// Represents a subregion (offset, size) of a texture mip or array layer, plus
+/// a color mask.
+////////////////////////////////////////////////////////////////////////////////
+struct TextureView
+{
+	Texture* m_texture;
+	vec2     m_offset;
+	vec2     m_size;
+	GLint    m_mip;
+	GLint    m_array;
+	bool     m_rgbaMask[4];
+
+	TextureView(Texture* _texture = 0);
+	~TextureView();
+
+	void reset();
+
+	vec2 getNormalizedOffset() const;
+	vec2 getNormalizedSize() const;
+
+}; // struct TextureView
 
 
 } // namespace frm
