@@ -196,7 +196,7 @@ int main(int _argc, char** _argv)
 	while (app->update()) {
 		APT_VERIFY(GlContext::MakeCurrent(ctx));
 		glAssert(glViewport(0, 0, win->getWidth(), win->getHeight()));
-		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+		glAssert(glClearColor(0.3f, 0.3f, 0.3f, 0.0f));
 		glAssert(glClear(GL_COLOR_BUFFER_BIT));
 
 		app->draw();
