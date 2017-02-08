@@ -223,6 +223,8 @@ struct Frustum
 
 	bool inside(const Sphere& _sphere) const;
 	bool inside(const AlignedBox& _box) const;
+	
+	bool insideIgnoreNear(const Sphere& _sphere) const;
 
 private:
 	void setVertices(const vec3* _vertices);
