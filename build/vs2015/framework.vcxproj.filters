@@ -157,6 +157,7 @@
     <ClInclude Include="..\..\src\all\frm\ui\ShaderViewer.h">
       <Filter>ui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\icon_fa.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">
