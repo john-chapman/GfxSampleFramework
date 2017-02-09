@@ -424,15 +424,17 @@ bool AppSample::ImGui_Init()
 	}
 	unsigned char* buf;
 	int txX, txY;
-	io.Fonts->AddFontDefault();
 	ImFontConfig fontCfg;
 	fontCfg.OversampleH = fontCfg.OversampleV = 1;
+	io.Fonts->AddFontDefault();
+	//io.Fonts->AddFontFromFileTTF("common/fonts/Roboto-Regular.ttf", 13.0f, &fontCfg);
 	fontCfg.MergeMode = true;
 	const ImWchar glyphRanges[] = { 0xf000, 0xf2e0, 0 };
-
-	io.Fonts->AddFontFromFileTTF("common/fonts/fontawesome-webfont.ttf", 14.0f, &fontCfg, glyphRanges);
+	io.Fonts->AddFontFromFileTTF("common/fonts/fontawesome-webfont.ttf", 13.0f, &fontCfg, glyphRanges);
+	
 	io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
 	g_txImGui = Texture::Create2d(txX, txY, GL_R8);
+	g_txImGui->setFilter(GL_NEAREST);
 	g_txImGui->setName("#ImGuiFont");
 	g_txImGui->setData(buf, GL_RED, GL_UNSIGNED_BYTE);
 	g_txViewImGui = TextureView(g_txImGui);
