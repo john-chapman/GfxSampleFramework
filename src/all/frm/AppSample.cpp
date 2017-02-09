@@ -199,6 +199,9 @@ bool AppSample::update()
 	if (ImGui::IsKeyPressed(Keyboard::k2) && ImGui::IsKeyDown(Keyboard::kLCtrl)) {
 		*m_showTextureViewer = !*m_showTextureViewer;
 	}
+	if (ImGui::IsKeyPressed(Keyboard::k3) && ImGui::IsKeyDown(Keyboard::kLCtrl)) {
+		*m_showShaderViewer = !*m_showShaderViewer;
+	}
 	
  // AppSample UI
 	const float kStatusBarHeight = ImGui::GetItemsLineHeightWithSpacing();// + 4.0f;
@@ -269,7 +272,7 @@ bool AppSample::update()
 				ImGui::MenuItem("Properties",     "Ctrl+Shift+P", m_showPropertyEditor);
 				ImGui::MenuItem("Profiler",       "Ctrl+1",       m_showProfilerViewer);
 				ImGui::MenuItem("Texture Viewer", "Ctrl+2",       m_showTextureViewer);
-				ImGui::MenuItem("Shader Viewer",  0,              m_showShaderViewer);
+				ImGui::MenuItem("Shader Viewer",  "Ctrl+3",       m_showShaderViewer);
 				
 				ImGui::EndMenu();
 			}
@@ -500,9 +503,9 @@ void AppSample::ImGui_InitStyle()
     style.Colors[ImGuiCol_Button]                   = ImColor(0xff714c2b);
     style.Colors[ImGuiCol_ButtonHovered]            = ImColor(0xff815c3b);
     style.Colors[ImGuiCol_ButtonActive]             = ImColor(0xff815c3b);
-    style.Colors[ImGuiCol_Header]                   = ImColor(0xff604328);
-    style.Colors[ImGuiCol_HeaderHovered]            = ImColor(0xff705338);
-    style.Colors[ImGuiCol_HeaderActive]             = ImColor(0xff705338);
+    style.Colors[ImGuiCol_Header]                   = ImColor(0xdc242424);
+    style.Colors[ImGuiCol_HeaderHovered]            = ImColor(0xdc343434);
+    style.Colors[ImGuiCol_HeaderActive]             = ImColor(0xdc242424);
     //style.Colors[ImGuiCol_Column]
     //style.Colors[ImGuiCol_ColumnHovered]
     //style.Colors[ImGuiCol_ColumnActive]

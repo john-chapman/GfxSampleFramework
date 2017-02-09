@@ -106,7 +106,7 @@ bool AppSample3d::update()
 		} else {
 			m_dbgCullCamera = scene.createCamera(*scene.getCullCamera());
 			Node* node = m_dbgCullCamera->getNode();
-			node->setName("DBG CULL CAMERA");
+			node->setName("#DEBUG CULL CAMERA");
 			node->setDynamic(false);
 			node->setActive(false);
 			node->setLocalMatrix(scene.getCullCamera()->getWorldMatrix());
