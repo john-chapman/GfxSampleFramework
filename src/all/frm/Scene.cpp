@@ -224,8 +224,11 @@ Scene::Scene()
 #ifdef frm_Scene_ENABLE_EDIT
 	, m_showNodeGraph3d(false)
 	, m_editNode(nullptr)
+	, m_storedNode(nullptr)
 	, m_editXForm(nullptr)
 	, m_editCamera(nullptr)
+	, m_storedCullCamera(nullptr)
+	, m_storedDrawCamera(nullptr)
 #endif
 {
 	m_root = m_nodePool.alloc(Node(m_nextNodeId++));
@@ -451,6 +454,11 @@ bool Scene::serialize(JsonSerializer& _serializer_)
 				m_cullCamera = n->getSceneDataCamera();
 			}
 		}
+	}
+
+	APT_ASSERT(m_drawCamera != nullptr);
+	if (m_cullCamera == nullptr) {
+		m_cullCamera = m_drawCamera;
 	}
 
 	return true;
@@ -870,28 +878,46 @@ void Scene::editCameras()
 
 			ImGui::PushStyleColor(ImGuiCol_Text, m_drawCamera == m_editCamera ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_VIDEO_CAMERA " Set Draw Camera")) {
-				m_drawCamera = m_editCamera;
+				if (m_drawCamera == m_editCamera && m_storedDrawCamera != nullptr) {
+					m_drawCamera = m_storedDrawCamera;
+				} else {
+					m_storedDrawCamera = m_drawCamera;
+					m_drawCamera = m_editCamera;
+				}
 			}
 			ImGui::PopStyleColor();
 			
 			ImGui::SameLine();
 			ImGui::PushStyleColor(ImGuiCol_Text, m_cullCamera == m_editCamera ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_CUBES " Set Cull Camera")) {
-				m_cullCamera = m_editCamera;
+				if (m_cullCamera == m_editCamera && m_storedCullCamera != nullptr) {
+					m_cullCamera = m_storedCullCamera;
+				} else {
+					m_storedCullCamera = m_cullCamera;
+					m_cullCamera = m_editCamera;
+				}
 			}
 			ImGui::PopStyleColor();
 
 			ImGui::SameLine();
 			ImGui::PushStyleColor(ImGuiCol_Text, m_editCamera->getNode()->isSelected() ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_GAMEPAD " Set Current Node")) {
-			 // deselect any camera nodes
-				for (int i = 0; i < getNodeCount(Node::kTypeCamera); ++i) {
-					Node* node = getNode(Node::kTypeCamera, i);
-					if (node->isSelected()) {
-						node->setSelected(false);
+			 	Node* editCameraNode = m_editCamera->getNode();
+				if (editCameraNode->isSelected() && m_storedNode != nullptr) {
+					editCameraNode->setSelected(false);
+					m_storedNode->setSelected(true);
+				} else {
+				 // deselect any camera nodes \todo potentially buggy
+					for (int i = 0; i < getNodeCount(Node::kTypeCamera); ++i) {
+						Node* node = getNode(Node::kTypeCamera, i);
+						if (node->isSelected()) {
+							m_storedNode = node;
+							node->setSelected(false);
+							break;
+						}
 					}
+					editCameraNode->setSelected(true);
 				}
-				m_editCamera->getNode()->setSelected(true);
 			}
 			ImGui::PopStyleColor();
 

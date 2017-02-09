@@ -220,8 +220,11 @@ private:
 #ifdef frm_Scene_ENABLE_EDIT
 	bool      m_showNodeGraph3d;
 	Node*     m_editNode;
+	Node*     m_storedNode;
 	XForm*    m_editXForm;
 	Camera*   m_editCamera;
+	Camera*   m_storedCullCamera;
+	Camera*   m_storedDrawCamera;
 
 	void      editNodes();
 	void      editCameras();
