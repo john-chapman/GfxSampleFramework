@@ -1,5 +1,6 @@
 #include <frm/AppSample.h>
 
+#include <frm/icon_fa.h>
 #include <frm/math.h>
 #include <frm/App.h>
 #include <frm/Framebuffer.h>
@@ -126,11 +127,11 @@ bool AppSample::init(const apt::ArgList& _args)
 		ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_AlwaysAutoResize
 		);
-	ImGui::Text("Loading");
+	ImGui::Text(ICON_FA_SPINNER " Loading");
 	ImGui::End();
 	ImGui::PopStyleColor();
 	AppSample::draw();
-	
+
 	return true;
 }
 
@@ -479,19 +480,19 @@ void AppSample::ImGui_InitStyle()
     style.Colors[ImGuiCol_WindowBg]                 = ImColor(0xdc242424);
     style.Colors[ImGuiCol_ChildWindowBg]            = ImColor(0xff242424);
     style.Colors[ImGuiCol_PopupBg]                  = ImColor(0xdc101010);
-    style.Colors[ImGuiCol_Border]                   = ImColor(0x08050505);
+    style.Colors[ImGuiCol_Border]                   = ImColor(0x080a0a0a);
     style.Colors[ImGuiCol_BorderShadow]             = ImColor(0x04040404);
     style.Colors[ImGuiCol_FrameBg]                  = ImColor(0xff604328);
     style.Colors[ImGuiCol_FrameBgHovered]           = ImColor(0xff705338);
     style.Colors[ImGuiCol_FrameBgActive]			= ImColor(0xff705338);
     style.Colors[ImGuiCol_TitleBg]                  = ImColor(0xdc242424);
     style.Colors[ImGuiCol_TitleBgCollapsed]			= ImColor(0x7f242424);
-    style.Colors[ImGuiCol_TitleBgActive]			= ImColor(0xff101010);
+    style.Colors[ImGuiCol_TitleBgActive]			= ImColor(0xff0a0a0a);
     style.Colors[ImGuiCol_MenuBarBg]				= ImColor(0xdc242424);
-	style.Colors[ImGuiCol_ScrollbarBg]              = ImColor(0xef0b0b0b);
+	style.Colors[ImGuiCol_ScrollbarBg]              = ImColor(0xdc0b0b0b);
     style.Colors[ImGuiCol_ScrollbarGrab]            = ImColor(0xef4f4f4f);
     style.Colors[ImGuiCol_ScrollbarGrabHovered]     = ImColor(0xff4f4f4f);
-    style.Colors[ImGuiCol_ScrollbarGrabActive]    = ImColor(0xff4f4f4f);
+    style.Colors[ImGuiCol_ScrollbarGrabActive]      = ImColor(0xff4f4f4f);
     style.Colors[ImGuiCol_ComboBg]                  = ImColor(0xff513926);
     //style.Colors[ImGuiCol_CheckMark]
     style.Colors[ImGuiCol_SliderGrab]               = ImColor(0xffe0853d);
@@ -511,10 +512,10 @@ void AppSample::ImGui_InitStyle()
     style.Colors[ImGuiCol_CloseButton]              = ImColor(0xff353535);
     style.Colors[ImGuiCol_CloseButtonHovered]       = ImColor(0xff454545);
     style.Colors[ImGuiCol_CloseButtonActive]        = ImColor(0xff454545);
-    //style.Colors[ImGuiCol_PlotLines]
-    //style.Colors[ImGuiCol_PlotLinesHovered]
-    //style.Colors[ImGuiCol_PlotHistogram]
-    //style.Colors[ImGuiCol_PlotHistogramHovered]
+    style.Colors[ImGuiCol_PlotLines]                = ImColor(0xff0485fd);
+    style.Colors[ImGuiCol_PlotLinesHovered]         = ImColor(0xff0485fd);
+    style.Colors[ImGuiCol_PlotHistogram]            = ImColor(0xff0485fd);
+    style.Colors[ImGuiCol_PlotHistogramHovered]     = ImColor(0xff0485fd);
     //style.Colors[ImGuiCol_TextSelectedBg]
     //style.Colors[ImGuiCol_ModalWindowDarkening]
 }

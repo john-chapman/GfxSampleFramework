@@ -868,14 +868,21 @@ void Scene::editCameras()
 
 			ImGui::Separator();
 
+			ImGui::PushStyleColor(ImGuiCol_Text, m_drawCamera == m_editCamera ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_VIDEO_CAMERA " Set Draw Camera")) {
 				m_drawCamera = m_editCamera;
 			}
+			ImGui::PopStyleColor();
+			
 			ImGui::SameLine();
+			ImGui::PushStyleColor(ImGuiCol_Text, m_cullCamera == m_editCamera ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_CUBES " Set Cull Camera")) {
 				m_cullCamera = m_editCamera;
 			}
+			ImGui::PopStyleColor();
+
 			ImGui::SameLine();
+			ImGui::PushStyleColor(ImGuiCol_Text, m_editCamera->getNode()->isSelected() ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_GAMEPAD " Set Current Node")) {
 			 // deselect any camera nodes
 				for (int i = 0; i < getNodeCount(Node::kTypeCamera); ++i) {
@@ -886,9 +893,11 @@ void Scene::editCameras()
 				}
 				m_editCamera->getNode()->setSelected(true);
 			}
+			ImGui::PopStyleColor();
 
 			ImGui::Spacing();
 			ImGui::Spacing();
+			
 			static Node::NameStr s_nameBuf;
 			s_nameBuf.set(m_editCamera->getNode()->m_name);
 			if (ImGui::InputText("Name", s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
