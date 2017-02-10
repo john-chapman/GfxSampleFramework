@@ -231,7 +231,7 @@ void XForm_FreeCamera::apply(float _dt)
 
 void XForm_FreeCamera::edit()
 {
-	ImGui::Text("Position:       %1.3f,%1.3f,%1.3f",       m_position.x, m_position.y, m_position.z);
+	ImGui::SliderFloat3("Position", &m_position.x, -1000.0f, 1000.0f);
 	ImGui::Text("Speed:          %1.3f",                   m_speed);
 	ImGui::Text("Accel:          %1.3f",                   m_accelCount);
 	ImGui::Text("Velocity:       %1.3f,%1.3f,%1.3f",       m_velocity.x, m_velocity.y, m_velocity.z);
