@@ -146,6 +146,7 @@ void Framebuffer::attachImpl(Texture* _texture, GLenum _attachment, GLint _mip, 
 	}
 	if (_texture) {
 		m_textures[i] = _texture;
+		m_mipLevels[i] = _mip;
 		Texture::Use(_texture);
 		APT_ASSERT(_texture->getState() == Texture::State::kLoaded);
 		APT_ASSERT(_texture->getMipCount() >= _mip);
@@ -166,8 +167,8 @@ void Framebuffer::update()
 	for (int i = 0; i < kMaxColorAttachments; ++i) {
 		if (m_textures[i]) {
 			drawBuffers[i] = kAttachmentEnums[i];
-			m_width  = APT_MIN(m_width,  m_textures[i]->getWidth());
-			m_height = APT_MIN(m_height, m_textures[i]->getHeight());
+			m_width  = APT_MIN(m_width,  m_textures[i]->getWidth() >> m_mipLevels[i]);
+			m_height = APT_MIN(m_height, m_textures[i]->getHeight() >> m_mipLevels[i]);
 		} else {
 			drawBuffers[i] = GL_NONE;
 		}

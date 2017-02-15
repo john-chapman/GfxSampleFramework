@@ -287,7 +287,7 @@ struct TextureViewer
 			ImGui::SameLine();
 			ImGui::Text("Pan: %1.2f,%1.2f", txView.m_offset.x, txView.m_offset.y);
 			ImGui::Spacing();
-	
+
 		 // basic info
 			ImGui::AlignFirstTextHeightToWidgets();
 			ImGui::TextColored(kColorTxName, tx.getName());
@@ -627,6 +627,7 @@ void Texture::generateMipmap()
 {
 	APT_ASSERT(m_handle);
 	glAssert(glGenerateTextureMipmap(m_handle));
+	m_mipCount = GetMaxMipCount(m_width, m_height, m_depth);
 }
 
 void Texture::setMipRange(GLint _base, GLint _max)

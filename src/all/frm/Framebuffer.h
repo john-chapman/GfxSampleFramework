@@ -58,6 +58,7 @@ private:
 	static const int kMaxColorAttachments = 8;
 	static const int kMaxAttachments = kMaxColorAttachments + 3; // +3 for depth, stencil & depth-stencil
 	Texture* m_textures[kMaxAttachments]; //< Attached textures
+	int      m_mipLevels[kMaxAttachments];
 
 	GLint m_width, m_height; //< Min of all attachments.
 
