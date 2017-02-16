@@ -62,7 +62,7 @@ static HWND s_inputWindow;
 /* Per-device implementation classes inherit from ImplBase, which inherits from
    the base device (Keyboard, Mouse, Gamepad) via tDevice. The impl class
    is also a template to ImplBase (via tImpl) as we need to store the instance 
-   list and also cast to a tImpl* in some cases. Basially ImplBase needs to call
+   list and also cast to a tImpl* in some cases. Basically ImplBase needs to call
    both up and down in the hierarchy so we either need template magic or 
    virtual functions, I chose template magic. The final hierarchy is effctively:
 
@@ -336,6 +336,7 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 		UINT deviceInfoSize = sizeof(deviceInfo);
 		APT_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_DEVICEINFO, &deviceInfo, &deviceInfoSize) >= 0);
 		m_type = kTypeCount;
+	 // http://www.linux-usb.org/usb.ids
 		switch (deviceInfo.hid.dwVendorId) {
 			case 0x45e: // Microsoft
 				switch (deviceInfo.hid.dwProductId) {
@@ -347,7 +348,8 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 				};
 			case 0x54c: // Sony
 				switch (deviceInfo.hid.dwProductId) {
-					case 0x5c4: m_type = kPs4DualShock4; break;
+					case 0x9cc: // model 1E
+					case 0x5c4: m_type = kPs4DualShock4; break; // model 2E
 					default:
 						break;
 				};
