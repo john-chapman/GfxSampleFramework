@@ -219,8 +219,10 @@ struct TextureViewer
 			ImGui::Separator();
 	
 			ImGui::Columns(2);
-			float thumbWidth  = ImGui::GetContentRegionAvailWidth();
-			float thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
+			//float thumbWidth  = ImGui::GetContentRegionAvailWidth();
+			//float thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
+			float thumbHeight = ImGui::GetWindowHeight() * 0.9f;
+			float thumbWidth = (float)tx.getWidth() / (float)tx.getHeight() * thumbHeight;
 			vec2  thumbSize(thumbWidth, APT_MAX(thumbHeight, 16.0f));
 		  // need to flip the UVs here to account for the orientation of the quad output by ImGui
 			vec2  uv0 = vec2(0.0f, 1.0f);
@@ -277,6 +279,7 @@ struct TextureViewer
 				txView.m_offset -= offset;
 			}
 			ImGui::NextColumn();
+			ImGui::SetColumnOffset(-1, thumbWidth + ImGui::GetStyle().ItemSpacing.x);
 		
 		 // zoom/pan
 			if (ImGui::Button("Reset View")) {
@@ -634,7 +637,7 @@ void Texture::setMipRange(GLint _base, GLint _max)
 {
 	APT_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_BASE_LEVEL, (GLint)_base));
-	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAX_LEVEL, (GLint)_base));
+	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAX_LEVEL, (GLint)_max));
 }
 
 Image* Texture::downloadImage()
