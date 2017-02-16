@@ -129,6 +129,11 @@ void Camera::setProjMatrix(const mat4& _proj)
 
 void Camera::build()
 {
+/*
+	'Projection Matrix Tricks' (infinite projection, oblique near plane):
+	http://www.terathon.com/gdc07_lengyel.pdf
+*/
+//#define INFINITE_PROJ
 	if (m_projDirty) {
 		m_localFrustum = Frustum(m_up, m_down, m_left, m_right, m_clipNear, m_clipFar, m_isOrtho);
 		
@@ -141,12 +146,22 @@ void Camera::build()
 			float r = m_localFrustum.m_vertices[1].x;
 			float n = m_clipNear;
 			float f = m_clipFar;
-			m_proj = mat4(
-				(2.0f*n)/(r-l),     0.0f,          0.0f,         0.0f,
-				     0.0f,      (2.0f*n)/(t-b),    0.0f,         0.0f,
-				  (r+l)/(r-l),    (t+b)/(t-b), (n+f)/(n-f),     -1.0f,
-				     0.0f,          0.0f,      (2.0f*n*f)/(n-f), 0.0f
-				);
+			#ifdef INFINITE_PROJ
+				m_proj = mat4(
+					(2.0f*n)/(r-l),     0.0f,          0.0f,         0.0f,
+					     0.0f,      (2.0f*n)/(t-b),    0.0f,         0.0f,
+					  (r+l)/(r-l),    (t+b)/(t-b),     -1.0f,       -1.0f,
+					     0.0f,          0.0f,          -2.0f*n,      0.0f
+					);
+				m_localFrustum.m_planes[Frustum::kFar].m_normal = -m_localFrustum.m_planes[Frustum::kFar].m_normal;
+			#else
+				m_proj = mat4(
+					(2.0f*n)/(r-l),     0.0f,          0.0f,         0.0f,
+					     0.0f,      (2.0f*n)/(t-b),    0.0f,         0.0f,
+					  (r+l)/(r-l),    (t+b)/(t-b), (n+f)/(n-f),     -1.0f,
+					     0.0f,          0.0f,      (2.0f*n*f)/(n-f), 0.0f
+					);
+			#endif
 		}
 		m_projDirty = false;
 	}
