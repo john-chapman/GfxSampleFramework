@@ -78,7 +78,7 @@ bool AppSample3d::update()
 	#endif
 
 	Camera* currentCamera = scene.getDrawCamera();
-	if (currentCamera->isSymmetric()) {
+	if (!currentCamera->getProjFlag(Camera::ProjFlag_Asymmetrical)) {
 	 // update aspect ratio to match window size
 		Window* win = getWindow();
 		int winX = win->getWidth();

@@ -12,18 +12,33 @@ namespace frm {
 /// \class Camera
 /// Projection is defined either by 4 angles (radians) from the view axis for
 /// perspective projections, or 4 offsets (world units) from the view origin for
-/// parallel projections, plus a near/far clipping plane. 
+/// parallel projections, plus a near/far clipping plane.
+///
+/// Enable ProjFlag_Reversed for better precision when using a floating points
+/// depth buffer - in this case the following setup is required for OpenGL:
+///		glDepthClear(0.0f);
+///		glDepthFunc(GL_GREATER);
+///		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 ////////////////////////////////////////////////////////////////////////////////
 class Camera
 {
 public:
+	enum ProjFlag
+	{
+		ProjFlag_Orthographic = 1 << 0,
+		ProjFlag_Asymmetrical = 1 << 1,
+		ProjFlag_Infinite     = 1 << 2,
+		ProjFlag_Reversed     = 1 << 3,
+
+		ProjFlag_Default      = 0 // symmetrical perspective projection
+	};
 
 	// Symmetrical perspective projection from a vertical fov + viewport aspect ratio.
 	Camera(
 		float _aspect      = 1.0f,
 		float _fovVertical = 0.873f, // 60 degrees
-		float _clipNear    = 0.1f,
-		float _clipFar     = 1000.0f
+		float _near        = 0.1f,
+		float _far         = 1000.0f
 		);
 
 	// General perspective/ortho projection from 4 angles/positions (positive, relative to the view axis).
@@ -32,54 +47,53 @@ public:
 		float _down,
 		float _left,
 		float _right,
-		float _clipNear,
-		float _clipFar,
+		float _near,
+		float _far,
 		bool  _isOrtho = false
 		);
 
-	bool           isOrtho() const                    { return m_isOrtho; }
-	bool           isSymmetric() const                { return m_isSymmetric; }
-	void           setIsOrtho(bool _ortho);
-	void           setIsSymmetric(bool _symmetric);
+	bool           getProjFlag(ProjFlag _flag) const        { return (m_projFlags & _flag) != 0; }
+	void           setProjFlag(ProjFlag _flag, bool _value) { m_projFlags = _value ? (m_projFlags | _flag) : (m_projFlags & ~_flag); m_projDirty = true; }
+	void           setProjFlags(uint32 _flags)              { m_projFlags = _flags; m_projDirty = true; }
 
 	// Asymmetrical perspective projection properties.
-	void           setFovUp(float _radians)           { m_up = tan(_radians); m_isSymmetric = false; m_projDirty = true; }
-	void           setFovDown(float _radians)         { m_down = tan(_radians); m_isSymmetric = false; m_projDirty = true; }
-	void           setFovLeft(float _radians)         { m_left = tan(_radians); m_isSymmetric = false; m_projDirty = true; }
-	void           setFovRight(float _radians)        { m_right = tan(_radians); m_isSymmetric = false; m_projDirty = true; }
-	void           setTanFovUp(float _tan)            { m_up = _tan; m_isSymmetric = false; m_projDirty = true; }
-	void           setTanFovDown(float _tan)          { m_down = _tan; m_isSymmetric = false; m_projDirty = true; }
-	void           setTanFovLeft(float _tan)          { m_left = _tan; m_isSymmetric = false; m_projDirty = true; }
-	void           setTanFovRight(float _tan)         { m_right = _tan; m_isSymmetric = false; m_projDirty = true; }
-	float          getTanFovUp() const                { return m_up; }
-	float          getTanFovDown() const              { return m_down; }
-	float          getTanFovLeft() const              { return m_left; }
-	float          getTanFovRight() const             { return m_right; }
+	void           setFovUp(float _radians)                 { m_up = tan(_radians); m_projDirty = true;    }
+	void           setFovDown(float _radians)               { m_down = tan(_radians); m_projDirty = true;  }
+	void           setFovLeft(float _radians)               { m_left = tan(_radians); m_projDirty = true;  }
+	void           setFovRight(float _radians)              { m_right = tan(_radians); m_projDirty = true; }
+	void           setTanFovUp(float _tan)                  { m_up = _tan; m_projDirty = true;             }
+	void           setTanFovDown(float _tan)                { m_down = _tan; m_projDirty = true;           }
+	void           setTanFovLeft(float _tan)                { m_left = _tan; m_projDirty = true;           }
+	void           setTanFovRight(float _tan)               { m_right = _tan; m_projDirty = true;          }
+	float          getTanFovUp() const                      { return m_up;    }
+	float          getTanFovDown() const                    { return m_down;  }
+	float          getTanFovLeft() const                    { return m_left;  }
+	float          getTanFovRight() const                   { return m_right; }
 	
 	// Symmetrical perspective projection properties.
 	void           setVerticalFov(float _radians);
 	void           setHorizontalFov(float _radians);
 	void           setAspect(float _aspect);
-	float          getVerticalFov() const             { return atan(m_up + m_down); }
-	float          getHorizontalFov() const           { return atan(m_left + m_right); }
-	float          getAspect() const                  { return (m_left + m_right) / (m_up + m_down); }
+	float          getVerticalFov() const                   { return atan(m_up + m_down); }
+	float          getHorizontalFov() const                 { return atan(m_left + m_right); }
+	float          getAspect() const                        { return (m_left + m_right) / (m_up + m_down); }
 
-	void           setClipNear(float _near)           { m_clipNear = _near; m_projDirty = true; }
-	void           setClipFar(float _far)             { m_clipFar = _far; m_projDirty = true; }
-	float          getClipNear() const                { return m_clipNear; }
-	float          getClipFar() const                 { return m_clipFar; }
+	void           setNear(float _near)                     { m_near = _near; m_projDirty = true; }
+	void           setFar(float _far)                       { m_far = _far; m_projDirty = true; }
+	float          getNear() const                          { return m_near; }
+	float          getFar() const                           { return m_far; }
 
-	void           setWorldMatrix(const mat4& _world) { m_world = _world; }
-	void           setProjMatrix(const mat4& _proj);
+	void           setWorldMatrix(const mat4& _world)       { m_world = _world; }
+	void           setProjMatrix(const mat4& _proj, uint32 _flags = ProjFlag_Default);
 
-	void           setNode(Node* _node)               { m_node = _node; }
-	Node*          getNode()                          { return m_node; }
-	const Frustum& getLocalFrustum() const            { return m_localFrustum; }
-	const Frustum& getWorldFrustum() const            { return m_worldFrustum; }
-	const mat4&    getWorldMatrix() const             { return m_world; }
-	const mat4&    getViewMatrix() const              { return m_view; }
-	const mat4&    getProjMatrix() const              { return m_proj; }
-	const mat4&    getViewProjMatrix() const          { return m_viewProj; }
+	void           setNode(Node* _node)                     { m_node = _node;        }
+	Node*          getNode()                                { return m_node;         }
+	const Frustum& getLocalFrustum() const                  { return m_localFrustum; }
+	const Frustum& getWorldFrustum() const                  { return m_worldFrustum; }
+	const mat4&    getWorldMatrix() const                   { return m_world;        }
+	const mat4&    getViewMatrix() const                    { return m_view;         }
+	const mat4&    getProjMatrix() const                    { return m_proj;         }
+	const mat4&    getViewProjMatrix() const                { return m_viewProj;     }
 
 	// Extract position from world matrix.
 	vec3           getPosition() const                { return vec3(apt::column(m_world, 3)); }
@@ -92,25 +106,27 @@ public:
 	bool           serialize(apt::JsonSerializer& _serializer_);
 
 private:
-	Node*   m_node;         //< Parent node, copy world matrix if non-null.
-	mat4    m_world;
+	Node*   m_node;         // Parent node, copy world matrix if non-null.
+
+	float   m_up;           // Tangent of the fov angles for perspective projections, offsets on the view rectangle for orthographic projections.
+	float   m_down;
+	float   m_left;
+	float   m_right;
+	float   m_near;
+	float   m_far;
+
+	mat4    m_world;        // Can be overwritten by the parent matrix if m_node != null.
 	mat4    m_view;
 	mat4    m_proj;
 	mat4    m_viewProj;
 
-	float   m_up;           //< Tangent of the fov angles for perspective projections, offsets on the view rectangle for orthographic projections.
-	float   m_down;
-	float   m_left;
-	float   m_right;
-	float   m_clipNear;     //< Clip plane distances (positive).
-	float   m_clipFar;
+	uint32  m_projFlags;    // Combination of ProjFlags, controls how the projection matrix is constructed.
+	bool    m_projDirty;    // If projection matrix/local frustum is dirty.
 
-	bool    m_isOrtho;      //< If projection is orthographic.
-	bool    m_isSymmetric;  //< If projection is symmetrical.
-	bool    m_projDirty;    //< If projection matrix/local frustum is dirty.
+	Frustum m_localFrustum; // Untransformed frustum from the projection settings.
+	Frustum m_worldFrustum; // World space frustum (world matrix * local frustum)
 
-	Frustum m_localFrustum; //< Untransformed frustum from the projection settings.
-	Frustum m_worldFrustum; //< World space frustum (world matrix * local frustum)
+	void buildProj();
 
 }; // class Camera
 

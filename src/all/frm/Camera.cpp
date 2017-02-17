@@ -12,22 +12,22 @@ using namespace apt;
 Camera::Camera(
 	float _aspect,
 	float _fovVertical,
-	float _clipNear,
-	float _clipFar
+	float _near,
+	float _far
 	)
 	: m_node(nullptr)
 	, m_up(tan(_fovVertical * 0.5f))
 	, m_down(m_up)
 	, m_left(m_up * _aspect)
 	, m_right(m_up * _aspect)
-	, m_clipNear(_clipNear)
-	, m_clipFar(_clipFar)
-	, m_isOrtho(false)
-	, m_isSymmetric(true)
+	, m_near(_near)
+	, m_far(_far)
+	, m_projFlags(ProjFlag_Default)
 	, m_projDirty(true)
 	, m_world(1.0f)
-	, m_localFrustum(m_up, m_down, m_left, m_right, m_clipNear, m_clipFar, m_isOrtho)
+	, m_proj(0.0f)
 {
+	build();
 }
 
 Camera::Camera(
@@ -35,8 +35,8 @@ Camera::Camera(
 	float _down,
 	float _left,
 	float _right,
-	float _clipNear,
-	float _clipFar,
+	float _near,
+	float _far,
 	bool  _isOrtho
 	)
 	: m_node(nullptr)
@@ -44,35 +44,16 @@ Camera::Camera(
 	, m_down(_isOrtho ? _down : tan(_down))
 	, m_left(_isOrtho ? _left : tan(_left))
 	, m_right(_isOrtho ? _right : tan(_right))
-	, m_clipNear(_clipNear)
-	, m_clipFar(_clipFar)
-	, m_isOrtho(_isOrtho)
-	, m_isSymmetric(fabs(m_up) == fabs(m_down) && fabs(m_right) == fabs(m_left))
+	, m_near(_near)
+	, m_far(_far)
+	, m_projFlags(ProjFlag_Default)
 	, m_projDirty(true)
 	, m_world(1.0f)
-	, m_localFrustum(m_up, m_down, m_left, m_right, m_clipNear, m_clipFar, m_isOrtho)
+	, m_proj(0.0f)
 {
-}
-
-void Camera::setIsOrtho(bool _ortho)
-{
-	if (m_isOrtho != _ortho) {
-		APT_ASSERT(false); // \todo implement
-	}
-	m_isOrtho = _ortho;
-	m_projDirty = true;
-}
-
-void Camera::setIsSymmetric(bool _symmetric)
-{
-	if (_symmetric) {
-		float h = (m_up + m_down) * 0.5f;
-		m_up = m_down = h;
-		float w = (m_left + m_right) * 0.5f;
-		m_left = m_right = w;
-	}
-	m_isSymmetric = _symmetric;
-	m_projDirty = true;
+	setProjFlag(ProjFlag_Orthographic, _isOrtho);
+	setProjFlag(ProjFlag_Asymmetrical, m_up != m_down || m_right != m_left);
+	build();
 }
 
 void Camera::setVerticalFov(float _radians)
@@ -97,73 +78,39 @@ void Camera::setHorizontalFov(float _radians)
 
 void Camera::setAspect(float _aspect)
 {
-	m_isSymmetric = true;
+	setProjFlag(ProjFlag_Asymmetrical, false);
 	float horizontal = _aspect * (m_up + m_down);
 	m_left = horizontal * 0.5f;
 	m_right = m_left;
 	m_projDirty = true;
 }
 
-void Camera::setProjMatrix(const mat4& _proj)
+void Camera::setProjMatrix(const mat4& _proj, uint32 _flags)
 {
 	m_proj = _proj; 
+	m_projFlags = _flags;
 	m_localFrustum = Frustum(inverse(_proj));
 
 	vec3* frustum = m_localFrustum.m_vertices;
-	m_clipNear = -frustum[0].z;
-	m_clipFar  = -frustum[4].z;
-	m_isOrtho  =  frustum[0].x == frustum[4].x;
-
 	m_up    =  frustum[0].y;
 	m_down  = -frustum[3].y;
 	m_left  = -frustum[3].x;
 	m_right =  frustum[1].x;
-	if (!m_isOrtho) {
-		m_up    /= m_clipNear;
-		m_down  /= m_clipNear;
-		m_left  /= m_clipNear;
-		m_right /= m_clipNear;
+	m_near  = -frustum[0].z;
+	m_far   = -frustum[4].z;
+	if (!getProjFlag(ProjFlag_Orthographic)) {
+		m_up    /= m_near;
+		m_down  /= m_near;
+		m_left  /= m_near;
+		m_right /= m_near;
 	}
 	m_projDirty = false;
 }
 
 void Camera::build()
 {
-/*
-	'Projection Matrix Tricks' (infinite projection, oblique near plane):
-	http://www.terathon.com/gdc07_lengyel.pdf
-*/
-//#define INFINITE_PROJ
 	if (m_projDirty) {
-		m_localFrustum = Frustum(m_up, m_down, m_left, m_right, m_clipNear, m_clipFar, m_isOrtho);
-		
-		if (isOrtho()) {
-			m_proj = apt::ortho(m_left, m_right, m_down, m_up, m_clipNear, m_clipFar);
-		} else {
-			float t = m_localFrustum.m_vertices[0].y;
-			float b = m_localFrustum.m_vertices[3].y;
-			float l = m_localFrustum.m_vertices[0].x;
-			float r = m_localFrustum.m_vertices[1].x;
-			float n = m_clipNear;
-			float f = m_clipFar;
-			#ifdef INFINITE_PROJ
-				m_proj = mat4(
-					(2.0f*n)/(r-l),     0.0f,          0.0f,         0.0f,
-					     0.0f,      (2.0f*n)/(t-b),    0.0f,         0.0f,
-					  (r+l)/(r-l),    (t+b)/(t-b),     -1.0f,       -1.0f,
-					     0.0f,          0.0f,          -2.0f*n,      0.0f
-					);
-				m_localFrustum.m_planes[Frustum::kFar].m_normal = -m_localFrustum.m_planes[Frustum::kFar].m_normal;
-			#else
-				m_proj = mat4(
-					(2.0f*n)/(r-l),     0.0f,          0.0f,         0.0f,
-					     0.0f,      (2.0f*n)/(t-b),    0.0f,         0.0f,
-					  (r+l)/(r-l),    (t+b)/(t-b), (n+f)/(n-f),     -1.0f,
-					     0.0f,          0.0f,      (2.0f*n*f)/(n-f), 0.0f
-					);
-			#endif
-		}
-		m_projDirty = false;
+		buildProj();	
 	}
 	
 	if (m_node) {
@@ -177,20 +124,73 @@ void Camera::build()
 
 bool Camera::serialize(JsonSerializer& _serializer_)
 {
-	_serializer_.value("IsOrtho",     m_isOrtho);
-	_serializer_.value("IsSymmetric", m_isSymmetric);
 	_serializer_.value("Up",          m_up);
 	_serializer_.value("Down",        m_down);
 	_serializer_.value("Left",        m_left);
 	_serializer_.value("Right",       m_right);
-	_serializer_.value("ClipNear",    m_clipNear);
-	_serializer_.value("ClipFar",     m_clipFar);
+	_serializer_.value("Near",        m_near);
+	_serializer_.value("Far",         m_far);
 	_serializer_.value("WorldMatrix", m_world);
 
+	bool orthographic = getProjFlag(ProjFlag_Orthographic);
+	bool asymmetrical = getProjFlag(ProjFlag_Asymmetrical);
+	bool infinite     = getProjFlag(ProjFlag_Infinite);
+	bool reversed     = getProjFlag(ProjFlag_Reversed);
+	_serializer_.value("Orthographic", orthographic);
+	_serializer_.value("Asymmetrical", asymmetrical);
+	_serializer_.value("Infinite",     infinite);
+	_serializer_.value("Reversed",     reversed);
+
 	if (_serializer_.getMode() == JsonSerializer::kRead) {
+		setProjFlag(ProjFlag_Orthographic, orthographic);
+		setProjFlag(ProjFlag_Asymmetrical, asymmetrical);
+		setProjFlag(ProjFlag_Infinite,     infinite);
+		setProjFlag(ProjFlag_Reversed,     reversed);
 		m_projDirty = true;
 		build();
 	}
 
 	return true;
+}
+
+void Camera::buildProj()
+{
+	m_localFrustum = Frustum(m_up, m_down, m_left, m_right, m_near, m_far, getProjFlag(ProjFlag_Orthographic));
+	if (getProjFlag(ProjFlag_Orthographic)) {
+	} else {
+		float t = m_localFrustum.m_vertices[0].y;
+		float b = m_localFrustum.m_vertices[3].y;
+		float l = m_localFrustum.m_vertices[0].x;
+		float r = m_localFrustum.m_vertices[1].x;
+		float n = m_near;
+		float f = m_far;
+
+		m_proj[0][0] = (2.0f * n) / (r - l);
+		m_proj[1][1] = (2.0f * n) / (t - b);
+		m_proj[2][0] = (r + l) / (r - l);
+		m_proj[2][1] = (t + b) / (t - b);
+		m_proj[2][3] = -1.0f;
+
+		bool infinite = getProjFlag(ProjFlag_Infinite);
+		bool reversed = getProjFlag(ProjFlag_Reversed);
+		if (infinite && reversed) {
+			m_proj[2][2] = 0.0f;
+			m_proj[3][2] = n;
+
+		} else if (infinite) {
+			m_proj[2][2] = -1.0f;
+			m_proj[3][2] = -2.0f * n;
+
+		} else if (reversed) {
+			m_proj[2][2] = n / (n - f);
+			m_proj[3][2] = m_proj[2][2] == 0.0f ? n : (f * n / (f - n));
+
+		} else {			
+			m_proj[2][2] = (n + f) / (n - f);
+			m_proj[3][2] = (2.0f * n * f) / (n - f);
+
+		}
+
+	}
+	m_projDirty = false;
 }

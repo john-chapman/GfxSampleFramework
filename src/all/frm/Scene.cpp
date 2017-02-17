@@ -930,23 +930,21 @@ void Scene::editCameras()
 				m_editCamera->getNode()->m_name.set(s_nameBuf);
 			}
 
-			bool  ortho     = m_editCamera->isOrtho();
-			bool  symmetric = m_editCamera->isSymmetric();
-			float up        = degrees(atan(m_editCamera->getTanFovUp()));
-			float down      = degrees(atan(m_editCamera->getTanFovDown()));
-			float left      = degrees(atan(m_editCamera->getTanFovLeft()));
-			float right     = degrees(atan(m_editCamera->getTanFovRight()));
-			float clipNear  = m_editCamera->getClipNear();
-			float clipFar   = m_editCamera->getClipFar();
+			float up    = degrees(atan(m_editCamera->getTanFovUp()));
+			float down  = degrees(atan(m_editCamera->getTanFovDown()));
+			float left  = degrees(atan(m_editCamera->getTanFovLeft()));
+			float right = degrees(atan(m_editCamera->getTanFovRight()));
+			float near  = m_editCamera->getNear();
+			float far   = m_editCamera->getFar();
 
-			if (ImGui::Checkbox("Orthographic", &ortho)) {
-				m_editCamera->setIsOrtho(ortho);
-			}
-			ImGui::SameLine();
-			if (ImGui::Checkbox("Symmetrical", &symmetric)) {
-				m_editCamera->setIsSymmetric(symmetric);
-			}
-			if (ortho) {
+			//if (ImGui::Checkbox("Orthographic", &ortho)) {
+			//	m_editCamera->setIsOrtho(ortho);
+			//}
+			//ImGui::SameLine();
+			//if (ImGui::Checkbox("Symmetrical", &symmetric)) {
+			//	m_editCamera->setIsSymmetric(symmetric);
+			//}
+			/*if (ortho) {
 				if (ImGui::SliderFloat("Top", &up, 0.0f, 100.0f)) {
 					m_editCamera->setFovUp(radians(up));
 				}
@@ -983,12 +981,14 @@ void Scene::editCameras()
 						m_editCamera->setFovRight(radians(right));
 					}
 				}
+			}*/
+			if (ImGui::SliderFloat("Near", &near, 0.0f, 2.0f)) {
+				far = max(far, near);
+				m_editCamera->setNear(near);
 			}
-			if (ImGui::SliderFloat("Clip Near", &clipNear, 0.0f, 2.0f)) {
-				m_editCamera->setClipNear(clipNear);
-			}
-			if (ImGui::SliderFloat("Clip Far", &clipFar, clipNear, 5000.0f)) {
-				m_editCamera->setClipFar(clipFar);
+			if (ImGui::SliderFloat("Far", &far, near, 1000.0f)) {
+				near = min(far, near);
+				m_editCamera->setFar(far);
 			}
 
 		 // deferred destroy
