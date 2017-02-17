@@ -63,7 +63,7 @@ void main()
 	#endif
 
 	if (bool(uIsDepth)) {
-		ret.rgb = vec3(fract(ret.r * 1024.0)); // \todo better depth/stencil vis
+		ret.rgb = vec3(fract(abs(ret.r) * 1024.0)); // \todo better depth/stencil vis
 	}
 	
 	fResult = ret;
