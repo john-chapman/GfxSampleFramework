@@ -8,7 +8,7 @@
 #include <apt/Json.h>
 
 #include <imgui/imgui.h>
-#include <frm/im3d.h>
+#include <im3d/im3d.h>
 
 using namespace frm;
 using namespace apt;
@@ -102,6 +102,9 @@ void XForm_PositionOrientationScale::apply(float _dt)
 
 void XForm_PositionOrientationScale::edit()
 {
+	ImGui::PushID(this);
+	Im3d::PushId(this);
+	
 	vec3 eul = eulerAngles(m_orientation);
 	ImGui::DragFloat3("Position", &m_position.x, 0.5f);
 	if (ImGui::DragFloat3("Orientation", &eul.x, 0.1f)) {
@@ -109,7 +112,13 @@ void XForm_PositionOrientationScale::edit()
 	}
 	ImGui::DragFloat3("Scale", &m_scale.x, 0.2f);
 
-	Im3d::Gizmo("XForm_PositionOrientationScale", &m_position, &m_orientation, &m_scale);
+	mat3 orientation(m_orientation);
+	if (Im3d::Gizmo("XForm_PositionOrientationScale", &m_position.x, (float*)&orientation, &m_scale.x)) {
+		m_orientation = quat(orientation);
+	}
+
+	Im3d::PopId();
+	ImGui::PopID();
 }
 
 bool XForm_PositionOrientationScale::serialize(JsonSerializer& _serializer_)
@@ -231,6 +240,7 @@ void XForm_FreeCamera::apply(float _dt)
 
 void XForm_FreeCamera::edit()
 {
+	ImGui::PushID(this);
 	ImGui::SliderFloat3("Position", &m_position.x, -1000.0f, 1000.0f);
 	ImGui::Text("Speed:          %1.3f",                   m_speed);
 	ImGui::Text("Accel:          %1.3f",                   m_accelCount);
@@ -244,6 +254,7 @@ void XForm_FreeCamera::edit()
 	ImGui::Spacing();
 	ImGui::SliderFloat("Rotation Input Mul",  &m_rotationInputMul, 1e-4f, 0.2f, "%1.5f");
 	ImGui::SliderFloat("Rotation Damp",       &m_rotationDamp,     1e-4f, 0.2f, "%1.5f");
+	ImGui::PopID();
 }
 
 bool XForm_FreeCamera::serialize(JsonSerializer& _serializer_)
@@ -287,6 +298,8 @@ void XForm_LookAt::apply(float _dt)
 
 void XForm_LookAt::edit()
 {
+	ImGui::PushID(this);
+	Im3d::PushId(this);
 	Scene& scene = Scene::GetCurrent();
 	if (ImGui::Button("Target Node")) {
 		scene.beginSelectNode();
@@ -297,7 +310,11 @@ void XForm_LookAt::edit()
 		ImGui::Text(m_target->getName());
 		m_targetId = m_target->getId();
 	}
-	ImGui::DragFloat3("Offset", &m_offset.x, 0.5f);
+	//ImGui::DragFloat3("Offset", &m_offset.x, 0.5f);
+	Im3d::GizmoTranslation("XForm_LookAt", &m_offset.x);	
+
+	Im3d::PopId();
+	ImGui::PopID();
 }
 
 bool XForm_LookAt::serialize(JsonSerializer& _serializer_)
@@ -340,7 +357,7 @@ void XForm_Spin::edit()
 	m_axis = normalize(m_axis);
 
 	Im3d::PushDrawState();
-		Im3d::SetColor(Im3d::kColorYellow);
+		Im3d::SetColor(Im3d::Color_Yellow);
 		Im3d::SetAlpha(1.0f);
 		Im3d::SetSize(2.0f);
 		Im3d::BeginLines();
@@ -390,6 +407,9 @@ void XForm_PositionTarget::apply(float _dt)
 
 void XForm_PositionTarget::edit()
 {
+	ImGui::PushID(this);
+	Im3d::PushId(this);
+
 	ImGui::SliderFloat("Duration (s)", &m_duration, 0.0f, 10.0f);
 	if (ImGui::Button("Reset")) {
 		reset();
@@ -403,10 +423,10 @@ void XForm_PositionTarget::edit()
 		reverse();
 	}
 
-	Im3d::GizmoPosition("XForm_PositionTarget::m_start", &m_start);
-	Im3d::GizmoPosition("XForm_PositionTarget::m_end",   &m_end);
+	Im3d::GizmoTranslation("XForm_PositionTarget::m_start", &m_start.x);
+	Im3d::GizmoTranslation("XForm_PositionTarget::m_end",   &m_end.x);
 	Im3d::PushDrawState();
-		Im3d::SetColor(Im3d::kColorYellow);
+		Im3d::SetColor(Im3d::Color_Yellow);
 		Im3d::SetSize(2.0f);
 		Im3d::BeginLines();
 			Im3d::SetAlpha(0.2f);
@@ -415,6 +435,9 @@ void XForm_PositionTarget::edit()
 			Im3d::Vertex(m_end);
 		Im3d::End();
 	Im3d::PopDrawState();
+
+	Im3d::PopId();
+	ImGui::PopID();
 }
 
 bool XForm_PositionTarget::serialize(JsonSerializer& _serializer_)
@@ -476,6 +499,7 @@ void XForm_SplinePath::apply(float _dt)
 
 void XForm_SplinePath::edit()
 {
+	ImGui::PushID(this);
 	ImGui::DragFloat("Duration (s)", &m_duration, 0.1f);
 	m_duration = APT_MAX(m_duration, 0.0f);
 	m_currentTime = APT_MIN(m_currentTime, m_duration);
@@ -484,6 +508,7 @@ void XForm_SplinePath::edit()
 	}
 	ImGui::Text("Current Time: %.3fs", m_currentTime);
 	ImGui::Text("Path hint:    %d",    m_pathHint);
+	ImGui::PopID();
 }
 
 bool XForm_SplinePath::serialize(JsonSerializer& _serializer_)

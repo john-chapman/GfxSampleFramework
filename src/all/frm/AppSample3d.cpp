@@ -4,6 +4,7 @@
 #include <frm/gl.h>
 #include <frm/geom.h>
 #include <frm/GlContext.h>
+#include <frm/Input.h>
 #include <frm/Mesh.h>
 #include <frm/MeshData.h>
 #include <frm/Profiler.h>
@@ -12,15 +13,11 @@
 #include <frm/Window.h>
 #include <frm/XForm.h>
 
-#include <frm/im3d.h>
+#include <im3d/im3d.h>
 
 
 using namespace frm;
 using namespace apt;
-
-// \hack we override some callbacks for Im3d, hence need to do call them manually
-// \todo allow multiple callbacks on Window
-static Window::Callbacks s_appSampleCallbacks;
 
 // PUBLIC
 
@@ -29,19 +26,9 @@ bool AppSample3d::init(const apt::ArgList& _args)
 	if (!AppSample::init(_args)) {
 		return false;
 	}
-
-	
-	Im3d::SetCurrentContext(m_im3dCtx);
 	if (!Im3d_Init()) {
 		return false;
 	}
-
- // set Im3d callbacks
-	s_appSampleCallbacks = getWindow()->getCallbacks();
-	Window::Callbacks cb = s_appSampleCallbacks;
-	cb.m_OnMouseButton = Im3d_OnMouseButton;
-	cb.m_OnKey = Im3d_OnKey;
-	getWindow()->setCallbacks(cb);
 
 	if (!Scene::Load(m_scenePath, Scene::GetCurrent())) {
  		Camera* defaultCamera = Scene::GetCurrent().createCamera(Camera());
@@ -66,7 +53,6 @@ bool AppSample3d::update()
 	if (!AppSample::update()) {
 		return false;
 	}
-	Im3d::SetCurrentContext(m_im3dCtx);
 	Im3d_Update(this);
 
 	Scene& scene = Scene::GetCurrent();
@@ -193,8 +179,7 @@ void AppSample3d::drawStatusBar()
 void AppSample3d::draw()
 {
 	getGlContext()->setFramebufferAndViewport(getDefaultFramebuffer());
-	Im3d_Render(m_im3dCtx, *Scene::GetDrawCamera());
-
+	Im3d::Draw();
 	AppSample::draw();
 }
 
@@ -286,49 +271,26 @@ static Mesh   *s_msIm3dPoints, *s_msIm3dLines, *s_msIm3dTriangles;
 
 bool AppSample3d::Im3d_Init()
 {
- // io
-	Im3d::Context& im3d = Im3d::GetCurrentContext();
-	im3d.m_keyMap[Im3d::Context::kMouseLeft]   = 0;
-	im3d.m_keyMap[Im3d::Context::kMouseRight]  = 1;
-	im3d.m_keyMap[Im3d::Context::kMouseMiddle] = 2;
-	im3d.m_keyMap[Im3d::Context::kKeyCtrl]     = Keyboard::kLCtrl + 3;
-	im3d.m_keyMap[Im3d::Context::kKeyShift]    = Keyboard::kLShift + 3;
-	im3d.m_keyMap[Im3d::Context::kKeyAlt]      = Keyboard::kLShift + 3;
-	im3d.m_keyMap[Im3d::Context::kKeyT]        = Keyboard::kT + 3;
-	im3d.m_keyMap[Im3d::Context::kKeyR]        = Keyboard::kR + 3;
-	im3d.m_keyMap[Im3d::Context::kKeyS]        = Keyboard::kS + 3;
-
-	
- // render resources
-	ShaderDesc sd;
-	sd.setPath(GL_VERTEX_SHADER,   "shaders/Im3d_vs.glsl");
-	sd.setPath(GL_FRAGMENT_SHADER, "shaders/Im3d_fs.glsl");
-	sd.addGlobalDefine("POINTS");
-	APT_VERIFY(s_shIm3dPoints = Shader::Create(sd));
+	s_shIm3dPoints = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", "POINTS\0");
 	s_shIm3dPoints->setName("#Im3d_POINTS");
-
-	sd.clearDefines();
-	sd.addGlobalDefine("TRIANGLES");
-	APT_VERIFY(s_shIm3dTriangles = Shader::Create(sd));
+	s_shIm3dLines = Shader::CreateVsGsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_gs.glsl", "shaders/Im3d_fs.glsl", "LINES\0");
+	s_shIm3dLines->setName("#Im3d_POINTS");
+	s_shIm3dLines->setName("#Im3d_LINES");
+	s_shIm3dTriangles = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", "TRIANGLES\0");
 	s_shIm3dTriangles->setName("#Im3d_TRIANGLES");
 
-	sd.clearDefines();
-	sd.setPath(GL_GEOMETRY_SHADER, "shaders/Im3d_gs.glsl");
-	sd.addGlobalDefine("LINES");
-	APT_VERIFY(s_shIm3dLines = Shader::Create(sd));
-	s_shIm3dLines->setName("#Im3d_LINES");
 
 	MeshDesc meshDesc(MeshDesc::kPoints);
 	meshDesc.addVertexAttr(VertexAttr::kPositions, 4, DataType::kFloat32);
 	meshDesc.addVertexAttr(VertexAttr::kColors,    4, DataType::kUint8N);
-	APT_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::Vertex));
+	APT_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::VertexData));
 	s_msIm3dPoints = Mesh::Create(meshDesc);
-
 	meshDesc.setPrimitive(MeshDesc::kLines);
 	s_msIm3dLines= Mesh::Create(meshDesc);
-
 	meshDesc.setPrimitive(MeshDesc::kTriangles);
 	s_msIm3dTriangles= Mesh::Create(meshDesc);
+
+	Im3d::GetAppData().drawCallback = Im3d_Draw;
 
 	return s_shIm3dPoints && s_msIm3dPoints;
 }
@@ -345,89 +307,73 @@ void AppSample3d::Im3d_Shutdown()
 
 void AppSample3d::Im3d_Update(AppSample3d* _app)
 {
-	Im3d::Context& im3d = Im3d::GetCurrentContext();
+	CPU_AUTO_MARKER("Im3d_Update");
 
+	Im3d::AppData& ad = Im3d::GetAppData();
+
+	ad.m_deltaTime = (float)_app->m_deltaTime;
+	ad.m_viewportSize = vec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
+	ad.m_tanHalfFov = Scene::GetDrawCamera()->getTanFovUp();
+	ad.m_viewOrigin = Scene::GetDrawCamera()->getPosition();
+	
 	Ray cursorRayW = _app->getCursorRayW();
-	im3d.m_cursorRayOriginW = cursorRayW.m_origin;
-	im3d.m_cursorRayDirectionW = cursorRayW.m_direction;
-	im3d.m_deltaTime = (float)_app->getDeltaTime();
-	im3d.m_tanHalfFov = Scene::GetDrawCamera()->getTanFovUp();
-	im3d.m_viewOriginW = Scene::GetDrawCamera()->getPosition();
-	im3d.m_displaySize = Im3d::Vec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
+	ad.m_cursorRayOrigin = cursorRayW.m_origin;
+	ad.m_cursorRayDirection = cursorRayW.m_direction;
+	ad.m_worldUp = vec3(0.0f, 1.0f, 0.0f);
 
-	im3d.reset();
+	Mouse* mouse = Input::GetMouse();	
+	ad.m_keyDown[Im3d::Mouse_Left/*Im3d::Action_Select*/] = mouse->isDown(Mouse::kLeft);
+
+	Keyboard* keyb = Input::GetKeyboard();
+	bool ctrlDown = keyb->isDown(Keyboard::kLCtrl);
+	ad.m_keyDown[Im3d::Key_L/*Action_GizmoLocal*/]       = ctrlDown && keyb->wasPressed(Keyboard::kL);
+	ad.m_keyDown[Im3d::Key_T/*Action_GizmoTranslation*/] = ctrlDown && keyb->wasPressed(Keyboard::kT);
+	ad.m_keyDown[Im3d::Key_R/*Action_GizmoRotation*/]    = ctrlDown && keyb->wasPressed(Keyboard::kR);
+	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::kS);
+
+	Im3d::NewFrame();
 }
 
-void AppSample3d::Im3d_Render(Im3d::Context& _im3dCtx, const Camera& _cam, bool _depthTest)
+void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 {
-	AUTO_MARKER("Im3d::Render");
+	AUTO_MARKER("Im3d_Draw");
 
-	GlContext* ctx = GlContext::GetCurrent();
-	Im3d::Context& im3dCtx = _im3dCtx;
+	Im3d::AppData& ad = Im3d::GetAppData();
 
 	glAssert(glEnable(GL_BLEND));
     glAssert(glBlendEquation(GL_FUNC_ADD));
     glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     glAssert(glDisable(GL_CULL_FACE));
-	if (_depthTest) {
-		glAssert(glEnable(GL_DEPTH_TEST));
-	}
-    
-	vec2 viewport = vec2(ctx->getViewportWidth(), ctx->getViewportHeight());
-
- // triangles
-	s_msIm3dTriangles->setVertexData(im3dCtx.getTriangleData(), im3dCtx.getTriangleCount(), GL_STREAM_DRAW);
-	ctx->setShader(s_shIm3dTriangles);
-	ctx->setUniform("uViewProjMatrix", _cam.getViewProjMatrix());
-	ctx->setUniform("uViewport", viewport);
-	ctx->setMesh(s_msIm3dTriangles);
-	ctx->draw();
-
- // lines
-	s_msIm3dLines->setVertexData(im3dCtx.getLineData(), im3dCtx.getLineCount(), GL_STREAM_DRAW);
-	ctx->setShader(s_shIm3dLines);
-	ctx->setUniform("uViewProjMatrix", _cam.getViewProjMatrix());
-	ctx->setUniform("uViewport", viewport);
-	ctx->setMesh(s_msIm3dLines);
-	ctx->draw();
-
- // points
 	glAssert(glEnable(GL_PROGRAM_POINT_SIZE));
-	s_msIm3dPoints->setVertexData(im3dCtx.getPointData(), im3dCtx.getPointCount(), GL_STREAM_DRAW);
-	ctx->setShader(s_shIm3dPoints);
-	ctx->setUniform("uViewProjMatrix", _cam.getViewProjMatrix());
-	ctx->setUniform("uViewport", viewport);
-	ctx->setMesh(s_msIm3dPoints);
-	ctx->draw();
-	glAssert(glDisable(GL_PROGRAM_POINT_SIZE));
-
-	if (_depthTest) {
-		glAssert(glDisable(GL_DEPTH_TEST));
-	}
-	glAssert(glDisable(GL_BLEND));
-}
-
-bool AppSample3d::Im3d_OnMouseButton(Window* _window, unsigned _button, bool _isDown)
-{
-	Im3d::Context& im3d = Im3d::GetCurrentContext();
-
-	APT_ASSERT(_button < 3); // button index out of bounds
-	switch ((Mouse::Button)_button) {
-		case Mouse::kLeft:    im3d.m_keyDown[0] = _isDown; break;
-		case Mouse::kRight:   im3d.m_keyDown[1] = _isDown; break;
-		case Mouse::kMiddle:  im3d.m_keyDown[2] = _isDown; break;
-		default: break;
+    
+	Mesh* ms;
+	Shader* sh;
+	switch (_drawList.m_primType) {
+		case Im3d::DrawPrimitive_Points:
+			ms = s_msIm3dPoints;
+			sh = s_shIm3dPoints;
+			break;
+		case Im3d::DrawPrimitive_Lines:
+			ms = s_msIm3dLines;
+			sh = s_shIm3dLines;
+			break;
+		case Im3d::DrawPrimitive_Triangles:
+			ms = s_msIm3dTriangles;
+			sh = s_shIm3dTriangles;
+			break;
+		default:
+			APT_ASSERT(false); // unsupported primitive type?
 	};
+
+	ms->setVertexData(_drawList.m_vertexData, _drawList.m_vertexCount, GL_STREAM_DRAW);
 	
-	return s_appSampleCallbacks.m_OnMouseButton(_window, _button, _isDown);
-}
+	GlContext* ctx = GlContext::GetCurrent();
+	ctx->setShader(sh);
+	ctx->setUniform("uViewProjMatrix", Scene::GetDrawCamera()->getViewProjMatrix());
+	ctx->setUniform("uViewport", vec2(ctx->getViewportWidth(), ctx->getViewportHeight()));
+	ctx->setMesh(ms);
+	ctx->draw();
 
-bool AppSample3d::Im3d_OnKey(Window* _window, unsigned _key, bool _isDown)
-{
-	Im3d::Context& im3d = Im3d::GetCurrentContext();
-	unsigned key = _key + 3; // reserve mouse buttons
-	APT_ASSERT(key < APT_ARRAY_COUNT(im3d.m_keyDown)); // key index out of bounds
-	im3d.m_keyDown[key] = _isDown;
-
-	return s_appSampleCallbacks.m_OnKey(_window, _key, _isDown);
+	glAssert(glDisable(GL_PROGRAM_POINT_SIZE));
+	glAssert(glDisable(GL_BLEND));
 }

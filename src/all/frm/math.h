@@ -28,7 +28,11 @@ using apt::two_pi;
 /// \return Matrix with position = _from and forward vector = (_to - _from).
 mat4 GetLookAtMatrix(const vec3& _from, const vec3& _to, const vec3& _up = vec3(0.0f, 1.0f, 0.0f));
 
-inline vec3 GetTranslation(const mat4& _mat)      { return vec3(apt::column(_mat, 3)); }
+vec3 GetTranslation(const mat4& _m);
+mat3 GetRotation(const mat4& _m);
+vec3 GetScale(const mat4& _m);
+vec3 ToEulerXYZ(const mat3& _m);
+mat3 FromEulerXYZ(const vec3& _euler);
 
 inline bool fequal(float _a, float _b)             { return apt::abs(_a - _b) < FLT_EPSILON; }
 inline bool fequal(const vec3& _a, const vec3& _b) { return apt::all(apt::lessThan(apt::abs(_a - _b), vec3(FLT_EPSILON))); }
