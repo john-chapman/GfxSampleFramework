@@ -8,7 +8,7 @@
 #include <frm/Camera.h>
 #include <frm/Scene.h>
 
-#include <frm/im3d.h>
+#include <im3d/im3d.h>
 
 #include <vector>
 
@@ -51,9 +51,7 @@ protected:
 	static bool Im3d_Init();
 	static void Im3d_Shutdown();
 	static void Im3d_Update(AppSample3d* _app);
-	static void Im3d_Render(Im3d::Context& _im3dCtx, const Camera& _cam, bool _depthTest = false);
-	static bool Im3d_OnMouseButton(Window* _window, unsigned _button, bool _isDown);
-	static bool Im3d_OnKey(Window* _window, unsigned _key, bool _isDown);
+	static void Im3d_Draw(const Im3d::DrawList& _drawList);
 	
 }; // class AppSample3d
 

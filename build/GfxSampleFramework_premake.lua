@@ -63,7 +63,7 @@ workspace "GfxSampleFramework"
 			
 			vpaths({
 				["*"]      = ALL_SRC_DIR .. "frm/**",
-				["extern"] = ALL_EXTERN_DIR .. "**", 
+				["extern/*"] = ALL_EXTERN_DIR .. "**", 
 				["win"]    = WIN_SRC_DIR .. "frm/**",
 				})
 			
