@@ -30,30 +30,39 @@ public:
 		ProjFlag_Infinite     = 1 << 2,
 		ProjFlag_Reversed     = 1 << 3,
 
-		ProjFlag_Default      = 0 // symmetrical perspective projection
+		ProjFlag_Default      = 0        // symmetrical perspective projection
 	};
 
-	bool getProjFlag(ProjFlag _flag) const        { return (m_projFlags & _flag) != 0; }
-	void setProjFlag(ProjFlag _flag, bool _value) { m_projFlags = _value ? (m_projFlags | _flag) : (m_projFlags & ~_flag); m_projDirty = true; }
-	void setProjFlags(uint32 _flags)              { m_projFlags = _flags; m_projDirty = true; }
+	Camera(Node* _parent = nullptr);
+	
+	bool  serialize(apt::JsonSerializer& _serializer_);
+
+	void setProj(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags = ProjFlag_Default);
+	void setProj(const mat4& _projMatrix, uint32 _flags = ProjFlag_Default);
+	
+	void setPerspective(float _fovVertical, float _aspect, float _near, float _far, uint32 _flags = ProjFlag_Default);
+	void setPerspective(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags = ProjFlag_Default | ProjFlag_Asymmetrical);
+	
 
 	// Update the derived members (view matrix + world frustum, proj matrix + local frustum if dirty).
 	void update();
 
-	// Update the view matrix + world frustum.
+	// Update the view matrix + world frustum. Called by update().
 	void updateView();
-
-	// Update the projection matrix.
+	// Update the projection matrix + local frustum. Called by update().
 	void updateProj();
-
-
-private:
-	u32     m_projFlags;      // Combination of ProjFlag enums.
-	bool    m_projDirty;      // Whether to rebuild the projection matrix/local frustum.
 	
-	float   m_up;             // Projection params are interpreted depending on the projection flags.
-	float   m_down;           // For a perspective projections they are +tan(angle from the view axis).
-	float   m_right;          // For ortho projections they are +offset from the projection plane.
+	// Proj flag helpers.
+	bool getProjFlag(ProjFlag _flag) const        { return (m_projFlags & _flag) != 0; }
+	void setProjFlag(ProjFlag _flag, bool _value) { m_projFlags = _value ? (m_projFlags | _flag) : (m_projFlags & ~_flag); m_projDirty = true; }
+	
+
+	u32     m_projFlags;      // Combination of ProjFlag enums.
+	bool    m_projDirty;      // Whether to rebuild the projection matrix/local frustum during update().
+	
+	float   m_up;             // Projection params are interpreted depending on the projection flags;
+	float   m_down;           //  for a perspective projections they are ±tan(angle from the view axis),
+	float   m_right;          //  for ortho projections they are ­±offset from the projection plane.
 	float   m_left;
 	float   m_near;
 	float   m_far;		
