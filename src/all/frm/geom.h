@@ -211,7 +211,7 @@ struct Frustum
 		);
 
 	/// Construct from the inverse of a matrix (e.g. a projection matrix).
-	Frustum(const mat4& _invMat);
+	Frustum(const mat4& _invMat, bool _isOrtho = false);
 
 	/// Construct from a left/right eye frustum (combined frustum for VR).
 	Frustum(const Frustum& _left, const Frustum& _right);

@@ -1,8 +1,10 @@
 #include <frm/Camera.h>
-
 #include <frm/Scene.h>
 
 #include <apt/Json.h>
+
+#include <imgui/imgui.h>
+#include <im3d/im3d.h>
 
 using namespace frm;
 using namespace apt;
@@ -52,6 +54,151 @@ bool Camera::serialize(JsonSerializer& _serializer_)
 		m_projDirty = true;
 	}
 	return true;
+}
+
+void Camera::edit()
+{
+	ImGui::PushID(this);
+	Im3d::PushId(this);
+
+	bool updated = false;
+
+	bool  orthographic = getProjFlag(ProjFlag_Orthographic);
+	bool  asymmetrical = getProjFlag(ProjFlag_Asymmetrical);
+	bool  infinite     = getProjFlag(ProjFlag_Infinite);
+	bool  reversed     = getProjFlag(ProjFlag_Reversed);
+
+	ImGui::Text("Projection:");
+	if (ImGui::Checkbox("Orthographic", &orthographic)) {
+		float a = fabs(m_far);
+		if (orthographic) {
+		 // perspective -> orthographic
+			m_up    = m_up * a;
+			m_down  = m_down * a;
+			m_right = m_right * a;
+			m_left  = m_left * a;
+		} else {
+		 // orthographic -> perspective
+			m_up    = m_up / a;
+			m_down  = m_down / a;
+			m_right = m_right / a;
+			m_left  = m_left / a;		 
+		}
+		updated = true;
+	}
+	updated |= ImGui::Checkbox("Asymmetrical", &asymmetrical);
+	updated |= ImGui::Checkbox("Infinite", &infinite);
+	updated |= ImGui::Checkbox("Reversed", &reversed);
+
+	float up    = orthographic ? m_up    : degrees(atanf(m_up));
+	float down  = orthographic ? m_down	 : degrees(atanf(m_down));
+	float right = orthographic ? m_right : degrees(atanf(m_right));
+	float left  = orthographic ? m_left	 : degrees(atanf(m_left));
+	float near  = m_near;
+	float far   = m_far;
+
+	
+	if (orthographic) {
+	} else {
+		if (asymmetrical) {
+			updated |= ImGui::SliderFloat("Up",    &up,    -90.0f, 90.0f);
+			updated |= ImGui::SliderFloat("Down",  &down,  -90.0f, 90.0f);
+			updated |= ImGui::SliderFloat("Right", &right, -90.0f, 90.0f);
+			updated |= ImGui::SliderFloat("Left",  &left,  -90.0f, 90.0f);
+		} else {
+			float fovVertical = up * 2.0f;
+			float fovHorizontal = right * 2.0f;
+			updated |= ImGui::SliderFloat("FOV Vertical",   &fovVertical,   0.0f, 180.0f);
+			updated |= ImGui::SliderFloat("FOV Horizontal", &fovHorizontal, 0.0f, 180.0f);
+			float aspect = fovHorizontal / fovVertical;
+			updated |= ImGui::SliderFloat("Apect Ratio (V/H)", &aspect, 0.0f, 4.0f);
+			if (updated) {
+				up = fovVertical * 0.5f;
+				down = -up;
+				right = up * aspect;
+				left = -right;
+			}
+		}
+	}
+	updated |= ImGui::SliderFloat("Near",  &near,   0.0f,  10.0f);
+	updated |= ImGui::SliderFloat("Far",   &far,    0.0f,  100.0f);
+
+	if (ImGui::TreeNode("Raw Params")) {
+		
+		updated |= ImGui::DragFloat("Up",    &up,    0.5f);
+		updated |= ImGui::DragFloat("Down",  &down,  0.5f);
+		updated |= ImGui::DragFloat("Right", &right, 0.5f);
+		updated |= ImGui::DragFloat("Left",  &left,  0.5f);
+		updated |= ImGui::DragFloat("Near",  &near,  0.5f);
+		updated |= ImGui::DragFloat("Far",   &far,   0.5f);
+
+		ImGui::TreePop();
+	}
+	if (ImGui::TreeNode("Debug")) {
+		static const int kSampleCount = 200;
+		static float zrange[2] = { 0.0f, 100.0f };
+		ImGui::SliderFloat2("Z Curve", zrange, 0.0f, 200.0f);
+		float zvalues[kSampleCount];
+		for (int i = 0; i < kSampleCount; ++i) {
+			float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
+			vec4 pz = m_proj * vec4(0.0f, 0.0f, -z, 1.0f);
+			zvalues[i] = pz.z / pz.w;
+			//if (!reversed) {
+			//	zvalues[i] = zvalues[i] * 0.5f + 0.5f;
+			//}
+		}
+		ImGui::PlotLines("Z Values", zvalues, kSampleCount, 0, 0, 0.0f, 1.0f, ImVec2(0.0f, 128.0f));
+
+		Frustum dbgFrustum = Frustum(inverse(m_proj));
+		Im3d::PushDrawState();
+		Im3d::PushMatrix(m_world);
+			Im3d::SetSize(2.0f);
+			Im3d::SetColor(Im3d::Color_Yellow);
+			Im3d::BeginLineLoop();
+				Im3d::Vertex(dbgFrustum.m_vertices[0]);
+				Im3d::Vertex(dbgFrustum.m_vertices[1]);
+				Im3d::Vertex(dbgFrustum.m_vertices[2]);
+				Im3d::Vertex(dbgFrustum.m_vertices[3]);
+			Im3d::End();
+			Im3d::SetColor(Im3d::Color_Magenta);
+			Im3d::BeginLineLoop();
+				Im3d::Vertex(dbgFrustum.m_vertices[4]);
+				Im3d::Vertex(dbgFrustum.m_vertices[5]);
+				Im3d::Vertex(dbgFrustum.m_vertices[6]);
+				Im3d::Vertex(dbgFrustum.m_vertices[7]);
+			Im3d::End();
+			Im3d::BeginLines();
+				Im3d::Vertex(dbgFrustum.m_vertices[0], Im3d::Color_Yellow);
+				Im3d::Vertex(dbgFrustum.m_vertices[4], Im3d::Color_Magenta);
+				Im3d::Vertex(dbgFrustum.m_vertices[1], Im3d::Color_Yellow);
+				Im3d::Vertex(dbgFrustum.m_vertices[5], Im3d::Color_Magenta);
+				Im3d::Vertex(dbgFrustum.m_vertices[2], Im3d::Color_Yellow);
+				Im3d::Vertex(dbgFrustum.m_vertices[6], Im3d::Color_Magenta);
+				Im3d::Vertex(dbgFrustum.m_vertices[3], Im3d::Color_Yellow);
+				Im3d::Vertex(dbgFrustum.m_vertices[7], Im3d::Color_Magenta);
+			Im3d::End();
+		Im3d::PopMatrix();
+		Im3d::PopDrawState();
+
+		ImGui::TreePop();
+	}
+
+	if (updated) {
+		m_up    = orthographic ? up    : tanf(radians(up));
+		m_down  = orthographic ? down  : tanf(radians(down));
+		m_right = orthographic ? right : tanf(radians(right));
+		m_left  = orthographic ? left  : tanf(radians(left));
+		m_near  = near;
+		m_far   = far;
+		setProjFlag(ProjFlag_Orthographic, orthographic);
+		setProjFlag(ProjFlag_Asymmetrical, asymmetrical);
+		setProjFlag(ProjFlag_Infinite, infinite);
+		setProjFlag(ProjFlag_Reversed, reversed);
+	}
+
+
+	Im3d::PopId();
+	ImGui::PopID();
 }
 
 
@@ -123,6 +270,15 @@ void Camera::setPerspective(float _up, float _down, float _right, float _left, f
 	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // _flags were invalid 
 }
 
+void Camera::setAspect(float _aspect)
+{
+	setProjFlag(ProjFlag_Asymmetrical, false);
+	float horizontal = _aspect * (fabs(m_up) + fabs(m_down));
+	m_left = horizontal * 0.5f;
+	m_right = -m_left;
+	m_projDirty = true;
+}
+
 void Camera::update()
 {
 	updateView();
@@ -133,8 +289,8 @@ void Camera::update()
 
 void Camera::updateView()
 {
-	if (m_node) {
-		m_world = m_node->getWorldMatrix();
+	if (m_parent) {
+		m_world = m_parent->getWorldMatrix();
 	}
 	m_view = inverse(m_world); // \todo cheaper than inverse?
 	m_viewProj = m_proj * m_view;
@@ -152,9 +308,9 @@ void Camera::updateProj()
 		m_proj[0][0] = 2.0f / (m_right - m_left);
 		m_proj[1][1] = 2.0f / (m_up - m_down);
 		m_proj[2][2] = -2.0f / (m_far - m_near);
-		m_proj[3][0] = -((m_right + m_left) / (m_right - m_left));
-		m_proj[3][1] = -((m_up + m_down) / (m_up - m_down));
-		m_proj[3][2] = -((m_far + m_near) / (m_far - m_near));
+		m_proj[0][3] = -((m_right + m_left) / (m_right - m_left));
+		m_proj[1][3] = -((m_up + m_down) / (m_up - m_down));
+		m_proj[2][3] = -((m_far + m_near) / (m_far - m_near));
 		m_proj[3][3] = 1.0f;
 
 	} else {
@@ -200,7 +356,7 @@ void Camera::updateProj()
 }
 
 // --
-
+/*
 Camera::Camera(
 	float _aspect,
 	float _fovVertical,
@@ -355,3 +511,4 @@ void Camera::buildProj()
 	}
 	m_projDirty = false;
 }
+*/

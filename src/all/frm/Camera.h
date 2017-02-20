@@ -34,15 +34,18 @@ public:
 	};
 
 	Camera(Node* _parent = nullptr);
-	
-	bool  serialize(apt::JsonSerializer& _serializer_);
 
+	bool serialize(apt::JsonSerializer& _serializer_);
+	void edit();
+	
 	void setProj(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags = ProjFlag_Default);
 	void setProj(const mat4& _projMatrix, uint32 _flags = ProjFlag_Default);
 	
 	void setPerspective(float _fovVertical, float _aspect, float _near, float _far, uint32 _flags = ProjFlag_Default);
 	void setPerspective(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags = ProjFlag_Default | ProjFlag_Asymmetrical);
 	
+	float getAspect() const               { return (fabs(m_right) + fabs(m_left)) / (fabs(m_up) + fabs(m_down)); }
+	void  setAspect(float _aspect);  // forces a symmetrical projection
 
 	// Update the derived members (view matrix + world frustum, proj matrix + local frustum if dirty).
 	void update();
@@ -56,8 +59,13 @@ public:
 	bool getProjFlag(ProjFlag _flag) const        { return (m_projFlags & _flag) != 0; }
 	void setProjFlag(ProjFlag _flag, bool _value) { m_projFlags = _value ? (m_projFlags | _flag) : (m_projFlags & ~_flag); m_projDirty = true; }
 	
+	// Extract position from world matrix.
+	vec3 getPosition() const    { return vec3(apt::column(m_world, 3));  }
+	// Extract view direction from world matrix. Projection is along -z, hence the negation.
+	vec3 getViewVector() const  { return -vec3(apt::column(m_world, 2)); }
 
-	u32     m_projFlags;      // Combination of ProjFlag enums.
+
+	uint32  m_projFlags;      // Combination of ProjFlag enums.
 	bool    m_projDirty;      // Whether to rebuild the projection matrix/local frustum during update().
 	
 	float   m_up;             // Projection params are interpreted depending on the projection flags;
@@ -77,7 +85,7 @@ public:
 	Frustum m_worldFrustum;   // World space frustum (use for culling).
 
 // ---
-public:
+/*public:
 
 	// Symmetrical perspective projection from a vertical fov + viewport aspect ratio.
 	Camera(
@@ -173,7 +181,7 @@ private:
 	Frustum m_worldFrustum; // World space frustum (world matrix * local frustum)
 
 	void buildProj();
-
+*/
 }; // class Camera
 
 } // namespace frm
