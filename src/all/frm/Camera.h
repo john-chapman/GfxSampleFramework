@@ -33,6 +33,43 @@ public:
 		ProjFlag_Default      = 0 // symmetrical perspective projection
 	};
 
+	bool getProjFlag(ProjFlag _flag) const        { return (m_projFlags & _flag) != 0; }
+	void setProjFlag(ProjFlag _flag, bool _value) { m_projFlags = _value ? (m_projFlags | _flag) : (m_projFlags & ~_flag); m_projDirty = true; }
+	void setProjFlags(uint32 _flags)              { m_projFlags = _flags; m_projDirty = true; }
+
+	// Update the derived members (view matrix + world frustum, proj matrix + local frustum if dirty).
+	void update();
+
+	// Update the view matrix + world frustum.
+	void updateView();
+
+	// Update the projection matrix.
+	void updateProj();
+
+
+private:
+	u32     m_projFlags;      // Combination of ProjFlag enums.
+	bool    m_projDirty;      // Whether to rebuild the projection matrix/local frustum.
+	
+	float   m_up;             // Projection params are interpreted depending on the projection flags.
+	float   m_down;           // For a perspective projections they are +tan(angle from the view axis).
+	float   m_right;          // For ortho projections they are +offset from the projection plane.
+	float   m_left;
+	float   m_near;
+	float   m_far;		
+
+	Node*   m_parent;         // Overrides world matrix if set.
+	mat4    m_world;
+	mat4    m_view;
+	mat4    m_proj;
+	mat4    m_viewProj;
+
+	Frustum m_localFrustum;   // Derived from the projection parameters.
+	Frustum m_worldFrustum;   // World space frustum (use for culling).
+
+// ---
+public:
+
 	// Symmetrical perspective projection from a vertical fov + viewport aspect ratio.
 	Camera(
 		float _aspect      = 1.0f,
