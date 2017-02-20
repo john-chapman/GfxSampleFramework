@@ -91,6 +91,9 @@
     <ClInclude Include="..\..\src\all\extern\GL\glew.h" />
     <ClInclude Include="..\..\src\all\extern\GL\glxew.h" />
     <ClInclude Include="..\..\src\all\extern\GL\wglew.h" />
+    <ClInclude Include="..\..\src\all\extern\im3d\im3d.h" />
+    <ClInclude Include="..\..\src\all\extern\im3d\im3d_config.h" />
+    <ClInclude Include="..\..\src\all\extern\im3d\im3d_math.h" />
     <ClInclude Include="..\..\src\all\extern\imgui\imconfig.h" />
     <ClInclude Include="..\..\src\all\extern\imgui\imgui.h" />
     <ClInclude Include="..\..\src\all\extern\imgui\imgui_internal.h" />
@@ -132,7 +135,6 @@
     <ClInclude Include="..\..\src\all\frm\Camera.h" />
     <ClInclude Include="..\..\src\all\frm\Framebuffer.h" />
     <ClInclude Include="..\..\src\all\frm\GlContext.h" />
-    <ClInclude Include="..\..\src\all\frm\icon_fa.h" />
     <ClInclude Include="..\..\src\all\frm\Input.h" />
     <ClInclude Include="..\..\src\all\frm\LuaScript.h" />
     <ClInclude Include="..\..\src\all\frm\Mesh.h" />
@@ -150,7 +152,7 @@
     <ClInclude Include="..\..\src\all\frm\def.h" />
     <ClInclude Include="..\..\src\all\frm\geom.h" />
     <ClInclude Include="..\..\src\all\frm\gl.h" />
-    <ClInclude Include="..\..\src\all\frm\im3d.h" />
+    <ClInclude Include="..\..\src\all\frm\icon_fa.h" />
     <ClInclude Include="..\..\src\all\frm\interpolation.h" />
     <ClInclude Include="..\..\src\all\frm\math.h" />
     <ClInclude Include="..\..\src\all\frm\ui\Log.h" />
@@ -159,6 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c" />
+    <ClCompile Include="..\..\src\all\extern\im3d\im3d.cpp" />
     <ClCompile Include="..\..\src\all\extern\imgui\imconfig.cpp" />
     <ClCompile Include="..\..\src\all\extern\imgui\imgui.cpp" />
     <ClCompile Include="..\..\src\all\extern\imgui\imgui_demo.cpp" />
@@ -220,7 +223,6 @@
     <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
     <ClCompile Include="..\..\src\all\frm\geom.cpp" />
     <ClCompile Include="..\..\src\all\frm\gl.cpp" />
-    <ClCompile Include="..\..\src\all\frm\im3d.cpp" />
     <ClCompile Include="..\..\src\all\frm\math.cpp" />
     <ClCompile Include="..\..\src\all\frm\ui\Log.cpp" />
     <ClCompile Include="..\..\src\all\frm\ui\ProfilerViewer.cpp" />

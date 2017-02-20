@@ -577,7 +577,7 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 
 #ifdef frm_Scene_ENABLE_EDIT
 
-#include <frm/Im3d.h>
+#include <im3d/Im3d.h>
 #include <imgui/imgui.h>
 
 static const Im3d::Color kNodeTypeCol[] = 
@@ -684,20 +684,12 @@ void Scene::editNodes()
 
 			ImGui::Separator();
 			ImGui::Spacing();
-
-		 // local matrix
-			if (Im3d::Gizmo("EditNodeGizmo", &m_editNode->m_localMatrix)) {
-				update(m_editNode, 0.0f, Node::kStateAny); // force node update
-			}
-
-		 // name
 			static Node::NameStr s_nameBuf;
 			s_nameBuf.set(m_editNode->m_name);
 			if (ImGui::InputText("Name", s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
 				m_editNode->m_name.set(s_nameBuf);
 			}
 
-		 // state
 			bool active = m_editNode->isActive();
 			bool dynamic = m_editNode->isDynamic();
 			if (ImGui::Checkbox("Active", &active)) {
@@ -708,8 +700,7 @@ void Scene::editNodes()
 				m_editNode->setDynamic(dynamic);
 			}
 
-		 // parent
-		 // \todo check for loops
+		 // \todo check for loops?
 			ImGui::Spacing();
 			ImGui::PushID("SelectParent");
 				if (ImGui::Button(ICON_FA_LINK " Parent")) {
@@ -737,7 +728,6 @@ void Scene::editNodes()
 				ImGui::Text("--");
 			}
 
-		 // children
 			if (!m_editNode->m_children.empty()) {
 				ImGui::Spacing();
 				if (ImGui::TreeNode("Children")) {
@@ -754,7 +744,19 @@ void Scene::editNodes()
 				}
 			}
 
-		 // xforms
+			if (ImGui::TreeNode("Local Matrix")) {
+				if (Im3d::Gizmo("EditNodeGizmo", (float*)&m_editNode->m_localMatrix)) {
+					update(m_editNode, 0.0f, Node::kStateAny); // force node update
+				}
+				vec3 position = GetTranslation(m_editNode->m_localMatrix);
+				vec3 rotation = ToEulerXYZ(GetRotation(m_editNode->m_localMatrix));
+				vec3 scale    = GetScale(m_editNode->m_localMatrix);
+				ImGui::Text("Position: %.3f, %.3f, %.3f", position.x, position.y, position.z);
+				ImGui::Text("Rotation: %.3f, %.3f, %.3f", degrees(rotation.x), degrees(position.y), degrees(position.z));
+				ImGui::Text("Scale:    %.3f, %.3f, %.3f", scale.x, scale.y, scale.z);
+				ImGui::TreePop();
+			}
+
 			if (ImGui::TreeNode("XForms")) {
 				bool destroyXForm = false;
 

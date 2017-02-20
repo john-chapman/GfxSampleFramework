@@ -110,6 +110,7 @@ public:
 
 	// Load/compile/link directly from a set of paths. _defines is a list of null-separated strings e.g. "DEFINE1 1\0DEFINE2 1\0"
 	static Shader* CreateVsFs(const char* _vsPath, const char* _fsPath, const char* _defines = 0);
+	static Shader* CreateVsGsFs(const char* _vsPath, const char* _gsPath, const char* _fsPath, const char* _defines = 0);
 	static Shader* CreateCs(const char* _csPath, int _localX = 1, int _localY = 1, int _localZ = 1, const char* _defines = 0);
 
 	static void    Destroy(Shader*& _inst_);

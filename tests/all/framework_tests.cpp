@@ -116,50 +116,7 @@ public:
 		ImGui::SameLine();
 		ImGui::PlotLines("##Lines", func, NULL, 200, 0, NULL, 0.0f, 1.0f, ImVec2(0,80));
 		m_splinePath.edit();
-	*/
-
-
-		Scene& scene = Scene::GetCurrent();
-
-		Ray r;
-		r.m_origin = scene.getCullCamera()->getPosition();
-		r.m_direction = scene.getCullCamera()->getViewVector();
-		//r = getCursorRayW();
-
-	 // nearest point/distance tests
-
-		Im3d::Color kLineColor = Im3d::Color(0.2f, 0.2f, 1.0f);
-
-		Line ln(vec3(0.0f, 2.0f, 0.0f), normalize(vec3(1.0f, 1.0f, 0.0f)));
-		LineSegment ls(vec3(-2.0f, 1.0f, 0.0f), vec3(2.0f, -1.0f, 1.0f));
-
-		static vec3 testPos0(2.0f, 0.0, 0.0f);
-		static vec3 testPos1(-2.0f, 0.0f, 0.0f); 
-		static vec3 testPos2(0.0f, 1.0f, 0.0f); 
-		Im3d::GizmoPosition("testPos0", &testPos0);
-		Im3d::GizmoPosition("testPos1", &testPos1);
-		Im3d::GizmoPosition("testPos2", &testPos2);
-
-		Sphere testSphere(testPos0, 1.5f);
-		AlignedBox testBox(testPos1 - vec3(1.5f), testPos1 + vec3(1.5f));
-		Plane testPlane(vec3(1.0f, 0.0f, 0.0f), testPos2);
-		Camera testCamera(2.0f, -2.0f, -3.0f, 3.0f, 1.0f, 5.0f, true);
-		testCamera.setWorldMatrix(translate(mat4(1.0f), testPos2));
-		testCamera.build();
-		Im3d::PushDrawState();
-			Im3d::SetSize(12.0f);
-			Im3d::SetColor(Im3d::kColorYellow);
-			Im3d::DrawArrow(testPlane.getOrigin(), testPlane.getOrigin() + testPlane.m_normal, 0.2f);
-			Im3d::SetColor(Im3d::kColorMagenta);
-			Im3d::BeginPoints(); Im3d::Vertex(testPlane.getOrigin()); Im3d::End();
-			Im3d::SetSize(2.0f);
-			DrawFrustum(testCamera.getWorldFrustum());
-			Im3d::SetColor(/*Intersects(testSphere, testPlane)*/testCamera.getWorldFrustum().inside(testSphere) ? Im3d::kColorGreen : Im3d::kColorRed);
-			Im3d::DrawSphere(testSphere.m_origin, testSphere.m_radius);
-			Im3d::SetColor(/*Intersects(testBox, testPlane)*/testCamera.getWorldFrustum().inside(testBox) ? Im3d::kColorGreen : Im3d::kColorRed);		
-			Im3d::DrawBox(testBox.m_min, testBox.m_max);
-		Im3d::PopDrawState();
-	
+	*/	
 		return true;
 	}
 

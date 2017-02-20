@@ -198,6 +198,15 @@ Shader* Shader::CreateVsFs(const char* _vsPath, const char* _fsPath, const char*
 	desc.setPath(GL_FRAGMENT_SHADER, _fsPath);
 	return Create(desc);
 }
+Shader* Shader::CreateVsGsFs(const char* _vsPath, const char* _gsPath, const char* _fsPath, const char* _defines)
+{
+	ShaderDesc desc;
+	desc.addGlobalDefines(_defines);
+	desc.setPath(GL_VERTEX_SHADER, _vsPath);
+	desc.setPath(GL_GEOMETRY_SHADER, _gsPath);
+	desc.setPath(GL_FRAGMENT_SHADER, _fsPath);
+	return Create(desc);
+}
 Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _localZ, const char* _defines)
 {
 	APT_ASSERT(_localX <= GlContext::GetCurrent()->kMaxComputeLocalSize[0]);

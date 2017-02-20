@@ -1,8 +1,20 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="extern">
       <UniqueIdentifier>{7BE134FC-6783-5FD2-503E-73263C7FE622}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\GL">
+      <UniqueIdentifier>{FD84597B-69EF-0DF2-B22D-BF971ED7EB46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\im3d">
+      <UniqueIdentifier>{77F0E1B7-E3A5-5AAD-6C9A-5484D84E51B1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\imgui">
+      <UniqueIdentifier>{25DF20B4-1142-B058-BAC7-E80EA6097CDB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\lua">
+      <UniqueIdentifier>{ACC78AE6-987F-CC33-0187-A58FED5D6724}</UniqueIdentifier>
     </Filter>
     <Filter Include="ui">
       <UniqueIdentifier>{C3795900-AF05-880B-18B4-880B045F880B}</UniqueIdentifier>
@@ -13,109 +25,118 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\all\extern\GL\glew.h">
-      <Filter>extern</Filter>
+      <Filter>extern\GL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\GL\glxew.h">
-      <Filter>extern</Filter>
+      <Filter>extern\GL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\GL\wglew.h">
-      <Filter>extern</Filter>
+      <Filter>extern\GL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\extern\im3d\im3d.h">
+      <Filter>extern\im3d</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\extern\im3d\im3d_config.h">
+      <Filter>extern\im3d</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\extern\im3d\im3d_math.h">
+      <Filter>extern\im3d</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\imconfig.h">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\imgui.h">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\imgui_internal.h">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\stb_rect_pack.h">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\stb_textedit.h">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\stb_truetype.h">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lapi.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lauxlib.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lcode.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lctype.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\ldebug.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\ldo.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lfunc.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lgc.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\llex.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\llimits.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lmem.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lobject.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lopcodes.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lparser.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lprefix.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lstate.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lstring.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\ltable.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\ltm.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lua.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lua.hpp">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\luaconf.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lualib.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lundump.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lvm.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\lua\lzio.h">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\tiny_obj_loader.h">
       <Filter>extern</Filter>
@@ -145,7 +166,7 @@
     <ClInclude Include="..\..\src\all\frm\def.h" />
     <ClInclude Include="..\..\src\all\frm\geom.h" />
     <ClInclude Include="..\..\src\all\frm\gl.h" />
-    <ClInclude Include="..\..\src\all\frm\im3d.h" />
+    <ClInclude Include="..\..\src\all\frm\icon_fa.h" />
     <ClInclude Include="..\..\src\all\frm\interpolation.h" />
     <ClInclude Include="..\..\src\all\frm\math.h" />
     <ClInclude Include="..\..\src\all\frm\ui\Log.h">
@@ -157,122 +178,124 @@
     <ClInclude Include="..\..\src\all\frm\ui\ShaderViewer.h">
       <Filter>ui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\icon_fa.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">
-      <Filter>extern</Filter>
+      <Filter>extern\GL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\extern\im3d\im3d.cpp">
+      <Filter>extern\im3d</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\imgui\imconfig.cpp">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\imgui\imgui.cpp">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\imgui\imgui_demo.cpp">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\imgui\imgui_draw.cpp">
-      <Filter>extern</Filter>
+      <Filter>extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lapi.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lauxlib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lbaselib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lbitlib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lcode.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lcorolib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lctype.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\ldblib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\ldebug.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\ldo.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\ldump.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lfunc.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lgc.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\linit.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\liolib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\llex.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lmathlib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lmem.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\loadlib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lobject.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lopcodes.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\loslib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lparser.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lstate.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lstring.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lstrlib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\ltable.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\ltablib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\ltm.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lundump.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lutf8lib.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lvm.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lzio.c">
-      <Filter>extern</Filter>
+      <Filter>extern\lua</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\App.cpp" />
     <ClCompile Include="..\..\src\all\frm\AppProperty.cpp" />
@@ -298,7 +321,6 @@
     <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
     <ClCompile Include="..\..\src\all\frm\geom.cpp" />
     <ClCompile Include="..\..\src\all\frm\gl.cpp" />
-    <ClCompile Include="..\..\src\all\frm\im3d.cpp" />
     <ClCompile Include="..\..\src\all\frm\math.cpp" />
     <ClCompile Include="..\..\src\all\frm\ui\Log.cpp">
       <Filter>ui</Filter>
