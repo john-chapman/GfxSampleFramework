@@ -304,7 +304,7 @@ void Scene::destroyNode(Node*& _node_)
 				Camera* camera = _node_->getSceneDataCamera();
 				auto it = std::find(m_cameras.begin(), m_cameras.end(), camera);
 				if (it != m_cameras.end()) {
-					APT_ASSERT(camera->getNode() == _node_); // _node_ points to camera, but camera doesn't point to _node_
+					APT_ASSERT(camera->m_parent == _node_); // _node_ points to camera, but camera doesn't point to _node_
 					m_cameras.erase(it);
 				}
 				m_cameraPool.free(camera);
@@ -383,7 +383,7 @@ Camera* Scene::createCamera(const Camera& _copyFrom, Node* _parent_)
 	Camera* ret = m_cameraPool.alloc(_copyFrom);
 	Node* node = createNode(Node::kTypeCamera, _parent_);
 	node->setSceneDataCamera(ret);
-	ret->setNode(node);
+	ret->m_parent = node;
 
 	m_cameras.push_back(ret);
 	if (!m_drawCamera) {
@@ -397,7 +397,7 @@ void Scene::destroyCamera(Camera*& _camera_)
 {
 	CPU_AUTO_MARKER("Scene::destroyCamera");
 
-	Node* node = _camera_->getNode();
+	Node* node = _camera_->m_parent;
 	APT_ASSERT(node);
 	destroyNode(node); // implicitly destroys camera
 	if (m_drawCamera == _camera_) {
@@ -432,11 +432,11 @@ bool Scene::serialize(JsonSerializer& _serializer_)
 	Node::Id drawCameraId = Node::kInvalidId;
 	Node::Id cullCameraId = Node::kInvalidId;
 	if (_serializer_.getMode() == JsonSerializer::kWrite) {
-		if (m_drawCamera != nullptr && m_drawCamera->getNode() != nullptr) {
-			drawCameraId = m_drawCamera->getNode()->getId();	
+		if (m_drawCamera && m_drawCamera->m_parent) {
+			drawCameraId = m_drawCamera->m_parent->getId();	
 		}
-		if (m_cullCamera != nullptr && m_cullCamera->getNode() != nullptr) {
-			cullCameraId = m_cullCamera->getNode()->getId();
+		if (m_cullCamera && m_cullCamera->m_parent) {
+			cullCameraId = m_cullCamera->m_parent->getId();
 		}
 	}
 	_serializer_.value("DrawCameraId", drawCameraId);
@@ -488,7 +488,7 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 			}
 			case Node::kTypeCamera: {
 				Camera* cam = m_cameraPool.alloc();
-				cam->setNode(&_node_);
+				cam->m_parent = &_node_;
 				if (!cam->serialize(_serializer_)) {
 					m_cameraPool.free(cam);
 					return false;
@@ -622,9 +622,9 @@ void Scene::edit()
 			[](Node* _node_)->bool {
 				Im3d::SetMatrix(_node_->getWorldMatrix());
 				Im3d::DrawXyzAxes();
-				Im3d::BeginPoints();
-					Im3d::Vertex(Im3d::Vec3(0.0f), 4.0f, kNodeTypeCol[_node_->getType()]);
-				Im3d::End();
+				//Im3d::BeginPoints();
+				//	Im3d::Vertex(Im3d::Vec3(0.0f), 4.0f, kNodeTypeCol[_node_->getType()]);
+				//Im3d::End();
 				Im3d::SetIdentity();
 				if (_node_->getParent() && _node_->getParent() != Scene::GetCurrent().getRoot()) {
 					Im3d::SetColor(1.0f, 0.0f, 1.0f);
@@ -902,9 +902,9 @@ void Scene::editCameras()
 			ImGui::PopStyleColor();
 
 			ImGui::SameLine();
-			ImGui::PushStyleColor(ImGuiCol_Text, m_editCamera->getNode()->isSelected() ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
+			ImGui::PushStyleColor(ImGuiCol_Text, m_editCamera->m_parent->isSelected() ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_GAMEPAD " Set Current Node")) {
-			 	Node* editCameraNode = m_editCamera->getNode();
+			 	Node* editCameraNode = m_editCamera->m_parent;
 				if (editCameraNode->isSelected() && m_storedNode != nullptr) {
 					editCameraNode->setSelected(false);
 					m_storedNode->setSelected(true);
@@ -927,28 +927,28 @@ void Scene::editCameras()
 			ImGui::Spacing();
 			
 			static Node::NameStr s_nameBuf;
-			s_nameBuf.set(m_editCamera->getNode()->m_name);
+			s_nameBuf.set(m_editCamera->m_parent->m_name);
 			if (ImGui::InputText("Name", s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
-				m_editCamera->getNode()->m_name.set(s_nameBuf);
+				m_editCamera->m_parent->m_name.set(s_nameBuf);
 			}
 
-			bool  ortho     = m_editCamera->isOrtho();
-			bool  symmetric = m_editCamera->isSymmetric();
-			float up        = degrees(atan(m_editCamera->getTanFovUp()));
-			float down      = degrees(atan(m_editCamera->getTanFovDown()));
-			float left      = degrees(atan(m_editCamera->getTanFovLeft()));
-			float right     = degrees(atan(m_editCamera->getTanFovRight()));
-			float clipNear  = m_editCamera->getClipNear();
-			float clipFar   = m_editCamera->getClipFar();
+			m_editCamera->edit();
 
-			if (ImGui::Checkbox("Orthographic", &ortho)) {
-				m_editCamera->setIsOrtho(ortho);
-			}
-			ImGui::SameLine();
-			if (ImGui::Checkbox("Symmetrical", &symmetric)) {
-				m_editCamera->setIsSymmetric(symmetric);
-			}
-			if (ortho) {
+			/*float up    = degrees(atan(m_editCamera->getTanFovUp()));
+			float down  = degrees(atan(m_editCamera->getTanFovDown()));
+			float left  = degrees(atan(m_editCamera->getTanFovLeft()));
+			float right = degrees(atan(m_editCamera->getTanFovRight()));
+			float near  = m_editCamera->getNear();
+			float far   = m_editCamera->getFar();*/
+
+			//if (ImGui::Checkbox("Orthographic", &ortho)) {
+			//	m_editCamera->setIsOrtho(ortho);
+			//}
+			//ImGui::SameLine();
+			//if (ImGui::Checkbox("Symmetrical", &symmetric)) {
+			//	m_editCamera->setIsSymmetric(symmetric);
+			//}
+			/*if (ortho) {
 				if (ImGui::SliderFloat("Top", &up, 0.0f, 100.0f)) {
 					m_editCamera->setFovUp(radians(up));
 				}
@@ -986,16 +986,18 @@ void Scene::editCameras()
 					}
 				}
 			}
-			if (ImGui::SliderFloat("Clip Near", &clipNear, 0.0f, 2.0f)) {
-				m_editCamera->setClipNear(clipNear);
+			if (ImGui::SliderFloat("Near", &near, 0.0f, 2.0f)) {
+				far = max(far, near);
+				m_editCamera->setNear(near);
 			}
-			if (ImGui::SliderFloat("Clip Far", &clipFar, clipNear, 5000.0f)) {
-				m_editCamera->setClipFar(clipFar);
-			}
+			if (ImGui::SliderFloat("Far", &far, near, 1000.0f)) {
+				near = min(far, near);
+				m_editCamera->setFar(far);
+			}*/
 
 		 // deferred destroy
 			if (destroy) {
-				if (m_editNode == m_editCamera->getNode()) {
+				if (m_editNode == m_editCamera->m_parent) {
 					m_editNode = nullptr;
 				}
 				destroyCamera(m_editCamera);
@@ -1060,9 +1062,9 @@ Camera* Scene::selectCamera(Camera* _current)
 			if (cam == _current) {
 				continue;
 			}
-			APT_ASSERT(cam->getNode());
-			if (filter.PassFilter(cam->getNode()->getName())) {
-				if (ImGui::Selectable(cam->getNode()->getName())) {
+			APT_ASSERT(cam->m_parent);
+			if (filter.PassFilter(cam->m_parent->getName())) {
+				if (ImGui::Selectable(cam->m_parent->getName())) {
 					ret = cam;
 					break;
 				}
@@ -1201,11 +1203,10 @@ void Scene::update(Node* _node_, float _dt, uint8 _stateMask)
  // type-specific update
 	switch (_node_->getType()) {
 		case Node::kTypeCamera: {
-		 // copy world matrix into the camera
 			Camera* camera = _node_->getSceneDataCamera();
 			APT_ASSERT(camera);
-			APT_ASSERT(camera->getNode() == _node_);
-			camera->build();
+			APT_ASSERT(camera->m_parent == _node_);
+			camera->update();
 			}
 			break;
 		default: 

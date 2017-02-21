@@ -32,7 +32,7 @@ bool AppSample3d::init(const apt::ArgList& _args)
 
 	if (!Scene::Load(m_scenePath, Scene::GetCurrent())) {
  		Camera* defaultCamera = Scene::GetCurrent().createCamera(Camera());
-		Node* defaultCameraNode = defaultCamera->getNode();
+		Node* defaultCameraNode = defaultCamera->m_parent;
 		defaultCameraNode->setStateMask(Node::kStateActive | Node::kStateDynamic | Node::kStateSelected);
 		XForm* freeCam = XForm::Create("XForm_FreeCamera");
 		((XForm_FreeCamera*)freeCam)->m_position = vec3(0.0f, 5.0f, 22.5f);
@@ -64,7 +64,7 @@ bool AppSample3d::update()
 	#endif
 
 	Camera* currentCamera = scene.getDrawCamera();
-	if (currentCamera->isSymmetric()) {
+	if (!currentCamera->getProjFlag(Camera::ProjFlag_Asymmetrical)) {
 	 // update aspect ratio to match window size
 		Window* win = getWindow();
 		int winX = win->getWidth();
@@ -91,11 +91,11 @@ bool AppSample3d::update()
 			scene.setCullCamera(scene.getDrawCamera());
 		} else {
 			m_dbgCullCamera = scene.createCamera(*scene.getCullCamera());
-			Node* node = m_dbgCullCamera->getNode();
+			Node* node = m_dbgCullCamera->m_parent;
 			node->setName("#DEBUG CULL CAMERA");
 			node->setDynamic(false);
 			node->setActive(false);
-			node->setLocalMatrix(scene.getCullCamera()->getWorldMatrix());
+			node->setLocalMatrix(scene.getCullCamera()->m_world);
 			scene.setCullCamera(m_dbgCullCamera);
 		}
 	}
@@ -126,10 +126,10 @@ bool AppSample3d::update()
 					continue;
 				}
 				Im3d::PushMatrix();
-					Im3d::MulMatrix(camera->getWorldMatrix());
+					Im3d::MulMatrix(camera->m_world);
 					Im3d::DrawXyzAxes();
 				Im3d::PopMatrix();
-				DrawFrustum(camera->getWorldFrustum());
+				DrawFrustum(camera->m_worldFrustum);
 			}
 		Im3d::PopDrawState();
 	}
@@ -186,7 +186,7 @@ void AppSample3d::draw()
 Ray AppSample3d::getCursorRayW() const
 {
 	Ray ret = getCursorRayV();
-	ret.transform(Scene::GetDrawCamera()->getWorldMatrix());
+	ret.transform(Scene::GetDrawCamera()->m_world);
 	return ret;
 }
 
@@ -198,7 +198,7 @@ Ray AppSample3d::getCursorRayV() const
 	vec2 wsize = vec2((float)getWindow()->getWidth(), (float)getWindow()->getHeight());
 	mpos = (mpos / wsize) * 2.0f - 1.0f;
 	mpos.y = -mpos.y; // the cursor position is top-left relative
-	float tanHalfFov = Scene::GetDrawCamera()->getTanFovUp();
+	float tanHalfFov = Scene::GetDrawCamera()->m_up;
 	float aspect = Scene::GetDrawCamera()->getAspect();
 	return Ray(vec3(0.0f), normalize(vec3(mpos.x * tanHalfFov * aspect, mpos.y * tanHalfFov, -1.0f)));
 	
@@ -313,7 +313,7 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 
 	ad.m_deltaTime = (float)_app->m_deltaTime;
 	ad.m_viewportSize = vec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
-	ad.m_tanHalfFov = Scene::GetDrawCamera()->getTanFovUp();
+	ad.m_tanHalfFov = Scene::GetDrawCamera()->m_up;
 	ad.m_viewOrigin = Scene::GetDrawCamera()->getPosition();
 	
 	Ray cursorRayW = _app->getCursorRayW();
@@ -369,7 +369,7 @@ void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 	
 	GlContext* ctx = GlContext::GetCurrent();
 	ctx->setShader(sh);
-	ctx->setUniform("uViewProjMatrix", Scene::GetDrawCamera()->getViewProjMatrix());
+	ctx->setUniform("uViewProjMatrix", Scene::GetDrawCamera()->m_viewProj);
 	ctx->setUniform("uViewport", vec2(ctx->getViewportWidth(), ctx->getViewportHeight()));
 	ctx->setMesh(ms);
 	ctx->draw();

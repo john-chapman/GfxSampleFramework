@@ -338,7 +338,7 @@ Frustum::Frustum(float _up, float _down, float _left, float _right, float _clipN
 	initPlanes();
 }
 
-Frustum::Frustum(const mat4& _invMat)
+Frustum::Frustum(const mat4& _invMat, bool _isOrtho)
 {
  // transform an NDC box by the inverse matrix
 	static const vec4 lv[8] = {
@@ -355,7 +355,9 @@ Frustum::Frustum(const mat4& _invMat)
 	vec3 lvt[8];
 	for (int i = 0; i < 8; ++i) {
 		vec4 v = _invMat * lv[i];
-		v /= v.w;
+		if (!_isOrtho) {
+			v /= v.w;
+		}
 		lvt[i] = vec3(v);
 	}
 	setVertices(lvt);

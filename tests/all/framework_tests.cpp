@@ -41,6 +41,9 @@ public:
 			return false;
 		}
 
+		m_teapot = Mesh::Create("models/teapot.obj");
+		m_shModel = Shader::CreateVsFs("shaders/Model_vs.glsl", "shaders/Model_fs.glsl");
+
 		/*LCG lcg(1223781730);
 		for (int i = 0; i < 4; ++i) {
 			m_splinePath.append(vec3(
@@ -134,6 +137,20 @@ public:
 	{
 		GlContext* ctx = GlContext::GetCurrent();
 
+		static mat4 teapotMat(1.0f);
+		Im3d::Gizmo("Teapot", (float*)&teapotMat);
+
+		ctx->setShader(m_shModel);
+		ctx->setMesh(m_teapot);
+		ctx->setUniform("uWorldMatrix", teapotMat);
+		ctx->setUniform("uViewMatrix", Scene::GetDrawCamera()->m_view);
+		ctx->setUniform("uProjMatrix", Scene::GetDrawCamera()->m_proj);
+		glAssert(glEnable(GL_DEPTH_TEST));
+		glAssert(glEnable(GL_CULL_FACE));
+		ctx->draw();
+		glAssert(glDisable(GL_CULL_FACE));
+		glAssert(glDisable(GL_DEPTH_TEST));
+
 		AppBase::draw();
 	}
 };
@@ -154,7 +171,7 @@ int main(int _argc, char** _argv)
 		APT_VERIFY(GlContext::MakeCurrent(ctx));
 		glAssert(glViewport(0, 0, win->getWidth(), win->getHeight()));
 		glAssert(glClearColor(0.3f, 0.3f, 0.3f, 0.0f));
-		glAssert(glClear(GL_COLOR_BUFFER_BIT));
+		glAssert(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 		app->draw();
 	}
