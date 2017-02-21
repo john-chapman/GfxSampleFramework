@@ -18,7 +18,7 @@ Camera::Camera(Node* _parent)
 	, m_down(-1.0f)
 	, m_right(1.0f)
 	, m_left(-1.0f)
-	, m_near(-1.0f)
+	, m_near(0.0f)
 	, m_far(1.0f)
 	, m_parent(_parent)
 	, m_world(1.0f)
@@ -147,33 +147,39 @@ void Camera::edit()
 			//	zvalues[i] = zvalues[i] * 0.5f + 0.5f;
 			//}
 		}
-		ImGui::PlotLines("Z Values", zvalues, kSampleCount, 0, 0, 0.0f, 1.0f, ImVec2(0.0f, 128.0f));
+		ImGui::PlotLines("Z Values", zvalues, kSampleCount, 0, 0, 0.0f, 1.0f, ImVec2(0.0f, 64.0f));
+
+		for (int i = 0; i < kSampleCount; ++i) {
+			float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
+			vec4 pz = m_proj * vec4(0.0f, 0.0f, -z, 1.0f);
+			zvalues[i] = pz.w;
+		}
+		ImGui::PlotLines("W Values", zvalues, kSampleCount, 0, 0, 0.0f, 1.0f, ImVec2(0.0f, 64.0f));
 
 		Frustum dbgFrustum = Frustum(inverse(m_proj));
 		Im3d::PushDrawState();
 		Im3d::PushMatrix(m_world);
 			Im3d::SetSize(2.0f);
-			Im3d::SetColor(Im3d::Color_Yellow);
 			Im3d::BeginLineLoop();
-				Im3d::Vertex(dbgFrustum.m_vertices[0]);
-				Im3d::Vertex(dbgFrustum.m_vertices[1]);
-				Im3d::Vertex(dbgFrustum.m_vertices[2]);
-				Im3d::Vertex(dbgFrustum.m_vertices[3]);
+				Im3d::Vertex(dbgFrustum.m_vertices[0], Im3d::Color_Yellow);
+				Im3d::Vertex(dbgFrustum.m_vertices[1], Im3d::Color_Green);
+				Im3d::Vertex(dbgFrustum.m_vertices[2], Im3d::Color_Green);
+				Im3d::Vertex(dbgFrustum.m_vertices[3], Im3d::Color_Yellow);
 			Im3d::End();
 			Im3d::SetColor(Im3d::Color_Magenta);
 			Im3d::BeginLineLoop();
-				Im3d::Vertex(dbgFrustum.m_vertices[4]);
-				Im3d::Vertex(dbgFrustum.m_vertices[5]);
-				Im3d::Vertex(dbgFrustum.m_vertices[6]);
-				Im3d::Vertex(dbgFrustum.m_vertices[7]);
+				Im3d::Vertex(dbgFrustum.m_vertices[4], Im3d::Color_Magenta);
+				Im3d::Vertex(dbgFrustum.m_vertices[5], Im3d::Color_Red);
+				Im3d::Vertex(dbgFrustum.m_vertices[6], Im3d::Color_Red);
+				Im3d::Vertex(dbgFrustum.m_vertices[7], Im3d::Color_Magenta);
 			Im3d::End();
 			Im3d::BeginLines();
 				Im3d::Vertex(dbgFrustum.m_vertices[0], Im3d::Color_Yellow);
 				Im3d::Vertex(dbgFrustum.m_vertices[4], Im3d::Color_Magenta);
-				Im3d::Vertex(dbgFrustum.m_vertices[1], Im3d::Color_Yellow);
-				Im3d::Vertex(dbgFrustum.m_vertices[5], Im3d::Color_Magenta);
-				Im3d::Vertex(dbgFrustum.m_vertices[2], Im3d::Color_Yellow);
-				Im3d::Vertex(dbgFrustum.m_vertices[6], Im3d::Color_Magenta);
+				Im3d::Vertex(dbgFrustum.m_vertices[1], Im3d::Color_Green);
+				Im3d::Vertex(dbgFrustum.m_vertices[5], Im3d::Color_Red);
+				Im3d::Vertex(dbgFrustum.m_vertices[2], Im3d::Color_Green);
+				Im3d::Vertex(dbgFrustum.m_vertices[6], Im3d::Color_Red);
 				Im3d::Vertex(dbgFrustum.m_vertices[3], Im3d::Color_Yellow);
 				Im3d::Vertex(dbgFrustum.m_vertices[7], Im3d::Color_Magenta);
 			Im3d::End();
@@ -274,8 +280,8 @@ void Camera::setAspect(float _aspect)
 {
 	setProjFlag(ProjFlag_Asymmetrical, false);
 	float horizontal = _aspect * (fabs(m_up) + fabs(m_down));
-	m_left = horizontal * 0.5f;
-	m_right = -m_left;
+	m_right = horizontal * 0.5f;
+	m_left = -m_right;
 	m_projDirty = true;
 }
 
@@ -300,27 +306,39 @@ void Camera::updateView()
 
 void Camera::updateProj()
 {
+	m_proj = mat4(0.0f);
 	m_localFrustum = Frustum(m_up, m_down, m_left, m_right, m_near, m_far, getProjFlag(ProjFlag_Orthographic));
 	bool infinite = getProjFlag(ProjFlag_Infinite);
 	bool reversed = getProjFlag(ProjFlag_Reversed);
 
+	float t = m_localFrustum.m_vertices[0].y;
+	float b = m_localFrustum.m_vertices[3].y;
+	float l = m_localFrustum.m_vertices[0].x;
+	float r = m_localFrustum.m_vertices[1].x;
+	float n = m_near;
+	float f = m_far;
+
 	if (getProjFlag(ProjFlag_Orthographic)) {
-		m_proj[0][0] = 2.0f / (m_right - m_left);
-		m_proj[1][1] = 2.0f / (m_up - m_down);
-		m_proj[2][2] = -2.0f / (m_far - m_near);
-		m_proj[0][3] = -((m_right + m_left) / (m_right - m_left));
-		m_proj[1][3] = -((m_up + m_down) / (m_up - m_down));
-		m_proj[2][3] = -((m_far + m_near) / (m_far - m_near));
+		m_proj[0][0] = 2.0f / (r - l);
+		m_proj[1][1] = 2.0f / (t - b);
+		m_proj[2][0] = 0.0f;
+		m_proj[2][1] = 0.0f;
+		m_proj[2][2] = -2.0f / (f - n);
+		m_proj[2][3] = 0.0f;
+		m_proj[3][0] = -(r + l) / (r - l);
+		m_proj[3][1] = -(t + b) / (t - b);
+		m_proj[3][2] = -(f + n) / (f - n);
 		m_proj[3][3] = 1.0f;
 
-	} else {
-		float t = m_localFrustum.m_vertices[0].y;
-		float b = m_localFrustum.m_vertices[3].y;
-		float l = m_localFrustum.m_vertices[0].x;
-		float r = m_localFrustum.m_vertices[1].x;
-		float n = m_near;
-		float f = m_far;
+		if (infinite && reversed) {
+		} else if (infinite) {
+			m_proj[2][2] = -1.0f;
+			m_proj[3][2] = -2.0f * n;
+		} else if (reversed) {
+		} else {
+		}
 
+	} else {
 		m_proj[0][0] = (2.0f * n) / (r - l);
 		m_proj[1][1] = (2.0f * n) / (t - b);
 		m_proj[2][0] = (r + l) / (r - l);
@@ -354,161 +372,3 @@ void Camera::updateProj()
 
 	m_projDirty = false;
 }
-
-// --
-/*
-Camera::Camera(
-	float _aspect,
-	float _fovVertical,
-	float _near,
-	float _far
-	)
-	: m_node(nullptr)
-	, m_up(tan(_fovVertical * 0.5f))
-	, m_down(m_up)
-	, m_left(m_up * _aspect)
-	, m_right(m_up * _aspect)
-	, m_near(_near)
-	, m_far(_far)
-	, m_projFlags(ProjFlag_Default)
-	, m_projDirty(true)
-	, m_world(1.0f)
-	, m_proj(0.0f)
-{
-	build();
-}
-
-Camera::Camera(
-	float _up,
-	float _down,
-	float _left,
-	float _right,
-	float _near,
-	float _far,
-	bool  _isOrtho
-	)
-	: m_node(nullptr)
-	, m_up(_isOrtho ? _up : tan(_up))
-	, m_down(_isOrtho ? _down : tan(_down))
-	, m_left(_isOrtho ? _left : tan(_left))
-	, m_right(_isOrtho ? _right : tan(_right))
-	, m_near(_near)
-	, m_far(_far)
-	, m_projFlags(ProjFlag_Default)
-	, m_projDirty(true)
-	, m_world(1.0f)
-	, m_proj(0.0f)
-{
-	setProjFlag(ProjFlag_Orthographic, _isOrtho);
-	setProjFlag(ProjFlag_Asymmetrical, m_up != m_down || m_right != m_left);
-	build();
-}
-
-void Camera::setVerticalFov(float _radians)
-{
-	float aspect = (m_left + m_right) / (m_up + m_down);
-	m_up = tan(_radians * 0.5f);
-	m_down = m_up;
-	m_left = m_up * aspect;
-	m_right = m_left;
-	m_projDirty = true;
-}
-
-void Camera::setHorizontalFov(float _radians)
-{
-	float aspect = (m_up + m_down) / (m_left + m_right);
-	m_left = tan(_radians * 0.5f);
-	m_right = m_up;
-	m_up = m_left * aspect;
-	m_down = m_up;
-	m_projDirty = true;
-}
-
-void Camera::setAspect(float _aspect)
-{
-	setProjFlag(ProjFlag_Asymmetrical, false);
-	float horizontal = _aspect * (m_up + m_down);
-	m_left = horizontal * 0.5f;
-	m_right = m_left;
-	m_projDirty = true;
-}
-
-void Camera::setProjMatrix(const mat4& _proj, uint32 _flags)
-{
-	m_proj = _proj; 
-	m_projFlags = _flags;
-	m_localFrustum = Frustum(inverse(_proj));
-
-	vec3* frustum = m_localFrustum.m_vertices;
-	m_up    =  frustum[0].y;
-	m_down  = -frustum[3].y;
-	m_left  = -frustum[3].x;
-	m_right =  frustum[1].x;
-	m_near  = -frustum[0].z;
-	m_far   = -frustum[4].z;
-	if (!getProjFlag(ProjFlag_Orthographic)) {
-		m_up    /= m_near;
-		m_down  /= m_near;
-		m_left  /= m_near;
-		m_right /= m_near;
-	}
-	m_projDirty = false;
-}
-
-void Camera::build()
-{
-	if (m_projDirty) {
-		buildProj();	
-	}
-	
-	if (m_node) {
-		m_world = m_node->getWorldMatrix();
-	}
-	m_view = inverse(m_world);
-	m_viewProj = m_proj * m_view;
-	m_worldFrustum = m_localFrustum;
-	m_worldFrustum.transform(m_world);
-}
-
-void Camera::buildProj()
-{
-	m_localFrustum = Frustum(m_up, m_down, m_left, m_right, m_near, m_far, getProjFlag(ProjFlag_Orthographic));
-	if (getProjFlag(ProjFlag_Orthographic)) {
-	} else {
-		float t = m_localFrustum.m_vertices[0].y;
-		float b = m_localFrustum.m_vertices[3].y;
-		float l = m_localFrustum.m_vertices[0].x;
-		float r = m_localFrustum.m_vertices[1].x;
-		float n = m_near;
-		float f = m_far;
-
-		m_proj[0][0] = (2.0f * n) / (r - l);
-		m_proj[1][1] = (2.0f * n) / (t - b);
-		m_proj[2][0] = (r + l) / (r - l);
-		m_proj[2][1] = (t + b) / (t - b);
-		m_proj[2][3] = -1.0f;
-
-		bool infinite = getProjFlag(ProjFlag_Infinite);
-		bool reversed = getProjFlag(ProjFlag_Reversed);
-		if (infinite && reversed) {
-			m_proj[2][2] = 0.0f;
-			m_proj[3][2] = n;
-
-		} else if (infinite) {
-			m_proj[2][2] = -1.0f;
-			m_proj[3][2] = -2.0f * n;
-
-		} else if (reversed) {
-			m_proj[2][2] = n / (n - f);
-			m_proj[3][2] = m_proj[2][2] == 0.0f ? n : (f * n / (f - n));
-
-		} else {			
-			m_proj[2][2] = (n + f) / (n - f);
-			m_proj[3][2] = (2.0f * n * f) / (n - f);
-
-		}
-
-	}
-	m_projDirty = false;
-}
-*/

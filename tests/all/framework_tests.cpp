@@ -146,7 +146,9 @@ public:
 		ctx->setUniform("uViewMatrix", Scene::GetDrawCamera()->m_view);
 		ctx->setUniform("uProjMatrix", Scene::GetDrawCamera()->m_proj);
 		glAssert(glEnable(GL_DEPTH_TEST));
+		glAssert(glEnable(GL_CULL_FACE));
 		ctx->draw();
+		glAssert(glDisable(GL_CULL_FACE));
 		glAssert(glDisable(GL_DEPTH_TEST));
 
 		AppBase::draw();
