@@ -87,8 +87,10 @@ void Camera::edit()
 		updated = true;
 	}
 	updated |= ImGui::Checkbox("Asymmetrical", &asymmetrical);
-	updated |= ImGui::Checkbox("Infinite", &infinite);
-	updated |= ImGui::Checkbox("Reversed", &reversed);
+	if (!orthographic) {
+		updated |= ImGui::Checkbox("Infinite", &infinite);
+		updated |= ImGui::Checkbox("Reversed", &reversed);
+	}
 
 	float up    = orthographic ? m_up    : degrees(atanf(m_up));
 	float down  = orthographic ? m_down	 : degrees(atanf(m_down));
@@ -99,6 +101,26 @@ void Camera::edit()
 
 	
 	if (orthographic) {
+		if (asymmetrical) {
+			updated |= ImGui::DragFloat("Up",    &up,    0.5f);
+			updated |= ImGui::DragFloat("Down",  &down,  0.5f);
+			updated |= ImGui::DragFloat("Right", &right, 0.5f);
+			updated |= ImGui::DragFloat("Left",  &left,  0.5f);
+		} else {
+			float height = up * 2.0f;
+			float width = right * 2.0f;
+			updated |= ImGui::SliderFloat("Height", &height, 0.0f, 100.0f);
+			updated |= ImGui::SliderFloat("Width",  &width,  0.0f, 100.0f);
+			float aspect = width / height;
+			updated |= ImGui::SliderFloat("Apect Ratio (W/H)", &aspect, 0.0f, 4.0f);
+			if (updated) {
+				up = height * 0.5f;
+				down = -up;
+				right = up * aspect;
+				left = -right;
+			}
+		}
+
 	} else {
 		if (asymmetrical) {
 			updated |= ImGui::SliderFloat("Up",    &up,    -90.0f, 90.0f);
@@ -121,7 +143,7 @@ void Camera::edit()
 		}
 	}
 	updated |= ImGui::SliderFloat("Near",  &near,   0.0f,  10.0f);
-	updated |= ImGui::SliderFloat("Far",   &far,    0.0f,  100.0f);
+	updated |= ImGui::SliderFloat("Far",   &far,    0.0f,  1000.0f);
 
 	if (ImGui::TreeNode("Raw Params")) {
 		
@@ -134,27 +156,20 @@ void Camera::edit()
 
 		ImGui::TreePop();
 	}
-	if (ImGui::TreeNode("Debug")) {
+	/*if (ImGui::TreeNode("Debug")) {
 		static const int kSampleCount = 200;
-		static float zrange[2] = { 0.0f, 100.0f };
-		ImGui::SliderFloat2("Z Curve", zrange, 0.0f, 200.0f);
+		static float zrange[2] = { -10.0f, fabs(m_far) + 1.0f };
+		ImGui::SliderFloat2("Z Curve", zrange, 0.0f, 100.0f);
 		float zvalues[kSampleCount];
+		float wvalues[kSampleCount];
 		for (int i = 0; i < kSampleCount; ++i) {
 			float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
 			vec4 pz = m_proj * vec4(0.0f, 0.0f, -z, 1.0f);
 			zvalues[i] = pz.z / pz.w;
-			//if (!reversed) {
-			//	zvalues[i] = zvalues[i] * 0.5f + 0.5f;
-			//}
+			wvalues[i] = pz.w;
 		}
-		ImGui::PlotLines("Z Values", zvalues, kSampleCount, 0, 0, 0.0f, 1.0f, ImVec2(0.0f, 64.0f));
-
-		for (int i = 0; i < kSampleCount; ++i) {
-			float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-			vec4 pz = m_proj * vec4(0.0f, 0.0f, -z, 1.0f);
-			zvalues[i] = pz.w;
-		}
-		ImGui::PlotLines("W Values", zvalues, kSampleCount, 0, 0, 0.0f, 1.0f, ImVec2(0.0f, 64.0f));
+		ImGui::PlotLines("Z", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
+		ImGui::PlotLines("W", wvalues, kSampleCount, 0, 0, 0.0f, m_far, ImVec2(0.0f, 64.0f));
 
 		Frustum dbgFrustum = Frustum(inverse(m_proj));
 		Im3d::PushDrawState();
@@ -187,7 +202,7 @@ void Camera::edit()
 		Im3d::PopDrawState();
 
 		ImGui::TreePop();
-	}
+	}*/
 
 	if (updated) {
 		m_up    = orthographic ? up    : tanf(radians(up));
@@ -288,9 +303,9 @@ void Camera::setAspect(float _aspect)
 void Camera::update()
 {
 	updateView();
-	if (m_projDirty) {
+	//if (m_projDirty) {
 		updateProj();	
-	}
+	//}
 }
 
 void Camera::updateView()
@@ -330,15 +345,32 @@ void Camera::updateProj()
 		m_proj[3][2] = -(f + n) / (f - n);
 		m_proj[3][3] = 1.0f;
 
+	 // \todo infinite ortho projection probably not possible as it involves tampering with the w component
+	 // \todo reverse ortho projection is possible but probably not useful since the z projection is linear
+
 		if (infinite && reversed) {
-		} else if (infinite) {
-			m_proj[2][2] = -1.0f;
-			m_proj[3][2] = -2.0f * n;
+		} else if (infinite) {			
 		} else if (reversed) {
 		} else {
 		}
 
 	} else {
+	 // oblique perspective
+
+ // \todo this is the typical OGL perspective projection with z/w in [-1,1], enabling GL_ZERO_TO_ONE throws away some depth range without adjusting the 
+ //   proj matrix - need to do some more work here to fully understand the matrix setup for both cases
+
+//static bool s_enableD3DZRange = false;
+//IMGUI_ONCE_UPON_A_FRAME
+//{
+//	ImGui::Checkbox("D3D Z Range", &s_enableD3DZRange);
+//	if (s_enableD3DZRange) {
+//		glAssert(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE));
+//	} else {
+//		glAssert(glClipControl(GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE));
+//	}
+//}
+
 		m_proj[0][0] = (2.0f * n) / (r - l);
 		m_proj[1][1] = (2.0f * n) / (t - b);
 		m_proj[2][0] = (r + l) / (r - l);
@@ -354,14 +386,22 @@ void Camera::updateProj()
 			m_proj[2][2] = -1.0f;
 			m_proj[3][2] = -2.0f * n;
 
+//if (s_enableD3DZRange) {
+//	m_proj[3][2] = -n;
+//}
+
 		} else if (reversed) {
-		 // \todo finite reverse projection broken?
 			m_proj[2][2] = n / (n - f);
 			m_proj[3][2] = m_proj[2][2] == 0.0f ? n : (f * n / (f - n));
 
 		} else {			
 			m_proj[2][2] = (n + f) / (n - f);
 			m_proj[3][2] = (2.0f * n * f) / (n - f);
+
+//if (s_enableD3DZRange) {
+//	m_proj[2][2] = -f / (f - n);
+//	m_proj[3][2] = -n * f / (f - n);
+//}
 
 		}
 	}
