@@ -94,9 +94,19 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 
 #define saturate(_x) clamp((_x), 0.0, 1.0)
 
-float LinearizeDepth(in float _depth, in float _near, in float _far) {
-	float zn = _depth * 2.0 - 1.0;
-	return 2.0 * _near * _far / (_far + _near - (_far - _near) * zn);
+float LinearizeDepth(in float _depth, in float _near, in float _far) 
+{
+	float zndc = _depth * 2.0 - 1.0;
+	return 2.0 * _near * _far / (_far + _near - (_far - _near) * zndc);
+}
+float LinearizeDepth_ProjInfinite(in float _depth, in float _near) 
+{
+	float zndc = _depth * 2.0 - 1.0;
+	return -2.0 * _near / (zndc - 1.0);
+}
+float LinearizeDepth_ProjInfiniteReversed(in float _depth, in float _near) 
+{
+	return _near / _depth;
 }
 
 float Rand(in vec2 _seed)
