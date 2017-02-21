@@ -18,8 +18,8 @@ Camera::Camera(Node* _parent)
 	, m_down(-1.0f)
 	, m_right(1.0f)
 	, m_left(-1.0f)
-	, m_near(0.0f)
-	, m_far(1.0f)
+	, m_near(1.0f)
+	, m_far(1000.0f)
 	, m_parent(_parent)
 	, m_world(1.0f)
 	, m_proj(0.0f)
@@ -303,9 +303,9 @@ void Camera::setAspect(float _aspect)
 void Camera::update()
 {
 	updateView();
-	//if (m_projDirty) {
+	if (m_projDirty) {
 		updateProj();	
-	//}
+	}
 }
 
 void Camera::updateView()
@@ -346,7 +346,7 @@ void Camera::updateProj()
 		m_proj[3][3] = 1.0f;
 
 	 // \todo infinite ortho projection probably not possible as it involves tampering with the w component
-	 // \todo reverse ortho projection is possible but probably not useful since the z projection is linear
+	 // \todo reverse ortho projection is possible, useful for drawing ortho passes (e.g. shadows) without having to change the clip control/depth test
 
 		if (infinite && reversed) {
 		} else if (infinite) {			
@@ -391,6 +391,8 @@ void Camera::updateProj()
 //}
 
 		} else if (reversed) {
+
+		 // \todo this is still an infinite projection?
 			m_proj[2][2] = n / (n - f);
 			m_proj[3][2] = m_proj[2][2] == 0.0f ? n : (f * n / (f - n));
 
