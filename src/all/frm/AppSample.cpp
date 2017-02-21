@@ -591,7 +591,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 	mat4 ortho = mat4(
 		 2.0f/io.DisplaySize.x, 0.0f,                   0.0f, 0.0f,
 		 0.0f,                  2.0f/-io.DisplaySize.y, 0.0f, 0.0f,
-		 0.0f,                  0.0f,                  -1.0f, 0.0f,
+		 0.0f,                  0.0f,                   1.0f, 0.0f,
 		-1.0f,                  1.0f,                   0.0f, 1.0f
 		);
 	ctx->setMesh(g_msImGui);
