@@ -415,9 +415,5 @@ void Camera::updateProj()
 		}
 	}
 
-	if (infinite) {
-		m_localFrustum.m_planes[Frustum::kFar] = m_localFrustum.m_planes[Frustum::kNear];
-	}
-
 	m_projDirty = false;
 }
