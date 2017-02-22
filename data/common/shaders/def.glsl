@@ -5,6 +5,10 @@
 	#error No shader stage defined.
 #endif
 
+#if !defined(Camera_ClipD3D) && !defined(Camera_ClipOGL)
+	#error Camera_Clip* not defined.
+#endif
+
 #if defined(COMPUTE_SHADER)
 	#ifndef LOCAL_SIZE_X
 		#define LOCAL_SIZE_X 1
@@ -25,7 +29,6 @@ struct DrawArraysIndirectCmd
 	uint m_first;
 	uint m_baseInstance;
 };
-
 struct DrawElementsIndirectCmd
 {
 	uint m_count;
@@ -34,7 +37,6 @@ struct DrawElementsIndirectCmd
 	uint m_baseVertex;
 	uint m_baseInstance;
 };
-
 struct DispatchIndirectCmd
 {
 	uint m_groupsX;
@@ -88,26 +90,44 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 	return vec4(Gamma_ApplyInverse(_v.x), Gamma_ApplyInverse(_v.y), Gamma_ApplyInverse(_v.z), Gamma_ApplyInverse(_v.w));
 }
 
-
 #define kPi   (3.14159265359)
 #define k2Pi  (6.28318530718)
 
 #define saturate(_x) clamp((_x), 0.0, 1.0)
 
+
+// Linearizing depth requires applying the inverse of Z part of the projection matrix, which depends on how the matrix was set up.
+// The following variants correspond to ProjFlags_; see frm/Camera.h for more info.
 float LinearizeDepth(in float _depth, in float _near, in float _far) 
 {
-	float zndc = _depth * 2.0 - 1.0;
-	return 2.0 * _near * _far / (_far + _near - (_far - _near) * zndc);
+	#if   defined(Camera_ClipD3D)
+	#elif defined(Camera_ClipOGL)
+		float zndc = _depth * 2.0 - 1.0;
+		return 2.0 * _near * _far / (_far + _near - (_far - _near) * zndc);
+	#endif
 }
-float LinearizeDepth_ProjInfinite(in float _depth, in float _near) 
+float LinearizeDepth_Infinite(in float _depth, in float _near) 
 {
-	float zndc = _depth * 2.0 - 1.0;
-	return -2.0 * _near / (zndc - 1.0);
+	#if   defined(Camera_ClipD3D)
+	#elif defined(Camera_ClipOGL)
+		float zndc = _depth * 2.0 - 1.0;
+		return -2.0 * _near / (zndc - 1.0);
+	#endif
 }
-float LinearizeDepth_ProjInfiniteReversed(in float _depth, in float _near) 
+float LinearizeDepth_Reversed(in float _depth, in float _near, in float _far) 
 {
-	return _near / _depth;
+	#if   defined(Camera_ClipD3D)
+	#elif defined(Camera_ClipOGL)
+	#endif
 }
+float LinearizeDepth_InfiniteReversed(in float _depth, in float _near) 
+{
+	#if   defined(Camera_ClipD3D)
+		return _near / _depth;
+	#elif defined(Camera_ClipOGL)
+	#endif
+}
+
 
 float Rand(in vec2 _seed)
 {
