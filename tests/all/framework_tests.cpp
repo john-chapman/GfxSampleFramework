@@ -1,6 +1,7 @@
 #include <frm/def.h>
 
 #include <frm/interpolation.h>
+#include <frm/gl.h>
 #include <frm/AppSample3d.h>
 #include <frm/AppProperty.h>
 #include <frm/GlContext.h>
@@ -40,10 +41,10 @@ public:
 		if (!AppBase::init(_args)) {
 			return false;
 		}
-
+		
 		m_teapot = Mesh::Create("models/teapot.obj");
 		m_shModel = Shader::CreateVsFs("shaders/Model_vs.glsl", "shaders/Model_fs.glsl");
-
+				
 		/*LCG lcg(1223781730);
 		for (int i = 0; i < 4; ++i) {
 			m_splinePath.append(vec3(
@@ -105,6 +106,30 @@ public:
 			ImGui::PlotLines("ZOGL-11", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
 		}
 		{
+			ImGui::Text("OGL REVERSED (-Z in [1,-1])");
+			float A = (f + n) / (f - n);
+			float B = (2.0f * n * f) / (f - n);
+			for (int i = 0; i < kSampleCount; ++i) {
+				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
+				z = -z;
+				float w = -z;
+				zvalues[i] = (A * z + B) / w;
+			}
+			ImGui::PlotLines("ZD3DOGL1-1", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
+		}
+		{
+			ImGui::Text("OGL INFINITE (-Z in [1,-1])");
+			float A = 1.0f;
+			float B = 2.0f * n;
+			for (int i = 0; i < kSampleCount; ++i) {
+				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
+				z = -z;
+				float w = -z;
+				zvalues[i] = (A * z + B) / w;
+			}
+			ImGui::PlotLines("ZD3DOGL1-1", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
+		}
+		{
 			ImGui::Text("D3D Normal (Z in [0,1])");
 			float A = f / (f - n);
 			float B = -(n * f) / (f - n);
@@ -128,18 +153,7 @@ public:
 			}
 			ImGui::PlotLines("ZD3DOGL01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
 		}
-		{
-			ImGui::Text("D3D-OGL (-Z in [0,1])");
-			float A = f / (n - f);
-			float B = (n * f) / (n - f);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = -z;
-				zvalues[i] = max((A * z + B) / w, 0.0f);
-			}
-			ImGui::PlotLines("ZD3DOGL01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
+		
 		{
 			ImGui::Text("D3D-OGL REVERSED (-Z in [1,0])");
 			float A = n / (f - n);
@@ -190,6 +204,18 @@ public:
 			ImGui::PlotLines("ZOGL-11", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
 		}
 		{
+			ImGui::Text("OGL Ortho Reversed (-Z in [1,-1])");
+			float A = -2.0f / (n - f);
+			float B =  -(n + f) / (n - f);
+			for (int i = 0; i < kSampleCount; ++i) {
+				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
+				z = -z;
+				float w = 1.0f;
+				zvalues[i] = (A * z + B) / w;
+			}
+			ImGui::PlotLines("ZOGL1-1", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
+		}
+		{
 			ImGui::Text("D3D Ortho (Z in [0,1])");
 			float A = 1.0f / (f - n);
 			float B =  -n / (f - n);
@@ -224,8 +250,8 @@ public:
 				zvalues[i] = max((A * z + B) / w, 0.0f);
 			}
 			ImGui::PlotLines("ZD3DOGL01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		*/
+		}*/
+		
 
 
 	 // interpolationt vis

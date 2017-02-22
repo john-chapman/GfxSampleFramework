@@ -6,22 +6,32 @@
 #include <frm/geom.h>
 #include <frm/math.h>
 
+// Control how the projection matrix is set up to produce Zndc in [0,1] (D3D) or [-1,1] (OGL)
+// Camera_ClipOGL should not really be used unless the platform doesn't support glClipControl.
+#define Camera_ClipD3D
+//#define Camera_ClipOGL
+
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \class Camera
-/// Projection is defined either by 4 angles (radians) from the view axis for
-/// perspective projections, or 4 offsets (world units) from the view origin for
+/// Projection is defined either by 4 angles (±radians) from the view axis for
+/// perspective projections, or 4 offsets (±world units) from the view origin for
 /// parallel projections, plus a near/far clipping plane.
 ///
-/// Enable ProjFlag_Reversed for better precision when using a floating points
+/// Projection flags control how the projection matrix is set up - this must be 
+/// congruent with the graphics API clip control settings and depth test, as
+/// well as any shader operations which might be affected (depth linearization,
+/// shadow tests, etc.).
+///
+/// ProjFlag_Reversed will give better precision when using a floating points
 /// depth buffer - in this case the following setup is required for OpenGL:
-///		glDepthClear(0.0f);
+///		glClearDepth(0.0f);
 ///		glDepthFunc(GL_GREATER);
 ///		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 /// 
-/// Note than ProjFlag_Infinite does not affect the frustum far plane, so m_far
-/// should be set to a distance appropriate for culling.
+/// ProjFlag_Infinite does not affect the frustum far plane, so m_far should be
+/// be set to a distance appropriate for culling.
 ////////////////////////////////////////////////////////////////////////////////
 class Camera
 {
