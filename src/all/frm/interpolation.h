@@ -7,47 +7,47 @@
 
 namespace frm {
 
-/// Linear interpolation.
+// Linear interpolation.
 template <typename T>
 T lerp(const T& _p0, const T& _p1, float _delta);
 float lerp(float _p0, float _p1, float _delta);
 
-/// Normalized linear interpolation.
+// Normalized linear interpolation.
 template <typename T>
 T nlerp(const T& _p0, const T& _p1, float _delta);
 float nlerp(float _p0, float _p1, float _delta);
 
-/// Spherical linear interpolation.
+// Spherical linear interpolation.
 template <typename T>
 T slerp(const T& _p0, const T& _p1, float _delta);
 float slerp(float _p0, float _p1, float _delta);
 
-/// Cosine interpolation. Decomposes to lerp() for vector types.
+// Cosine interpolation. Decomposes to lerp() for vector types.
 template <typename T>
 T coserp(const T& _p0, const T& _p1, float _delta);
 float coserp(float _p0, float _p1, float _delta);
 
-/// Smooth interpolation.
+// Smooth interpolation.
 template <typename T>
 T smooth(const T& _p0, const T& _p1, float _delta);
 float smooth(float _p0, float _p1, float _delta);
 
-/// Lerp with more speed at the end of the curve.
+// Lerp with more speed at the end of the curve.
 template <typename T>
 T accelerp(const T& _p0, const T& _p1, float _delta);
 float accelerp(float _p0, float _p1, float _delta);
 
-/// Lerp with more speed at the start of the curve.
+// Lerp with more speed at the start of the curve.
 template <typename T>
 T decelerp(const T& _p0, const T& _p1, float _delta);
 float decelerp(float _p0, float _p1, float _delta);
 
-/// Cubic interpolation.
+// Cubic interpolation.
 template <typename T>
 T cuberp(const T& _p0, const T& _p1, const T& _p2, const T& _p3, float _delta);
 float cuberp(float _p0, float _p1, float _p2, float _p3, float _delta);
 
-/// Hermite interpolation.
+// Hermite interpolation.
 template <typename T>
 T hermite(const T& _p0, const T& _p1, const T& _p2, const T& _p3, float _delta, float _tension = 0.0f, float bias = 0.0f);
 float hermite(float _p0, float _p1, float _p2, float _p3, float _delta, float _tension = 0.0f, float bias = 0.0f);
