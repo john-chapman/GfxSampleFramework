@@ -1,6 +1,7 @@
 #include <frm/Shader.h>
 
 #include <frm/gl.h>
+#include <frm/Camera.h> // Camera_Clip* define passed to shader
 #include <frm/GlContext.h>
 #include <frm/ShaderPreprocessor.h>
 
@@ -430,6 +431,13 @@ bool Shader::loadStage(int _i)
 	
 	Append("#define ", src);
 	AppendLine(internal::GlEnumStr(internal::kShaderStages[_i]) + 3, src); // \hack +3 removes the 'GL_', which is reserved in the shader
+
+	Append("#define ", src);
+	#if   defined(Camera_ClipD3D)
+		AppendLine("Camera_ClipD3D", src);
+	#elif defined(Camera_ClipOGL)
+		AppendLine("Camera_ClipOGL", src);
+	#endif
 
 	Append(desc.m_source.data(), src);
 	src.push_back('\n');
