@@ -89,8 +89,8 @@ void Camera::edit()
 	updated |= ImGui::Checkbox("Asymmetrical", &asymmetrical);
 	if (!orthographic) {
 		updated |= ImGui::Checkbox("Infinite", &infinite);
-		updated |= ImGui::Checkbox("Reversed", &reversed);
 	}
+	updated |= ImGui::Checkbox("Reversed", &reversed);
 
 	float up    = orthographic ? m_up    : degrees(atanf(m_up));
 	float down  = orthographic ? m_down	 : degrees(atanf(m_down));
@@ -130,16 +130,20 @@ void Camera::edit()
 		} else {
 			float fovVertical = up * 2.0f;
 			float fovHorizontal = right * 2.0f;
-			updated |= ImGui::SliderFloat("FOV Vertical",   &fovVertical,   0.0f, 180.0f);
-			updated |= ImGui::SliderFloat("FOV Horizontal", &fovHorizontal, 0.0f, 180.0f);
 			float aspect = fovHorizontal / fovVertical;
-			updated |= ImGui::SliderFloat("Apect Ratio (V/H)", &aspect, 0.0f, 4.0f);
-			if (updated) {
+			if (ImGui::SliderFloat("FOV Vertical", &fovVertical, 0.0f, 180.0f)) {
 				up = fovVertical * 0.5f;
 				down = -up;
 				right = up * aspect;
 				left = -right;
+				updated = true;
 			}
+			if (ImGui::SliderFloat("Apect Ratio", &aspect, 0.0f, 2.0f)) {
+				right = up * aspect;
+				down = -right;
+				updated = true;
+			}
+			
 		}
 	}
 	updated |= ImGui::SliderFloat("Near",  &near,   0.0f,  10.0f);
@@ -157,21 +161,17 @@ void Camera::edit()
 		ImGui::TreePop();
 	}
 	/*if (ImGui::TreeNode("Debug")) {
-		static const int kSampleCount = 200;
+		static const int kSampleCount = 256;
 		static float zrange[2] = { -10.0f, fabs(m_far) + 1.0f };
-		ImGui::SliderFloat2("Z Curve", zrange, 0.0f, 100.0f);
+		ImGui::SliderFloat2("Z Range", zrange, 0.0f, 100.0f);
 		float zvalues[kSampleCount];
-		float wvalues[kSampleCount];
 		for (int i = 0; i < kSampleCount; ++i) {
 			float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
 			vec4 pz = m_proj * vec4(0.0f, 0.0f, -z, 1.0f);
 			zvalues[i] = pz.z / pz.w;
-			wvalues[i] = pz.w;
 		}
 		ImGui::PlotLines("Z", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		ImGui::PlotLines("W", wvalues, kSampleCount, 0, 0, 0.0f, m_far, ImVec2(0.0f, 64.0f));
 
-		Frustum dbgFrustum = Frustum(inverse(m_proj));
 		Im3d::PushDrawState();
 		Im3d::PushMatrix(m_world);
 			Im3d::SetSize(2.0f);
@@ -202,7 +202,8 @@ void Camera::edit()
 		Im3d::PopDrawState();
 
 		ImGui::TreePop();
-	}*/
+	}
+	*/
 
 	if (updated) {
 		m_up    = orthographic ? up    : tanf(radians(up));
@@ -255,7 +256,37 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 {
  // \todo recovering frustum and params from an infinite or reversed proj matrix may not work
 	m_proj = _projMatrix; 
-	m_localFrustum = Frustum(inverse(_projMatrix));
+	m_projFlags = _flags;
+	
+ // transform an NDC box by the inverse matrix
+	mat4 invProj = inverse(_projMatrix);
+	static const vec4 lv[8] = {
+		#if   defined(Camera_ClipD3D)
+			vec4(-1.0f,  1.0f,  0.0f,  1.0f),
+			vec4( 1.0f,  1.0f,  0.0f,  1.0f),
+			vec4( 1.0f, -1.0f,  0.0f,  1.0f),
+			vec4(-1.0f, -1.0f,  0.0f,  1.0f),
+		#elif defined(Camera_ClipOGL)
+			vec4(-1.0f,  1.0f, -1.0f,  1.0f),
+			vec4( 1.0f,  1.0f, -1.0f,  1.0f),
+			vec4( 1.0f, -1.0f, -1.0f,  1.0f),
+			vec4(-1.0f, -1.0f, -1.0f,  1.0f),
+		#endif
+		vec4(-1.0f,  1.0f,  1.0f,  1.0f),
+		vec4( 1.0f,  1.0f,  1.0f,  1.0f),
+		vec4( 1.0f, -1.0f,  1.0f,  1.0f),
+		vec4(-1.0f, -1.0f,  1.0f,  1.0f)
+	};
+	vec3 lvt[8];
+	for (int i = 0; i < 8; ++i) {
+		vec4 v = invProj * lv[i];
+		if (!getProjFlag(ProjFlag_Orthographic)) {
+			v /= v.w;
+		}
+		lvt[i] = vec3(v);
+	}
+	m_localFrustum.setVertices(lvt);
+
 	const vec3* frustum = m_localFrustum.m_vertices;
 	m_up    = frustum[0].y;
 	m_down  = frustum[3].y;
@@ -328,9 +359,9 @@ void Camera::updateView()
 
 void Camera::updateProj()
 {
-	m_proj = mat4(0.0f);
-	m_localFrustum = Frustum(m_up, m_down, m_left, m_right, m_near, m_far, getProjFlag(ProjFlag_Orthographic));
-	bool infinite = getProjFlag(ProjFlag_Infinite);
+ 	m_proj = mat4(0.0f);
+	m_localFrustum = Frustum(m_up, m_down, m_right, m_left, m_near, m_far, getProjFlag(ProjFlag_Orthographic));
+	bool infinite = getProjFlag(ProjFlag_Infinite) && !getProjFlag(ProjFlag_Orthographic); // infinite ortho projection not supported
 	bool reversed = getProjFlag(ProjFlag_Reversed);
 
 	float t = m_localFrustum.m_vertices[0].y;
@@ -340,44 +371,48 @@ void Camera::updateProj()
 	float n = m_near;
 	float f = m_far;
 
+ // \note both clip modes below assume a right-handed coordinates system (view axis along -z).
+ // \todo infinite ortho projection probably not possible as it involves tampering with the w component
+ // \todo generate an inverse projection matrix at the same time
+
 	if (getProjFlag(ProjFlag_Orthographic)) {
 		m_proj[0][0] = 2.0f / (r - l);
 		m_proj[1][1] = 2.0f / (t - b);
 		m_proj[2][0] = 0.0f;
 		m_proj[2][1] = 0.0f;
-		m_proj[2][2] = -2.0f / (f - n);
 		m_proj[2][3] = 0.0f;
 		m_proj[3][0] = -(r + l) / (r - l);
 		m_proj[3][1] = -(t + b) / (t - b);
-		m_proj[3][2] = -(f + n) / (f - n);
 		m_proj[3][3] = 1.0f;
 
-	 // \todo infinite ortho projection probably not possible as it involves tampering with the w component
-	 // \todo reverse ortho projection is possible, useful for drawing ortho passes (e.g. shadows) without having to change the clip control/depth test
-
-		if (infinite && reversed) {
-		} else if (infinite) {			
+	 	if (infinite && reversed) {
+			#if   defined(Camera_ClipD3D)
+			#elif defined(Camera_ClipOGL)
+			#endif
+		} else if (infinite) {
+			#if   defined(Camera_ClipD3D)
+			#elif defined(Camera_ClipOGL)
+			#endif
 		} else if (reversed) {
+			#if   defined(Camera_ClipD3D)
+				m_proj[2][2] = 1.0f / (f - n);
+				m_proj[3][2] = 1.0f - n / (n - f);
+			#elif defined(Camera_ClipOGL)
+				m_proj[2][2] = -2.0f / (n - f);
+				m_proj[3][2] = -(n + f) / (n - f);
+			#endif
 		} else {
+			#if   defined(Camera_ClipD3D)
+				m_proj[2][2] = -1.0f / (f - n);
+				m_proj[3][2] = n / (n - f);
+			#elif defined(Camera_ClipOGL)
+				m_proj[2][2] = -2.0f / (f - n);
+				m_proj[3][2] = -(f + n) / (f - n);
+			#endif
 		}
 
 	} else {
 	 // oblique perspective
-
- // \todo this is the typical OGL perspective projection with z/w in [-1,1], enabling GL_ZERO_TO_ONE throws away some depth range without adjusting the 
- //   proj matrix - need to do some more work here to fully understand the matrix setup for both cases
-
-//static bool s_enableD3DZRange = false;
-//IMGUI_ONCE_UPON_A_FRAME
-//{
-//	ImGui::Checkbox("D3D Z Range", &s_enableD3DZRange);
-//	if (s_enableD3DZRange) {
-//		glAssert(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE));
-//	} else {
-//		glAssert(glClipControl(GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE));
-//	}
-//}
-
 		m_proj[0][0] = (2.0f * n) / (r - l);
 		m_proj[1][1] = (2.0f * n) / (t - b);
 		m_proj[2][0] = (r + l) / (r - l);
@@ -386,32 +421,37 @@ void Camera::updateProj()
 		m_proj[3][3] = 0.0f;
 
 		if (infinite && reversed) {
-			m_proj[2][2] = 0.0f;
-			m_proj[3][2] = n;
-
+			#if   defined(Camera_ClipD3D)
+				m_proj[2][2] = 0.0f;
+				m_proj[3][2] = n;
+			#elif defined(Camera_ClipOGL)
+				m_proj[2][2] = 1.0f;
+				m_proj[3][2] = 2.0f * n;
+			#endif
 		} else if (infinite) {
-			m_proj[2][2] = -1.0f;
-			m_proj[3][2] = -2.0f * n;
-
-//if (s_enableD3DZRange) {
-//	m_proj[3][2] = -n;
-//}
-
+			#if   defined(Camera_ClipD3D)
+				m_proj[2][2] = -1.0f;
+				m_proj[3][2] = -n;
+			#elif defined(Camera_ClipOGL)
+				m_proj[2][2] = -1.0f;
+				m_proj[3][2] = -2.0f * n;
+			#endif
 		} else if (reversed) {
-
-		 // \todo this is still an infinite projection?
-			m_proj[2][2] = n / (n - f);
-			m_proj[3][2] = m_proj[2][2] == 0.0f ? n : (f * n / (f - n));
-
-		} else {			
-			m_proj[2][2] = (n + f) / (n - f);
-			m_proj[3][2] = (2.0f * n * f) / (n - f);
-
-//if (s_enableD3DZRange) {
-//	m_proj[2][2] = -f / (f - n);
-//	m_proj[3][2] = -n * f / (f - n);
-//}
-
+			#if   defined(Camera_ClipD3D)
+				m_proj[2][2] = n / (f - n);
+				m_proj[3][2] = (f * n) / (f - n);
+			#elif defined(Camera_ClipOGL)
+				m_proj[2][2] = (f + n) / (f - n);
+				m_proj[3][2] = (2.0f * n * f) / (f - n);
+			#endif
+		} else {
+			#if   defined(Camera_ClipD3D)
+				m_proj[2][2] = f / (n - f);
+				m_proj[3][2] = (n * f) / (n - f);
+			#elif defined(Camera_ClipOGL)
+				m_proj[2][2] = (n + f) / (n - f);
+				m_proj[3][2] = (2.0f * n * f) / (n - f);
+			#endif
 		}
 	}
 
