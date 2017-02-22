@@ -313,7 +313,14 @@ void Camera::updateView()
 	if (m_parent) {
 		m_world = m_parent->getWorldMatrix();
 	}
-	m_view = inverse(m_world); // \todo cheaper than inverse?
+	
+	mat3 viewRotation = transpose(mat3(m_world));
+	vec3 viewTranslation = -(viewRotation * vec3(column(m_world, 3)));
+	m_view[0] = vec4(viewRotation[0], 0.0f);
+	m_view[1] = vec4(viewRotation[1], 0.0f);
+	m_view[2] = vec4(viewRotation[2], 0.0f);
+	m_view[3] = vec4(viewTranslation, 1.0f);
+
 	m_viewProj = m_proj * m_view;
 	m_worldFrustum = m_localFrustum;
 	m_worldFrustum.transform(m_world);

@@ -5,8 +5,8 @@ using namespace apt;
 
 mat4 frm::LookAt(const vec3& _from, const vec3& _to, const vec3& _up)
 {
-	vec3 z = -normalize(_to - _from); // negated to conform with camera projection along -z
-	mat4 ret = AlignZ(z, _up);
+ // \todo negation of Z required to align with view direction, but up seems to be wrong in this case?
+	mat4 ret = -AlignZ(normalize(_to - _from), -_up);
 	ret[3] = vec4(_from, 1.0f);
 	return ret;
 }
