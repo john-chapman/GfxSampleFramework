@@ -3,25 +3,87 @@
 using namespace frm;
 using namespace apt;
 
-mat4 frm::GetLookAtMatrix(const vec3& _from, const vec3& _to, const vec3& _up)
+mat4 frm::LookAt(const vec3& _from, const vec3& _to, const vec3& _up)
 {
 	vec3 z = -normalize(_to - _from); // negated to conform with camera projection along -z
+	mat4 ret = AlignZ(z, _up);
+	ret[3] = vec4(_from, 1.0f);
+	return ret;
+}
 
- // orthonormal basis
-	vec3 x, y;
-	if_unlikely (fequal(z, _up) || fequal(z, -_up)) {
-		vec3 k = _up + vec3(FLT_EPSILON);
-		y = normalize(k - z * dot(k, z));
-	} else {
-		y = normalize(_up - z * dot(_up, z));
+mat4 frm::AlignX(const vec3& _axis, const vec3& _up)
+{
+	vec3 y, z;
+	y = _up - _axis * dot(_up, _axis);
+	float ylen = length(y);
+	if_unlikely (ylen < FLT_EPSILON) {
+		vec3 k = vec3(1.0f, 0.0f, 0.0f);
+		y = k - _axis * dot(k, _axis);
+		ylen = length(y);
+		if_unlikely (ylen < FLT_EPSILON) {
+			k = vec3(0.0f, 0.0f, 1.0f);
+			y = k - _axis * dot(k, _axis);
+			ylen = length(y);
+		}
 	}
-	x = cross(y, z);
+	y = y / ylen;
+	z = cross(_axis, y);
+
+	return mat4(
+		_axis.x, _axis.y, _axis.z, 0.0f,
+		y.x,     y.y,     y.z,     0.0f,
+		z.x,     z.y,     z.z,     0.0f,
+		0.0f,    0.0f,    0.0f,    1.0f
+		);
+}
+mat4 frm::AlignY(const vec3& _axis, const vec3& _up)
+{
+	vec3 x, z;
+	z = _up - _axis * dot(_up, _axis);
+	float zlen = length(z);
+	if_unlikely (zlen < FLT_EPSILON) {
+		vec3 k = vec3(1.0f, 0.0f, 0.0f);
+		z = k - _axis * dot(k, _axis);
+		zlen = length(z);
+		if_unlikely (zlen < FLT_EPSILON) {
+			k = vec3(0.0f, 0.0f, 1.0f);
+			z = k - _axis * dot(k, _axis);
+			zlen = length(z);
+		}
+	}
+	z = z / zlen;
+	x = cross(z, _axis);
+
+	return mat4(
+		x.x,     x.y,     x.z,     0.0f,
+		_axis.x, _axis.y, _axis.z, 0.0f,
+		z.x,     z.y,     z.z,     0.0f,
+		0.0f,    0.0f,    0.0f,    1.0f
+		);
+}
+mat4 frm::AlignZ(const vec3& _axis, const vec3& _up)
+{
+	vec3 x, y;
+	y = _up - _axis * dot(_up, _axis);
+	float ylen = length(y);
+	if_unlikely (ylen < FLT_EPSILON) {
+		vec3 k = vec3(1.0f, 0.0f, 0.0f);
+		y = k - _axis * dot(k, _axis);
+		ylen = length(y);
+		if_unlikely (ylen < FLT_EPSILON) {
+			k = vec3(0.0f, 0.0f, 1.0f);
+			y = k - _axis * dot(k, _axis);
+			ylen = length(y);
+		}
+	}
+	y = y / ylen;
+	x = cross(y, _axis);
 
 	return mat4(
 		x.x,     x.y,     x.z,     0.0f,
 		y.x,     y.y,     y.z,     0.0f,
-		z.x,     z.y,     z.z,     0.0f,
-		_from.x, _from.y, _from.z, 1.0f
+		_axis.x, _axis.y, _axis.z, 0.0f,
+		0.0f,    0.0f,    0.0f,    1.0f
 		);
 }
 

@@ -90,6 +90,11 @@ void Im3d::Rotate(const Vec3& _axis, float _angle)
 	Context& ctx = GetContext();
 	ctx.setMatrix(ctx.getMatrix() * Mat4(Rotation(_axis, _angle)));
 }
+void Im3d::Rotate(const Mat3& _rotation)
+{
+	Context& ctx = GetContext();
+	ctx.setMatrix(ctx.getMatrix() * Mat4(_rotation));
+}
 void Im3d::Scale(float _x, float _y, float _z)
 {
 	Context& ctx = GetContext();
@@ -368,6 +373,10 @@ Im3d::Id Im3d::MakeId(const void* _ptr)
 {
 	return Hash((const char*)&_ptr, sizeof(void*), GetContext().getId());
 }
+Im3d::Id Im3d::MakeId(int _i)
+{
+	return Hash((const char*)&_i, sizeof(int), GetContext().getId());
+}
 
 bool Im3d::GizmoTranslation(const char* _id, float _translation_[3], bool _local)
 {
@@ -638,6 +647,8 @@ bool Im3d::GizmoScale(const char* _id, float _scale_[3])
 }
 bool Im3d::Gizmo(const char* _id, float _transform_[4*4])
 {
+	IM3D_ASSERT(_transform_);
+
 	Context& ctx = GetContext();
  	Mat4* outMat4 = (Mat4*)_transform_;
 	ctx.pushMatrix(*outMat4);
@@ -761,7 +772,7 @@ void Vector<T>::resize(U32 _size, const T& _val)
 }
 
 template <typename T>
-void Im3d::swap(Vector<T>& _a_, Vector<T>& _b_)
+void Vector<T>::swap(Vector<T>& _a_, Vector<T>& _b_)
 {
 	T* data        = _a_.m_data;
 	U32 capacity   = _a_.m_capacity;
@@ -793,7 +804,7 @@ Context* Im3d::internal::g_CurrentContext = &g_DefaultContext;
 
 void Context::begin(PrimitiveMode _mode)
 {
-	IM3D_ASSERT(!m_drawCalled); // Begin*() called after Draw() but before NewFrame()
+	IM3D_ASSERT(!m_drawCalled); // Begin*() called after Draw() but before NewFrame(), or forgot to call NewFrame()
 	IM3D_ASSERT(m_primMode == PrimitiveMode_None); // forgot to call End()
 	m_primMode = _mode;
 	m_vertCountThisPrim = 0;
@@ -901,11 +912,8 @@ void Context::reset()
 	m_primMode = PrimitiveMode_None;
 
 	for (int i = 0; i < DrawPrimitive_Count; ++i) {
-		for (int j = 0; j < 2; ++j) {
-			m_vertexData[i][j].clear();
-			m_vertexData[i][j].clear();
-			m_vertexData[i][j].clear();
-		}
+		m_vertexData[i][0].clear();
+		m_vertexData[i][1].clear();
 	}
 	m_sortedDrawLists.clear();
 	m_sortCalled = false;
@@ -928,6 +936,7 @@ void Context::reset()
 	}
 	if (wasKeyPressed(Action_GizmoLocal)) {
 		m_gizmoLocal = !m_gizmoLocal;
+		resetId();
 	}
 }
 
@@ -1041,7 +1050,7 @@ namespace {
 				ret.push_back(*(_sort[i].m_start + j));
 			}
 		}
-		Im3d::swap(_data_, ret);
+		Vector<VertexData>::swap(_data_, ret);
 	}
 }
 
@@ -1801,11 +1810,11 @@ Mat4 Im3d::AlignZ(const Vec3& _axis, const Vec3& _up)
 	Vec3 x, y;
 	y = _up - _axis * Dot(_up, _axis);
 	float ylen = Length(y);
-	if_unlikely (!(ylen > 0.0f)) {
+	if_unlikely (ylen < FLT_EPSILON) {
 		Vec3 k = Vec3(1.0f, 0.0f, 0.0f);
 		y = k - _axis * Dot(k, _axis);
 		ylen = Length(y);
-		if_unlikely (!(ylen > 0.0f)) {
+		if_unlikely (ylen < FLT_EPSILON) {
 			k = Vec3(0.0f, 0.0f, 1.0f);
 			y = k - _axis * Dot(k, _axis);
 			ylen = Length(y);
@@ -1813,17 +1822,6 @@ Mat4 Im3d::AlignZ(const Vec3& _axis, const Vec3& _up)
 	}
 	y = y / ylen;
 	x = Cross(y, _axis);
-
-	//Vec3 x, y;
-	//y = _up - _axis * Dot(_up, _axis);
-	//float ylen = Length(y);
-	//if_unlikely (!(ylen > FLT_EPSILON)) {
-	//	Vec3 k = _up + Vec3(FLT_EPSILON);
-	//	y = k - _axis * Dot(k, _axis);
-	//	ylen = Length(y);
-	//}
-	//y = y / ylen;
-	//x = Cross(y, _axis);
 
 	return Mat4(
 		x.x,    y.x,    _axis.x,    0.0f,
@@ -1924,6 +1922,7 @@ bool Im3d::Intersect(const Ray& _ray, const Capsule& _capsule, float& t0_, float
 	IM3D_ASSERT(false); // \todo implement
 	return false;
 }
+
 void Im3d::Nearest(const Line& _line0, const Line& _line1, float& t0_, float& t1_)
 {
 	Vec3 p = _line0.m_origin - _line1.m_origin;

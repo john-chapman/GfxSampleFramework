@@ -293,7 +293,7 @@ void XForm_LookAt::apply(float _dt)
 	if (m_target) {
 		targetW += GetTranslation(m_target->getWorldMatrix());
 	}
-	m_node->setWorldMatrix(GetLookAtMatrix(posW, targetW));
+	m_node->setWorldMatrix(LookAt(posW, targetW));
 }
 
 void XForm_LookAt::edit()
