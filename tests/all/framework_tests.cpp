@@ -83,10 +83,50 @@ public:
 			return false;
 		}
 		
-		static int s_sampleCount = 200;
-        static int s_funcType = 0;
-		static float s_min = 0.0f;
-		static float s_max = 1.0f;
+		/*static const int kSampleCount = 256;
+		static float zrange[2] = { 0.05f, 1.0f };
+		static float nearFar[2] = { 0.1f, 20.0f };
+		float& n = nearFar[0];
+		float& f = nearFar[1];
+		ImGui::SliderFloat2("Z", zrange, -25.0f, 25.0f);
+		ImGui::SliderFloat2("Near/Far", nearFar, 0.0f, 25.0f);
+		float zvalues[kSampleCount];
+		{
+			ImGui::Text("OGL Normal (-Z in [-1,1])");
+			float A = (n + f) / (n - f);
+			float B = (2.0f * n * f) / (n - f);
+			for (int i = 0; i < kSampleCount; ++i) {
+				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
+				z = -z;
+				float w = -z;
+				zvalues[i] = (A * z + B) / w;
+			}
+			ImGui::PlotLines("ZOGL-11", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
+		}
+		{
+			ImGui::Text("D3D Normal (Z in [0,1])");
+			float A = f / (f - n);
+			float B = -(n * f) / (f - n);
+			for (int i = 0; i < kSampleCount; ++i) {
+				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
+				z = z;
+				float w = z;
+				zvalues[i] = max((A * z + B) / w, 0.0f); // avoid confusion in the plot, clamp to zero
+			}
+			ImGui::PlotLines("ZD3D01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
+		}
+		{
+			ImGui::Text("D3D OGL (-Z in [0,1])");
+			float A = f / (n - f);
+			float B = (n * f) / (n - f);
+			for (int i = 0; i < kSampleCount; ++i) {
+				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
+				z = -z;
+				float w = -z;
+				zvalues[i] = max((A * z + B) / w, 0.0f);
+			}
+			ImGui::PlotLines("ZD3DOGL01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
+		}*/
 
 
 	 // interpolationt vis
@@ -137,7 +177,7 @@ public:
 	{
 		GlContext* ctx = GlContext::GetCurrent();
 
-		static mat4 teapotMat(1.0f);
+		/*static mat4 teapotMat(1.0f);
 		Im3d::Gizmo("Teapot", (float*)&teapotMat);
 
 		ctx->setShader(m_shModel);
@@ -150,7 +190,7 @@ public:
 		ctx->draw();
 		glAssert(glDisable(GL_CULL_FACE));
 		glAssert(glDisable(GL_DEPTH_TEST));
-
+		*/
 		AppBase::draw();
 	}
 };
