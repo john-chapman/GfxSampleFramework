@@ -843,6 +843,10 @@ void Scene::editNodes()
 			if (newEditNode) {
 				newEditNode->setSelected(true);
 			}
+			if (newEditNode->m_type == Node::kTypeCamera) {
+				m_editCamera = newEditNode->getSceneDataCamera();
+			}
+
 			m_editNode = newEditNode;
 			m_editXForm = nullptr;
 		}
@@ -934,67 +938,6 @@ void Scene::editCameras()
 
 			m_editCamera->edit();
 
-			/*float up    = degrees(atan(m_editCamera->getTanFovUp()));
-			float down  = degrees(atan(m_editCamera->getTanFovDown()));
-			float left  = degrees(atan(m_editCamera->getTanFovLeft()));
-			float right = degrees(atan(m_editCamera->getTanFovRight()));
-			float near  = m_editCamera->getNear();
-			float far   = m_editCamera->getFar();*/
-
-			//if (ImGui::Checkbox("Orthographic", &ortho)) {
-			//	m_editCamera->setIsOrtho(ortho);
-			//}
-			//ImGui::SameLine();
-			//if (ImGui::Checkbox("Symmetrical", &symmetric)) {
-			//	m_editCamera->setIsSymmetric(symmetric);
-			//}
-			/*if (ortho) {
-				if (ImGui::SliderFloat("Top", &up, 0.0f, 100.0f)) {
-					m_editCamera->setFovUp(radians(up));
-				}
-				if (ImGui::SliderFloat("Bottom", &down, 0.0f, 100.0f)) {
-					m_editCamera->setFovDown(radians(down));
-				}
-				if (ImGui::SliderFloat("Left", &left, 0.0f, 100.0f)) {
-					m_editCamera->setFovLeft(radians(left));
-				}
-				if (ImGui::SliderFloat("Right", &right, 0.0f, 100.0f)) {
-					m_editCamera->setFovRight(radians(right));
-				}
-			} else {
-				if (symmetric) {
-					float fov = up + down;
-					float aspect = m_editCamera->getAspect();
-					if (ImGui::SliderFloat("Fov Vertical", &fov, 0.0f, 180.0f)) {
-						m_editCamera->setVerticalFov(radians(fov));
-					}
-					if (ImGui::SliderFloat("Aspect Ratio", &aspect, 0.0f, 2.0f)) {
-						m_editCamera->setAspect(aspect);
-					}
-				} else {
-					if (ImGui::SliderFloat("Fov Up", &up, 0.0f, 90.0f)) {
-						m_editCamera->setFovUp(radians(up));
-					}
-					if (ImGui::SliderFloat("Fov Down", &down, 0.0f, 90.0f)) {
-						m_editCamera->setFovDown(radians(down));
-					}
-					if (ImGui::SliderFloat("Fov Left", &left, 0.0f, 90.0f)) {
-						m_editCamera->setFovLeft(radians(left));
-					}
-					if (ImGui::SliderFloat("Fov Right", &right, 0.0f, 90.0f)) {
-						m_editCamera->setFovRight(radians(right));
-					}
-				}
-			}
-			if (ImGui::SliderFloat("Near", &near, 0.0f, 2.0f)) {
-				far = max(far, near);
-				m_editCamera->setNear(near);
-			}
-			if (ImGui::SliderFloat("Far", &far, near, 1000.0f)) {
-				near = min(far, near);
-				m_editCamera->setFar(far);
-			}*/
-
 		 // deferred destroy
 			if (destroy) {
 				if (m_editNode == m_editCamera->m_parent) {
@@ -1005,7 +948,12 @@ void Scene::editCameras()
 			}
 		}
 	 // deferred select
-		m_editCamera = newEditCamera;
+		if (m_editCamera != newEditCamera) {
+			if (newEditCamera->m_parent) {
+				m_editNode = newEditCamera->m_parent;
+			}
+			m_editCamera = newEditCamera;
+		}
 		
 	}
 }
