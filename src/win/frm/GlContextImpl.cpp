@@ -105,7 +105,7 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 		WGL_DOUBLE_BUFFER_ARB,  1,
 		WGL_COLOR_BITS_ARB,     24,
 		WGL_ALPHA_BITS_ARB,     8,
-		WGL_DEPTH_BITS_ARB,     0,
+		WGL_DEPTH_BITS_ARB,     24,
 		WGL_STENCIL_BITS_ARB,   0,
 		0
 	};
@@ -140,6 +140,10 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 		internal::GlGetString(GL_VENDOR),
 		internal::GlGetString(GL_RENDERER)
 		);
+
+	APT_ASSERT(glewIsExtensionSupported("GL_ARB_clip_control"));
+	glAssert(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE));
+
 	return ret;
 }
 
