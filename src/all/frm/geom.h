@@ -14,7 +14,7 @@ namespace frm {
 struct Line
 {
 	vec3 m_origin;
-	vec3 m_direction; //< Must be unit length.
+	vec3 m_direction; // unit length
 
 	Line() {}
 	Line(const vec3& _origin, const vec3& _direction);
@@ -32,7 +32,7 @@ struct Line
 struct Ray
 {
 	vec3 m_origin;
-	vec3 m_direction; //< Must be unit length.
+	vec3 m_direction; // unit length
 
 	Ray() {}
 	Ray(const vec3& _origin, const vec3& _direction);
@@ -87,17 +87,17 @@ struct Plane
 	Plane(const vec3& _normal, float _offset);
 	Plane(const vec3& _normal, const vec3& _origin);
 
-	/// Generalized plane equation.
+	// Generalized plane equation.
 	Plane(float _a, float _b, float _c, float _d);
 
-	/// 3 coplanar points. The winding of the points determines the normal 
-	/// orientation; the normal points outward from a clockwise winding
-	/// of the inputs:
-	///    1
-	///   / \
-	///  / ----->N
-	/// /     \
-	/// 0------2
+	// 3 coplanar points. The winding of the points determines the normal 
+	// orientation; the normal points outward from a clockwise winding
+	// of the inputs:
+	//    1
+	//   / \
+	//  / ----->N
+	// /     \
+	// 0------2
 	Plane(const vec3& _p0, const vec3& _p1, const vec3& _p2);
 
 	void transform(const mat4& _mat);
@@ -176,22 +176,23 @@ struct Capsule
 ////////////////////////////////////////////////////////////////////////////////
 struct Frustum
 {
-	enum Planes
+	enum FrustumPlane
 	{
-		kNear = 0,
-		kFar,
-		kTop,
-		kRight,
-		kBottom,
-		kLeft
+		Plane_Near = 0,
+		Plane_Far,
+		Plane_Top,
+		Plane_Right,
+		Plane_Bottom,
+		Plane_Left,
 
+		Plane_Count
 	};
-	Plane m_planes[6];
+	Plane m_planes[Plane_Count];
 	vec3  m_vertices[8];
 
 	Frustum() {}
 
-	/// Symmetrical perspective projection.
+	// Symmetrical perspective projection.
 	Frustum(
 		float _aspect,
 		float _tanHalfFov,
@@ -199,24 +200,21 @@ struct Frustum
 		float _clipFar
 		);
 
-	/// Asymmetrical perspective projection or orthographic projection.
+	// Asymmetrical perspective projection or orthographic projection.
 	Frustum(
 		float _up,          // tan(fov) if ortho
 		float _down,        //        "
-		float _left,        //        "
 		float _right,       //        "
-		float _clipNear,
-		float _clipFar,
+		float _left,        //        "
+		float _near,
+		float _far,
 		bool  _isOrtho = false
 		);
 
-	/// Construct from the inverse of a matrix (e.g. a projection matrix).
-	Frustum(const mat4& _invMat, bool _isOrtho = false);
-
-	/// Construct from a left/right eye frustum (combined frustum for VR).
+	// Construct from left/right eye frusta (combined frustum for VR).
 	Frustum(const Frustum& _left, const Frustum& _right);
 
-	/// Construct from _base, adjusting the near/far clipping planes.
+	// Construct from _base, adjusting the near/far clipping planes.
 	Frustum(const Frustum& _base, float _clipNear, float _clipFar);
 
 	void transform(const mat4& _mat);
@@ -226,28 +224,29 @@ struct Frustum
 	
 	bool insideIgnoreNear(const Sphere& _sphere) const;
 
+	void setVertices(const vec3 _vertices[8]);
+
 private:
-	void setVertices(const vec3* _vertices);
 	void initPlanes();
 
 }; // struct Frustum
 
 
-/// Find the nearest point on a primitive to _point.
+// Find the nearest point on a primitive to _point.
 vec3 Nearest(const Line& _line, const vec3& _point); 
 vec3 Nearest(const Ray& _ray, const vec3& _point);
 vec3 Nearest(const LineSegment& _segment, const vec3& _point);
 vec3 Nearest(const Sphere& _sphere, const vec3& _point);
 vec3 Nearest(const Plane& _plane, const vec3& _point);
 vec3 Nearest(const AlignedBox& _box, const vec3& _point);
-/// Find point t0_ along _line0 nearest to _line1, and point t1_ along _line1 nearest to _line0.
+// Find point t0_ along _line0 nearest to _line1, and point t1_ along _line1 nearest to _line0.
 void Nearest(const Line& _line0, const Line& _line1, float& t0_, float& t1_);
-/// Find point tr_ along _ray nearest to _line, and point tl_ along _line nearest to _ray.
+// Find point tr_ along _ray nearest to _line, and point tl_ along _line nearest to _ray.
 void Nearest(const Ray& _ray, const Line& _line, float& tr_, float& tl_);
-/// Find point tr_ along _ray nearest to _segment, return point on segment nearest to _ray.
+// Find point tr_ along _ray nearest to _segment, return point on segment nearest to _ray.
 vec3 Nearest(const Ray& _ray, const LineSegment& _segment, float& tr_);
 
-/// Find the square distance/distance between two primitives.
+// Find the square distance/distance between two primitives.
 float        Distance2(const Line& _line, const vec3& _point);
 inline float Distance (const Line& _line, const vec3& _point)                        { return apt::sqrt(Distance2(_line, _point)); }
 float        Distance2(const Ray& _ray, const vec3& _point);
@@ -264,9 +263,9 @@ float        Distance (const Plane& _plane, const vec3& _point);
 float        Distance2(const AlignedBox& _box, const vec3& _point);
 inline float Distance (const AlignedBox& _box, const vec3& _point)                   { return apt::sqrt(Distance2(_box, _point)); }
 
-/// Ray-primitive intersection.
-/// t0_/t1_ return the first/second intersections. If the ray origin is inside the primitive, t0_ will be 0.
-/// Intersects() may be cheaper than Intersect() hence use these functions if t0_/t1_ aren't required.
+// Ray-primitive intersection.
+// t0_/t1_ return the first/second intersections. If the ray origin is inside the primitive, t0_ will be 0.
+// Intersects() may be cheaper than Intersect() hence use these functions if t0_/t1_ aren't required.
 bool Intersects(const Ray& _r, const Sphere& _s);
 bool Intersect (const Ray& _r, const Sphere& _s, float& t0_, float& t1_);
 bool Intersects(const Ray& _r, const AlignedBox& _b);
@@ -278,7 +277,7 @@ bool Intersect (const Ray& _r, const Cylinder& _c, float& t0_, float& t1_);
 bool Intersects(const Ray& _r, const Capsule& _c);
 bool Intersect (const Ray& _r, const Capsule& _c, float& t0_, float& t1_);
 
-/// Primitive-primitive intersection.
+// Primitive-primitive intersection.
 bool Intersects(const Sphere& _sphere0, const Sphere& _sphere1);
 bool Intersects(const Sphere& _sphere, const Plane& _plane);
 bool Intersects(const Sphere& _sphere,  const AlignedBox& _box);

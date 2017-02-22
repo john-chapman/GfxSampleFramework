@@ -296,71 +296,41 @@ Frustum::Frustum(float _aspect, float _tanHalfFov, float _clipNear, float _clipF
 	initPlanes();
 }
 
-Frustum::Frustum(float _up, float _down, float _left, float _right, float _clipNear, float _clipFar, bool _isOrtho)
+Frustum::Frustum(float _up, float _down, float _right, float _left, float _near, float _far, bool _isOrtho)
 {
-	float yt =  fabs(_up);
-	float yb = -fabs(_down);
-	float xl = -fabs(_left);
-	float xr =  fabs(_right);
-
  // near plane
-	float nt = yt;
-	float nb = yb;
-	float nl = xl;
-	float nr = xr;
+	float nu = _up;
+	float nd = _down;
+	float nr = _right;
+	float nl = _left;
 	if (!_isOrtho) {
-		nt *= _clipNear;
-		nb *= _clipNear;
-		nl *= _clipNear;
-		nr *= _clipNear;
+		nu *= _near;
+		nd *= _near;
+		nr *= _near;
+		nl *= _near;
 	}
-	m_vertices[0] = vec3(nl, nt, -_clipNear);
-	m_vertices[1] = vec3(nr, nt, -_clipNear);
-	m_vertices[2] = vec3(nr, nb, -_clipNear);
-	m_vertices[3] = vec3(nl, nb, -_clipNear);
+	m_vertices[0] = vec3(nl, nu, -_near);
+	m_vertices[1] = vec3(nr, nu, -_near);
+	m_vertices[2] = vec3(nr, nd, -_near);
+	m_vertices[3] = vec3(nl, nd, -_near);
 
  // far plane
-	float ft = yt;
-	float fb = yb;
-	float fl = xl;
-	float fr = xr;
+	float fu = _up;
+	float fd = _down;
+	float fr = _right;
+	float fl = _left;
 	if (!_isOrtho) {
-		ft *= _clipFar;
-		fb *= _clipFar;
-		fl *= _clipFar;
-		fr *= _clipFar;
+		fu *= _far;
+		fd *= _far;
+		fr *= _far;
+		fl *= _far;
 	}
-	m_vertices[4] = vec3(fl, ft, -_clipFar);
-	m_vertices[5] = vec3(fr, ft, -_clipFar);
-	m_vertices[6] = vec3(fr, fb, -_clipFar);
-	m_vertices[7] = vec3(fl, fb, -_clipFar);
+	m_vertices[4] = vec3(fl, fu, -_far);
+	m_vertices[5] = vec3(fr, fu, -_far);
+	m_vertices[6] = vec3(fr, fd, -_far);
+	m_vertices[7] = vec3(fl, fd, -_far);
 
 	initPlanes();
-}
-
-Frustum::Frustum(const mat4& _invMat, bool _isOrtho)
-{
- // transform an NDC box by the inverse matrix
-	static const vec4 lv[8] = {
-		vec4(-1.0f,  1.0f, -1.0f,  1.0f),
-		vec4( 1.0f,  1.0f, -1.0f,  1.0f),
-		vec4( 1.0f, -1.0f, -1.0f,  1.0f),
-		vec4(-1.0f, -1.0f, -1.0f,  1.0f),
-
-		vec4(-1.0f,  1.0f,  1.0f,  1.0f),
-		vec4( 1.0f,  1.0f,  1.0f,  1.0f),
-		vec4( 1.0f, -1.0f,  1.0f,  1.0f),
-		vec4(-1.0f, -1.0f,  1.0f,  1.0f)
-	};
-	vec3 lvt[8];
-	for (int i = 0; i < 8; ++i) {
-		vec4 v = _invMat * lv[i];
-		if (!_isOrtho) {
-			v /= v.w;
-		}
-		lvt[i] = vec3(v);
-	}
-	setVertices(lvt);
 }
 
 Frustum::Frustum(const Frustum& _left, const Frustum& _right)
@@ -378,7 +348,7 @@ Frustum::Frustum(const Frustum& _left, const Frustum& _right)
 
 Frustum::Frustum(const Frustum& _base, float _clipNear, float _clipFar)
 {
-	float d = length(_base.m_planes[Frustum::kFar].getOrigin() - _base.m_planes[Frustum::kNear].getOrigin());
+	float d = length(_base.m_planes[Plane_Far].getOrigin() - _base.m_planes[Plane_Near].getOrigin());
 	float n = _clipNear / d;
 	float f = _clipFar  / d;
 	for (int i = 0; i < 4; ++i) {
@@ -450,7 +420,7 @@ bool Frustum::inside(const AlignedBox& _box) const
 	return true;
 }
 
-void Frustum::setVertices(const vec3* _vertices)
+void Frustum::setVertices(const vec3 _vertices[8])
 {
 	for (int i = 0; i < 8; ++i) {
 		m_vertices[i] = _vertices[i];
@@ -460,12 +430,12 @@ void Frustum::setVertices(const vec3* _vertices)
 
 void Frustum::initPlanes()
 {
-	m_planes[kNear]   = Plane(m_vertices[2], m_vertices[1], m_vertices[0]);
-	m_planes[kFar]    = Plane(m_vertices[4], m_vertices[5], m_vertices[6]);
-	m_planes[kTop]    = Plane(m_vertices[1], m_vertices[5], m_vertices[4]);
-	m_planes[kRight]  = Plane(m_vertices[6], m_vertices[5], m_vertices[1]);
-	m_planes[kBottom] = Plane(m_vertices[3], m_vertices[7], m_vertices[6]);
-	m_planes[kLeft]   = Plane(m_vertices[3], m_vertices[0], m_vertices[4]);
+	m_planes[Plane_Near]   = Plane(m_vertices[2], m_vertices[1], m_vertices[0]);
+	m_planes[Plane_Far]    = Plane(m_vertices[4], m_vertices[5], m_vertices[6]);
+	m_planes[Plane_Top]    = Plane(m_vertices[1], m_vertices[5], m_vertices[4]);
+	m_planes[Plane_Right]  = Plane(m_vertices[6], m_vertices[5], m_vertices[1]);
+	m_planes[Plane_Bottom] = Plane(m_vertices[3], m_vertices[7], m_vertices[6]);
+	m_planes[Plane_Left]   = Plane(m_vertices[3], m_vertices[0], m_vertices[4]);
 }
 
 
