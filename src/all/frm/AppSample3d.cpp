@@ -200,9 +200,13 @@ Ray AppSample3d::getCursorRayV() const
 	mpos.y = -mpos.y; // the cursor position is top-left relative
 	float tanHalfFov = Scene::GetDrawCamera()->m_up;
 	float aspect = Scene::GetDrawCamera()->getAspect();
-	return Ray(vec3(0.0f), normalize(vec3(mpos.x * tanHalfFov * aspect, mpos.y * tanHalfFov, -1.0f)));
-	
-	//return Ray(vec3(0.0f), vec3(0.0f));
+	Ray ret(vec3(0.0f), vec3(mpos.x, mpos.y, -1.0f));
+	if (!Scene::GetDrawCamera()->getProjFlag(Camera::ProjFlag_Orthographic)) {
+		ret.m_direction.x *= tanHalfFov * aspect;
+		ret.m_direction.y *= tanHalfFov;
+	}
+	ret.m_direction = normalize(ret.m_direction);
+	return ret;
 }
 
 // PROTECTED
