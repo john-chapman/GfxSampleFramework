@@ -101,6 +101,7 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 float LinearizeDepth(in float _depth, in float _near, in float _far) 
 {
 	#if   defined(Camera_ClipD3D)
+		return 0;
 	#elif defined(Camera_ClipOGL)
 		float zndc = _depth * 2.0 - 1.0;
 		return 2.0 * _near * _far / (_far + _near - (_far - _near) * zndc);
@@ -109,6 +110,7 @@ float LinearizeDepth(in float _depth, in float _near, in float _far)
 float LinearizeDepth_Infinite(in float _depth, in float _near) 
 {
 	#if   defined(Camera_ClipD3D)
+		return 0;
 	#elif defined(Camera_ClipOGL)
 		float zndc = _depth * 2.0 - 1.0;
 		return -2.0 * _near / (zndc - 1.0);
@@ -117,7 +119,9 @@ float LinearizeDepth_Infinite(in float _depth, in float _near)
 float LinearizeDepth_Reversed(in float _depth, in float _near, in float _far) 
 {
 	#if   defined(Camera_ClipD3D)
+		return 0;
 	#elif defined(Camera_ClipOGL)
+		return 0;
 	#endif
 }
 float LinearizeDepth_InfiniteReversed(in float _depth, in float _near) 
@@ -125,6 +129,7 @@ float LinearizeDepth_InfiniteReversed(in float _depth, in float _near)
 	#if   defined(Camera_ClipD3D)
 		return _near / _depth;
 	#elif defined(Camera_ClipOGL)
+		return 0;
 	#endif
 }
 
