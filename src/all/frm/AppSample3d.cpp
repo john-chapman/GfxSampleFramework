@@ -323,7 +323,8 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 
 	ad.m_deltaTime = (float)_app->m_deltaTime;
 	ad.m_viewportSize = vec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
-	ad.m_tanHalfFov = Scene::GetDrawCamera()->m_up;
+	ad.m_projScaleY = Scene::GetDrawCamera()->m_up - Scene::GetDrawCamera()->m_down;
+	ad.m_projOrtho = Scene::GetDrawCamera()->getProjFlag(Camera::ProjFlag_Orthographic);
 	ad.m_viewOrigin = Scene::GetDrawCamera()->getPosition();
 	
 	Ray cursorRayW = _app->getCursorRayW();
