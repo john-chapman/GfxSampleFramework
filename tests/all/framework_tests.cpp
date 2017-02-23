@@ -84,175 +84,18 @@ public:
 			return false;
 		}
 		
-	 // all viable Z scale/bias formulae for perspective and ortho projection:
-		/*static const int kSampleCount = 256;
-		static float zrange[2] = { 0.00f, 21.0f };
-		static float nearFar[2] = { 0.5f, 20.0f };
-		float& n = nearFar[0];
-		float& f = nearFar[1];
-		ImGui::SliderFloat2("Z", zrange, -25.0f, 25.0f);
-		ImGui::SliderFloat2("Near/Far", nearFar, 0.0f, 25.0f);
-		float zvalues[kSampleCount];
-		{
-			ImGui::Text("OGL Normal (-Z in [-1,1])");
-			float A = (n + f) / (n - f);
-			float B = (2.0f * n * f) / (n - f);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = -z;
-				zvalues[i] = (A * z + B) / w;
-			}
-			ImGui::PlotLines("ZOGL-11", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
+		Plane ground(vec3(0.0f, 1.0f, 0.0f), vec3(0.0f));
+		Ray r = getCursorRayW();
+		float t0;
+		if (Intersect(r, ground, t0)) {
+			Im3d::PushDrawState();
+				Im3d::SetColor(Im3d::Color_Magenta);
+				Im3d::SetSize(12.0f);
+				Im3d::BeginPoints();
+					Im3d::Vertex(r.m_origin + r.m_direction * t0);
+				Im3d::End();
+			Im3d::PopDrawState();	
 		}
-		{
-			ImGui::Text("OGL REVERSED (-Z in [1,-1])");
-			float A = (f + n) / (f - n);
-			float B = (2.0f * n * f) / (f - n);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = -z;
-				zvalues[i] = (A * z + B) / w;
-			}
-			ImGui::PlotLines("ZD3DOGL1-1", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		{
-			ImGui::Text("OGL INFINITE (-Z in [1,-1])");
-			float A = 1.0f;
-			float B = 2.0f * n;
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = -z;
-				zvalues[i] = (A * z + B) / w;
-			}
-			ImGui::PlotLines("ZD3DOGL1-1", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		{
-			ImGui::Text("D3D Normal (Z in [0,1])");
-			float A = f / (f - n);
-			float B = -(n * f) / (f - n);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = z;
-				float w = z;
-				zvalues[i] = max((A * z + B) / w, 0.0f); // avoid confusion in the plot, clamp to zero
-			}
-			ImGui::PlotLines("ZD3D01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		{
-			ImGui::Text("D3D-OGL (-Z in [0,1])");
-			float A = f / (n - f);
-			float B = (n * f) / (n - f);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = -z;
-				zvalues[i] = max((A * z + B) / w, 0.0f);
-			}
-			ImGui::PlotLines("ZD3DOGL01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		
-		{
-			ImGui::Text("D3D-OGL REVERSED (-Z in [1,0])");
-			float A = n / (f - n);
-			float B = (f * n) / (f - n);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = -z;
-				zvalues[i] = max((A * z + B) / w, 0.0f);
-			}
-			ImGui::PlotLines("ZD3DOGL10", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		{
-			ImGui::Text("D3D-OGL INFINITE (-Z in [0,1])");
-			float A = -1.0f;
-			float B = -n;
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = -z;
-				zvalues[i] = max((A * z + B) / w, 0.0f);
-			}
-			ImGui::PlotLines("ZD3DOGLI01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		{
-			ImGui::Text("D3D-OGL INFINITE REVERSED (-Z in [1,0])");
-			float A = 0.0f;
-			float B = n;
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = -z;
-				zvalues[i] = max((A * z + B) / w, 0.0f);
-			}
-			ImGui::PlotLines("ZD3DOGLI10", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-
-		{
-			ImGui::Text("OGL Ortho (-Z in [-1,1])");
-			float A = -2.0f / (f - n);
-			float B =  -(f + n) / (f - n);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = 1.0f;
-				zvalues[i] = (A * z + B) / w;
-			}
-			ImGui::PlotLines("ZOGL-11", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		{
-			ImGui::Text("OGL Ortho Reversed (-Z in [1,-1])");
-			float A = -2.0f / (n - f);
-			float B =  -(n + f) / (n - f);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = 1.0f;
-				zvalues[i] = (A * z + B) / w;
-			}
-			ImGui::PlotLines("ZOGL1-1", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		{
-			ImGui::Text("D3D Ortho (Z in [0,1])");
-			float A = 1.0f / (f - n);
-			float B =  -n / (f - n);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = z;
-				float w = 1.0f;
-				zvalues[i] = max((A * z + B) / w, 0.0f);
-			}
-			ImGui::PlotLines("ZOGL-11", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		{
-			ImGui::Text("D3D-OGL Ortho (-Z in [0,1])");
-			float A = -1.0f / (f - n);
-			float B =  n / (n - f);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = 1.0f;
-				zvalues[i] = max((A * z + B) / w, 0.0f);
-			}
-			ImGui::PlotLines("ZD3DOGL01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}
-		{
-			ImGui::Text("D3D-OGL Ortho Reverse (-Z in [1,0])");
-			float A = 1.0f / (f - n);
-			float B = 1.0f - n / (n - f);
-			for (int i = 0; i < kSampleCount; ++i) {
-				float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
-				z = -z;
-				float w = 1.0f;
-				zvalues[i] = max((A * z + B) / w, 0.0f);
-			}
-			ImGui::PlotLines("ZD3DOGL01", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		}*/
-		
-
 
 	 // interpolationt vis
 	/*	struct Funcs {

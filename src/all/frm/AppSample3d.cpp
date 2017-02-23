@@ -196,16 +196,22 @@ Ray AppSample3d::getCursorRayV() const
 	getWindow()->getWindowRelativeCursor(&mx, &my);
 	vec2 mpos  = vec2((float)mx, (float)my);
 	vec2 wsize = vec2((float)getWindow()->getWidth(), (float)getWindow()->getHeight());
-	mpos = (mpos / wsize) * 2.0f - 1.0f;
-	mpos.y = -mpos.y; // the cursor position is top-left relative
-	float tanHalfFov = Scene::GetDrawCamera()->m_up;
-	float aspect = Scene::GetDrawCamera()->getAspect();
-	Ray ret(vec3(0.0f), vec3(mpos.x, mpos.y, -1.0f));
-	if (!Scene::GetDrawCamera()->getProjFlag(Camera::ProjFlag_Orthographic)) {
-		ret.m_direction.x *= tanHalfFov * aspect;
-		ret.m_direction.y *= tanHalfFov;
+	mpos = (mpos / wsize);
+	const Camera&  cam = *Scene::GetDrawCamera();
+	Ray ret;
+	if (cam.getProjFlag(Camera::ProjFlag_Orthographic)) {
+		ret.m_origin.x  = mix(cam.m_left, cam.m_right, mpos.x);
+		ret.m_origin.y  = mix(cam.m_up,   cam.m_down,  mpos.y);
+		ret.m_origin.z  = 0.0f;
+		ret.m_direction = vec3(0.0f, 0.0f, -1.0f);
+	} else {
+		ret.m_origin      = vec3(0.0f);
+		ret.m_direction.x = mix(cam.m_left, cam.m_right, mpos.x);
+		ret.m_direction.y = mix(cam.m_up,   cam.m_down,  mpos.y);
+		ret.m_direction.z = -1.0f;
+		ret.m_direction   = normalize(ret.m_direction);
 	}
-	ret.m_direction = normalize(ret.m_direction);
+
 	return ret;
 }
 
