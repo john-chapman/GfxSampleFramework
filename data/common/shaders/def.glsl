@@ -98,10 +98,11 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 
 // Linearizing depth requires applying the inverse of Z part of the projection matrix, which depends on how the matrix was set up.
 // The following variants correspond to ProjFlags_; see frm/Camera.h for more info.
+// \todo revisit the formulae and clean this up
 float LinearizeDepth(in float _depth, in float _near, in float _far) 
 {
 	#if   defined(Camera_ClipD3D)
-		return 0;
+	 	return (_far * _near) / (_far * -_depth + _far + (_near * _depth));
 	#elif defined(Camera_ClipOGL)
 		float zndc = _depth * 2.0 - 1.0;
 		return 2.0 * _near * _far / (_far + _near - (_far - _near) * zndc);
@@ -110,7 +111,7 @@ float LinearizeDepth(in float _depth, in float _near, in float _far)
 float LinearizeDepth_Infinite(in float _depth, in float _near) 
 {
 	#if   defined(Camera_ClipD3D)
-		return 0;
+		return -_near / (_depth - 1.0);
 	#elif defined(Camera_ClipOGL)
 		float zndc = _depth * 2.0 - 1.0;
 		return -2.0 * _near / (zndc - 1.0);
@@ -119,9 +120,10 @@ float LinearizeDepth_Infinite(in float _depth, in float _near)
 float LinearizeDepth_Reversed(in float _depth, in float _near, in float _far) 
 {
 	#if   defined(Camera_ClipD3D)
-		return 0;
+		return (_far * _near) / (_far * _depth + _near * -_depth + _near);
 	#elif defined(Camera_ClipOGL)
-		return 0;
+		float zndc = _depth * 2.0 - 1.0;
+		return (2.0 * _far * _near) / (_far * zndc + _far - _near * zndc + _near);
 	#endif
 }
 float LinearizeDepth_InfiniteReversed(in float _depth, in float _near) 
@@ -129,7 +131,8 @@ float LinearizeDepth_InfiniteReversed(in float _depth, in float _near)
 	#if   defined(Camera_ClipD3D)
 		return _near / _depth;
 	#elif defined(Camera_ClipOGL)
-		return 0;
+		float zndc = _depth * 2.0 - 1.0;
+		return 2.0 * _near / (zndc + 1.0);
 	#endif
 }
 
