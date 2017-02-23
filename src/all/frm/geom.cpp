@@ -28,8 +28,8 @@ Line::Line(const vec3& _origin, const vec3& _direction)
 
 void Line::transform(const mat4& _mat)
 {
-	m_origin += vec3(column(_mat, 3)); 
-	m_direction = mat3(_mat) * m_direction;
+	m_origin = vec3(_mat * vec4(m_origin, 1.0f));
+	m_direction = vec3(_mat * vec4(m_direction, 0.0f));
 }
 
 /*******************************************************************************
@@ -46,8 +46,8 @@ Ray::Ray(const vec3& _origin, const vec3& _direction)
 
 void Ray::transform(const mat4& _mat)
 {
-	m_origin += vec3(column(_mat, 3)); 
-	m_direction = mat3(_mat) * m_direction;
+	m_origin = vec3(_mat * vec4(m_origin, 1.0f));
+	m_direction = vec3(_mat * vec4(m_direction, 0.0f));
 }
 
 /*******************************************************************************

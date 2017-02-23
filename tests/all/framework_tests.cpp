@@ -89,6 +89,10 @@ public:
 		float t0;
 		if (Intersect(r, ground, t0)) {
 			Im3d::PushDrawState();
+				Im3d::BeginLines();
+					Im3d::Vertex(r.m_origin, 4.0f, Im3d::Color_Green);
+					Im3d::Vertex(r.m_origin + r.m_direction, 4.0f, Im3d::Color_Magenta);
+				Im3d::End();
 				Im3d::SetColor(Im3d::Color_Magenta);
 				Im3d::SetSize(12.0f);
 				Im3d::BeginPoints();
