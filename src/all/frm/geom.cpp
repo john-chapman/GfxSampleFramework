@@ -422,9 +422,7 @@ bool Frustum::inside(const AlignedBox& _box) const
 
 void Frustum::setVertices(const vec3 _vertices[8])
 {
-	for (int i = 0; i < 8; ++i) {
-		m_vertices[i] = _vertices[i];
-	}
+	memcpy(m_vertices, _vertices, sizeof(m_vertices));
 	initPlanes();
 }
 

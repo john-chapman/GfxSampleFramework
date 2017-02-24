@@ -235,18 +235,15 @@ void Camera::setProj(float _up, float _down, float _right, float _left, float _n
 		m_down  = _down;
 		m_right = _right;
 		m_left  = _left;
-		m_near  = _near;
-		m_far   = _far;
-
 	} else {
 	 // perspective proj, params are ±tan(angle from the view axis)
 		m_up    = tanf(_up);
 		m_down  = tanf(_down);
 		m_right = tanf(_right);
 		m_left  = tanf(_left);
-		m_near  = tanf(_near);
-		m_far   = tanf(_far);
 	}
+	m_near  = _near;
+	m_far   = _far;
 	
 	bool asymmetrical = fabs(fabs(_up) - fabs(_down)) > FLT_EPSILON || fabs(fabs(_right) - fabs(_left)) > FLT_EPSILON;
 	setProjFlag(ProjFlag_Asymmetrical, asymmetrical);
@@ -307,19 +304,14 @@ void Camera::setPerspective(float _fovVertical, float _aspect, float _near, floa
 {
 	float halfFovVertical   = _fovVertical * 0.5f;
 	float halfFovHorizontal = halfFovVertical * _aspect;
-	setProj(
-		halfFovVertical,   -halfFovHorizontal,
-		halfFovHorizontal, -halfFovHorizontal,
-		_near, _far,
-		_flags
-		);
-	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // _flags were invalid
+	setProj(halfFovVertical, -halfFovVertical, halfFovHorizontal, -halfFovHorizontal, _near, _far, _flags);
+	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // invalid _flags
 }
 
 void Camera::setPerspective(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags)
 {
 	setProj(_up, _down, _right, _left, _near, _far, _flags);
-	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // _flags were invalid 
+	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // invalid _flags
 }
 
 void Camera::setAspect(float _aspect)
@@ -333,10 +325,10 @@ void Camera::setAspect(float _aspect)
 
 void Camera::update()
 {
-	updateView();
 	if (m_projDirty) {
 		updateProj();	
 	}
+	updateView();
 }
 
 void Camera::updateView()

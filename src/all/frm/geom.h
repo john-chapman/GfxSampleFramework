@@ -178,7 +178,7 @@ struct Frustum
 {
 	enum FrustumPlane
 	{
-		Plane_Near = 0,
+		Plane_Near,
 		Plane_Far,
 		Plane_Top,
 		Plane_Right,
@@ -193,23 +193,11 @@ struct Frustum
 	Frustum() {}
 
 	// Symmetrical perspective projection.
-	Frustum(
-		float _aspect,
-		float _tanHalfFov,
-		float _clipNear,
-		float _clipFar
-		);
+	Frustum(float _aspect, float _tanHalfFov, float _clipNear, float _clipFar);
 
-	// Asymmetrical perspective projection or orthographic projection.
-	Frustum(
-		float _up,          // tan(fov) if ortho
-		float _down,        //        "
-		float _right,       //        "
-		float _left,        //        "
-		float _near,
-		float _far,
-		bool  _isOrtho = false
-		);
+	// Construct from projection params. If _isOrtho, _up/_down/_left/_right are ±offsets from the center of
+	// the projection plane. If !_isOrtho, _up/_down/_left/_right are ±tan(angle) from the view axis.
+	Frustum(float _up, float _down, float _right, float _left, float _near, float _far, bool _isOrtho);
 
 	// Construct from left/right eye frusta (combined frustum for VR).
 	Frustum(const Frustum& _left, const Frustum& _right);
