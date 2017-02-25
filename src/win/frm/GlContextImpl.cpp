@@ -132,7 +132,7 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 	APT_ASSERT(err == GLEW_OK);
 	glGetError(); // clear any errors caused by glewInit()
 
-	ret->setVsyncMode(ret->getVsyncMode());
+	ret->setVsync(ret->getVsync());
 	ret->queryLimits();
 
 	APT_LOG("OpenGL context:\n\tVersion: %s\n\tGLSL Version: %s\n\tVendor: %s\n\tRenderer: %s",
@@ -190,10 +190,10 @@ void GlContext::present()
 	++m_frameIndex;
 }
 
-void GlContext::setVsyncMode(VsyncMode _mode)
+void GlContext::setVsync(Vsync _mode)
 {
-	if (m_vsyncMode	!= _mode) {
-		m_vsyncMode = _mode;
+	if (m_vsync	!= _mode) {
+		m_vsync = _mode;
 		APT_PLATFORM_VERIFY(wglSwapIntervalEXT((int)_mode));
 	}
 }

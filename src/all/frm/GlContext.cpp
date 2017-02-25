@@ -231,10 +231,10 @@ void GlContext::setUniformArray<mat4>(const char* _name, const mat4* _val, GLsiz
 }
 
 
-void GlContext::setMesh(const Mesh* _mesh, int _SubmeshId)
+void GlContext::setMesh(const Mesh* _mesh, int _submeshId)
 {
-	APT_ASSERT(_SubmeshId < _mesh->getSubmeshCount());
-	m_currentSubmesh = _SubmeshId;
+	APT_ASSERT(_submeshId < _mesh->getSubmeshCount());
+	m_currentSubmesh = _submeshId;
 	if (_mesh == m_currentMesh) {
 		return;
 	}
@@ -394,13 +394,13 @@ void GlContext::clearImageBindings()
 // PRIVATE
 
 GlContext::GlContext()
-	: m_impl(0)
-	, m_window(0)
-	, m_vsyncMode(VsyncMode::kOn)
+	: m_impl(nullptr)
+	, m_window(nullptr)
+	, m_vsync(Vsync_On)
 	, m_frameIndex(0)
-	, m_currentFramebuffer(0)
-	, m_currentShader(0)
-	, m_currentMesh(0)
+	, m_currentFramebuffer(nullptr)
+	, m_currentShader(nullptr)
+	, m_currentMesh(nullptr)
 {
 }
 

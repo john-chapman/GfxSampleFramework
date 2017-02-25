@@ -290,14 +290,14 @@ bool AppSample3d::Im3d_Init()
 	s_shIm3dTriangles->setName("#Im3d_TRIANGLES");
 
 
-	MeshDesc meshDesc(MeshDesc::kPoints);
-	meshDesc.addVertexAttr(VertexAttr::kPositions, 4, DataType::kFloat32);
-	meshDesc.addVertexAttr(VertexAttr::kColors,    4, DataType::kUint8N);
+	MeshDesc meshDesc(MeshDesc::Primitive_Points);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 4, DataType::kFloat32);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::kUint8N);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::VertexData));
 	s_msIm3dPoints = Mesh::Create(meshDesc);
-	meshDesc.setPrimitive(MeshDesc::kLines);
+	meshDesc.setPrimitive(MeshDesc::Primitive_Lines);
 	s_msIm3dLines= Mesh::Create(meshDesc);
-	meshDesc.setPrimitive(MeshDesc::kTriangles);
+	meshDesc.setPrimitive(MeshDesc::Primitive_Triangles);
 	s_msIm3dTriangles= Mesh::Create(meshDesc);
 
 	Im3d::GetAppData().drawCallback = Im3d_Draw;

@@ -12,28 +12,28 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class VertexAttr
-/// \note m_offset is 8 bits, which limits the total vertex size to 256 bytes.
+// VertexAttr
+// \note m_offset is 8 bits, which limits the total vertex size to 256 bytes.
 ////////////////////////////////////////////////////////////////////////////////
 class VertexAttr
 {
 public:
 	enum Semantic 
 	{
-		kPositions,
-		kTexcoords,
-		kNormals,
-		kTangents,
-		kColors,
-		kBoneWeights,
-		kBoneIndices,
-		kPadding,
+		Semantic_Positions,
+		Semantic_Texcoords,
+		Semantic_Normals,
+		Semantic_Tangents,
+		Semantic_Colors,
+		Semantic_BoneWeights,
+		Semantic_BoneIndices,
+		Semantic_Padding,
 
-		kSemanticCount
+		Semantic_Count
 	};
 	
 	VertexAttr()
-		: m_semantic(kSemanticCount)
+		: m_semantic(Semantic_Count)
 		, m_dataType((uint8)DataType::kInvalidType)
 		, m_count(0)
 		, m_offset(0)
@@ -48,30 +48,30 @@ public:
 	{
 	}
 
-	/// Null semantics may be used to indicate the end of a vertex declaration.
-	bool     isNull() const                   { return m_count == 0; }
+	// Null semantics may be used to indicate the end of a vertex declaration.
+	bool     isNull() const                   { return m_count == 0;         }
 	Semantic getSemantic() const              { return (Semantic)m_semantic; }
 	DataType getDataType() const              { return (DataType)m_dataType; }
-	uint8    getCount() const                 { return m_count; }
-	uint8    getOffset() const                { return m_offset; }
+	uint8    getCount() const                 { return m_count;              }
+	uint8    getOffset() const                { return m_offset;             }
 	uint8    getSize() const                  { return m_count * (uint8)DataType::GetSizeBytes(getDataType()); }
 
-	void     setSemantic(Semantic _semantic)  { m_semantic   = _semantic; }
+	void     setSemantic(Semantic _semantic)  { m_semantic   = _semantic;        }
 	void     setDataType(DataType _dataType)  { m_dataType   = (uint8)_dataType; }
-	void     setCount(uint8 _count)           { m_count      = _count; }
-	void     setOffset(uint8 _offset)         { m_offset     = _offset; }
+	void     setCount(uint8 _count)           { m_count      = _count;           }
+	void     setOffset(uint8 _offset)         { m_offset     = _offset;          }
 
 private:
-	uint8 m_semantic;  //< Data semantic.
-	uint8 m_dataType;  //< Data type per component.
-	uint8 m_count;     //< Number of components (1,2,3 or 4).
-	uint8 m_offset;    //< Byte offset of the first component.
+	uint8 m_semantic;  // Data semantic.
+	uint8 m_dataType;  // Data type per component.
+	uint8 m_count;     // Number of components (1,2,3 or 4).
+	uint8 m_offset;    // Byte offset of the first component.
 
 }; // class VertexAttr
 
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class MeshDesc
+// MeshDesc
 ////////////////////////////////////////////////////////////////////////////////
 class MeshDesc
 {
@@ -79,40 +79,41 @@ class MeshDesc
 public:
 	enum Primitive
 	{
-		kPoints,
-		kTriangles,
-		kTriangleStrip,
-		kLines,
-		kLineStrip,
+		Primitive_Points,
+		Primitive_Triangles,
+		Primitive_TriangleStrip,
+		Primitive_Lines,
+		Primitive_LineStrip,
 
-		kPrimitiveCount
+		Primitive_Count
 	};
 
-	MeshDesc(Primitive _primitive = kTriangles)
+	MeshDesc(Primitive _prim = Primitive_Triangles)
 		: m_vertexAttrCount(0)
 		, m_vertexSize(0)
-		, m_primitive(_primitive)
+		, m_primitive(_prim)
 	{
 	}
 
-	/// Append a new VertexComponent to the vertex desc. The order of calls to
-	/// addVertexComponent() must correspond to the order of the vertex components
-	/// in the vertex data. Ensures 4 byte alignment.
+	// Append a new VertexComponent to the vertex desc. The order of calls to
+	// addVertexComponent() must correspond to the order of the vertex components
+	// in the vertex data. Ensures 4 byte alignment.
 	VertexAttr* addVertexAttr(
 		VertexAttr::Semantic _semantic, 
 		uint8                _count, 
 		DataType             _dataType
 		);
 
-	/// \return VertexAttr matching _semantic, or 0 if not present.
+	// Return VertexAttr matching _semantic, or nullptr if not present.
 	const VertexAttr* findVertexAttr(VertexAttr::Semantic _semantic) const;
 
 	uint64    getHash() const;
 	Primitive getPrimitive() const               { return (Primitive)m_primitive; }
 	void      setPrimitive(Primitive _primitive) { m_primitive = (uint8)_primitive; }
 	uint8     getVertexSize() const              { return m_vertexSize; }
+
 private:
-	static const uint kMaxVertexAttrCount = VertexAttr::kSemanticCount + 1;
+	static const int  kMaxVertexAttrCount = VertexAttr::Semantic_Count + 1;
 	VertexAttr        m_vertexDesc[kMaxVertexAttrCount];
 	uint8             m_vertexAttrCount;
 	uint8             m_vertexSize;
@@ -122,11 +123,11 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class MeshData
-/// Cpu-side mesh data.
-/// \note The first submesh always represents the entire mesh data. Additional
-///   submeshes are optional.
-/// \todo Submesh API.
+// MeshData
+// Cpu-side mesh data.
+// \note The first submesh always represents the entire mesh data. Additional
+//   submeshes are optional.
+// \todo Submesh API.
 ////////////////////////////////////////////////////////////////////////////////
 class MeshData: private apt::non_copyable<MeshData>
 {
@@ -150,15 +151,15 @@ public:
 		const MeshDesc& _desc, 
 		uint            _vertexCount, 
 		uint            _indexCount, 
-		const void*     _vertexData = 0,
-		const void*     _indexData = 0
+		const void*     _vertexData = nullptr,
+		const void*     _indexData  = nullptr
 		);
 	static MeshData* Create(
 		const MeshDesc&    _desc,
 		const MeshBuilder& _meshBuilder
 		);
 
-	/// Create a plane in XZ with the given dimensions and tesselation.
+	// Create a plane in XZ with the given dimensions and tesselation.
 	static MeshData* CreatePlane(
 		const MeshDesc& _desc, 
 		float           _sizeX, 
@@ -171,14 +172,14 @@ public:
 
 	friend void swap(MeshData& _a, MeshData& _b);
 
-	/// Copy vertex data directly from _src. The layout of _src must match the MeshDesc.
+	// Copy vertex data directly from _src. The layout of _src must match the MeshDesc.
 	void setVertexData(const void* _src);
-	/// Copy semantic data from _src, converting from _srcType.
+	// Copy semantic data from _src, converting from _srcType.
 	void setVertexData(VertexAttr::Semantic _semantic, DataType _srcType, uint _srcCount, const void* _src);
 	
-	/// Copy index data from _src. The layout of _src must match the index data type/count.
+	// Copy index data from _src. The layout of _src must match the index data type/count.
 	void setIndexData(const void* _src);
-	/// Copy index data from _src, converting from _srcType.
+	// Copy index data from _src, converting from _srcType.
 	void setIndexData(DataType _srcType, const void* _src);
 
 	uint64          getHash() const;
@@ -217,8 +218,8 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class MeshBuilder
-/// Mesh construction/manipulation tools.
+// MeshBuilder
+// Mesh construction/manipulation tools.
 ////////////////////////////////////////////////////////////////////////////////
 class MeshBuilder
 {
@@ -234,11 +235,12 @@ public:
 		vec4   m_boneWeights;
 		uvec4  m_boneIndices;
 	};
+
 	struct Triangle
 	{
 		uint32 a, b, c;
-		Triangle(uint32 _a, uint32 _b, uint32 _c): 
-			a(_a), b(_b), c(_c) 
+		Triangle(uint32 _a, uint32 _b, uint32 _c)
+			: a(_a), b(_b), c(_c) 
 		{
 		}
 		uint32 operator[](int _i)

@@ -28,7 +28,7 @@ static const char* VertexSemanticToStr(VertexAttr::Semantic _semantic)
 		"BoneIndices",
 		"Padding",
 	};
-	APT_STATIC_ASSERT(sizeof(kSemanticStr) / sizeof(const char*) == VertexAttr::kSemanticCount);
+	APT_STATIC_ASSERT(sizeof(kSemanticStr) / sizeof(const char*) == VertexAttr::Semantic_Count);
 	return kSemanticStr[_semantic];
 };
 
@@ -58,7 +58,7 @@ VertexAttr* MeshDesc::addVertexAttr(
  // roll back padding if present
 	uint8 offset = m_vertexSize;
 	if (m_vertexAttrCount > 0) {
-		if (m_vertexDesc[m_vertexAttrCount - 1].getSemantic() == VertexAttr::kPadding) {
+		if (m_vertexDesc[m_vertexAttrCount - 1].getSemantic() == VertexAttr::Semantic_Padding) {
 			--m_vertexAttrCount;
 			m_vertexSize -= m_vertexDesc[m_vertexAttrCount].getSize();
 		}
@@ -82,7 +82,7 @@ VertexAttr* MeshDesc::addVertexAttr(
 	if (m_vertexSize % kVertexAttrAlignment != 0) {
 		++m_vertexAttrCount;
 		m_vertexDesc[m_vertexAttrCount].setOffset(m_vertexSize);
-		m_vertexDesc[m_vertexAttrCount].setSemantic(VertexAttr::kPadding);
+		m_vertexDesc[m_vertexAttrCount].setSemantic(VertexAttr::Semantic_Padding);
 		m_vertexDesc[m_vertexAttrCount].setCount(kVertexAttrAlignment - (m_vertexSize % kVertexAttrAlignment));
 		m_vertexDesc[m_vertexAttrCount].setDataType(DataType::kUint8);
 		m_vertexSize += m_vertexDesc[m_vertexAttrCount].getSize();
@@ -94,7 +94,7 @@ VertexAttr* MeshDesc::addVertexAttr(
 
 const VertexAttr* MeshDesc::findVertexAttr(VertexAttr::Semantic _semantic) const
 {
-	for (auto i = 0; i < kMaxVertexAttrCount; ++i) {
+	for (int i = 0; i < kMaxVertexAttrCount; ++i) {
 		if (m_vertexDesc[i].getSemantic() == _semantic) {
 			return &m_vertexDesc[i];
 		}
@@ -131,13 +131,13 @@ MeshData* MeshData::Create(const char* _path)
 	
 	File f;
 	if (!FileSystem::Read(f, _path)) {
-		return 0;
+		return nullptr;
 	}
 	MeshData* ret = new MeshData();
 	ret->m_path.set(_path);
 	if (!ReadObj(*ret, f.getData(), f.getDataSize())) {
 		delete ret;
-		ret = 0;
+		ret = nullptr;
 	}
 	return ret;
 }
@@ -240,7 +240,7 @@ void MeshData::Destroy(MeshData*& _meshData_)
 {
 	APT_ASSERT(_meshData_);
 	delete _meshData_;
-	_meshData_ = 0;
+	_meshData_ = nullptr;
 }
 
 void frm::swap(MeshData& _a, MeshData& _b)
@@ -251,7 +251,6 @@ void frm::swap(MeshData& _a, MeshData& _b)
 	swap(_a.m_indexData,      _b.m_indexData);
 	swap(_a.m_indexDataType,  _b.m_indexDataType);
 	swap(_a.m_submeshes,      _b.m_submeshes);
-
 }
 
 void MeshData::setVertexData(const void* _src)
@@ -374,14 +373,13 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	, m_vertexData(0)
 	, m_indexData(0)
 {
-
-	const VertexAttr* positionsAttr   = m_desc.findVertexAttr(VertexAttr::kPositions);
-	const VertexAttr* texcoordsAttr   = m_desc.findVertexAttr(VertexAttr::kTexcoords);
-	const VertexAttr* normalsAttr     = m_desc.findVertexAttr(VertexAttr::kNormals);
-	const VertexAttr* tangentsAttr    = m_desc.findVertexAttr(VertexAttr::kTangents);
-	const VertexAttr* colorsAttr      = m_desc.findVertexAttr(VertexAttr::kColors);
-	const VertexAttr* boneWeightsAttr = m_desc.findVertexAttr(VertexAttr::kBoneWeights);
-	const VertexAttr* boneIndicesAttr = m_desc.findVertexAttr(VertexAttr::kBoneIndices);
+	const VertexAttr* positionsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Positions);
+	const VertexAttr* texcoordsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Texcoords);
+	const VertexAttr* normalsAttr     = m_desc.findVertexAttr(VertexAttr::Semantic_Normals);
+	const VertexAttr* tangentsAttr    = m_desc.findVertexAttr(VertexAttr::Semantic_Tangents);
+	const VertexAttr* colorsAttr      = m_desc.findVertexAttr(VertexAttr::Semantic_Colors);
+	const VertexAttr* boneWeightsAttr = m_desc.findVertexAttr(VertexAttr::Semantic_BoneWeights);
+	const VertexAttr* boneIndicesAttr = m_desc.findVertexAttr(VertexAttr::Semantic_BoneIndices);
 	m_vertexData = (char*)malloc(m_desc.getVertexSize() * _meshBuilder.getVertexCount());
 	for (uint32 i = 0; i < _meshBuilder.getVertexCount(); ++i) {
 		char* dst = m_vertexData + i * m_desc.getVertexSize();
@@ -428,7 +426,7 @@ MeshData::~MeshData()
 
 void MeshData::updateSubmeshBounds(Submesh& _submesh)
 {
-	const VertexAttr* posAttr = m_desc.findVertexAttr(VertexAttr::kPositions);
+	const VertexAttr* posAttr = m_desc.findVertexAttr(VertexAttr::Semantic_Positions);
 	APT_ASSERT(posAttr); // no positions
 	
 	const char* data = m_vertexData + posAttr->getOffset() + _submesh.m_vertexOffset * m_desc.getVertexSize();
@@ -469,11 +467,11 @@ bool MeshData::ReadObj(MeshData& _mesh, const char* _data, uint _dataSize)
 	string err;
 	
  // \todo use _mesh desc as a conversion target
-	MeshDesc retDesc(MeshDesc::kTriangles);
-	VertexAttr* positionAttr = retDesc.addVertexAttr(VertexAttr::kPositions, 3, DataType::kFloat32);
-	VertexAttr* normalAttr   = retDesc.addVertexAttr(VertexAttr::kNormals,   3, DataType::kSint8N);
-	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::kTangents,  3, DataType::kSint8N);
-	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::kTexcoords, 2, DataType::kUint16N);
+	MeshDesc retDesc(MeshDesc::Primitive_Triangles);
+	VertexAttr* positionAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Positions, 3, DataType::kFloat32);
+	VertexAttr* normalAttr   = retDesc.addVertexAttr(VertexAttr::Semantic_Normals,   3, DataType::kSint8N);
+	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  3, DataType::kSint8N);
+	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::kUint16N);
 	
 	MeshBuilder tmpMesh; // append vertices/indices here
 
@@ -629,13 +627,13 @@ Mesh_LoadObj_end:
 
 MeshBuilder::MeshBuilder()
 {
-	m_desc.setPrimitive(MeshDesc::kTriangles);
-	m_desc.addVertexAttr(VertexAttr::kPositions,   3, DataType::kFloat32);
-	m_desc.addVertexAttr(VertexAttr::kTexcoords,   2, DataType::kFloat32);
-	m_desc.addVertexAttr(VertexAttr::kNormals,     3, DataType::kFloat32);
-	m_desc.addVertexAttr(VertexAttr::kTangents,    3, DataType::kFloat32);
-	m_desc.addVertexAttr(VertexAttr::kBoneWeights, 4, DataType::kFloat32);
-	m_desc.addVertexAttr(VertexAttr::kBoneIndices, 4, DataType::kUint32);
+	m_desc.setPrimitive(MeshDesc::Primitive_Triangles);
+	m_desc.addVertexAttr(VertexAttr::Semantic_Positions,   3, DataType::kFloat32);
+	m_desc.addVertexAttr(VertexAttr::Semantic_Texcoords,   2, DataType::kFloat32);
+	m_desc.addVertexAttr(VertexAttr::Semantic_Normals,     3, DataType::kFloat32);
+	m_desc.addVertexAttr(VertexAttr::Semantic_Tangents,    3, DataType::kFloat32);
+	m_desc.addVertexAttr(VertexAttr::Semantic_BoneWeights, 4, DataType::kFloat32);
+	m_desc.addVertexAttr(VertexAttr::Semantic_BoneIndices, 4, DataType::kUint32);
 }
 
 void MeshBuilder::transform(const mat4& _mat)
