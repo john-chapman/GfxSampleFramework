@@ -204,7 +204,6 @@ protected:
 	void beginSubmesh(uint _materialId);
 	void endSubmesh();
 
-private:
 	MeshData();
 	MeshData(const MeshDesc& _desc);
 	MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder);
@@ -212,8 +211,8 @@ private:
 
 	void updateSubmeshBounds(Submesh& _submesh);
 	
-	static bool ReadObj(MeshData& _mesh, const char* _data, uint _dataSize);
-
+	static bool ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
+	static bool ReadBlend(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
 }; // class MeshData
 
 
