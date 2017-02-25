@@ -14,14 +14,13 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class Mesh
-/// Wraps a single vertex buffer and optional index buffer.
+// Mesh
+// Wraps a single vertex buffer + optional index buffer. Submeshes are offsets
+// into the data, submesh 0 represents all submeshes.
 ////////////////////////////////////////////////////////////////////////////////
 class Mesh: public Resource<Mesh>
 {
 public:
-	static const int kDefaultSubMeshId = -1;
-
 	static Mesh* Create(const char* _path);
 	static Mesh* Create(const MeshData& _meshData);
 	static Mesh* Create(const MeshDesc& _desc); // create a unique empty mesh
@@ -33,24 +32,24 @@ public:
 	void setVertexData(const void* _data, uint _vertexCount, GLenum _usage = GL_STREAM_DRAW);
 	void setIndexData(DataType _dataType, const void* _data, uint _indexCount, GLenum _usage = GL_STREAM_DRAW);
 
-	uint getVertexCount() const                        { return getSubmesh(kDefaultSubMeshId).m_vertexCount; }
-	uint getIndexCount() const                         { return getSubmesh(kDefaultSubMeshId).m_indexCount; }
-	int  getSubmeshCount() const                       { return (int)m_submeshes.size(); }
-	const MeshData::Submesh& getSubmesh(int _id) const { APT_ASSERT((_id + 1) < getSubmeshCount()); return m_submeshes[_id + 1]; };
+	uint getVertexCount() const                        { return getSubmesh(0).m_vertexCount; }
+	uint getIndexCount() const                         { return getSubmesh(0).m_indexCount;  }
+	int  getSubmeshCount() const                       { return (int)m_submeshes.size();     }
+	const MeshData::Submesh& getSubmesh(int _id) const { APT_ASSERT(_id < getSubmeshCount()); return m_submeshes[_id]; };
 
-	GLuint getVertexArrayHandle() const                { return m_vertexArray; }
-	GLuint getVertexBufferHandle() const               { return m_vertexBuffer; }
-	GLuint getIndexBufferHandle() const                { return m_indexBuffer; }
+	GLuint getVertexArrayHandle() const                { return m_vertexArray;   }
+	GLuint getVertexBufferHandle() const               { return m_vertexBuffer;  }
+	GLuint getIndexBufferHandle() const                { return m_indexBuffer;   }
 	GLenum getIndexDataType() const                    { return m_indexDataType; }
-	GLenum getPrimitive() const                        { return m_primitive; }
+	GLenum getPrimitive() const                        { return m_primitive;     }
 
 private:
-	apt::String<32> m_path; //< Empty if not from a file.
+	apt::String<32> m_path; // Empty if not from a file.
 
 	MeshDesc m_desc;
 	std::vector<MeshData::Submesh> m_submeshes;
 
-	GLuint m_vertexArray;   //< Vertex array state (only bind this when drawing).
+	GLuint m_vertexArray;   // Vertex array state (only bind this when drawing).
 	GLuint m_vertexBuffer;
 	GLuint m_indexBuffer;
 	GLenum m_indexDataType;
@@ -63,8 +62,6 @@ private:
 
 	void load(const MeshData& _data);
 	void load(const MeshDesc& _desc);
-
-	static bool ReadObj(MeshDesc& _desc, const char* _data, uint _dataSize);
 
 }; // class Mesh
 

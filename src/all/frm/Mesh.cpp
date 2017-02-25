@@ -17,12 +17,12 @@ using namespace apt;
 static GLenum PrimitiveToGl(MeshDesc::Primitive _prim)
 {
 	switch (_prim) {
-		case MeshDesc::kPoints:        return GL_POINTS;
-		case MeshDesc::kTriangles:     return GL_TRIANGLES;
-		case MeshDesc::kTriangleStrip: return GL_TRIANGLE_STRIP;
-		case MeshDesc::kLines:         return GL_LINES;
-		case MeshDesc::kLineStrip:     return GL_LINE_STRIP;
-		default: APT_ASSERT(false);    return GL_INVALID_VALUE;
+		case MeshDesc::Primitive_Points:        return GL_POINTS;
+		case MeshDesc::Primitive_Triangles:     return GL_TRIANGLES;
+		case MeshDesc::Primitive_TriangleStrip: return GL_TRIANGLE_STRIP;
+		case MeshDesc::Primitive_Lines:         return GL_LINES;
+		case MeshDesc::Primitive_LineStrip:     return GL_LINE_STRIP;
+		default: APT_ASSERT(false);             return GL_INVALID_VALUE;
 	};
 }
 
@@ -144,7 +144,7 @@ void Mesh::setIndexData(DataType _dataType, const void* _data, uint _indexCount,
 
 Mesh::Mesh(uint64 _id, const char* _name)
 	: Resource(_id, _name)
-	, m_desc(MeshDesc::kPrimitiveCount)
+	, m_desc(MeshDesc::Primitive_Count)
 	, m_vertexArray(0)
 	, m_vertexBuffer(0)
 	, m_indexBuffer(0)

@@ -74,7 +74,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	const ivec2& glVersion = props["GlVersion"].getValue<ivec2>();	
 	bool glCompatibility = props["GlCompatibility"].getValue<bool>();
 	m_glContext = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
-	m_glContext->setVsyncMode((GlContext::VsyncMode)(*m_vsyncMode - 1));
+	m_glContext->setVsync((GlContext::Vsync)(*m_vsyncMode - 1));
 	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::kApplication);
 	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
 	if (!ImGui_Init()) {
@@ -87,8 +87,8 @@ bool AppSample::init(const apt::ArgList& _args)
 	m_resolution.y = m_resolutionProp->y == -1 ? m_windowSize.y : m_resolutionProp->y;
 
 	MeshDesc quadDesc;
-	quadDesc.setPrimitive(MeshDesc::kTriangleStrip);
-	quadDesc.addVertexAttr(VertexAttr::kPositions, 2, DataType::kFloat32);
+	quadDesc.setPrimitive(MeshDesc::Primitive_TriangleStrip);
+	quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::kFloat32);
 	//quadDesc.addVertexAttr(VertexAttr::kTexcoords, 2, DataType::kFloat32);
 	float quadVertexData[] = { 
 		-1.0f, -1.0f, //0.0f, 0.0f,
@@ -127,7 +127,7 @@ bool AppSample::init(const apt::ArgList& _args)
 		ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_AlwaysAutoResize
 		);
-	ImGui::Text(ICON_FA_SPINNER " Loading");
+	ImGui::Text("Loading");
 	ImGui::End();
 	ImGui::PopStyleColor();
 	AppSample::draw();
@@ -281,7 +281,7 @@ bool AppSample::update()
 			float cursorX = ImGui::GetCursorPosX();
 			ImGui::SetCursorPosX(ImGui::GetContentRegionAvailWidth() - vsyncWidth);
 			if (ImGui::Combo("VSYNC", m_vsyncMode, "Adaptive\0Off\0On\0On1\0On2\0On3\0")) {
-				getGlContext()->setVsyncMode((GlContext::VsyncMode)(*m_vsyncMode - 1));
+				getGlContext()->setVsync((GlContext::Vsync)(*m_vsyncMode - 1));
 			}
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
@@ -394,10 +394,10 @@ bool AppSample::ImGui_Init()
  	if (g_msImGui) {
 		Mesh::Release(g_msImGui);
 	}	
-	MeshDesc meshDesc(MeshDesc::kTriangles);
-	meshDesc.addVertexAttr(VertexAttr::kPositions, 2, DataType::kFloat32);
-	meshDesc.addVertexAttr(VertexAttr::kTexcoords, 2, DataType::kFloat32);
-	meshDesc.addVertexAttr(VertexAttr::kColors,    4, DataType::kUint8N);
+	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::kFloat32);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::kFloat32);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::kUint8N);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
 	g_msImGui = Mesh::Create(meshDesc);
 
