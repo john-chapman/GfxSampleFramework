@@ -15,17 +15,15 @@ Build via build/GfxSampleFramework_premake.lua as follows, requires [premake5](h
 ### Dependencies
 
 Submodule dependencies:
-
-	- [ApplicationTools](https://github.com/john-chapman/ApplicationTools)
-	- [GLM](https://github.com/g-truc/glm)
+ - [ApplicationTools](https://github.com/john-chapman/ApplicationTools)
+ - [GLM](https://github.com/g-truc/glm)
 	
 Committed dependencies:
-
-	- [Im3d](https://github.com/john-chapman/im3d/)
-	- [ImGui](https://github.com/ocornut/imgui)
-	- [RapidJSON](http://rapidjson.org/)
-	- [LodePNG](http://lodev.org/lodepng/)
-	- [STB](https://github.com/nothings/stb)
-	- [tinyobjloader](https://github.com/syoyo/tinyobjloader)
-	- [lua](https://www.lua.org)
+ - [Im3d](https://github.com/john-chapman/im3d/)
+ - [ImGui](https://github.com/ocornut/imgui)
+ - [RapidJSON](http://rapidjson.org/)
+ - [LodePNG](http://lodev.org/lodepng/)
+ - [STB](https://github.com/nothings/stb)
+ - [tinyobjloader](https://github.com/syoyo/tinyobjloader)
+ - [lua](https://www.lua.org)
 	
