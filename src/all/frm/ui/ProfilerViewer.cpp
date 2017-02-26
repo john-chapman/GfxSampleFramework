@@ -94,6 +94,10 @@ void ProfilerViewer::draw(bool* _open_)
 			m_timeStart = 0.0f;
 			m_timeRange = (float)Timestamp(Profiler::GetCpuMarker(Profiler::GetCpuFrame(Profiler::GetCpuFrameCount() - 1).m_first).m_end - Profiler::GetCpuMarker(Profiler::GetCpuFrame(0).m_first).m_start).asMilliseconds();
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("Reset Gpu Offset")) {
+			Profiler::ResetGpuOffset();
+		}
 		ImGui::Separator();
 
 		vec2 woff = ImGui::GetWindowPos();
