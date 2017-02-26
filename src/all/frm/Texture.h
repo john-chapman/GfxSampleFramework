@@ -10,8 +10,8 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Texture
-/// \note When loading from a apt::Image, texture data is inverted in V.
+// Texture
+// \note When loading from a apt::Image, texture data is inverted in V.
 ////////////////////////////////////////////////////////////////////////////////
 class Texture: public Resource<Texture>
 {
@@ -149,9 +149,9 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-/// TextureView
-/// Represents a subregion (offset, size) of a texture mip or array layer, plus
-/// a color mask.
+// TextureView
+// Represents a subregion (offset, size) of a texture mip or array layer, plus
+// a color mask.
 ////////////////////////////////////////////////////////////////////////////////
 struct TextureView
 {

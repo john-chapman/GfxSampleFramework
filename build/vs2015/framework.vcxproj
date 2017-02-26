@@ -157,7 +157,6 @@
     <ClInclude Include="..\..\src\all\frm\math.h" />
     <ClInclude Include="..\..\src\all\frm\ui\Log.h" />
     <ClInclude Include="..\..\src\all\frm\ui\ProfilerViewer.h" />
-    <ClInclude Include="..\..\src\all\frm\ui\ShaderViewer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c" />
@@ -226,7 +225,6 @@
     <ClCompile Include="..\..\src\all\frm\math.cpp" />
     <ClCompile Include="..\..\src\all\frm\ui\Log.cpp" />
     <ClCompile Include="..\..\src\all\frm\ui\ProfilerViewer.cpp" />
-    <ClCompile Include="..\..\src\all\frm\ui\ShaderViewer.cpp" />
     <ClCompile Include="..\..\src\win\frm\GlContextImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\InputImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\WindowImpl.cpp" />
