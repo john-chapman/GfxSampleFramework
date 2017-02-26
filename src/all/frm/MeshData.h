@@ -49,17 +49,20 @@ public:
 	}
 
 	// Null semantics may be used to indicate the end of a vertex declaration.
-	bool     isNull() const                   { return m_count == 0;         }
-	Semantic getSemantic() const              { return (Semantic)m_semantic; }
-	DataType getDataType() const              { return (DataType)m_dataType; }
-	uint8    getCount() const                 { return m_count;              }
-	uint8    getOffset() const                { return m_offset;             }
-	uint8    getSize() const                  { return m_count * (uint8)DataType::GetSizeBytes(getDataType()); }
+	bool     isNull() const                     { return m_count == 0;         }
+	Semantic getSemantic() const                { return (Semantic)m_semantic; }
+	DataType getDataType() const                { return (DataType)m_dataType; }
+	uint8    getCount() const                   { return m_count;              }
+	uint8    getOffset() const                  { return m_offset;             }
+	uint8    getSize() const                    { return m_count * (uint8)DataType::GetSizeBytes(getDataType()); }
 
-	void     setSemantic(Semantic _semantic)  { m_semantic   = _semantic;        }
-	void     setDataType(DataType _dataType)  { m_dataType   = (uint8)_dataType; }
-	void     setCount(uint8 _count)           { m_count      = _count;           }
-	void     setOffset(uint8 _offset)         { m_offset     = _offset;          }
+	void     setSemantic(Semantic _semantic)    { m_semantic   = _semantic;        }
+	void     setDataType(DataType _dataType)    { m_dataType   = (uint8)_dataType; }
+	void     setCount(uint8 _count)             { m_count      = _count;           }
+	void     setOffset(uint8 _offset)           { m_offset     = _offset;          }
+
+	bool operator==(const VertexAttr& _lhs) const;
+	bool operator!=(const VertexAttr& _lhs) const  { return !(*this == _lhs); }
 
 private:
 	uint8 m_semantic;  // Data semantic.
@@ -104,6 +107,8 @@ public:
 		DataType             _dataType
 		);
 
+	VertexAttr* addVertexAttr(VertexAttr& _attr);
+
 	// Return VertexAttr matching _semantic, or nullptr if not present.
 	const VertexAttr* findVertexAttr(VertexAttr::Semantic _semantic) const;
 
@@ -111,6 +116,9 @@ public:
 	Primitive getPrimitive() const               { return (Primitive)m_primitive; }
 	void      setPrimitive(Primitive _primitive) { m_primitive = (uint8)_primitive; }
 	uint8     getVertexSize() const              { return m_vertexSize; }
+
+	bool operator==(const MeshDesc& _rhs) const;
+	bool operator!=(const MeshDesc& _lhs) const  { return !(*this == _lhs); }
 
 private:
 	static const int  kMaxVertexAttrCount = VertexAttr::Semantic_Count + 1;

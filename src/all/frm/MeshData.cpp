@@ -42,6 +42,21 @@ static inline DataType GetIndexDataType(uint _vertexCount)
 
 /*******************************************************************************
 
+                                   VertexAttr
+
+*******************************************************************************/
+
+bool VertexAttr::operator==(const VertexAttr& _rhs) const
+{
+	return m_semantic == _rhs.m_semantic 
+		&& m_dataType == _rhs.m_dataType
+		&& m_count    == _rhs.m_count 
+		&& m_offset   == _rhs.m_offset
+		; 
+}
+
+/*******************************************************************************
+
                                    MeshDesc
 
 *******************************************************************************/
@@ -92,6 +107,15 @@ VertexAttr* MeshDesc::addVertexAttr(
 	return ret;
 }
 
+VertexAttr* MeshDesc::addVertexAttr(VertexAttr& _attr)
+{
+	APT_ASSERT_MSG(findVertexAttr(_attr.getSemantic()) == 0, "MeshDesc: Semantic '%s' already exists", VertexSemanticToStr(_attr.getSemantic()));
+	APT_ASSERT_MSG(m_vertexAttrCount < kMaxVertexAttrCount, "MeshDesc: Too many vertex attributes (added %d, max is %d)", m_vertexAttrCount + 1, kMaxVertexAttrCount);
+	VertexAttr* ret = &m_vertexDesc[m_vertexAttrCount];
+	*ret = _attr;
+	return ret;
+}
+
 const VertexAttr* MeshDesc::findVertexAttr(VertexAttr::Semantic _semantic) const
 {
 	for (int i = 0; i < kMaxVertexAttrCount; ++i) {
@@ -107,6 +131,19 @@ uint64 MeshDesc::getHash() const
 	uint64 ret = Hash<uint64>(m_vertexDesc, sizeof(VertexAttr) * m_vertexAttrCount);
 	ret = Hash<uint64>(&m_primitive, 1, ret);
 	return ret;
+}
+
+bool MeshDesc::operator==(const MeshDesc& _rhs) const
+{
+	if (m_vertexAttrCount != _rhs.m_vertexAttrCount) {
+		return false;
+	}
+	for (uint8 i = 0; i < m_vertexAttrCount; ++i) {
+		if (m_vertexDesc[i] != _rhs.m_vertexDesc[i]) {
+			return false;
+		}
+	}
+	return m_vertexSize == _rhs.m_vertexSize && m_primitive == _rhs.m_primitive;
 }
 
 /*******************************************************************************
