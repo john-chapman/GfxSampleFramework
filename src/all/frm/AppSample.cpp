@@ -89,7 +89,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	MeshDesc quadDesc;
 	quadDesc.setPrimitive(MeshDesc::Primitive_TriangleStrip);
 	quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::kFloat32);
-	//quadDesc.addVertexAttr(VertexAttr::kTexcoords, 2, DataType::kFloat32);
+	//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::kFloat32);
 	float quadVertexData[] = { 
 		-1.0f, -1.0f, //0.0f, 0.0f,
 		 1.0f, -1.0f, //1.0f, 0.0f,
