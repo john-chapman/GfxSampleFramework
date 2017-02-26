@@ -25,7 +25,7 @@ struct ProfilerData
 		: m_frames(_frameCount)
 		, m_markers(_frameCount * _maxTotalMarkersPerFrame)
 	{
-	 // \hack we prime the frame/marker ring buffers and fill them with zeros, basically
+	 // \hack prime the frame/marker ring buffers and fill them with zeros, basically
 	 //  to avoid handling the edge case where the ring buffers are empty (which only happens
 	 //  when the app launches)
 
@@ -95,12 +95,12 @@ static ProfilerData<Profiler::GpuFrame, Profiler::GpuMarker> s_gpu(Profiler::kMa
 
 
 
-static uint64 s_gpuTickOffset                                                                           = 0;
-static bool   s_gpuInit                                                                                 = true;
-static uint   s_gpuFrameQueryRetrieved                                                                  = 0;
-static GLuint s_gpuFrameStartQueries[Profiler::kMaxFrameCount]                                          = {};
-static GLuint s_gpuMarkerStartQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame] = {};
-static GLuint s_gpuMarkerEndQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame]   = {};
+static uint64 g_gpuTickOffset                                                                           = 0;
+static bool   g_gpuInit                                                                                 = true;
+static uint   g_gpuFrameQueryRetrieved                                                                  = 0;
+static GLuint g_gpuFrameStartQueries[Profiler::kMaxFrameCount]                                          = {};
+static GLuint g_gpuMarkerStartQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame] = {};
+static GLuint g_gpuMarkerEndQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame]   = {};
 
 
 static uint64 GpuToSystemTicks(GLuint64 _gpuTime)
@@ -110,7 +110,7 @@ static uint64 GpuToSystemTicks(GLuint64 _gpuTime)
 static uint64 GpuToTimestamp(GLuint64 _gpuTime)
 {
 	uint64 ret = GpuToSystemTicks(_gpuTime);
-	return ret + s_gpuTickOffset;
+	return ret + g_gpuTickOffset;
 }
 
 
@@ -120,17 +120,18 @@ APT_DEFINE_STATIC_INIT(Profiler);
 
 void Profiler::NextFrame()
 {
-	if_unlikely (s_gpuInit) {
-		glAssert(glGenQueries(kMaxFrameCount, s_gpuFrameStartQueries));
-		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, s_gpuMarkerStartQueries));
-		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, s_gpuMarkerEndQueries));
+	if_unlikely (g_gpuInit) {
+		glAssert(glGenQueries(kMaxFrameCount, g_gpuFrameStartQueries));
+		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, g_gpuMarkerStartQueries));
+		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, g_gpuMarkerEndQueries));
 
 		GLint64 gpuTime;
 		glAssert(glGetInteger64v(GL_TIMESTAMP, &gpuTime));
-		uint64 gpuTicks = GpuToSystemTicks(gpuTime);
 		uint64 cpuTicks = Time::GetTimestamp().getRaw();
-		s_gpuTickOffset = cpuTicks - gpuTicks; // \todo is it possible that gpuTicks > cpuTicks?
-		s_gpuInit = false;
+		uint64 gpuTicks = GpuToSystemTicks(gpuTime);
+		APT_ASSERT(gpuTicks < cpuTicks);
+		g_gpuTickOffset = cpuTicks - gpuTicks; // \todo is it possible that gpuTicks > cpuTicks?
+		g_gpuInit = false;
 	}
 
 	if (s_pause) {
@@ -142,39 +143,39 @@ void Profiler::NextFrame()
 
  // GPU: retrieve all queries **up to** the last available frame (i.e. when we implicitly know they are available)
 	GLint frameAvailable = GL_FALSE;
-	uint gpuFrameQueryAvail	= s_gpuFrameQueryRetrieved;
-	while (s_gpuFrameQueryRetrieved != s_gpu.getCurrentFrameIndex()) {
-		glAssert(glGetQueryObjectiv(s_gpuFrameStartQueries[s_gpuFrameQueryRetrieved], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
+	uint gpuFrameQueryAvail	= g_gpuFrameQueryRetrieved;
+	while (g_gpuFrameQueryRetrieved != s_gpu.getCurrentFrameIndex()) {
+		glAssert(glGetQueryObjectiv(g_gpuFrameStartQueries[g_gpuFrameQueryRetrieved], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
 		if (frameAvailable == GL_FALSE) {
 			break;
 		}
-		s_gpuFrameQueryRetrieved = (s_gpuFrameQueryRetrieved + 1) % kMaxFrameCount;
+		g_gpuFrameQueryRetrieved = (g_gpuFrameQueryRetrieved + 1) % kMaxFrameCount;
 	}
 
-	for (; gpuFrameQueryAvail != s_gpuFrameQueryRetrieved; gpuFrameQueryAvail = (gpuFrameQueryAvail + 1) % kMaxFrameCount) {
+	for (; gpuFrameQueryAvail != g_gpuFrameQueryRetrieved; gpuFrameQueryAvail = (gpuFrameQueryAvail + 1) % kMaxFrameCount) {
 		GpuFrame& frame = s_gpu.m_frames.data()[gpuFrameQueryAvail];
 		GLuint64 gpuTime;
-		glAssert(glGetQueryObjectui64v(s_gpuFrameStartQueries[gpuFrameQueryAvail], GL_QUERY_RESULT, &gpuTime));
+		glAssert(glGetQueryObjectui64v(g_gpuFrameStartQueries[gpuFrameQueryAvail], GL_QUERY_RESULT, &gpuTime));
 		frame.m_start = GpuToTimestamp(gpuTime);
 
 		for (uint i = frame.m_first, n = frame.m_first + frame.m_count; i < n; ++i) {
 			uint j = i % s_gpu.m_markers.capacity();
 			GpuMarker& marker = s_gpu.m_markers.data()[j];
 
-	//glAssert(glGetQueryObjectiv(s_gpuMarkerStartQueries[j], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
+	//glAssert(glGetQueryObjectiv(g_gpuMarkerStartQueries[j], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
 	//APT_ASSERT(frameAvailable == GL_TRUE);
-			glAssert(glGetQueryObjectui64v(s_gpuMarkerStartQueries[j], GL_QUERY_RESULT, &gpuTime));
+			glAssert(glGetQueryObjectui64v(g_gpuMarkerStartQueries[j], GL_QUERY_RESULT, &gpuTime));
 			marker.m_start = GpuToTimestamp(gpuTime);
 			
-	//glAssert(glGetQueryObjectiv(s_gpuMarkerEndQueries[j], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
+	//glAssert(glGetQueryObjectiv(g_gpuMarkerEndQueries[j], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
 	//APT_ASSERT(frameAvailable == GL_TRUE);
-			glAssert(glGetQueryObjectui64v(s_gpuMarkerEndQueries[j], GL_QUERY_RESULT, &gpuTime));
+			glAssert(glGetQueryObjectui64v(g_gpuMarkerEndQueries[j], GL_QUERY_RESULT, &gpuTime));
 			marker.m_end = GpuToTimestamp(gpuTime);
 		}
 	}
 
 	s_gpu.nextFrame().m_start = 0;
-	glAssert(glQueryCounter(s_gpuFrameStartQueries[s_gpu.getCurrentFrameIndex()], GL_TIMESTAMP));
+	glAssert(glQueryCounter(g_gpuFrameStartQueries[s_gpu.getCurrentFrameIndex()], GL_TIMESTAMP));
 }
 
 void Profiler::PushCpuMarker(const char* _name)
@@ -208,10 +209,10 @@ const uint64 Profiler::GetCpuAvgFrameDuration()
 	return s_cpu.m_avgFrameDuration;
 }
 
-//uint Profiler::GetCpuFrameIndex(const CpuFrame& _frame)
-//{
-//	return (uint)(&_frame - s_cpu.m_frames.data());
-//}
+uint Profiler::GetCpuFrameIndex(const CpuFrame& _frame)
+{
+	return (uint)(&_frame - s_cpu.m_frames.data());
+}
 
 const Profiler::CpuMarker& Profiler::GetCpuMarker(uint _i) 
 {
@@ -224,7 +225,7 @@ void Profiler::PushGpuMarker(const char* _name)
 		return;
 	}
 	s_gpu.pushMarker(_name).m_cpuStart = Time::GetTimestamp().getRaw();
-	glAssert(glQueryCounter(s_gpuMarkerStartQueries[s_gpu.getCurrentMarkerIndex()], GL_TIMESTAMP));
+	glAssert(glQueryCounter(g_gpuMarkerStartQueries[s_gpu.getCurrentMarkerIndex()], GL_TIMESTAMP));
 }
 
 void Profiler::PopGpuMarker(const char* _name)
@@ -233,7 +234,7 @@ void Profiler::PopGpuMarker(const char* _name)
 		return;
 	}
 	GpuMarker& marker = s_gpu.popMarker(_name);
-	glAssert(glQueryCounter(s_gpuMarkerEndQueries[s_gpu.getMarkerIndex(marker)], GL_TIMESTAMP));
+	glAssert(glQueryCounter(g_gpuMarkerEndQueries[s_gpu.getMarkerIndex(marker)], GL_TIMESTAMP));
 }
 
 const Profiler::GpuFrame& Profiler::GetGpuFrame(uint _i)
@@ -251,16 +252,20 @@ const uint64 Profiler::GetGpuAvgFrameDuration()
 	return s_gpu.m_avgFrameDuration;
 }
 
-//uint Profiler::GetGpuFrameIndex(const GpuFrame& _frame)
-//{
-//	return (uint)(&_frame - s_gpu.m_frames.data());
-//}
+uint Profiler::GetGpuFrameIndex(const GpuFrame& _frame)
+{
+	return (uint)(&_frame - s_gpu.m_frames.data());
+}
 
 const Profiler::GpuMarker& Profiler::GetGpuMarker(uint _i) 
 {
 	return s_gpu.m_markers.data()[_i % s_gpu.m_markers.capacity()];
 }
 
+void Profiler::ResetGpuOffset()
+{
+	g_gpuInit = false;
+}
 
 // PROTECTED
 
@@ -272,9 +277,9 @@ void Profiler::Init()
 void Profiler::Shutdown()
 {
  // \todo static initialization means we can't delete the queries
-	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, s_gpuFrameStartQueries)); 
-	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, s_gpuMarkerStartQueries)); 
-	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, s_gpuMarkerEndQueries)); 
+	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, g_gpuFrameStartQueries)); 
+	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, g_gpuMarkerStartQueries)); 
+	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, g_gpuMarkerEndQueries)); 
 }
 
 // PRIVATE

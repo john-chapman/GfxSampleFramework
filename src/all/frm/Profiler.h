@@ -20,18 +20,18 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class Profiler
-/// - Ring buffers of marker data.
-/// - Marker data = name, depth, start time, end time.
-/// - Marker depth indicates where the marker is relative to the previous marker
-///   in the buffer (if this depth > prev depth, this is a child of prev).
-/// \todo Reduce the size of Marker for better coherency; store start/end as 
-///   frame-relative times.
+// Profiler
+// - Ring buffers of marker data.
+// - Marker data = name, depth, start time, end time.
+// - Marker depth indicates where the marker is relative to the previous marker
+//   in the buffer (if this depth > prev depth, this is a child of prev).
+// \todo Reduce the size of Marker for better coherency; store start/end as 
+//   frame-relative times.
 ////////////////////////////////////////////////////////////////////////////////
 class Profiler: private apt::non_copyable<Profiler>
 {
 public:
-	static const int kMaxFrameCount              = 30; // must be at least 2 (keep 1 frame to write to while visualizing the others)
+	static const int kMaxFrameCount              = 64; // must be at least 2 (keep 1 frame to write to while visualizing the others)
 	static const int kMaxDepth                   = 255;
 	static const int kMaxTotalCpuMarkersPerFrame = 32;
 	static const int kMaxTotalGpuMarkersPerFrame = 32;
@@ -48,7 +48,7 @@ public:
 	};
 	struct GpuMarker: public Marker
 	{
-		uint64       m_cpuStart; //< When PushGpuMarker() was called.
+		uint64 m_cpuStart; // when PushGpuMarker() was called
 	};
 
 	struct Frame
@@ -66,32 +66,31 @@ public:
 	
 	static void             NextFrame();
 
-	/// Push/pop a named Cpu marker.
+	// Push/pop a named Cpu marker.
 	static void             PushCpuMarker(const char* _name);
 	static void             PopCpuMarker(const char* _name);
-	/// Access to profiler frames. 0 is the oldest frame in the history buffer.
+	// Access to profiler frames. 0 is the oldest frame in the history buffer.
 	static const CpuFrame&  GetCpuFrame(uint _i);
 	static uint             GetCpuFrameCount();
 	static const uint64     GetCpuAvgFrameDuration();
-//static uint             GetCpuFrameIndex(const CpuFrame& _frame); // debug
-	/// Access to marker data. Unlike access to frame data, the index accesses
-	/// the internal ring buffer directly.
+	static uint             GetCpuFrameIndex(const CpuFrame& _frame);
+	// Access to marker data. Unlike access to frame data, the index accesses the internal ring buffer directly.
 	static const CpuMarker& GetCpuMarker(uint _i);
 
 
-	/// Push/pop a named Gpu marker.
+	// Push/pop a named Gpu marker.
 	static void             PushGpuMarker(const char* _name);
 	static void             PopGpuMarker(const char* _name);
-//static uint             GetGpuFrameIndex(const GpuFrame& _frame); // debug
-	/// Access to profiler frames. 0 is the oldest frame in the history buffer.
+	static uint             GetGpuFrameIndex(const GpuFrame& _frame);
+	// Access to profiler frames. 0 is the oldest frame in the history buffer.
 	static const GpuFrame&  GetGpuFrame(uint _i);
 	static uint             GetGpuFrameCount();
 	static const uint64     GetGpuAvgFrameDuration();
-	/// Access to marker data. Unlike access to frame data, the index accesses
-	/// the internal ring buffer directly.
+	// Access to marker data. Unlike access to frame data, the index accesses the internal ring buffer directly.
 	static const GpuMarker& GetGpuMarker(uint _i);
 
-
+	// Reset Cpu->Gpu offset (call if the graphics context changes).
+	static void ResetGpuOffset();
 
 	class CpuAutoMarker
 	{
