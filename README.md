@@ -1,6 +1,6 @@
 Framework for graphics samples/prototyping. OpenGL/Windows only.
 
-**This project is very much WIP and therefore subject to breaking changes.** This will change in the future, but for now use with caution.
+**This project is very much WIP and therefore unstable.**
 
 See the [GfxSamples](https://github.com/john-chapman/GfxSamples) repo as a reference for the project setup/usage.
 

@@ -13,7 +13,6 @@
 #include <frm/Window.h>
 #include <frm/ui/Log.h>
 #include <frm/ui/ProfilerViewer.h>
-#include <frm/ui/ShaderViewer.h>
 
 #include <apt/ArgList.h>
 #include <apt/File.h>
@@ -29,7 +28,6 @@ using namespace apt;
 
 static ui::Log            g_log(32, 512);
 static ui::ProfilerViewer g_profilerViewer;
-static ui::ShaderViewer   g_shaderViewer;
 static AppSample*         g_current;
 
 void AppLogCallback(const char* _msg, LogType _type)
@@ -304,7 +302,7 @@ bool AppSample::update()
 		Texture::ShowTextureViewer(m_showTextureViewer);
 	}
 	if (*m_showShaderViewer) {
-		g_shaderViewer.draw(m_showShaderViewer);
+		Shader::ShowShaderViewer(m_showShaderViewer);
 	}
 	
 
