@@ -23,6 +23,7 @@ Camera::Camera(Node* _parent)
 	, m_parent(_parent)
 	, m_world(1.0f)
 	, m_proj(0.0f)
+	, m_aspectRatio(1.0f)
 {
 }
 
@@ -51,6 +52,8 @@ bool Camera::serialize(JsonSerializer& _serializer_)
 		setProjFlag(ProjFlag_Asymmetrical, asymmetrical);
 		setProjFlag(ProjFlag_Infinite,     infinite);
 		setProjFlag(ProjFlag_Reversed,     reversed);
+		
+		m_aspectRatio = fabs(m_right - m_left) / fabs(m_up - m_down);
 		m_projDirty = true;
 	}
 	return true;
@@ -112,7 +115,7 @@ void Camera::edit()
 			updated |= ImGui::SliderFloat("Height", &height, 0.0f, 100.0f);
 			updated |= ImGui::SliderFloat("Width",  &width,  0.0f, 100.0f);
 			float aspect = width / height;
-			updated |= ImGui::SliderFloat("Apect Ratio (W/H)", &aspect, 0.0f, 4.0f);
+			updated |= ImGui::SliderFloat("Apect Ratio", &aspect, 0.0f, 4.0f);
 			if (updated) {
 				up = height * 0.5f;
 				down = -up;
@@ -129,19 +132,11 @@ void Camera::edit()
 			updated |= ImGui::SliderFloat("Left",  &left,  -90.0f, 90.0f);
 		} else {
 			float fovVertical = up * 2.0f;
-			float fovHorizontal = right * 2.0f;
-			float aspect = fovHorizontal / fovVertical;
 			if (ImGui::SliderFloat("FOV Vertical", &fovVertical, 0.0f, 180.0f)) {
-				up = fovVertical * 0.5f;
-				down = -up;
-				right = up * aspect;
-				left = -right;
-				updated = true;
+				setPerspective(radians(fovVertical), m_aspectRatio, m_near, m_far, m_projFlags);
 			}
-			if (ImGui::SliderFloat("Apect Ratio", &aspect, 0.0f, 2.0f)) {
-				right = up * aspect;
-				down = -right;
-				updated = true;
+			if (ImGui::SliderFloat("Apect Ratio", &m_aspectRatio, 0.0f, 2.0f)) {
+				setAspectRatio(m_aspectRatio);
 			}
 			
 		}
@@ -244,6 +239,8 @@ void Camera::setProj(float _up, float _down, float _right, float _left, float _n
 	}
 	m_near  = _near;
 	m_far   = _far;
+
+	m_aspectRatio = fabs(_right - _left) / fabs(_up - _down);
 	
 	bool asymmetrical = fabs(fabs(_up) - fabs(_down)) > FLT_EPSILON || fabs(fabs(_right) - fabs(_left)) > FLT_EPSILON;
 	setProjFlag(ProjFlag_Asymmetrical, asymmetrical);
@@ -289,22 +286,30 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 	m_down  = frustum[3].y;
 	m_left  = frustum[3].x;
 	m_right = frustum[1].x;
-	m_near  = frustum[0].z;
-	m_far   = frustum[4].z;
 	if (!getProjFlag(ProjFlag_Orthographic)) {
 		m_up    /= m_near;
 		m_down  /= m_near;
 		m_left  /= m_near;
 		m_right /= m_near;
 	}
+	m_near  = frustum[0].z;
+	m_far   = frustum[4].z;
+	m_aspectRatio = fabs(m_right - m_left) / fabs(m_up - m_down);
 	m_projDirty = false;
 }
 
 void Camera::setPerspective(float _fovVertical, float _aspect, float _near, float _far, uint32 _flags)
 {
-	float halfFovVertical   = _fovVertical * 0.5f;
-	float halfFovHorizontal = halfFovVertical * _aspect;
-	setProj(halfFovVertical, -halfFovVertical, halfFovHorizontal, -halfFovHorizontal, _near, _far, _flags);
+	m_projFlags   = _flags;
+	m_aspectRatio = _aspect;
+	m_up          = tanf(_fovVertical * 0.5f);
+	m_down        = -m_up;
+	m_right       = _aspect * m_up;
+	m_left        = -m_right;
+	m_near        = _near;
+	m_far         = _far;
+	m_projDirty   = true;
+	setProjFlag(ProjFlag_Asymmetrical, false);
 	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // invalid _flags
 }
 
@@ -314,10 +319,17 @@ void Camera::setPerspective(float _up, float _down, float _right, float _left, f
 	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // invalid _flags
 }
 
-void Camera::setAspect(float _aspect)
+void Camera::setOrtho(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags)
+{
+	setProj(_up, _down, _right, _left, _near, _far, _flags);
+	APT_ASSERT(getProjFlag(ProjFlag_Orthographic)); // invalid _flags 
+}
+
+void Camera::setAspectRatio(float _aspect)
 {
 	setProjFlag(ProjFlag_Asymmetrical, false);
-	float horizontal = _aspect * (fabs(m_up) + fabs(m_down));
+	m_aspectRatio = _aspect;
+	float horizontal = _aspect * fabs(m_up - m_down);
 	m_right = horizontal * 0.5f;
 	m_left = -m_right;
 	m_projDirty = true;
