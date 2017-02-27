@@ -71,8 +71,8 @@ bool AppSample3d::update()
 		int winY = win->getHeight();
 		if (winX != 0 && winY != 0) {
 			float aspect = (float)winX / (float)winY;
-			if (currentCamera->getAspect() != aspect) {
-				currentCamera->setAspect(aspect);
+			if (currentCamera->m_aspectRatio != aspect) {
+				currentCamera->setAspectRatio(aspect);
 			}
 		}
 	}
