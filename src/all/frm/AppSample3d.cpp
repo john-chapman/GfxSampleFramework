@@ -247,6 +247,33 @@ void AppSample3d::DrawFrustum(const Frustum& _frustum)
 		Im3d::Vertex(verts[6]);
 		Im3d::Vertex(verts[7]);
 	Im3d::End();
+
+ // plane normals
+ //  4------------5
+ //  |\          /|
+ //  7-\--------/-6
+ //   \ 0------1 /
+ //    \|      |/
+ //     3------2
+	/*struct FrustumPlane { int m_index; int m_vertices[4]; };
+	static const FrustumPlane fplanes[6] = {
+		{ Frustum::Plane_Near,   { 0, 1, 3, 2 } },
+		{ Frustum::Plane_Far,    { 4, 5, 7, 6 } },
+		{ Frustum::Plane_Right,  { 1, 5, 2, 6 } },
+		{ Frustum::Plane_Left,   { 0, 4, 3, 7 } },
+		{ Frustum::Plane_Top,    { 4, 5, 0, 1 } },
+		{ Frustum::Plane_Bottom, { 7, 6, 3, 2 } }
+	};
+	Im3d::PushColor(Im3d::Color(1.0f, 0.2f, 0.1f, 0.75f));
+	Im3d::PushSize(4.0f);
+	for (int i = 0; i < 6; ++i) {
+		const FrustumPlane& fp = fplanes[i];
+		vec3 origin = mix(mix(verts[fp.m_vertices[0]], verts[fp.m_vertices[1]], 0.5f), mix(verts[fp.m_vertices[2]], verts[fp.m_vertices[3]], 0.5f), 0.5f);
+		Im3d::DrawArrow(origin, origin + _frustum.m_planes[fp.m_index].m_normal, 0.15f);
+	}
+	Im3d::PopSize();
+	Im3d::PopColor();
+	*/
 }
 
 AppSample3d::AppSample3d(const char* _title)

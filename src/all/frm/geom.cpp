@@ -360,7 +360,7 @@ Frustum::Frustum(const Frustum& _base, float _nearOffset, float _farOffset)
 
 void Frustum::transform(const mat4& _mat)
 {
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < Plane_Count; ++i) {
 		m_planes[i].transform(_mat);
 	}
 	for (int i = 0; i < 8; ++i) {
@@ -370,7 +370,7 @@ void Frustum::transform(const mat4& _mat)
 
 bool Frustum::inside(const Sphere& _sphere) const
 {
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < Plane_Count; ++i) {
 		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
 			return false;
 		}
@@ -380,7 +380,7 @@ bool Frustum::inside(const Sphere& _sphere) const
 
 bool Frustum::insideIgnoreNear(const Sphere& _sphere) const
 {
-	for (int i = 1; i < 6; ++i) {
+	for (int i = 1; i < Plane_Count; ++i) {
 		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
 			return false;
 		}
