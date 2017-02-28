@@ -165,7 +165,7 @@ struct Capsule
 
 ////////////////////////////////////////////////////////////////////////////////
 // Frustum
-// Frustum described by 6 planes/8 vertices. The vertex ordering is as follows:
+// 6 planes/8 vertices. The vertex ordering is as follows:
 //
 //  4------------5
 //  |\          /|
@@ -193,7 +193,7 @@ struct Frustum
 	Frustum() {}
 
 	// Symmetrical perspective projection.
-	Frustum(float _aspect, float _tanHalfFov, float _clipNear, float _clipFar);
+	Frustum(float _aspect, float _tanHalfFov, float _near, float _far);
 
 	// Construct from projection params. If _isOrtho, _up/_down/_left/_right are ±offsets from the center of
 	// the projection plane. If !_isOrtho, _up/_down/_left/_right are ±tan(angle) from the view axis.
@@ -203,7 +203,7 @@ struct Frustum
 	Frustum(const Frustum& _left, const Frustum& _right);
 
 	// Construct from _base, adjusting the near/far clipping planes.
-	Frustum(const Frustum& _base, float _clipNear, float _clipFar);
+	Frustum(const Frustum& _base, float _nearOffset, float _farOffset);
 
 	void transform(const mat4& _mat);
 
