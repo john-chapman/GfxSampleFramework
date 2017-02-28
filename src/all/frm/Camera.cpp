@@ -155,7 +155,7 @@ void Camera::edit()
 
 		ImGui::TreePop();
 	}
-	/*if (ImGui::TreeNode("Debug")) {
+	/*if (ImGui::TreeNode("DEBUG")) {
 		static const int kSampleCount = 256;
 		static float zrange[2] = { -10.0f, fabs(m_far) + 1.0f };
 		ImGui::SliderFloat2("Z Range", zrange, 0.0f, 100.0f);
@@ -167,6 +167,12 @@ void Camera::edit()
 		}
 		ImGui::PlotLines("Z", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
 
+		Camera dbgCam;
+		dbgCam.m_far = 10.0f;
+		dbgCam.setProj(m_proj, m_projFlags);
+		dbgCam.updateView();
+		const Frustum& dbgFrustum = dbgCam.m_worldFrustum;
+		
 		Im3d::PushDrawState();
 		Im3d::PushMatrix(m_world);
 			Im3d::SetSize(2.0f);
@@ -197,8 +203,7 @@ void Camera::edit()
 		Im3d::PopDrawState();
 
 		ImGui::TreePop();
-	}
-	*/
+	}*/
 
 	if (updated) {
 		m_up    = orthographic ? up    : tanf(radians(up));
@@ -248,7 +253,6 @@ void Camera::setProj(float _up, float _down, float _right, float _left, float _n
 
 void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 {
- // \todo recovering frustum and params from an infinite or reversed proj matrix may not work
 	m_proj = _projMatrix; 
 	m_projFlags = _flags;
 	
@@ -256,10 +260,10 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 	mat4 invProj = inverse(_projMatrix);
 	static const vec4 lv[8] = {
 		#if   defined(Camera_ClipD3D)
-			vec4(-1.0f,  1.0f,  0.0f,  1.0f),
-			vec4( 1.0f,  1.0f,  0.0f,  1.0f),
-			vec4( 1.0f, -1.0f,  0.0f,  1.0f),
-			vec4(-1.0f, -1.0f,  0.0f,  1.0f),
+			vec4(-1.0f,  1.0f, 0.0f,  1.0f),
+			vec4( 1.0f,  1.0f, 0.0f,  1.0f),
+			vec4( 1.0f, -1.0f, 0.0f,  1.0f),
+			vec4(-1.0f, -1.0f, 0.0f,  1.0f),
 		#elif defined(Camera_ClipOGL)
 			vec4(-1.0f,  1.0f, -1.0f,  1.0f),
 			vec4( 1.0f,  1.0f, -1.0f,  1.0f),
@@ -278,6 +282,12 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 			v /= v.w;
 		}
 		lvt[i] = vec3(v);
+	}
+ // replace far plane in the case of an infinite projection
+	if (getProjFlag(ProjFlag_Infinite)) {
+		for (int i = 4; i < 8; ++i) {
+			lvt[i] = lvt[i - 4] * (m_far / -lvt[0].z);
+		}
 	}
 	m_localFrustum.setVertices(lvt);
 
@@ -321,6 +331,7 @@ void Camera::setPerspective(float _up, float _down, float _right, float _left, f
 
 void Camera::setOrtho(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags)
 {
+	_flags &= ~ProjFlag_Infinite; // disallow infinite ortho projection
 	setProj(_up, _down, _right, _left, _near, _far, _flags);
 	APT_ASSERT(getProjFlag(ProjFlag_Orthographic)); // invalid _flags 
 }
