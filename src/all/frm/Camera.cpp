@@ -155,7 +155,7 @@ void Camera::edit()
 
 		ImGui::TreePop();
 	}
-	/*if (ImGui::TreeNode("DEBUG")) {
+	if (ImGui::TreeNode("DEBUG")) {
 		static const int kSampleCount = 256;
 		static float zrange[2] = { -10.0f, fabs(m_far) + 1.0f };
 		ImGui::SliderFloat2("Z Range", zrange, 0.0f, 100.0f);
@@ -166,13 +166,13 @@ void Camera::edit()
 			zvalues[i] = pz.z / pz.w;
 		}
 		ImGui::PlotLines("Z", zvalues, kSampleCount, 0, 0, -1.0f, 1.0f, ImVec2(0.0f, 64.0f));
-
+		
 		Camera dbgCam;
 		dbgCam.m_far = 10.0f;
 		dbgCam.setProj(m_proj, m_projFlags);
 		dbgCam.updateView();
-		const Frustum& dbgFrustum = dbgCam.m_worldFrustum;
-		
+		Frustum& dbgFrustum = dbgCam.m_worldFrustum;
+
 		Im3d::PushDrawState();
 		Im3d::PushMatrix(m_world);
 			Im3d::SetSize(2.0f);
@@ -203,7 +203,7 @@ void Camera::edit()
 		Im3d::PopDrawState();
 
 		ImGui::TreePop();
-	}*/
+	}
 
 	if (updated) {
 		m_up    = orthographic ? up    : tanf(radians(up));
