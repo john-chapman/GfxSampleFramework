@@ -113,6 +113,8 @@ public:
 	static void Init();
 	static void Shutdown();
 
+	static void ShowProfilerViewer(bool* _open_);
+
 }; // class Profiler
 APT_DECLARE_STATIC_INIT(Profiler, Profiler::Init, Profiler::Shutdown);
 

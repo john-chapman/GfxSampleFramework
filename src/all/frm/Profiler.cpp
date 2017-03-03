@@ -6,12 +6,158 @@
 #include <apt/RingBuffer.h>
 #include <apt/Time.h>
 
+#include <imgui/imgui.h>
+
 #include <cstring>
 
 using namespace frm;
 using namespace apt;
 
+/******************************************************************************
 
+                            ProfilerViewer
+
+******************************************************************************/
+struct ProfilerViewer
+{
+	struct Colors
+	{
+		ImU32 kBackground;
+		ImU32 kFrame;
+		float kFrameHoverAlpha;
+		ImU32 kMarkerHover;
+		ImU32 kMarkerColors[9];
+	};
+	static Colors  kColorsGpu;
+	static Colors  kColorsCpu;
+	static Colors* kColors;
+
+
+	uint64 mbeg; // all markers draw relative to this time
+	float  tbeg, tsize; // viewing region start/size in ms relative to mbeg
+	vec2   wbeg, wend, wsize;
+	
+	ProfilerViewer()
+		: tbeg(0.0f)
+		, tsize(100.0f)
+	{
+		kColorsGpu.kBackground      = kColorsCpu.kBackground = ImColor(0xff8e8e8e);
+		kColorsGpu.kFrameHoverAlpha = kColorsCpu.kFrameHoverAlpha = 0.1f;
+		kColorsGpu.kMarkerHover     = kColorsCpu.kMarkerHover = ImColor(0.3f, 0.3f, 0.3f, 1.0f);
+		
+		kColorsGpu.kFrame           = ImColor(215,  46, 165);
+		kColorsGpu.kMarkerColors[0] = ImColor( 63,  52, 183);
+		kColorsGpu.kMarkerColors[1] = ImColor( 95,  54, 183);
+		kColorsGpu.kMarkerColors[2] = ImColor(154,  23, 179);
+		kColorsGpu.kMarkerColors[3] = ImColor(183,  22, 173);
+		kColorsGpu.kMarkerColors[4] = ImColor(159, 107,  73);
+		kColorsGpu.kMarkerColors[5] = ImColor(125, 184,  84);
+		kColorsGpu.kMarkerColors[6] = ImColor(100, 158,  56);
+		kColorsGpu.kMarkerColors[7] = ImColor( 53, 178,  21);
+		kColorsGpu.kMarkerColors[8] = ImColor( 76, 156, 100);
+
+		kColorsCpu.kFrame           = ImColor(229, 190,  47);
+		kColorsCpu.kMarkerColors[0] = ImColor(183,  52,  76);
+		kColorsCpu.kMarkerColors[1] = ImColor(183,  61,  54);
+		kColorsCpu.kMarkerColors[2] = ImColor(179, 113,  23);
+		kColorsCpu.kMarkerColors[3] = ImColor(182, 148,  22);
+		kColorsCpu.kMarkerColors[4] = ImColor( 73, 159,  84);
+		kColorsCpu.kMarkerColors[5] = ImColor( 84, 152, 184);
+		kColorsCpu.kMarkerColors[6] = ImColor( 56, 127, 158);
+		kColorsCpu.kMarkerColors[7] = ImColor( 21,  95, 178);
+		kColorsCpu.kMarkerColors[8] = ImColor( 79,  76, 156);
+	}
+
+	float timeToWindowX(uint64 _time)
+	{
+		float ms = (float)Timestamp(_time - mbeg).asMilliseconds();
+		ms = (ms - tbeg) / tsize;
+		return wbeg.x + ms * wsize.x;
+	}
+
+	void draw(bool* _open_)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y / 4), ImGuiSetCond_FirstUseEver);
+		ImGui::Begin("Profiler", _open_, ImGuiWindowFlags_MenuBar);
+
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("Options")) {
+				ImGui::EndMenu();
+			}
+			if (ImGui::SmallButton(Profiler::s_pause ? "Resume" : "Pause")) {
+				Profiler::s_pause = !Profiler::s_pause;
+			}
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Reset GPU Offset")) {
+				Profiler::ResetGpuOffset();
+			}
+
+			ImGui::SameLine();
+			ImGui::PushItemWidth(128.0f);
+			ImGui::SliderFloat("tbeg", &tbeg, 0.0f, 1000.0f);
+			ImGui::SameLine();
+			ImGui::SliderFloat("tsize", &tsize, 0.0f, 1000.0f);
+			ImGui::PopItemWidth();
+			ImGui::EndMenuBar();
+		}
+		
+		ImDrawList& drawList = *ImGui::GetWindowDrawList();
+		
+		mbeg = APT_MIN(Profiler::GetCpuFrame(0).m_start, Profiler::GetGpuFrame(0).m_start);
+		wbeg  = vec2(ImGui::GetContentRegionMax()) + vec2(ImGui::GetWindowContentRegionMin());
+		wsize = ImGui::GetContentRegionMax();
+		wend  = vec2(ImGui::GetWindowPos()) + wsize;
+		//ImGui::PushClipRect(wbeg, wend, false);
+
+		// GPU ---
+		kColors   = &kColorsGpu;
+		wbeg      = vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowContentRegionMin());
+		wsize     = vec2(ImGui::GetContentRegionMax()) - (wbeg - vec2(ImGui::GetWindowPos()));
+		wsize.y   = wsize.y * 0.5f;
+		wend      = wbeg + wsize;
+		
+		for (uint i = 0, n = Profiler::GetGpuFrameCount(); i < n; ++i) {
+			const Profiler::GpuFrame& frame = Profiler::GetGpuFrame(i);
+
+			float frameX = timeToWindowX(frame.m_start);
+			drawList.AddLine(vec2(frameX, wbeg.y), vec2(frameX, wend.y), kColors->kFrame);
+		}
+		drawList.AddRect(wbeg, wend, kColors->kBackground);
+
+		// CPU ---
+		kColors   = &kColorsCpu;
+		wbeg.y    = wend.y;
+		wend.y    = wbeg.y + wsize.y;
+		for (uint i = 0, n = Profiler::GetGpuFrameCount(); i < n; ++i) {
+			const Profiler::CpuFrame& frame = Profiler::GetCpuFrame(i);
+
+			float frameX = timeToWindowX(frame.m_start);
+			drawList.AddLine(vec2(frameX, wbeg.y), vec2(frameX, wend.y), kColors->kFrame);
+		}
+		drawList.AddRect(wbeg, wend, kColors->kBackground);
+
+		ImGui::End();
+	}
+};
+ProfilerViewer::Colors  ProfilerViewer::kColorsGpu;
+ProfilerViewer::Colors  ProfilerViewer::kColorsCpu;
+ProfilerViewer::Colors* ProfilerViewer::kColors;
+
+static ProfilerViewer g_profilerViewer;
+
+void Profiler::ShowProfilerViewer(bool* _open_)
+{
+	g_profilerViewer.draw(_open_);
+}
+
+
+/******************************************************************************
+
+                               Profiler
+
+******************************************************************************/
 template <typename tFrame, typename tMarker>
 struct ProfilerData
 {
@@ -284,4 +430,4 @@ void Profiler::Shutdown()
 
 // PRIVATE
 
-bool                 Profiler::s_pause;
+bool Profiler::s_pause;
