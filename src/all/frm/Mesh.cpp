@@ -51,6 +51,7 @@ Mesh* Mesh::Create(const char* _path)
 
 Mesh* Mesh::Create(const MeshData& _data)
 {
+	APT_ASSERT(false); // major bug here - Use(ret) calls load again??
 	Id id = _data.getHash();
 	Mesh* ret = Find(id);
 	if (!ret) {
