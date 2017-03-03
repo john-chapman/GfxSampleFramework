@@ -143,9 +143,9 @@ class MeshData: private apt::non_copyable<MeshData>
 public:
 	struct Submesh
 	{ 
-		uint       m_indexOffset;
+		uint       m_indexOffset;  // bytes
 		uint       m_indexCount;
-		uint       m_vertexOffset;
+		uint       m_vertexOffset; // bytes
 		uint       m_vertexCount;
 		uint       m_materialId;
 		AlignedBox m_boundingBox;
@@ -210,6 +210,8 @@ protected:
 
 	// \todo 
 	void beginSubmesh(uint _materialId);
+	void addSubmeshVertexData(const void* _src, uint _vertexCount);
+	void addSubmeshIndexData(const void* _src, uint _indexCount);
 	void endSubmesh();
 
 	MeshData();
