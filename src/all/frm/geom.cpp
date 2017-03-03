@@ -93,7 +93,7 @@ void Sphere::transform(const mat4& _mat)
 	m_origin *= maxScale;
 
  // translate after scaling
-	m_origin = m_origin + vec3(column(_mat, 3));
+	m_origin = vec3(_mat * vec4(m_origin, 1.0f));
 }
 
 /*******************************************************************************
