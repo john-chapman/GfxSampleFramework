@@ -27,7 +27,6 @@ using namespace frm;
 using namespace apt;
 
 static ui::Log            g_log(32, 512);
-static ui::ProfilerViewer g_profilerViewer;
 static AppSample*         g_current;
 
 void AppLogCallback(const char* _msg, LogType _type)
@@ -296,7 +295,7 @@ bool AppSample::update()
 		m_properties.edit("Properties");
 	}
 	if (*m_showProfilerViewer) {
-		g_profilerViewer.draw(m_showProfilerViewer);
+		Profiler::ShowProfilerViewer(m_showProfilerViewer);
 	}
 	if (*m_showTextureViewer) {
 		Texture::ShowTextureViewer(m_showTextureViewer);
