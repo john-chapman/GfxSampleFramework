@@ -148,7 +148,7 @@ void Framebuffer::attachImpl(Texture* _texture, GLenum _attachment, GLint _mip, 
 		m_textures[i] = _texture;
 		m_mipLevels[i] = _mip;
 		Texture::Use(_texture);
-		APT_ASSERT(_texture->getState() == Texture::State::kLoaded);
+		APT_ASSERT(_texture->getState() == Texture::State_Loaded);
 		APT_ASSERT(_texture->getMipCount() >= _mip);
 		if (_layer >= 0) {
 			APT_ASSERT(_texture->getDepth() >= _layer || _texture->getArrayCount() >= _layer);

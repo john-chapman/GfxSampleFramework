@@ -9,20 +9,20 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class Resource
-/// Manages a global list of instances of the deriving class. Resources have a
-/// unique id and an optional name (e.g. for display purposes). By default the
-/// id is a hash of the name but the two can be set independently.
-///
-/// Resources are refcounted; calling Use() implicitly calls load() when the
-/// refcount is 1. Calling Release() implicitly calls Destroy() when the 
-/// refcount is 0.
-///
-/// Deriving classes must:
-///   - Add an explicit instantiation to Resource.cpp.
-///   - Implement Create(), Destroy(), load(), reload().
-///   - Set a unique id and optional name via one of the Resource ctors.
-///   - Correctly set the resource state during load()/reload().
+// Resource
+// Manages a global list of instances of the deriving class. Resources have a
+// unique id and an optional name (e.g. for display purposes). By default the
+// id is a hash of the name but the two can be set independently.
+//
+// Resources are refcounted; calling Use() implicitly calls load() when the
+// refcount is 1. Calling Release() implicitly calls Destroy() when the 
+// refcount is 0.
+//
+// Deriving classes must:
+//   - Add an explicit instantiation to Resource.cpp.
+//   - Implement Create(), Destroy(), load(), reload().
+//   - Set a unique id and optional name via one of the Resource ctors.
+//   - Correctly set the resource state during load()/reload().
 ////////////////////////////////////////////////////////////////////////////////
 template <typename tDerived>
 class Resource: private apt::non_copyable<Resource<tDerived> >
@@ -33,9 +33,9 @@ public:
 
 	enum State
 	{
-		kError = 0u, //< Failed to load.
-		kUnloaded,   //< Created but not loaded.
-		kLoaded      //< Successfully loaded.
+		State_Error,      // failed to load
+		State_Unloaded,   // created but not loaded
+		State_Loaded      // successfully loaded
 	};
 	
 	// Increment the reference count for _inst, load if 1.
