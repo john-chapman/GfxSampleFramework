@@ -439,7 +439,7 @@ Texture* Texture::Create(const char* _path)
 		ret->m_path.set(_path);
 	}
 	Use(ret);
-	if (ret->getState() != kLoaded) {
+	if (ret->getState() != State_Loaded) {
 	 // \todo replace with default
 	} else {
 		g_textureViewer.addTextureView(ret);
@@ -503,7 +503,7 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 	glAssert(glGetTextureLevelParameteriv(_handle, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint*)&ret->m_format));
 	glAssert(glGetTextureParameteriv(_handle, GL_TEXTURE_MAX_LEVEL, (GLint*)&ret->m_mipCount));
 	ret->m_mipCount = APT_MAX(ret->m_mipCount, 1);
-	ret->setState(State::kLoaded);
+	ret->setState(State_Loaded);
 	
 	Use(ret);
 	g_textureViewer.addTextureView(ret);
@@ -533,20 +533,20 @@ bool Texture::reload()
 	
 	File f;
 	if (!FileSystem::Read(f, (const char*)m_path)) {
-		setState(State::kError);
+		setState(State_Error);
 		return false;
 	}
 
 	Image img;
 	if (!Image::Read(img, f)) {
-		setState(State::kError);
+		setState(State_Error);
 		return false;
 	}
 	if (!loadImage(img)) {
-		setState(State::kError);
+		setState(State_Error);
 		return false;
 	}
-	setState(State::kLoaded);
+	setState(State_Loaded);
 
 	return true;
 }
@@ -554,7 +554,7 @@ bool Texture::reload()
 void Texture::setData(const void* _data, GLenum _dataFormat, GLenum _dataType, GLint _mip)
 {
 	setSubData(0, 0, 0, m_width, m_height, m_depth, _data, _dataFormat, _dataType, _mip);
-	setState(State::kLoaded);
+	setState(State_Loaded);
 }
 
 void Texture::setSubData(
@@ -601,7 +601,7 @@ void Texture::setSubData(
 				break;
 			default:
 				APT_ASSERT(false);
-				setState(State::kError);
+				setState(State_Error);
 				return;
 		};
 
@@ -620,7 +620,7 @@ void Texture::setSubData(
 				break;
 			default:
 				APT_ASSERT(false);
-				setState(State::kError);
+				setState(State_Error);
 				return;
 		};
 	}
@@ -851,7 +851,7 @@ Texture::Texture(
 		case GL_TEXTURE_2D:       glAssert(glTextureStorage2D(m_handle, _mipCount, _format, _width, _height)); break;
 		case GL_TEXTURE_2D_ARRAY: glAssert(glTextureStorage3D(m_handle, _mipCount, _format, _width, _height, _arrayCount)); break;
 		case GL_TEXTURE_3D:       glAssert(glTextureStorage3D(m_handle, _mipCount, _format, _width, _height, _depth)); break;
-		default:                  APT_ASSERT(false); setState(State::kError); return;
+		default:                  APT_ASSERT(false); setState(State_Error); return;
 	};
 	
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MIN_FILTER, (_mipCount > 1) ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR));
@@ -860,7 +860,7 @@ Texture::Texture(
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAX_LEVEL, _mipCount - 1));
 	updateParams();
 	
-	setState(State::kLoaded);
+	setState(State_Loaded);
 }
 
 Texture::~Texture()
@@ -869,7 +869,7 @@ Texture::~Texture()
 		glAssert(glDeleteTextures(1, &m_handle));
 		m_handle = 0;
 	}
-	setState(State::kUnloaded);
+	setState(State_Unloaded);
 }
 
 
