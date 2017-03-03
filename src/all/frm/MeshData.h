@@ -212,6 +212,7 @@ protected:
 	void beginSubmesh(uint _materialId);
 	void addSubmeshVertexData(const void* _src, uint _vertexCount);
 	void addSubmeshIndexData(const void* _src, uint _indexCount);
+	void updateSubmeshBounds(Submesh& _submesh); // computes the bounds from vertex positions
 	void endSubmesh();
 
 	MeshData();
@@ -219,10 +220,10 @@ protected:
 	MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder);
 	~MeshData();
 
-	void updateSubmeshBounds(Submesh& _submesh);
 	
 	static bool ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
 	static bool ReadBlend(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
+
 }; // class MeshData
 
 

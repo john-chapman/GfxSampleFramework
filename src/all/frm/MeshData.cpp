@@ -113,6 +113,7 @@ VertexAttr* MeshDesc::addVertexAttr(VertexAttr& _attr)
 	APT_ASSERT_MSG(m_vertexAttrCount < kMaxVertexAttrCount, "MeshDesc: Too many vertex attributes (added %d, max is %d)", m_vertexAttrCount + 1, kMaxVertexAttrCount);
 	VertexAttr* ret = &m_vertexDesc[m_vertexAttrCount++];
 	*ret = _attr;
+	m_vertexSize += _attr.getSize();
 	return ret;
 }
 
@@ -387,12 +388,13 @@ void MeshData::addSubmeshIndexData(const void* _src, uint _indexCount)
 	m_submeshes[0].m_indexCount += _indexCount;
 	m_indexData = (char*)realloc(m_indexData, indexSize * m_submeshes[0].m_indexCount);
 	memcpy(m_indexData + m_submeshes.back().m_indexOffset, _src, _indexCount * indexSize);
-	m_submeshes.back().m_vertexCount += _indexCount;
+	m_submeshes.back().m_indexCount += _indexCount;
 }
 
 void MeshData::endSubmesh()
 {
 	updateSubmeshBounds(m_submeshes.back());
+ // \todo need to grow the bounds for the whole mesh (submesh 0)
 }
 
 uint64 MeshData::getHash() const
