@@ -111,7 +111,7 @@ VertexAttr* MeshDesc::addVertexAttr(VertexAttr& _attr)
 {
 	APT_ASSERT_MSG(findVertexAttr(_attr.getSemantic()) == 0, "MeshDesc: Semantic '%s' already exists", VertexSemanticToStr(_attr.getSemantic()));
 	APT_ASSERT_MSG(m_vertexAttrCount < kMaxVertexAttrCount, "MeshDesc: Too many vertex attributes (added %d, max is %d)", m_vertexAttrCount + 1, kMaxVertexAttrCount);
-	VertexAttr* ret = &m_vertexDesc[m_vertexAttrCount];
+	VertexAttr* ret = &m_vertexDesc[m_vertexAttrCount++];
 	*ret = _attr;
 	return ret;
 }
@@ -361,11 +361,33 @@ void MeshData::beginSubmesh(uint _materialId)
 	submesh.m_materialId = _materialId;
 	if (!m_submeshes.empty()) {
 		const Submesh& prevSubmesh = m_submeshes.back();
-		submesh.m_indexOffset = prevSubmesh.m_indexOffset + prevSubmesh.m_indexCount;
-		submesh.m_vertexOffset = prevSubmesh.m_vertexOffset + prevSubmesh.m_vertexCount;
+		submesh.m_indexOffset = prevSubmesh.m_indexOffset + prevSubmesh.m_indexCount * DataType::GetSizeBytes(m_indexDataType);
+		submesh.m_vertexOffset = prevSubmesh.m_vertexOffset + prevSubmesh.m_vertexCount * m_desc.getVertexSize();
 	}
 
 	m_submeshes.push_back(submesh);
+}
+
+void MeshData::addSubmeshVertexData(const void* _src, uint _vertexCount)
+{
+	APT_ASSERT(!m_submeshes.empty());
+	APT_ASSERT(_src && _vertexCount > 0);
+	uint vertexSize = m_desc.getVertexSize();
+	m_submeshes[0].m_vertexCount += _vertexCount;
+	m_vertexData = (char*)realloc(m_vertexData, vertexSize * m_submeshes[0].m_vertexCount);
+	memcpy(m_vertexData + m_submeshes.back().m_vertexOffset, _src, _vertexCount * vertexSize);
+	m_submeshes.back().m_vertexCount += _vertexCount;
+}
+
+void MeshData::addSubmeshIndexData(const void* _src, uint _indexCount)
+{
+	APT_ASSERT(!m_submeshes.empty());
+	APT_ASSERT(_src && _indexCount > 0);
+	uint indexSize = DataType::GetSizeBytes(m_indexDataType);
+	m_submeshes[0].m_indexCount += _indexCount;
+	m_indexData = (char*)realloc(m_indexData, indexSize * m_submeshes[0].m_indexCount);
+	memcpy(m_indexData + m_submeshes.back().m_indexOffset, _src, _indexCount * indexSize);
+	m_submeshes.back().m_vertexCount += _indexCount;
 }
 
 void MeshData::endSubmesh()
@@ -466,7 +488,7 @@ void MeshData::updateSubmeshBounds(Submesh& _submesh)
 	const VertexAttr* posAttr = m_desc.findVertexAttr(VertexAttr::Semantic_Positions);
 	APT_ASSERT(posAttr); // no positions
 	
-	const char* data = m_vertexData + posAttr->getOffset() + _submesh.m_vertexOffset * m_desc.getVertexSize();
+	const char* data = m_vertexData + posAttr->getOffset() + _submesh.m_vertexOffset;
 	_submesh.m_boundingBox.m_min = vec3(FLT_MAX);
 	_submesh.m_boundingBox.m_max = vec3(-FLT_MAX);
 	for (auto i = 0; i < _submesh.m_vertexCount; ++i) {
