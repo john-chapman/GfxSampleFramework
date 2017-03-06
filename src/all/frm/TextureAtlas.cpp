@@ -92,15 +92,15 @@ TextureAtlas::Region* TextureAtlas::alloc(GLsizei _width, GLsizei _height)
 
 TextureAtlas::Region* TextureAtlas::alloc(const apt::Image& _img, RegionId _id)
 {
-	APT_ASSERT(_img.getType() == Image::k2d);
+	APT_ASSERT(_img.getType() == Image::Type_2d);
 	Region* ret = alloc((GLsizei)_img.getWidth(), (GLsizei)_img.getHeight());
 
 	GLenum srcFormat;
 	switch (_img.getLayout()) {
-		case Image::Layout::kR:    srcFormat = GL_RED;  break;
-		case Image::Layout::kRG:   srcFormat = GL_RG;   break;
-		case Image::Layout::kRGB:  srcFormat = GL_RGB;  break;
-		case Image::Layout::kRGBA: srcFormat = GL_RGBA; break;
+		case Image::Layout_R:    srcFormat = GL_RED;  break;
+		case Image::Layout_RG:   srcFormat = GL_RG;   break;
+		case Image::Layout_RGB:  srcFormat = GL_RGB;  break;
+		case Image::Layout_RGBA: srcFormat = GL_RGBA; break;
 		default:                   APT_ASSERT(false); return false;
 	};
 	GLenum srcType = _img.isCompressed() ? GL_UNSIGNED_BYTE : internal::GlDataTypeToEnum(_img.getImageDataType());

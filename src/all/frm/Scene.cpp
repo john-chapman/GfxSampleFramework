@@ -194,7 +194,7 @@ bool Scene::Load(const char* _path, Scene& scene_)
 	if (!Json::Read(json, _path)) {
 		return false;
 	}
-	JsonSerializer serializer(&json, JsonSerializer::kRead);
+	JsonSerializer serializer(&json, JsonSerializer::Mode_Read);
 	Scene newScene;
 	
 	if (!newScene.serialize(serializer)) {
@@ -208,7 +208,7 @@ bool Scene::Save(const char* _path, Scene& _scene)
 {
 	APT_LOG("Saving scene to '%s'", _path);
 	Json json;
-	JsonSerializer serializer(&json, JsonSerializer::kWrite);
+	JsonSerializer serializer(&json, JsonSerializer::Mode_Write);
 	if (!_scene.serialize(serializer)) {
 		return false;
 	}
@@ -411,7 +411,7 @@ void Scene::destroyCamera(Camera*& _camera_)
 
 bool Scene::serialize(JsonSerializer& _serializer_)
 {
-	if (_serializer_.getMode() == JsonSerializer::kRead) {
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		if (!serialize(_serializer_, *m_root)) {
 			APT_LOG_ERR("Scene::serialize: Read error");
 			return false;
@@ -431,7 +431,7 @@ bool Scene::serialize(JsonSerializer& _serializer_)
 	 
 	Node::Id drawCameraId = Node::kInvalidId;
 	Node::Id cullCameraId = Node::kInvalidId;
-	if (_serializer_.getMode() == JsonSerializer::kWrite) {
+	if (_serializer_.getMode() == JsonSerializer::Mode_Write) {
 		if (m_drawCamera && m_drawCamera->m_parent) {
 			drawCameraId = m_drawCamera->m_parent->getId();	
 		}
@@ -441,7 +441,7 @@ bool Scene::serialize(JsonSerializer& _serializer_)
 	}
 	_serializer_.value("DrawCameraId", drawCameraId);
 	_serializer_.value("CullCameraId", cullCameraId);
-	if (_serializer_.getMode() == JsonSerializer::kRead) {
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		if (drawCameraId != Node::kInvalidId) {
 			Node* n = findNode(drawCameraId, Node::kTypeCamera);
 			if (n != nullptr) {
@@ -474,7 +474,7 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 
 	String<64> tmp = kNodeTypeStr[_node_.m_type];
 	_serializer_.value("Type", (StringBase&)tmp);
-	if (_serializer_.getMode() == JsonSerializer::kRead) {
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		_node_.m_type = NodeTypeFromStr(tmp);
 		if (_node_.m_type == Node::kTypeCount) {
 			APT_LOG_ERR("Scene: Invalid node type '%s'", (const char*)tmp);
@@ -1080,9 +1080,9 @@ void Scene::drawHierarchy(Node* _node)
 	ImVec4 col = ImColor(0.1f, 0.1f, 0.1f, 1.0f); // = inactive
 	if (_node->isActive()) {
 		if (_node->isDynamic()) {
-			col = ImColor(IM_COL32_GREEN); // = active, dynamic
+			col = ImColor(0.0f, 1.0f, 0.0f); // = active, dynamic
 		} else {
-			col = ImColor(IM_COL32_YELLOW); // = active, static
+			col = ImColor(1.0f, 1.0f, 0.0f); // = active, static
 		}
 	}
 	ImGui::PushStyleColor(ImGuiCol_Text, col);

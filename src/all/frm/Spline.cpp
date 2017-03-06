@@ -113,7 +113,7 @@ void SplinePath::edit()
 bool SplinePath::serialize(JsonSerializer& _serializer_)
 {
 	if (_serializer_.beginArray("Raw")) {
-		if (_serializer_.getMode() == JsonSerializer::kRead) {
+		if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 			m_raw.clear();
 			m_raw.reserve(_serializer_.getArrayLength());
 			vec3 p;
@@ -128,7 +128,7 @@ bool SplinePath::serialize(JsonSerializer& _serializer_)
 		_serializer_.endArray();
 	}
 
-	if (_serializer_.getMode() == JsonSerializer::kRead) {
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		build();
 	}
 	return true;

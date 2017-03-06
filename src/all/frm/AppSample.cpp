@@ -58,8 +58,8 @@ bool AppSample::init(const apt::ArgList& _args)
 	}
 	
  // init FileSystem roots
-	FileSystem::SetRoot(FileSystem::kCommon, "common");
-	FileSystem::SetRoot(FileSystem::kApplication, (const char*)m_name);
+	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
+	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
 
  // load settings from ini
 	m_properties.setIniPath(PathStr("%s.ini", (const char*)m_name));
@@ -73,7 +73,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	bool glCompatibility = props["GlCompatibility"].getValue<bool>();
 	m_glContext = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
 	m_glContext->setVsync((GlContext::Vsync)(*m_vsyncMode - 1));
-	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::kApplication);
+	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::RootType_Application);
 	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
 	if (!ImGui_Init()) {
 		return false;
@@ -86,8 +86,8 @@ bool AppSample::init(const apt::ArgList& _args)
 
 	MeshDesc quadDesc;
 	quadDesc.setPrimitive(MeshDesc::Primitive_TriangleStrip);
-	quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::kFloat32);
-	//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::kFloat32);
+	quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::Float32);
+	//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Float32);
 	float quadVertexData[] = { 
 		-1.0f, -1.0f, //0.0f, 0.0f,
 		 1.0f, -1.0f, //1.0f, 0.0f,
@@ -393,9 +393,9 @@ bool AppSample::ImGui_Init()
 		Mesh::Release(g_msImGui);
 	}	
 	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::kFloat32);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::kFloat32);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::kUint8N);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::Float32);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Float32);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::Uint8N);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
 	g_msImGui = Mesh::Create(meshDesc);
 
@@ -601,7 +601,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 	 // upload vertex/index data
 		g_msImGui->setVertexData((GLvoid*)&drawList->VtxBuffer.front(), (GLsizeiptr)drawList->VtxBuffer.size(), GL_STREAM_DRAW);
 		APT_STATIC_ASSERT(sizeof(ImDrawIdx) == sizeof(uint16)); // need to change the index data type if this fails
-		g_msImGui->setIndexData(DataType::kUint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
+		g_msImGui->setIndexData(DataType::Uint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
 	
 	 // dispatch draw commands
 		for (const ImDrawCmd* pcmd = drawList->CmdBuffer.begin(); pcmd != drawList->CmdBuffer.end(); ++pcmd) {

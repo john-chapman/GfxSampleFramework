@@ -646,42 +646,42 @@ Image* Texture::downloadImage()
 
 	Image::Layout layout;
 	Image::DataType dataType;
-	Image::CompressionType compression = Image::CompressionType::kNone;
+	Image::CompressionType compression = Image::Compression_None;
 	GLenum glFormat, glType;
 
 	switch (m_format) {
 		case GL_R:
-		case GL_R8:   layout = Image::Layout::kR; dataType = Image::DataType::kUint8N;  glFormat = GL_RED; glType = GL_UNSIGNED_BYTE;  break;
-		case GL_R16:  layout = Image::Layout::kR; dataType = Image::DataType::kUint16N; glFormat = GL_RED; glType = GL_UNSIGNED_SHORT; break;
-		case GL_R16F: layout = Image::Layout::kR; dataType = Image::DataType::kFloat16; glFormat = GL_RED; glType = GL_HALF_FLOAT;     break;
-		case GL_R32F: layout = Image::Layout::kR; dataType = Image::DataType::kFloat32; glFormat = GL_RED; glType = GL_FLOAT;          break;
+		case GL_R8:   layout = Image::Layout_R; dataType = Image::DataType::Uint8N;  glFormat = GL_RED; glType = GL_UNSIGNED_BYTE;  break;
+		case GL_R16:  layout = Image::Layout_R; dataType = Image::DataType::Uint16N; glFormat = GL_RED; glType = GL_UNSIGNED_SHORT; break;
+		case GL_R16F: layout = Image::Layout_R; dataType = Image::DataType::Float16; glFormat = GL_RED; glType = GL_HALF_FLOAT;     break;
+		case GL_R32F: layout = Image::Layout_R; dataType = Image::DataType::Float32; glFormat = GL_RED; glType = GL_FLOAT;          break;
 
 		case GL_RG:
-		case GL_RG8:   layout = Image::Layout::kRG; dataType = Image::DataType::kUint8N;  glFormat = GL_RG; glType = GL_UNSIGNED_BYTE;  break;
-		case GL_RG16:  layout = Image::Layout::kRG; dataType = Image::DataType::kUint16N; glFormat = GL_RG; glType = GL_UNSIGNED_SHORT; break;
-		case GL_RG16F: layout = Image::Layout::kRG; dataType = Image::DataType::kFloat16; glFormat = GL_RG; glType = GL_HALF_FLOAT;     break;
-		case GL_RG32F: layout = Image::Layout::kRG; dataType = Image::DataType::kFloat32; glFormat = GL_RG; glType = GL_FLOAT;          break;
+		case GL_RG8:   layout = Image::Layout_RG; dataType = Image::DataType::Uint8N;  glFormat = GL_RG; glType = GL_UNSIGNED_BYTE;  break;
+		case GL_RG16:  layout = Image::Layout_RG; dataType = Image::DataType::Uint16N; glFormat = GL_RG; glType = GL_UNSIGNED_SHORT; break;
+		case GL_RG16F: layout = Image::Layout_RG; dataType = Image::DataType::Float16; glFormat = GL_RG; glType = GL_HALF_FLOAT;     break;
+		case GL_RG32F: layout = Image::Layout_RG; dataType = Image::DataType::Float32; glFormat = GL_RG; glType = GL_FLOAT;          break;
 
 		case GL_RGB:
-		case GL_RGB8:   layout = Image::Layout::kRGB; dataType = Image::DataType::kUint8N;  glFormat = GL_RGB; glType = GL_UNSIGNED_BYTE;  break;
-		case GL_RGB16:  layout = Image::Layout::kRGB; dataType = Image::DataType::kUint16N; glFormat = GL_RGB; glType = GL_UNSIGNED_SHORT; break;
-		case GL_RGB16F: layout = Image::Layout::kRGB; dataType = Image::DataType::kFloat16; glFormat = GL_RGB; glType = GL_HALF_FLOAT;     break;
-		case GL_RGB32F: layout = Image::Layout::kRGB; dataType = Image::DataType::kFloat32; glFormat = GL_RGB; glType = GL_FLOAT;          break;
+		case GL_RGB8:   layout = Image::Layout_RGB; dataType = Image::DataType::Uint8N;  glFormat = GL_RGB; glType = GL_UNSIGNED_BYTE;  break;
+		case GL_RGB16:  layout = Image::Layout_RGB; dataType = Image::DataType::Uint16N; glFormat = GL_RGB; glType = GL_UNSIGNED_SHORT; break;
+		case GL_RGB16F: layout = Image::Layout_RGB; dataType = Image::DataType::Float16; glFormat = GL_RGB; glType = GL_HALF_FLOAT;     break;
+		case GL_RGB32F: layout = Image::Layout_RGB; dataType = Image::DataType::Float32; glFormat = GL_RGB; glType = GL_FLOAT;          break;
 			
 		case GL_RGBA:
-		case GL_RGBA8:   layout = Image::Layout::kRGBA; dataType = Image::DataType::kUint8N;  glFormat = GL_RGBA; glType = GL_UNSIGNED_BYTE;  break;
-		case GL_RGBA16:  layout = Image::Layout::kRGBA; dataType = Image::DataType::kUint16N; glFormat = GL_RGBA; glType = GL_UNSIGNED_SHORT; break;
-		case GL_RGBA16F: layout = Image::Layout::kRGBA; dataType = Image::DataType::kFloat16; glFormat = GL_RGBA; glType = GL_HALF_FLOAT;     break;
-		case GL_RGBA32F: layout = Image::Layout::kRGBA; dataType = Image::DataType::kFloat32; glFormat = GL_RGBA; glType = GL_FLOAT;          break;
+		case GL_RGBA8:   layout = Image::Layout_RGBA; dataType = Image::DataType::Uint8N;  glFormat = GL_RGBA; glType = GL_UNSIGNED_BYTE;  break;
+		case GL_RGBA16:  layout = Image::Layout_RGBA; dataType = Image::DataType::Uint16N; glFormat = GL_RGBA; glType = GL_UNSIGNED_SHORT; break;
+		case GL_RGBA16F: layout = Image::Layout_RGBA; dataType = Image::DataType::Float16; glFormat = GL_RGBA; glType = GL_HALF_FLOAT;     break;
+		case GL_RGBA32F: layout = Image::Layout_RGBA; dataType = Image::DataType::Float32; glFormat = GL_RGBA; glType = GL_FLOAT;          break;
 
-		case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:       layout = Image::Layout::kRGB;  dataType = Image::DataType::kInvalidType; compression = Image::CompressionType::kBC1; break;
-		case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:      layout = Image::Layout::kRGBA; dataType = Image::DataType::kInvalidType; compression = Image::CompressionType::kBC1; break;
-		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:      layout = Image::Layout::kRGBA; dataType = Image::DataType::kInvalidType; compression = Image::CompressionType::kBC2; break;
-		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:      layout = Image::Layout::kRGBA; dataType = Image::DataType::kInvalidType; compression = Image::CompressionType::kBC3; break;
-		case GL_COMPRESSED_RED_RGTC1:               layout = Image::Layout::kR;    dataType = Image::DataType::kInvalidType; compression = Image::CompressionType::kBC4; break;
-		case GL_COMPRESSED_RG_RGTC2:                layout = Image::Layout::kR;    dataType = Image::DataType::kInvalidType; compression = Image::CompressionType::kBC5; break;
-		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: layout = Image::Layout::kRGB;  dataType = Image::DataType::kInvalidType; compression = Image::CompressionType::kBC6; break;
-		case GL_COMPRESSED_RGBA_BPTC_UNORM:         layout = Image::Layout::kRGBA; dataType = Image::DataType::kInvalidType; compression = Image::CompressionType::kBC7; break;
+		case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:       layout = Image::Layout_RGB;  dataType = Image::DataType::InvalidType; compression = Image::Compression_BC1; break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC1; break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC2; break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC3; break;
+		case GL_COMPRESSED_RED_RGTC1:               layout = Image::Layout_R;    dataType = Image::DataType::InvalidType; compression = Image::Compression_BC4; break;
+		case GL_COMPRESSED_RG_RGTC2:                layout = Image::Layout_R;    dataType = Image::DataType::InvalidType; compression = Image::Compression_BC5; break;
+		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: layout = Image::Layout_RGB;  dataType = Image::DataType::InvalidType; compression = Image::Compression_BC6; break;
+		case GL_COMPRESSED_RGBA_BPTC_UNORM:         layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC7; break;
 	};
 
 	Image* ret = 0;
@@ -994,75 +994,75 @@ bool Texture::loadImage(const Image& _img)
 	void (*alloc)(Texture& _tx, const Image& _img);
 	void (*upload)(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType);
 	switch (_img.getType()) {
-		case Image::Type::k1d:           m_target = GL_TEXTURE_1D;        alloc = Alloc1d;      upload = Upload1d; break;
-		case Image::Type::k1dArray:      m_target = GL_TEXTURE_1D_ARRAY;  alloc = Alloc1dArray; upload = Upload1dArray; break;
-		case Image::Type::k2d:           m_target = GL_TEXTURE_2D;        alloc = Alloc2d;      upload = Upload2d; break;
-		case Image::Type::k2dArray:      m_target = GL_TEXTURE_2D_ARRAY;  alloc = Alloc2dArray; upload = Upload2dArray; break;
-		case Image::Type::k3d:           m_target = GL_TEXTURE_3D;        alloc = Alloc3d;      upload = Upload3d; break;
+		case Image::Type_1d:           m_target = GL_TEXTURE_1D;        alloc = Alloc1d;      upload = Upload1d; break;
+		case Image::Type_1dArray:      m_target = GL_TEXTURE_1D_ARRAY;  alloc = Alloc1dArray; upload = Upload1dArray; break;
+		case Image::Type_2d:           m_target = GL_TEXTURE_2D;        alloc = Alloc2d;      upload = Upload2d; break;
+		case Image::Type_2dArray:      m_target = GL_TEXTURE_2D_ARRAY;  alloc = Alloc2dArray; upload = Upload2dArray; break;
+		case Image::Type_3d:           m_target = GL_TEXTURE_3D;        alloc = Alloc3d;      upload = Upload3d; break;
 	 // \todo implement cubemaps
-		case Image::Type::kCubemap:      APT_ASSERT(false);//m_target = GL_TEXTURE_CUBE_MAP;       upload = Upload2d; break;
-		case Image::Type::kCubemapArray: APT_ASSERT(false);//m_target = GL_TEXTURE_CUBE_MAP_ARRAY; upload = Upload3d; break;
+		case Image::Type_Cubemap:      APT_ASSERT(false);//m_target = GL_TEXTURE_CUBE_MAP;       upload = Upload2d; break;
+		case Image::Type_CubemapArray: APT_ASSERT(false);//m_target = GL_TEXTURE_CUBE_MAP_ARRAY; upload = Upload3d; break;
 		default:                         APT_ASSERT(false); return false;
 	};
 
  // src format
 	GLenum srcFormat;
 	switch (_img.getLayout()) {
-		case Image::Layout::kR:          srcFormat = m_format = GL_RED;  break;
-		case Image::Layout::kRG:         srcFormat = m_format = GL_RG;   break;
-		case Image::Layout::kRGB:        srcFormat = m_format = GL_RGB;  break;
-		case Image::Layout::kRGBA:       srcFormat = m_format = GL_RGBA; break;
+		case Image::Layout_R:          srcFormat = m_format = GL_RED;  break;
+		case Image::Layout_RG:         srcFormat = m_format = GL_RG;   break;
+		case Image::Layout_RGB:        srcFormat = m_format = GL_RGB;  break;
+		case Image::Layout_RGBA:       srcFormat = m_format = GL_RGBA; break;
 		default:                         APT_ASSERT(false); return false;
 	};
 
  // internal format (request only, we read back the actual format the implementation used later)
 	if (_img.isCompressed()) {
 		switch (_img.getCompressionType()) {
-			case Image::CompressionType::kBC1: 
+			case Image::Compression_BC1: 
 				switch (_img.getLayout()) {
-					case Image::Layout::kRGB:  m_format = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;       break;
-					case Image::Layout::kRGBA: m_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;      break;
+					case Image::Layout_RGB:  m_format = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;       break;
+					case Image::Layout_RGBA: m_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;      break;
 					default:                   APT_ASSERT(false); return false;
 				};
 				break;
-			case Image::CompressionType::kBC2: m_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;      break;
-			case Image::CompressionType::kBC3: m_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;      break;
-			case Image::CompressionType::kBC4: m_format = GL_COMPRESSED_RED_RGTC1;               break;
-			case Image::CompressionType::kBC5: m_format = GL_COMPRESSED_RG_RGTC2;                break;
-			case Image::CompressionType::kBC6: m_format = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT; break;
-			case Image::CompressionType::kBC7: m_format = GL_COMPRESSED_RGBA_BPTC_UNORM;         break;
+			case Image::Compression_BC2: m_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;      break;
+			case Image::Compression_BC3: m_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;      break;
+			case Image::Compression_BC4: m_format = GL_COMPRESSED_RED_RGTC1;               break;
+			case Image::Compression_BC5: m_format = GL_COMPRESSED_RG_RGTC2;                break;
+			case Image::Compression_BC6: m_format = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT; break;
+			case Image::Compression_BC7: m_format = GL_COMPRESSED_RGBA_BPTC_UNORM;         break;
 		};
 	} else {
 		switch (_img.getLayout()) {
-			case Image::Layout::kR:
+			case Image::Layout_R:
 				switch (_img.getImageDataType()) {
-					case DataType::kFloat32: m_format = GL_R32F; break;
-					case DataType::kFloat16: m_format = GL_R16F; break;
-					case DataType::kUint16N: m_format = GL_R16;  break;
+					case DataType::Float32: m_format = GL_R32F; break;
+					case DataType::Float16: m_format = GL_R16F; break;
+					case DataType::Uint16N: m_format = GL_R16;  break;
 					default:                 m_format = GL_R8;   break;
 				};
 				break;
-			case Image::Layout::kRG:
+			case Image::Layout_RG:
 				switch (_img.getImageDataType()) {
-					case DataType::kFloat32: m_format = GL_RG32F; break;
-					case DataType::kFloat16: m_format = GL_RG16F; break;
-					case DataType::kUint16N: m_format = GL_RG16;  break;
+					case DataType::Float32: m_format = GL_RG32F; break;
+					case DataType::Float16: m_format = GL_RG16F; break;
+					case DataType::Uint16N: m_format = GL_RG16;  break;
 					default:                 m_format = GL_RG8;   break;
 				};
 				break;
-			case Image::Layout::kRGB:			
+			case Image::Layout_RGB:			
 				switch (_img.getImageDataType()) {
-					case DataType::kFloat32: m_format = GL_RGB32F; break;
-					case DataType::kFloat16: m_format = GL_RGB16F; break;
-					case DataType::kUint16N: m_format = GL_RGB16;  break;
+					case DataType::Float32: m_format = GL_RGB32F; break;
+					case DataType::Float16: m_format = GL_RGB16F; break;
+					case DataType::Uint16N: m_format = GL_RGB16;  break;
 					default:                 m_format = GL_RGB8;   break;
 				};
 				break;
-			case Image::Layout::kRGBA:
+			case Image::Layout_RGBA:
 				switch (_img.getImageDataType()) {
-					case DataType::kFloat32: m_format = GL_RGBA32F; break;
-					case DataType::kFloat16: m_format = GL_RGBA16F; break;
-					case DataType::kUint16N: m_format = GL_RGBA16;  break;
+					case DataType::Float32: m_format = GL_RGBA32F; break;
+					case DataType::Float16: m_format = GL_RGBA16F; break;
+					case DataType::Uint16N: m_format = GL_RGBA16;  break;
 					default:                 m_format = GL_RGBA8;   break;
 				};
 				break;

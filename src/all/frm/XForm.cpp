@@ -63,7 +63,7 @@ const XForm::Callback* XForm::FindCallback(OnComplete* _callback)
 }
 bool XForm::SerializeCallback(const char* _name, OnComplete*& _callback, JsonSerializer& _serializer_)
 {
-	if (_serializer_.getMode() == JsonSerializer::kRead) {
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		String<64> tmp;
 		_serializer_.value(_name, (StringBase&)tmp);
 		const Callback* cbk = FindCallback(StringHash(tmp));

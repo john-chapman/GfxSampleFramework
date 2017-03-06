@@ -35,9 +35,9 @@ static const char* VertexSemanticToStr(VertexAttr::Semantic _semantic)
 static inline DataType GetIndexDataType(uint _vertexCount)
 {
 	if (_vertexCount >= UINT16_MAX) {
-		return DataType::kUint32;
+		return DataType::Uint32;
 	}
-	return DataType::kUint16;
+	return DataType::Uint16;
 }
 
 /*******************************************************************************
@@ -99,7 +99,7 @@ VertexAttr* MeshDesc::addVertexAttr(
 		m_vertexDesc[m_vertexAttrCount].setOffset(m_vertexSize);
 		m_vertexDesc[m_vertexAttrCount].setSemantic(VertexAttr::Semantic_Padding);
 		m_vertexDesc[m_vertexAttrCount].setCount(kVertexAttrAlignment - (m_vertexSize % kVertexAttrAlignment));
-		m_vertexDesc[m_vertexAttrCount].setDataType(DataType::kUint8);
+		m_vertexDesc[m_vertexAttrCount].setDataType(DataType::Uint8);
 		m_vertexSize += m_vertexDesc[m_vertexAttrCount].getSize();
 	}
 	++m_vertexAttrCount;
@@ -446,31 +446,31 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 		char* dst = m_vertexData + i * m_desc.getVertexSize();
 		const MeshBuilder::Vertex& src = _meshBuilder.getVertex(i);
 		if (positionsAttr) {
-			DataType::Convert(DataType::kFloat32, positionsAttr->getDataType(), &src.m_position, dst + positionsAttr->getOffset(), APT_MIN(3, (int)positionsAttr->getCount()));
+			DataType::Convert(DataType::Float32, positionsAttr->getDataType(), &src.m_position, dst + positionsAttr->getOffset(), APT_MIN(3, (int)positionsAttr->getCount()));
 		}
 		if (texcoordsAttr) {
-			DataType::Convert(DataType::kFloat32, texcoordsAttr->getDataType(), &src.m_texcoord, dst + texcoordsAttr->getOffset(), APT_MIN(2, (int)positionsAttr->getCount()));
+			DataType::Convert(DataType::Float32, texcoordsAttr->getDataType(), &src.m_texcoord, dst + texcoordsAttr->getOffset(), APT_MIN(2, (int)positionsAttr->getCount()));
 		}
 		if (normalsAttr) {
-			DataType::Convert(DataType::kFloat32, normalsAttr->getDataType(), &src.m_normal, dst + normalsAttr->getOffset(), APT_MIN(3, (int)normalsAttr->getCount()));
+			DataType::Convert(DataType::Float32, normalsAttr->getDataType(), &src.m_normal, dst + normalsAttr->getOffset(), APT_MIN(3, (int)normalsAttr->getCount()));
 		}
 		if (tangentsAttr) {
-			DataType::Convert(DataType::kFloat32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), APT_MIN(3, (int)tangentsAttr->getCount()));
+			DataType::Convert(DataType::Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), APT_MIN(3, (int)tangentsAttr->getCount()));
 		}
 		if (boneWeightsAttr) {
-			DataType::Convert(DataType::kFloat32, boneWeightsAttr->getDataType(), &src.m_boneWeights, dst + boneWeightsAttr->getOffset(), APT_MIN(4, (int)boneWeightsAttr->getCount()));
+			DataType::Convert(DataType::Float32, boneWeightsAttr->getDataType(), &src.m_boneWeights, dst + boneWeightsAttr->getOffset(), APT_MIN(4, (int)boneWeightsAttr->getCount()));
 		}
 		if (boneIndicesAttr) {
-			DataType::Convert(DataType::kFloat32, boneIndicesAttr->getDataType(), &src.m_boneIndices, dst + boneIndicesAttr->getOffset(), APT_MIN(4, (int)boneIndicesAttr->getCount()));
+			DataType::Convert(DataType::Float32, boneIndicesAttr->getDataType(), &src.m_boneIndices, dst + boneIndicesAttr->getOffset(), APT_MIN(4, (int)boneIndicesAttr->getCount()));
 		}
 	}
 
-	m_indexDataType = DataType::kUint16;
+	m_indexDataType = DataType::Uint16;
 	if (_meshBuilder.getVertexCount() > (uint32)std::numeric_limits<uint16>::max) {
-		m_indexDataType = DataType::kUint32;
+		m_indexDataType = DataType::Uint32;
 	}
 	m_indexData = (char*)malloc(_meshBuilder.getIndexCount() * DataType::GetSizeBytes(m_indexDataType));
-	DataType::Convert(DataType::kUint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
+	DataType::Convert(DataType::Uint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
 
  // submesh 0 represents the whole mesh
 	m_submeshes.push_back(Submesh());
@@ -507,7 +507,7 @@ void MeshData::updateSubmeshBounds(Submesh& _submesh)
 		for (auto j = 0; j < APT_MIN(posAttr->getCount(), (uint8)3); ++j) {
 			DataType::Convert(
 				posAttr->getDataType(),
-				DataType::kFloat32,
+				DataType::Float32,
 				data + j * DataType::GetSizeBytes(posAttr->getDataType()) * j,
 				&v[j]
 				);
@@ -538,10 +538,10 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 	
  // \todo use _mesh desc as a conversion target
 	MeshDesc retDesc(MeshDesc::Primitive_Triangles);
-	VertexAttr* positionAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Positions, 3, DataType::kFloat32);
-	VertexAttr* normalAttr   = retDesc.addVertexAttr(VertexAttr::Semantic_Normals,   3, DataType::kSint8N);
-	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  3, DataType::kSint8N);
-	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::kUint16N);
+	VertexAttr* positionAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Positions, 3, DataType::Float32);
+	VertexAttr* normalAttr   = retDesc.addVertexAttr(VertexAttr::Semantic_Normals,   3, DataType::Sint8N);
+	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  3, DataType::Sint8N);
+	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Uint16N);
 	
 	MeshBuilder tmpMesh; // append vertices/indices here
 
@@ -875,31 +875,31 @@ void MeshBuilder::addVertexData(const MeshDesc& _desc, const void* _data, uint32
 			switch (srcAttr.getSemantic()) {
 				case VertexAttr::Semantic_Positions: 
 					APT_ASSERT(srcAttr.getCount() <= 3);
-					DataType::Convert(srcAttr.getDataType(), DataType::kFloat32, src + srcAttr.getOffset(), &v.m_position.x, srcAttr.getCount());
+					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_position.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Texcoords:
 					APT_ASSERT(srcAttr.getCount() <= 2);
-					DataType::Convert(srcAttr.getDataType(), DataType::kFloat32, src + srcAttr.getOffset(), &v.m_texcoord.x, srcAttr.getCount());
+					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_texcoord.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Normals:
 					APT_ASSERT(srcAttr.getCount() <= 3);
-					DataType::Convert(srcAttr.getDataType(), DataType::kFloat32, src + srcAttr.getOffset(), &v.m_normal.x, srcAttr.getCount());
+					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_normal.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Tangents:
 					APT_ASSERT(srcAttr.getCount() <= 4);
-					DataType::Convert(srcAttr.getDataType(), DataType::kFloat32, src + srcAttr.getOffset(), &v.m_tangent.x, srcAttr.getCount());
+					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_tangent.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Colors:
 					APT_ASSERT(srcAttr.getCount() <= 4);
-					DataType::Convert(srcAttr.getDataType(), DataType::kFloat32, src + srcAttr.getOffset(), &v.m_color.x, srcAttr.getCount());
+					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_color.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_BoneWeights:
 					APT_ASSERT(srcAttr.getCount() <= 4);
-					DataType::Convert(srcAttr.getDataType(), DataType::kFloat32, src + srcAttr.getOffset(), &v.m_boneWeights.x, srcAttr.getCount());
+					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_boneWeights.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_BoneIndices:
 					APT_ASSERT(srcAttr.getCount() <= 4);
-					DataType::Convert(srcAttr.getDataType(), DataType::kUint32, src + srcAttr.getOffset(), &v.m_boneIndices.x, srcAttr.getCount());
+					DataType::Convert(srcAttr.getDataType(), DataType::Uint32, src + srcAttr.getOffset(), &v.m_boneIndices.x, srcAttr.getCount());
 					break;
 				default:
 					break;
@@ -914,7 +914,7 @@ void MeshBuilder::addIndexData(DataType _type, const void* _data, uint32 _count)
 {
  // \todo avoid conversion in case where _type == uint32
 	uint32* tmp = new uint32[_count];
-	DataType::Convert(_type, DataType::kUint32, _data, tmp, _count);
+	DataType::Convert(_type, DataType::Uint32, _data, tmp, _count);
 	for (uint32 i = 0; i < _count; i += 3) {
 		m_triangles.push_back(Triangle(tmp[i], tmp[i + 1], tmp[i + 2]));
 	}

@@ -34,7 +34,7 @@ public:
 	
 	VertexAttr()
 		: m_semantic(Semantic_Count)
-		, m_dataType((uint8)DataType::kInvalidType)
+		, m_dataType((uint8)DataType::InvalidType)
 		, m_count(0)
 		, m_offset(0)
 	{
