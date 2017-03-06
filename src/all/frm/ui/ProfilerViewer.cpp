@@ -248,7 +248,7 @@ bool ProfilerViewer::drawFrameBounds(const Profiler::Frame& _frame, const Profil
 	
  // frame focus (if hovered)
 	if ((mpos.y > m_wpos.y && mpos.y < m_wend.y) && (mpos.x > fstart && mpos.x < fend)) {
-		drawList->AddRectFilled(ImVec2(fstart, m_wpos.y), ImVec2(fend, m_wend.y), ImColorAlpha(kColors->kFrame, kColors->kFrameHoverAlpha), 0);
+		//drawList->AddRectFilled(ImVec2(fstart, m_wpos.y), ImVec2(fend, m_wend.y), ImColorAlpha(kColors->kFrame, kColors->kFrameHoverAlpha), 0);
 		const char* durStr = TimestampStr(Timestamp(_frame.m_start - _prevFrame.m_start));
 		drawList->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(APT_MAX(fstart, m_wpos.x) + 4.0f, m_wpos.y), kColors->kFrame, durStr);
 		if (ImGui::GetIO().MouseDoubleClicked[0]) {

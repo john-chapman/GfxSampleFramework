@@ -47,7 +47,7 @@ bool Camera::serialize(JsonSerializer& _serializer_)
 	_serializer_.value("Infinite",     infinite);
 	_serializer_.value("Reversed",     reversed);
 
-	if (_serializer_.getMode() == JsonSerializer::kRead) {
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		setProjFlag(ProjFlag_Orthographic, orthographic);
 		setProjFlag(ProjFlag_Asymmetrical, asymmetrical);
 		setProjFlag(ProjFlag_Infinite,     infinite);

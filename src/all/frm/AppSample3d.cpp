@@ -318,8 +318,8 @@ bool AppSample3d::Im3d_Init()
 
 
 	MeshDesc meshDesc(MeshDesc::Primitive_Points);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 4, DataType::kFloat32);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::kUint8N);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 4, DataType::Float32);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::Uint8N);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::VertexData));
 	s_msIm3dPoints = Mesh::Create(meshDesc);
 	meshDesc.setPrimitive(MeshDesc::Primitive_Lines);

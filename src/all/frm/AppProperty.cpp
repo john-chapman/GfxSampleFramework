@@ -526,13 +526,13 @@ void AppProperties::save() const
 	appendToIni(ini);
 	File f;
 	APT_VERIFY(IniFile::Write(ini, f));
-	APT_VERIFY(FileSystem::Write(f, m_iniPath, FileSystem::kApplication));
+	APT_VERIFY(FileSystem::Write(f, m_iniPath, FileSystem::RootType_Application));
 }
 
 void AppProperties::load()
 {
 	File f;
-	if (FileSystem::ReadIfExists(f, m_iniPath, FileSystem::kApplication)) {
+	if (FileSystem::ReadIfExists(f, m_iniPath, FileSystem::RootType_Application)) {
 		IniFile ini;
 		APT_VERIFY(IniFile::Read(ini, f));
 		setValues(ini);

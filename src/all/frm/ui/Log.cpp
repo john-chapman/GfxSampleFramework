@@ -57,10 +57,10 @@ const Log::Message* Log::addMessage(const char* _msg, LogType _type)
 	static ImU32 kColorLog = ImColor(0.8f, 0.8f, 0.8f);
 
 	switch (_type) {
-		case LogType::kError:  ret = m_lastErr = addMessage(_msg, kColorErr); break;
-		case LogType::kDebug:  ret = m_lastDbg = addMessage(_msg, kColorDbg); break;
-		case LogType::kLog:  
-		default:               ret = m_lastLog = addMessage(_msg, kColorLog); break;
+		case LogType_Error:  ret = m_lastErr = addMessage(_msg, kColorErr); break;
+		case LogType_Debug:  ret = m_lastDbg = addMessage(_msg, kColorDbg); break;
+		case LogType_Log:  
+		default:             ret = m_lastLog = addMessage(_msg, kColorLog); break;
 	};
 
 	return ret;
