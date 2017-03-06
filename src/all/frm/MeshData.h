@@ -290,7 +290,7 @@ public:
 	uint32             getVertexCount() const       { return (uint32)m_vertices.size(); }
 	uint32             getTriangleCount() const     { return (uint32)m_triangles.size(); }
 	uint32             getIndexCount() const        { return (uint32)m_triangles.size() * 3; }
-	MeshData::Submesh& getSubmesh(int _i)           { APT_ASSERT(_i < getSubmeshCount()); return m_submeshes[_i]; }
+	MeshData::Submesh& getSubmesh(uint32 _i)        { APT_ASSERT(_i < getSubmeshCount()); return m_submeshes[_i]; }
 	uint32             getSubmeshCount() const      { (uint32)m_submeshes.size(); }
 	const AlignedBox&  getBoundingBox() const       { return m_boundingBox; }
 	const Sphere&      getBoundingSphere() const    { return m_boundingSphere; }
