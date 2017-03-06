@@ -4,11 +4,15 @@
 
 #include "im3d_config.h"
 
-#define IM3D_VERSION "1.01"
+#define IM3D_VERSION "1.03"
 
 #ifndef IM3D_ASSERT
 	#include <cassert>
 	#define IM3D_ASSERT(e) assert(e)
+#endif
+
+#ifndef IM3D_VERTEX_ALIGNEMENT
+	#define IM3D_VERTEX_ALIGNEMENT 4
 #endif
 
 namespace Im3d {
@@ -319,11 +323,11 @@ struct Color
 	float getA() const                                                       { return get(0); }
 };
 
-struct VertexData
+struct alignas(IM3D_VERTEX_ALIGNEMENT) VertexData
 {
 	Vec4   m_positionSize; // xyz = position, w = size
 	Color  m_color;        // rgba8 (MSB = r)
-	
+
 	VertexData() {}
 	VertexData(const Vec3& _position, float _size, Color _color): m_positionSize(_position, _size), m_color(_color) {}
 };
@@ -374,17 +378,20 @@ enum Key
 };
 struct AppData
 {
-	bool  m_keyDown[Key_Count];  // Application-provided key states.
+	bool   m_keyDown[Key_Count];  // Application-provided key states.
 
-	Vec3  m_cursorRayOrigin;     // World space cursor ray origin.
-	Vec3  m_cursorRayDirection;  // World space cursor ray direction.
-	Vec3  m_worldUp;             // World space 'up' vector.
-	Vec3  m_viewOrigin;          // World space render origin (camera position).
-	Vec2  m_viewportSize;        // Viewport size (pixels).
-	float m_projScaleY;          // Scale factor used to convert from pixel size -> world scale; use tan(fov) for perspective projections, far plane height for ortho.
-	bool  m_projOrtho;           // If the projection matrix is orthographic.
-	float m_deltaTime;           // Time since previous frame (seconds).
-	void* m_appData;             // App-specific data (useful for passing app context to drawCallback).
+	Vec3   m_cursorRayOrigin;     // World space cursor ray origin.
+	Vec3   m_cursorRayDirection;  // World space cursor ray direction.
+	Vec3   m_worldUp;             // World space 'up' vector.
+	Vec3   m_viewOrigin;          // World space render origin (camera position).
+	Vec2   m_viewportSize;        // Viewport size (pixels).
+	float  m_projScaleY;          // Scale factor used to convert from pixel size -> world scale; use tan(fov) for perspective projections, far plane height for ortho.
+	bool   m_projOrtho;           // If the projection matrix is orthographic.
+	float  m_deltaTime;           // Time since previous frame (seconds).
+	float  m_snapTranslation;     // Snap value for translation gizmos (world units). 0 = disabled.
+	float  m_snapRotation;        // Snap value for rotation gizmos (radians). 0 = disabled.
+	float  m_snapScale;           // Snap value for scale gizmos. 0 = disabled.
+	void*  m_appData;             // App-specific data (useful for passing app context to drawCallback).
 
 	DrawPrimitivesCallback* drawCallback; // e.g. void Im3d_Draw(const DrawList& _drawList)
 };
@@ -406,7 +413,7 @@ public:
 	T*       data()                               { return m_data; }
 	const T* data() const                         { return m_data; }
 
-	void     push_back(T _v)                      { if (m_size == m_capacity) { reserve(m_capacity + m_capacity / 2); } m_data[m_size++] = _v;}
+	void     push_back(const T& _v)               { T tmp = _v; if (m_size == m_capacity) { reserve(m_capacity + m_capacity / 2); } m_data[m_size++] = tmp; }
 	void     pop_back()                           { IM3D_ASSERT(m_size > 0); --m_size; }
 
 	T*       begin()                              { return m_data; }
