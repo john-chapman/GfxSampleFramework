@@ -87,18 +87,18 @@ struct ImplBase: public tDevice
 	static void PollBegin()
 	{
 		for (int i = 0; i < kMaxCount; ++i) {
-			if (s_instances[i].isConnected()) {
+			//if (s_instances[i].isConnected()) { // process all devices to account for proxies
 				s_instances[i].pollBegin();
-			}
+			//}
 		}
 	}
 
 	static void PollEnd()
 	{
 		for (int i = 0; i < kMaxCount; ++i) {
-			if (s_instances[i].isConnected()) {
+			//if (s_instances[i].isConnected()) { // process all devices to account for proxies
 				s_instances[i].pollEnd();
-			}
+			//}
 		}
 	}
 
