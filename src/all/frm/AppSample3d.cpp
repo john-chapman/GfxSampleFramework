@@ -79,13 +79,13 @@ bool AppSample3d::update()
 
  // keyboard shortcuts
 	Keyboard* keyb = Input::GetKeyboard();
-	if (keyb->wasPressed(Keyboard::kF2)) {
+	if (keyb->wasPressed(Keyboard::Key_F2)) {
 		*m_showHelpers = !*m_showHelpers;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::kO) && ImGui::IsKeyDown(Keyboard::kLCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_O) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
 		*m_showSceneEditor = !*m_showSceneEditor;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::kC) && ImGui::IsKeyDown(Keyboard::kLCtrl) && ImGui::IsKeyDown(Keyboard::kLShift)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_C) && ImGui::IsKeyDown(Keyboard::Key_LCtrl) && ImGui::IsKeyDown(Keyboard::Key_LShift)) {
 		if (m_dbgCullCamera) {
 			scene.destroyCamera(m_dbgCullCamera);
 			scene.setCullCamera(scene.getDrawCamera());
@@ -360,14 +360,14 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	ad.m_worldUp = vec3(0.0f, 1.0f, 0.0f);
 
 	Mouse* mouse = Input::GetMouse();	
-	ad.m_keyDown[Im3d::Mouse_Left/*Im3d::Action_Select*/] = mouse->isDown(Mouse::kLeft);
+	ad.m_keyDown[Im3d::Mouse_Left/*Im3d::Action_Select*/] = mouse->isDown(Mouse::Button_Left);
 
 	Keyboard* keyb = Input::GetKeyboard();
-	bool ctrlDown = keyb->isDown(Keyboard::kLCtrl);
-	ad.m_keyDown[Im3d::Key_L/*Action_GizmoLocal*/]       = ctrlDown && keyb->wasPressed(Keyboard::kL);
-	ad.m_keyDown[Im3d::Key_T/*Action_GizmoTranslation*/] = ctrlDown && keyb->wasPressed(Keyboard::kT);
-	ad.m_keyDown[Im3d::Key_R/*Action_GizmoRotation*/]    = ctrlDown && keyb->wasPressed(Keyboard::kR);
-	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::kS);
+	bool ctrlDown = keyb->isDown(Keyboard::Key_LCtrl);
+	ad.m_keyDown[Im3d::Key_L/*Action_GizmoLocal*/]       = ctrlDown && keyb->wasPressed(Keyboard::Key_L);
+	ad.m_keyDown[Im3d::Key_T/*Action_GizmoTranslation*/] = ctrlDown && keyb->wasPressed(Keyboard::Key_T);
+	ad.m_keyDown[Im3d::Key_R/*Action_GizmoRotation*/]    = ctrlDown && keyb->wasPressed(Keyboard::Key_R);
+	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::Key_S);
 
 	Im3d::NewFrame();
 }
