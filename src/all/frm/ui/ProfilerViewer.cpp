@@ -107,7 +107,7 @@ void ProfilerViewer::draw(bool* _open_)
 		m_wend    = m_wpos + m_wsize;
 
 		if (/*ImGui::IsWindowFocused() && */ImGui::IsWindowHovered()) {
-			if (keyb->wasPressed(Keyboard::kP)) {
+			if (keyb->wasPressed(Keyboard::Key_P)) {
 				Profiler::s_pause = !Profiler::s_pause;
 			}
 

@@ -90,126 +90,127 @@ void Device::setAxisCount(int _count)
 }
 
 
-#define SET_BUTTON_NAME(_name) s_buttonNames[k ## _name] = #_name;
+#define SET_BUTTON_NAME(_name) s_buttonNames[Button_ ## _name] = #_name;
+#define SET_KEY_NAME(_name) s_keyNames[Key_ ## _name] = #_name;
 
-const char* Keyboard::s_buttonNames[Keyboard::kButtonCount];
-void Keyboard::InitButtonNames()
+const char* Keyboard::s_keyNames[Keyboard::Key_Count];
+void Keyboard::InitKeyNames()
 {
-	SET_BUTTON_NAME(Unmapped);
+	SET_KEY_NAME(Unmapped);
 
  // function keys
-	SET_BUTTON_NAME(Escape);
-	SET_BUTTON_NAME(Pause);
-	SET_BUTTON_NAME(PrintScreen);
-	SET_BUTTON_NAME(CapsLock);
-	SET_BUTTON_NAME(NumLock);
-	SET_BUTTON_NAME(ScrollLock);
-	SET_BUTTON_NAME(Insert);
-	SET_BUTTON_NAME(Delete);
-	SET_BUTTON_NAME(Clear);
-	SET_BUTTON_NAME(LShift);
-	SET_BUTTON_NAME(LCtrl);
-	SET_BUTTON_NAME(LAlt);
-	SET_BUTTON_NAME(RShift);
-	SET_BUTTON_NAME(RCtrl);
-	SET_BUTTON_NAME(RAlt);
-	SET_BUTTON_NAME(F1); 
-	SET_BUTTON_NAME(F2); 
-	SET_BUTTON_NAME(F3);
-	SET_BUTTON_NAME(F4);
-	SET_BUTTON_NAME(F5);
-	SET_BUTTON_NAME(F6);
-	SET_BUTTON_NAME(F7);
-	SET_BUTTON_NAME(F8);
-	SET_BUTTON_NAME(F9);
-	SET_BUTTON_NAME(F10);
-	SET_BUTTON_NAME(F11);
-	SET_BUTTON_NAME(F12);
+	SET_KEY_NAME(Escape);
+	SET_KEY_NAME(Pause);
+	SET_KEY_NAME(PrintScreen);
+	SET_KEY_NAME(CapsLock);
+	SET_KEY_NAME(NumLock);
+	SET_KEY_NAME(ScrollLock);
+	SET_KEY_NAME(Insert);
+	SET_KEY_NAME(Delete);
+	SET_KEY_NAME(Clear);
+	SET_KEY_NAME(LShift);
+	SET_KEY_NAME(LCtrl);
+	SET_KEY_NAME(LAlt);
+	SET_KEY_NAME(RShift);
+	SET_KEY_NAME(RCtrl);
+	SET_KEY_NAME(RAlt);
+	SET_KEY_NAME(F1); 
+	SET_KEY_NAME(F2); 
+	SET_KEY_NAME(F3);
+	SET_KEY_NAME(F4);
+	SET_KEY_NAME(F5);
+	SET_KEY_NAME(F6);
+	SET_KEY_NAME(F7);
+	SET_KEY_NAME(F8);
+	SET_KEY_NAME(F9);
+	SET_KEY_NAME(F10);
+	SET_KEY_NAME(F11);
+	SET_KEY_NAME(F12);
 
  // cursor control
-	SET_BUTTON_NAME(Space);
-	SET_BUTTON_NAME(Backspace);
-	SET_BUTTON_NAME(Return);
-	SET_BUTTON_NAME(Tab);
-	SET_BUTTON_NAME(PageUp);
-	SET_BUTTON_NAME(PageDown);
-	SET_BUTTON_NAME(Home);
-	SET_BUTTON_NAME(End);
-	SET_BUTTON_NAME(Up);
-	SET_BUTTON_NAME(Down);
-	SET_BUTTON_NAME(Left);
-	SET_BUTTON_NAME(Right);
+	SET_KEY_NAME(Space);
+	SET_KEY_NAME(Backspace);
+	SET_KEY_NAME(Return);
+	SET_KEY_NAME(Tab);
+	SET_KEY_NAME(PageUp);
+	SET_KEY_NAME(PageDown);
+	SET_KEY_NAME(Home);
+	SET_KEY_NAME(End);
+	SET_KEY_NAME(Up);
+	SET_KEY_NAME(Down);
+	SET_KEY_NAME(Left);
+	SET_KEY_NAME(Right);
 		
  // character keys
-	SET_BUTTON_NAME(A);
-	SET_BUTTON_NAME(B);
-	SET_BUTTON_NAME(C);
-	SET_BUTTON_NAME(D);
-	SET_BUTTON_NAME(E);
-	SET_BUTTON_NAME(F);
-	SET_BUTTON_NAME(G);
-	SET_BUTTON_NAME(H);
-	SET_BUTTON_NAME(I);
-	SET_BUTTON_NAME(J);
-	SET_BUTTON_NAME(K);
-	SET_BUTTON_NAME(L);
-	SET_BUTTON_NAME(M);
-	SET_BUTTON_NAME(N);
-	SET_BUTTON_NAME(O);
-	SET_BUTTON_NAME(P);
-	SET_BUTTON_NAME(Q);
-	SET_BUTTON_NAME(R);
-	SET_BUTTON_NAME(S);
-	SET_BUTTON_NAME(T);
-	SET_BUTTON_NAME(U);
-	SET_BUTTON_NAME(V);
-	SET_BUTTON_NAME(W);
-	SET_BUTTON_NAME(X);
-	SET_BUTTON_NAME(Y);
-	SET_BUTTON_NAME(Z);
-	SET_BUTTON_NAME(1);
-	SET_BUTTON_NAME(2);
-	SET_BUTTON_NAME(3);
-	SET_BUTTON_NAME(4);
-	SET_BUTTON_NAME(5);
-	SET_BUTTON_NAME(6);
-	SET_BUTTON_NAME(7);
-	SET_BUTTON_NAME(8);
-	SET_BUTTON_NAME(9);
-	SET_BUTTON_NAME(0);
-	SET_BUTTON_NAME(Plus);
-	SET_BUTTON_NAME(Minus);
-	SET_BUTTON_NAME(Period);
-	SET_BUTTON_NAME(Comma);
-	SET_BUTTON_NAME(Misc0);
-	SET_BUTTON_NAME(Misc1);
-	SET_BUTTON_NAME(Misc2);
-	SET_BUTTON_NAME(Misc3);
-	SET_BUTTON_NAME(Misc4);
-	SET_BUTTON_NAME(Misc5);
-	SET_BUTTON_NAME(Misc6);
-	SET_BUTTON_NAME(Misc7);
+	SET_KEY_NAME(A);
+	SET_KEY_NAME(B);
+	SET_KEY_NAME(C);
+	SET_KEY_NAME(D);
+	SET_KEY_NAME(E);
+	SET_KEY_NAME(F);
+	SET_KEY_NAME(G);
+	SET_KEY_NAME(H);
+	SET_KEY_NAME(I);
+	SET_KEY_NAME(J);
+	SET_KEY_NAME(K);
+	SET_KEY_NAME(L);
+	SET_KEY_NAME(M);
+	SET_KEY_NAME(N);
+	SET_KEY_NAME(O);
+	SET_KEY_NAME(P);
+	SET_KEY_NAME(Q);
+	SET_KEY_NAME(R);
+	SET_KEY_NAME(S);
+	SET_KEY_NAME(T);
+	SET_KEY_NAME(U);
+	SET_KEY_NAME(V);
+	SET_KEY_NAME(W);
+	SET_KEY_NAME(X);
+	SET_KEY_NAME(Y);
+	SET_KEY_NAME(Z);
+	SET_KEY_NAME(1);
+	SET_KEY_NAME(2);
+	SET_KEY_NAME(3);
+	SET_KEY_NAME(4);
+	SET_KEY_NAME(5);
+	SET_KEY_NAME(6);
+	SET_KEY_NAME(7);
+	SET_KEY_NAME(8);
+	SET_KEY_NAME(9);
+	SET_KEY_NAME(0);
+	SET_KEY_NAME(Plus);
+	SET_KEY_NAME(Minus);
+	SET_KEY_NAME(Period);
+	SET_KEY_NAME(Comma);
+	SET_KEY_NAME(Misc0);
+	SET_KEY_NAME(Misc1);
+	SET_KEY_NAME(Misc2);
+	SET_KEY_NAME(Misc3);
+	SET_KEY_NAME(Misc4);
+	SET_KEY_NAME(Misc5);
+	SET_KEY_NAME(Misc6);
+	SET_KEY_NAME(Misc7);
 
  // numpad
-	SET_BUTTON_NAME(Numpad0);
-	SET_BUTTON_NAME(Numpad1);
-	SET_BUTTON_NAME(Numpad2);
-	SET_BUTTON_NAME(Numpad3);
-	SET_BUTTON_NAME(Numpad4);
-	SET_BUTTON_NAME(Numpad5);
-	SET_BUTTON_NAME(Numpad6);
-	SET_BUTTON_NAME(Numpad7);
-	SET_BUTTON_NAME(Numpad8);
-	SET_BUTTON_NAME(Numpad9);
-	SET_BUTTON_NAME(NumpadEnter);
-	SET_BUTTON_NAME(NumpadPlus);
-	SET_BUTTON_NAME(NumpadMinus);
-	SET_BUTTON_NAME(NumpadMultiply);
-	SET_BUTTON_NAME(NumpadDivide);
-	SET_BUTTON_NAME(NumpadPeriod);
+	SET_KEY_NAME(Numpad0);
+	SET_KEY_NAME(Numpad1);
+	SET_KEY_NAME(Numpad2);
+	SET_KEY_NAME(Numpad3);
+	SET_KEY_NAME(Numpad4);
+	SET_KEY_NAME(Numpad5);
+	SET_KEY_NAME(Numpad6);
+	SET_KEY_NAME(Numpad7);
+	SET_KEY_NAME(Numpad8);
+	SET_KEY_NAME(Numpad9);
+	SET_KEY_NAME(NumpadEnter);
+	SET_KEY_NAME(NumpadPlus);
+	SET_KEY_NAME(NumpadMinus);
+	SET_KEY_NAME(NumpadMultiply);
+	SET_KEY_NAME(NumpadDivide);
+	SET_KEY_NAME(NumpadPeriod);
 }
 
-const char* Mouse::s_buttonNames[Mouse::kButtonCount];
+const char* Mouse::s_buttonNames[Mouse::Button_Count];
 void Mouse::InitButtonNames()
 {
  	SET_BUTTON_NAME(Left);
@@ -223,10 +224,10 @@ void Mouse::pollBegin()
 	memset(m_axisStates, 0, m_axisCount * sizeof(float));
 }
 
-const char* Gamepad::s_buttonNames[Gamepad::kButtonCount];
+const char* Gamepad::s_buttonNames[Gamepad::Button_Count];
 void Gamepad::InitButtonNames()
 {
-	SET_BUTTON_NAME(UnmappedButton);
+	SET_BUTTON_NAME(Unmapped);
  	SET_BUTTON_NAME(A);
 	SET_BUTTON_NAME(B);
 	SET_BUTTON_NAME(X);

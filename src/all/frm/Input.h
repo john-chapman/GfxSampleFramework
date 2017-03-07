@@ -83,40 +83,40 @@ class Keyboard: public Device
 {
 	friend class Input;
 public:	
-	enum Button
+	enum Key
 	{
-		kUnmapped = 0, //< kUnmapped is a valid button with an undefined state (must have index 0).
+		Key_Unmapped = 0, // valid button with an undefined state (must have index 0)
 
 	 // function keys
-		kEscape, kPause, kPrintScreen, kCapsLock, kNumLock, kScrollLock, kInsert, kDelete, kClear,
-		kLShift, kLCtrl, kLAlt, kRShift, kRCtrl, kRAlt,
-		kF1, kF2, kF3, kF4, kF5, kF6, kF7, kF8, kF9, kF10, kF11, kF12,
+		Key_Escape, Key_Pause, Key_PrintScreen, Key_CapsLock, Key_NumLock, Key_ScrollLock, Key_Insert, Key_Delete, Key_Clear,
+		Key_LShift, Key_LCtrl, Key_LAlt, Key_RShift, Key_RCtrl, Key_RAlt,
+		Key_F1, Key_F2, Key_F3, Key_F4, Key_F5, Key_F6, Key_F7, Key_F8, Key_F9, Key_F10, Key_F11, Key_F12,
 		
 	 // cursor control
-		kSpace, kBackspace, kReturn, kTab,
-		kPageUp, kPageDown, kHome, kEnd,
-		kUp, kDown, kLeft, kRight,
+		Key_Space, Key_Backspace, Key_Return, Key_Tab,
+		Key_PageUp, Key_PageDown, Key_Home, Key_End,
+		Key_Up, Key_Down, Key_Left, Key_Right,
 		
 	 // character keys
-		kA, kB, kC, kD, kE, kF, kG, kH, kI, kJ, kK, kL, kM, kN, kO, kP, kQ, kR, kS, kT, kU, kV, kW, kX, kY, kZ,
-		k1, k2, k3, k4, k5, k6, k7, k8, k9, k0,
-		kPlus, kMinus, kPeriod, kComma,
-		kMisc0, kMisc1, kMisc2, kMisc3, kMisc4, kMisc5, kMisc6, kMisc7, // layout-specific
+		Key_A, Key_B, Key_C, Key_D, Key_E, Key_F, Key_G, Key_H, Key_I, Key_J, Key_K, Key_L, Key_M, Key_N, Key_O, Key_P, Key_Q, Key_R, Key_S, Key_T, Key_U, Key_V, Key_W, Key_X, Key_Y, Key_Z,
+		Key_1, Key_2, Key_3, Key_4, Key_5, Key_6, Key_7, Key_8, Key_9, Key_0,
+		Key_Plus, Key_Minus, Key_Period, Key_Comma,
+		Key_Misc0, Key_Misc1, Key_Misc2, Key_Misc3, Key_Misc4, Key_Misc5, Key_Misc6, Key_Misc7, // layout-specific
 		
 	 // numpad
-		kNumpad0, kNumpad1, kNumpad2, kNumpad3, kNumpad4, kNumpad5, kNumpad6, kNumpad7, kNumpad8, kNumpad9,
-		kNumpadEnter, kNumpadPlus, kNumpadMinus, kNumpadMultiply, kNumpadDivide, kNumpadPeriod,
+		Key_Numpad0, Key_Numpad1, Key_Numpad2, Key_Numpad3, Key_Numpad4, Key_Numpad5, Key_Numpad6, Key_Numpad7, Key_Numpad8, Key_Numpad9,
+		Key_NumpadEnter, Key_NumpadPlus, Key_NumpadMinus, Key_NumpadMultiply, Key_NumpadDivide, Key_NumpadPeriod,
 
-		kButtonCount
+		Key_Count
 	};
 
-	static const char* GetButtonName(Button _button) { return s_buttonNames[_button]; }
+	static const char* GetKeyName(Key _key) { return s_keyNames[_key]; }
 
 protected:
-	Keyboard(): Device(kButtonCount, 0) {}
+	Keyboard(): Device(Key_Count, 0) {}
 
-	static const char* s_buttonNames[kButtonCount];
-	static void InitButtonNames();
+	static const char* s_keyNames[Key_Count];
+	static void InitKeyNames();
 
 }; // class Keyboard
 
@@ -131,22 +131,30 @@ public:
 	
 	enum Button
 	{
-		kLeft, kMiddle, kRight, kButtonCount
+		Button_Left, 
+		Button_Middle,
+		Button_Right,
+		
+		Button_Count
 	};
 	enum Axis
 	{
-		kX, kY, kWheel, kAxisCount
+		Axis_X, 
+		Axis_Y, 
+		Axis_Wheel, 
+
+		Axis_Count
 	};
 
 	static const char* GetButtonName(Button _button) { return s_buttonNames[_button]; }
 
 protected:
-	Mouse(): Device(kButtonCount, kAxisCount) {}
+	Mouse(): Device(Button_Count, Axis_Count) {}
 
-	static const char* s_buttonNames[kButtonCount];
+	static const char* s_buttonNames[Button_Count];
 	static void InitButtonNames();
 	
-	/// Mouse zeroes axis states at the beginning of each polling frame.
+	// Mouse zeroes axis states at the beginning of each polling frame.
 	void pollBegin();
 
 }; // class Mouse
@@ -161,30 +169,30 @@ class Gamepad: public Device
 public:	
 	enum Button
 	{
-		kUnmappedButton = 0,
+		Button_Unmapped = 0,
 
-	 // default/XBox
-		kA, kB, kX, kY,
-		kUp, kDown, kLeft, kRight,
-		kLeft1, kLeft2, kLeft3, kRight1, kRight2, kRight3,
-		kStart, kBack,
+	 // XBox/default
+		Button_A, Button_B, Button_X, Button_Y,
+		Button_Up, Button_Down, Button_Left, Button_Right,
+		Button_Left1, Button_Left2, Button_Left3, Button_Right1, Button_Right2, Button_Right3,
+		Button_Start, Button_Back,
 
-		kButtonCount,
+		Button_Count,
 
 	 // Playstation
-		kCross = kA, kCircle = kB, kSquare = kX, kTriangle = kY,
-		kSelect = kBack,
+		Button_Cross = Button_A, Button_Circle = Button_B, Button_Square = Button_X, Button_Triangle = Button_Y,
+		Button_Select = Button_Back,
 	};
 	enum Axis
 	{
-		kUnmappedAxis = 0,
+		Axis_Unmapped = 0,
 
-		kLeftStickX, kLeftStickY, kRightStickX, kRightStickY,
-		kLeftTrigger, kRightTrigger,
-		kPitch, kYaw, kRoll,
-		kTouchpadX, kTouchpadY,
+		Axis_LeftStickX, Axis_LeftStickY, Axis_RightStickX, Axis_RightStickY,
+		Axis_LeftTrigger, Axis_RightTrigger,
+		Axis_Pitch, Axis_Yaw, Axis_Roll,
+		Axis_TouchpadX, Axis_TouchpadY,
 
-		kAxisCount
+		Axis_Count
 	};
 
 	static const char* GetButtonName(Button _button) { return s_buttonNames[_button]; }
@@ -193,12 +201,12 @@ protected:
 	float m_deadZone;
 
 	Gamepad()
-		: Device(kButtonCount, kAxisCount)
+		: Device(Button_Count, Axis_Count)
 		, m_deadZone(0.2f)
 	{
 	}
 
-	static const char* s_buttonNames[kButtonCount];
+	static const char* s_buttonNames[Button_Count];
 	static void InitButtonNames();
 
 }; // class Gamepad
@@ -254,23 +262,27 @@ protected:
 		device_->m_axisStates[_axis] = _state;
 	}
 
-public:
 	ProxyDevice(int _id)
 		: m_id(_id)
 	{
 	}
+
+public:
+	int  getId() const  { return m_id; }
+	void setId(int _id) { m_id = _id;  }
+
 };
 
 class ProxyKeyboard: public ProxyDevice
 {
 public:
-	ProxyKeyboard(int _id)
+	ProxyKeyboard(int _id = 0)
 		: ProxyDevice(_id)
 	{
 		APT_ASSERT(m_id < Input::kMaxKeyboardCount);
 	}
 
-	void setButtonState(Keyboard::Button _button, bool _isDown)
+	void setButtonState(Keyboard::Key _button, bool _isDown)
 	{
 		ProxyDevice::setButtonState(Input::GetKeyboard(m_id), _button, _isDown);
 	}
@@ -279,7 +291,7 @@ public:
 class ProxyMouse: public ProxyDevice
 {
 public:
-	ProxyMouse(int _id)
+	ProxyMouse(int _id = 0)
 		: ProxyDevice(_id)
 	{
 		APT_ASSERT(m_id < Input::kMaxMouseCount);
@@ -298,7 +310,7 @@ public:
 class ProxyGamepad: public ProxyDevice
 {
 public:
-	ProxyGamepad(int _id)
+	ProxyGamepad(int _id = 0)
 		: ProxyDevice(_id)
 	{
 		APT_ASSERT(m_id < Input::kMaxGamepadCount);

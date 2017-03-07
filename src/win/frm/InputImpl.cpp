@@ -165,7 +165,7 @@ struct KeyboardImpl: public ImplBase<Keyboard, KeyboardImpl, Input::kMaxKeyboard
 		UINT vk    = _raw->data.keyboard.VKey;
 		UINT sc    = _raw->data.keyboard.MakeCode;
 		UINT flags = _raw->data.keyboard.Flags;
-		Button button = kUnmapped;
+		Key key = Key_Unmapped;
 
 		if (vk == 255) {
 		 // discard 'fake' escape sequence keys
@@ -177,16 +177,16 @@ struct KeyboardImpl: public ImplBase<Keyboard, KeyboardImpl, Input::kMaxKeyboard
 
 		if (vk >= 0x41 && vk <= 0x5A) {
 		 // alpha
-			button = (Button)(kA + vk - 0x41);
+			key = (Key)(Key_A + vk - 0x41);
 		} else if (vk >= 0x30 && vk <= 0x39) {
 		 // numeric
-			button = vk == 0x30 ? k0 : (Button)(k1 + vk - 0x31);
+			key = vk == 0x30 ? Key_0 : (Key)(Key_1 + vk - 0x31);
 		} else if (vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9) {
 		 // numpad numeric
-			button = (Button)(kNumpad0 + vk - VK_NUMPAD0);
+			key  = (Key)(Key_Numpad0 + vk - VK_NUMPAD0);
 		} else if (vk >= VK_F1 && vk <= VK_F12) {
 		 // F keys
-			button = (Button)(kF1 + vk - VK_F1);
+			key = (Key)(Key_F1 + vk - VK_F1);
 		} else {
 		 // all other keys
 
@@ -195,55 +195,55 @@ struct KeyboardImpl: public ImplBase<Keyboard, KeyboardImpl, Input::kMaxKeyboard
 			}
 
 			switch (vk) {
-			 	case VK_CONTROL:     button = e0 ? kRCtrl       : kLCtrl;        break;
-				case VK_MENU:        button = e0 ? kRAlt        : kLAlt;         break;
-				case VK_RETURN:      button = e0 ? kNumpadEnter : kReturn;       break;
-				case VK_INSERT:      button = e0 ? kInsert      : kNumpad0;      break;
-				case VK_END:         button = e0 ? kEnd         : kNumpad1;      break;
-				case VK_DOWN:        button = e0 ? kDown        : kNumpad2;      break;
-				case VK_NEXT:        button = e0 ? kPageDown    : kNumpad3;      break;
-				case VK_LEFT:        button = e0 ? kLeft        : kNumpad4;      break;
-				case VK_CLEAR:       button = e0 ? kClear       : kNumpad5;      break;
-				case VK_RIGHT:       button = e0 ? kRight       : kNumpad6;      break;
-				case VK_HOME:        button = e0 ? kHome        : kNumpad7;      break;
-				case VK_UP:          button = e0 ? kUp          : kNumpad8;      break;
-				case VK_PRIOR:       button = e0 ? kPageUp      : kNumpad9;      break;
-				case VK_DELETE:      button = e0 ? kDelete      : kNumpadPeriod; break;
+			 	case VK_CONTROL:     key = e0 ? Key_RCtrl       : Key_LCtrl;        break;
+				case VK_MENU:        key = e0 ? Key_RAlt        : Key_LAlt;         break;
+				case VK_RETURN:      key = e0 ? Key_NumpadEnter : Key_Return;       break;
+				case VK_INSERT:      key = e0 ? Key_Insert      : Key_Numpad0;      break;
+				case VK_END:         key = e0 ? Key_End         : Key_Numpad1;      break;
+				case VK_DOWN:        key = e0 ? Key_Down        : Key_Numpad2;      break;
+				case VK_NEXT:        key = e0 ? Key_PageDown    : Key_Numpad3;      break;
+				case VK_LEFT:        key = e0 ? Key_Left        : Key_Numpad4;      break;
+				case VK_CLEAR:       key = e0 ? Key_Clear       : Key_Numpad5;      break;
+				case VK_RIGHT:       key = e0 ? Key_Right       : Key_Numpad6;      break;
+				case VK_HOME:        key = e0 ? Key_Home        : Key_Numpad7;      break;
+				case VK_UP:          key = e0 ? Key_Up          : Key_Numpad8;      break;
+				case VK_PRIOR:       key = e0 ? Key_PageUp      : Key_Numpad9;      break;
+				case VK_DELETE:      key = e0 ? Key_Delete      : Key_NumpadPeriod; break;
 				
-			 	case VK_LSHIFT:      button = kLShift;         break;
-				case VK_RSHIFT:      button = kRShift;         break;
-				case VK_ESCAPE:      button = kEscape;         break;
-				case VK_PAUSE:       button = kPause;          break;
-				case VK_SNAPSHOT:    button = kPrintScreen;    break;
-				case VK_CAPITAL:     button = kCapsLock;       break;
-				case VK_NUMLOCK:     button = kNumLock;        break;
-				case VK_DECIMAL:     button = kNumpadPeriod;   break;
-				case VK_ADD:         button = kNumpadPlus;     break;
-				case VK_SUBTRACT:    button = kNumpadMinus;    break;
-				case VK_DIVIDE:      button = kNumpadDivide;   break;
-				case VK_MULTIPLY:    button = kNumpadMultiply; break;
-				case VK_SCROLL:      button = kScrollLock;     break;
-				case VK_SPACE:       button = kSpace;          break;
-				case VK_BACK:        button = kBackspace;      break;
-				case VK_TAB:         button = kTab;            break;
-				case VK_OEM_PLUS:    button = kPlus;           break;
-				case VK_OEM_MINUS:   button = kMinus;          break;
-				case VK_OEM_PERIOD:  button = kPeriod;         break;
-				case VK_OEM_COMMA:   button = kComma;          break;
-				case VK_OEM_1:       button = kMisc0;          break;
-				case VK_OEM_2:       button = kMisc1;          break;
-				case VK_OEM_3:       button = kMisc2;          break;
-				case VK_OEM_4:       button = kMisc3;          break;
-				case VK_OEM_5:       button = kMisc4;          break;
-				case VK_OEM_6:       button = kMisc5;          break;
-				case VK_OEM_7:       button = kMisc6;          break;
-				case VK_OEM_8:       button = kMisc7;          break;
+			 	case VK_LSHIFT:      key = Key_LShift;         break;
+				case VK_RSHIFT:      key = Key_RShift;         break;
+				case VK_ESCAPE:      key = Key_Escape;         break;
+				case VK_PAUSE:       key = Key_Pause;          break;
+				case VK_SNAPSHOT:    key = Key_PrintScreen;    break;
+				case VK_CAPITAL:     key = Key_CapsLock;       break;
+				case VK_NUMLOCK:     key = Key_NumLock;        break;
+				case VK_DECIMAL:     key = Key_NumpadPeriod;   break;
+				case VK_ADD:         key = Key_NumpadPlus;     break;
+				case VK_SUBTRACT:    key = Key_NumpadMinus;    break;
+				case VK_DIVIDE:      key = Key_NumpadDivide;   break;
+				case VK_MULTIPLY:    key = Key_NumpadMultiply; break;
+				case VK_SCROLL:      key = Key_ScrollLock;     break;
+				case VK_SPACE:       key = Key_Space;          break;
+				case VK_BACK:        key = Key_Backspace;      break;
+				case VK_TAB:         key = Key_Tab;            break;
+				case VK_OEM_PLUS:    key = Key_Plus;           break;
+				case VK_OEM_MINUS:   key = Key_Minus;          break;
+				case VK_OEM_PERIOD:  key = Key_Period;         break;
+				case VK_OEM_COMMA:   key = Key_Comma;          break;
+				case VK_OEM_1:       key = Key_Misc0;          break;
+				case VK_OEM_2:       key = Key_Misc1;          break;
+				case VK_OEM_3:       key = Key_Misc2;          break;
+				case VK_OEM_4:       key = Key_Misc3;          break;
+				case VK_OEM_5:       key = Key_Misc4;          break;
+				case VK_OEM_6:       key = Key_Misc5;          break;
+				case VK_OEM_7:       key = Key_Misc6;          break;
+				case VK_OEM_8:       key = Key_Misc7;          break;
 
 				default: break;
 			};
 		}
 
-		setIncButton(button, (flags & RI_KEY_BREAK) == 0u);
+		setIncButton(key, (flags & RI_KEY_BREAK) == 0u);
 
 		//APT_LOG("%s e0=%i, e1=%i, f=0x%x, sc=0x%x", GetButtonName(button), (int)e0, (int)e1, flags, sc);
 	}
@@ -266,17 +266,17 @@ struct MouseImpl: public ImplBase<Mouse, MouseImpl, Input::kMaxMouseCount>
 	 // buttons
 		USHORT currFlags = _raw->data.mouse.usButtonFlags;
 		if (currFlags != 0) {
-			setIncButton(Mouse::kLeft,   (_raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)   != 0);
-			setIncButton(Mouse::kMiddle, (_raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) != 0);
-			setIncButton(Mouse::kRight,  (_raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)  != 0);
+			setIncButton(Mouse::Button_Left,   (_raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)   != 0);
+			setIncButton(Mouse::Button_Middle, (_raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) != 0);
+			setIncButton(Mouse::Button_Right,  (_raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)  != 0);
 		}
 
 	 // axes
 		if (_raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
-			m_axisStates[Mouse::kWheel] += (float)((SHORT)_raw->data.mouse.usButtonData);
+			m_axisStates[Mouse::Axis_Wheel] += (float)((SHORT)_raw->data.mouse.usButtonData);
 		}
-		m_axisStates[Mouse::kX] += (float)_raw->data.mouse.lLastX;
-		m_axisStates[Mouse::kY] += (float)_raw->data.mouse.lLastY;
+		m_axisStates[Mouse::Axis_X] += (float)_raw->data.mouse.lLastX;
+		m_axisStates[Mouse::Axis_Y] += (float)_raw->data.mouse.lLastY;
 	}
 
 }; // struct MouseImpl
@@ -299,26 +299,26 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 
 	enum Type
 	{
-		kXBox360,
-		kPs4DualShock4,
+		Type_XBox360,
+		Type_Ps4DualShock4,
 
-		kTypeCount
+		Type_Count
 	};
 	Type m_type;
 
 	static Button HidUsageToButton(int _hid, Type _type)
 	{
-		static const Button kButtonMap[kTypeCount][kButtonCount] = {
-			{ kA, kB, kX, kY, kLeft1, kRight1, kBack, kStart, kLeft3, kRight3, }, // kXBox360
-			{ kX, kA, kB, kY, kLeft1, kRight1, kLeft2, kRight2, kUnmappedButton, kStart, kLeft3, kRight3, kUnmappedButton, kBack }, // kPs4DualShock4
+		static const Button kButtonMap[Type_Count][Button_Count] = {
+			{ Button_A, Button_B, Button_X, Button_Y, Button_Left1, Button_Right1, Button_Back, Button_Start, Button_Left3, Button_Right3, }, // Button_XBox360
+			{ Button_X, Button_A, Button_B, Button_Y, Button_Left1, Button_Right1, Button_Left2, Button_Right2, Button_Unmapped, Button_Start, Button_Left3, Button_Right3, Button_Unmapped, Button_Back }, // Button_Ps4DualShock4
 		};
 		return kButtonMap[_type][_hid];
 	}
 	static Axis HidUsageToAxis(int _hid, Type _type)
 	{
-		static const Axis kAxisMap[kTypeCount][kAxisCount] = {
-			{ kLeftStickY, kLeftStickX, kRightStickY, kRightStickX, kUnmappedAxis/*triggers*/, kUnmappedAxis/*dpad*/, }, // kXBox360
-			{ kRightStickY, kRightStickX, kLeftStickY, kLeftStickX, kUnmappedAxis/*dpad*/, kUnmappedAxis, kRightTrigger, kLeftTrigger, kUnmappedAxis },  // kPs4DualShock4
+		static const Axis kAxisMap[Type_Count][Axis_Count] = {
+			{ Axis_LeftStickY, Axis_LeftStickX, Axis_RightStickY, Axis_RightStickX, Axis_Unmapped/*triggers*/, Axis_Unmapped/*dpad*/, }, // Axis_XBox360
+			{ Axis_RightStickY, Axis_RightStickX, Axis_LeftStickY, Axis_LeftStickX, Axis_Unmapped/*dpad*/, Axis_Unmapped, Axis_RightTrigger, Axis_LeftTrigger, Axis_Unmapped },  // Axis_Ps4DualShock4
 		};
 		return kAxisMap[_type][_hid];
 	}
@@ -335,12 +335,12 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 		RID_DEVICE_INFO deviceInfo;
 		UINT deviceInfoSize = sizeof(deviceInfo);
 		APT_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_DEVICEINFO, &deviceInfo, &deviceInfoSize) >= 0);
-		m_type = kTypeCount;
+		m_type = Type_Count;
 	 // http://www.linux-usb.org/usb.ids
 		switch (deviceInfo.hid.dwVendorId) {
 			case 0x45e: // Microsoft
 				switch (deviceInfo.hid.dwProductId) {
-					case 0x28e: m_type = kXBox360; break;
+					case 0x28e: m_type = Type_XBox360; break;
 					case 0x28f: // XBox360 wireless
 					case 0x2d1: // XBoxOne
 					default:
@@ -349,7 +349,7 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 			case 0x54c: // Sony
 				switch (deviceInfo.hid.dwProductId) {
 					case 0x9cc: // model 1E
-					case 0x5c4: m_type = kPs4DualShock4; break; // model 2E
+					case 0x5c4: m_type = Type_Ps4DualShock4; break; // model 2E
 					default:
 						break;
 				};
@@ -357,7 +357,7 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 				break;
 		};	
 	 // automatically disconnect any unsupported devices
-		if (m_type == kTypeCount) {
+		if (m_type == Type_Count) {
 			APT_LOG_ERR("Unsupported gamepad type (vendor %d product %d)", deviceInfo.hid.dwVendorId, deviceInfo.hid.dwProductId);
 			disconnect();
 			return;
@@ -385,7 +385,7 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 		USHORT vccount = (USHORT)m_valueUsageCount;
 		m_valueCaps = (PHIDP_VALUE_CAPS)new HIDP_VALUE_CAPS[vccount];
 		HIDClass_VERIFY(HidP_GetValueCaps(HidP_Input, m_valueCaps, &vccount, m_preparsedData));
-		if (m_type == kXBox360) {
+		if (m_type == Type_XBox360) {
 		 // xbox doesn't supply the logical ranges but they're all USHORT
 			for (ULONG i = 0; i < m_valueUsageCount; ++i) {
 				m_valueCaps[i].LogicalMin = 0;
@@ -435,39 +435,39 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 			HIDClass_VERIFY(HidP_GetUsageValue(HidP_Input, m_valueCaps[i].UsagePage, 0, m_valueCaps[i].Range.UsageMin, &val, m_preparsedData, (PCHAR)_raw->data.hid.bRawData, _raw->data.hid.dwSizeHid));
 
 			Axis ax = HidUsageToAxis(i, m_type);
-			if (ax == kUnmappedAxis) {
+			if (ax == Axis_Unmapped) {
 			 // special cases:
 			 // dpad: on xbox/playstation the dpad is an axis with 8 values; we convert these to the 4 cardinal buttons (up/down/left/right).
 			 // triggers: on xbox both triggers share an axes, 
 				switch (m_type) {
-					case kXBox360:
+					case Type_XBox360:
 						switch (i) {
 							case 4: { // trigger
 								float fval = (float)(val - m_valueCaps[i].LogicalMin) / (float)m_valueCaps[i].LogicalMax;
 								fval = (fval <= m_deadZone) ? 0.0f : fval;
-								m_axisStates[kLeftTrigger]  = APT_CLAMP((fval - 0.5f) * 2.0f, 0.0f, 1.0f);
-								m_axisStates[kRightTrigger] = 1.0f - APT_CLAMP(fval * 2.0f, 0.0f, 1.0f);
-								setIncButton(kLeft2,  m_axisStates[kLeftTrigger] > 0.5f);
-								setIncButton(kRight2, m_axisStates[kRightTrigger] > 0.5f);
+								m_axisStates[Axis_LeftTrigger]  = APT_CLAMP((fval - 0.5f) * 2.0f, 0.0f, 1.0f);
+								m_axisStates[Axis_RightTrigger] = 1.0f - APT_CLAMP(fval * 2.0f, 0.0f, 1.0f);
+								setIncButton(Button_Left2,  m_axisStates[Axis_LeftTrigger] > 0.5f);
+								setIncButton(Button_Right2, m_axisStates[Axis_RightTrigger] > 0.5f);
 								break;
 							};
 							case 5: // dpad
-								setIncButton(kUp,    val == 8 || val == 1 || val == 2);
-								setIncButton(kRight, val == 2 || val == 3 || val == 4);
-								setIncButton(kDown,  val == 4 || val == 5 || val == 6);
-								setIncButton(kLeft,  val == 6 || val == 7 || val == 8);
+								setIncButton(Button_Up,    val == 8 || val == 1 || val == 2);
+								setIncButton(Button_Right, val == 2 || val == 3 || val == 4);
+								setIncButton(Button_Down,  val == 4 || val == 5 || val == 6);
+								setIncButton(Button_Left,  val == 6 || val == 7 || val == 8);
 								break;
 							default:
 								break;
 						};
 						break;
-					case kPs4DualShock4:
+					case Type_Ps4DualShock4:
 						switch (i) {
 							case 4: // dpad
-								setIncButton(kUp,    val == 7 || val == 0 || val == 1);
-								setIncButton(kRight, val == 1 || val == 2 || val == 3);
-								setIncButton(kDown,  val == 3 || val == 4 || val == 5);
-								setIncButton(kLeft,  val == 5 || val == 6 || val == 7);
+								setIncButton(Button_Up,    val == 7 || val == 0 || val == 1);
+								setIncButton(Button_Right, val == 1 || val == 2 || val == 3);
+								setIncButton(Button_Down,  val == 3 || val == 4 || val == 5);
+								setIncButton(Button_Left,  val == 5 || val == 6 || val == 7);
 								break;
 							default:
 								break;
@@ -480,7 +480,7 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 				continue;
 			} 
 			float fval = (float)(val - m_valueCaps[i].LogicalMin) / (float)m_valueCaps[i].LogicalMax;
-			if (ax != kLeftTrigger && ax != kRightTrigger) {
+			if (ax != Axis_LeftTrigger && ax != Axis_RightTrigger) {
 			 // move non-trigger axes to [-1,1]
 				fval = fval * 2.0f - 1.0f;
 			}
@@ -632,7 +632,7 @@ Gamepad* Input::GetGamepad(int _id)
 
 void Input::Init()
 {
-	Keyboard::InitButtonNames();
+	Keyboard::InitKeyNames();
 	Mouse::InitButtonNames();
 	Gamepad::InitButtonNames();
 
