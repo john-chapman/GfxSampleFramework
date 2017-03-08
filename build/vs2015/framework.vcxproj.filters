@@ -172,9 +172,6 @@
     <ClInclude Include="..\..\src\all\frm\ui\Log.h">
       <Filter>ui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\ui\ProfilerViewer.h">
-      <Filter>ui</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">
@@ -320,9 +317,6 @@
     <ClCompile Include="..\..\src\all\frm\gl.cpp" />
     <ClCompile Include="..\..\src\all\frm\math.cpp" />
     <ClCompile Include="..\..\src\all\frm\ui\Log.cpp">
-      <Filter>ui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\ui\ProfilerViewer.cpp">
       <Filter>ui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\win\frm\GlContextImpl.cpp">

@@ -35,6 +35,7 @@ struct ProfilerViewer
 
 
 	uint64 beg; // all markers draw relative to this time
+	uint64 end; // start of the last marker
 	float  tbeg, tsize; // viewing region start/size in ms relative to mbeg
 	vec2   wbeg, wend, wsize;
 	uint   coli;
@@ -125,7 +126,7 @@ struct ProfilerViewer
 	}
 
 	// Return true if the marker is hovered.
-	bool drawFrameMarker(const Profiler::Marker& _marker)
+	bool drawFrameMarker(const Profiler::Marker& _marker, float _frameEndX)
 	{
 		float mheight = ImGui::GetItemsLineHeightWithSpacing();
 		vec2 mbeg = vec2(timeToWindowX(_marker.m_start), wbeg.y + mheight * (float)_marker.m_depth);
@@ -134,18 +135,15 @@ struct ProfilerViewer
 			return false;
 		}
 		
+		mbeg.x = APT_MAX(mbeg.x, wbeg.x);
+		mend.x = APT_MIN(APT_MIN(mend.x, wend.x), _frameEndX);
+
 		float msize = mend.x - mbeg.x;
 		if (msize < 2.0f) {
 		 // \todo push culled markers into a list, display on the tooltip
 			return false;
 		}
 		
-		mbeg.x = APT_MAX(mbeg.x, wbeg.x);
-		mend.x = APT_MIN(mend.x, wend.x);
-
-		//ImDrawList& drawList = *ImGui::GetWindowDrawList();
-		//drawList.AddRectFilled(mbeg, mend, kColors->kMarkerColors[coli]);
-
 		vec2 wpos = ImGui::GetWindowPos();
 		ImGui::SetCursorPosX(mbeg.x - wpos.x);
 		ImGui::SetCursorPosY(mbeg.y - wpos.y);
@@ -153,7 +151,7 @@ struct ProfilerViewer
 		ImGui::PushStyleColor(ImGuiCol_Button, ImColor(kColors->kMarkerColors[coli]));
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor(kColors->kMarkerHover));
 
-		ImGui::Button(_marker.m_name, ImVec2(msize, mheight));
+		ImGui::Button(_marker.m_name, ImVec2(msize, mheight - 1.0f));
 		
 		ImGui::PopStyleColor(2);
 
@@ -163,45 +161,67 @@ struct ProfilerViewer
 
 	void draw(bool* _open_)
 	{
+		String<sizeof("999.999ms\0")> str;
+
+		beg = APT_MIN(Profiler::GetCpuFrame(0).m_start, Profiler::GetGpuFrame(0).m_start);
+		end = APT_MAX(Profiler::GetCpuFrame(Profiler::GetCpuFrameCount() - 1).m_start, Profiler::GetGpuFrame(Profiler::GetGpuFrameCount() - 1).m_start);
+		float rangeMs = (float)Timestamp(end - beg).asMilliseconds();
+
 		ImGuiIO& io = ImGui::GetIO();
 		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiSetCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y / 4), ImGuiSetCond_FirstUseEver);
-		ImGui::Begin("Profiler", _open_, ImGuiWindowFlags_MenuBar);
+		//ImGui::SetNextWindowContentWidth(2000.0f);//rangeMs / tsize * io.DisplaySize.x);
+		ImGui::Begin("Profiler", _open_, ImGuiWindowFlags_MenuBar /*| ImGuiWindowFlags_HorizontalScrollbar*/);
 
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("Options")) {
+				if (ImGui::MenuItem("Reset GPU Offset")) {
+					Profiler::ResetGpuOffset();
+				}
 				ImGui::EndMenu();
 			}
 			if (ImGui::SmallButton(Profiler::s_pause ? "Resume" : "Pause")) {
 				Profiler::s_pause = !Profiler::s_pause;
 			}
 			ImGui::SameLine();
-			if (ImGui::SmallButton("Reset GPU Offset")) {
-				Profiler::ResetGpuOffset();
+			if (ImGui::SmallButton("Fit")) {
+				tsize = (float)Timestamp(end - beg).asMilliseconds();
+				tbeg = 0.0f;
 			}
+			ImGui::SameLine();
 
-			ImGui::SameLine();
-			ImGui::PushItemWidth(128.0f);
-			ImGui::SliderFloat("tbeg", &tbeg, 0.0f, 1000.0f);
-			ImGui::SameLine();
-			ImGui::SliderFloat("tsize", &tsize, 0.0f, 1000.0f);
-			ImGui::PopItemWidth();
 			ImGui::EndMenuBar();
 		}
 		
-		ImDrawList& drawList = *ImGui::GetWindowDrawList();
-		
-		beg   = APT_MIN(Profiler::GetCpuFrame(0).m_start, Profiler::GetGpuFrame(0).m_start);
-		wbeg  = vec2(ImGui::GetContentRegionMax()) + vec2(ImGui::GetWindowContentRegionMin());
-		wsize = ImGui::GetContentRegionMax();
-		wend  = vec2(ImGui::GetWindowPos()) + wsize;
 
+		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered()) {
+			float wx = ImGui::GetWindowContentRegionMax().x;
+		 // zoom
+			float zoom = (io.MouseWheel * tsize * 0.1f);
+			float before = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * tsize;
+			tsize = APT_MAX(tsize - zoom, 0.1f);
+			float after = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * tsize;
+			tbeg += (before - after);
+
+		 // pan
+			if (io.MouseDown[2]) {
+				tbeg -= io.MouseDelta.x / wx * tsize;
+			}
+		}
+
+		ImDrawList& drawList = *ImGui::GetWindowDrawList();
 		// GPU ---
 		kColors   = &kColorsGpu;
 		wbeg      = vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowContentRegionMin());
+		float infoX = wbeg.x; // where to draw the CPU/GPU global info
+		wbeg.x   += ImGui::GetFontSize() * 4.0f;
 		wsize     = vec2(ImGui::GetContentRegionMax()) - (wbeg - vec2(ImGui::GetWindowPos()));
 		wsize.y   = wsize.y * 0.5f;
 		wend      = wbeg + wsize;
+		
+		str.setf("GPU\n%s", timeToStr(Profiler::GetGpuAvgFrameDuration()));
+		drawList.AddText(vec2(infoX, wbeg.y), kColors->kBackground, str);
+		
 		ImGui::PushClipRect(wbeg, wend, false);
 		
 		// \todo this skips drawing the newest frame's data, add an extra step to draw those markers?
@@ -215,11 +235,12 @@ struct ProfilerViewer
 		 // markers
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 			wbeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
+			float fend = timeToWindowX(frameNext.m_start);
 			coli = 0;
 			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
 				const Profiler::GpuMarker& marker = Profiler::GetGpuMarker(j);
-				if (drawFrameMarker(marker)) {
-					vec2 lbeg = vec2(timeToWindowX(marker.m_start), wbeg.y + ImGui::GetItemsLineHeightWithSpacing() * 0.5f);
+				if (drawFrameMarker(marker, fend)) {
+					vec2 lbeg = vec2(timeToWindowX(marker.m_start), wbeg.y + ImGui::GetItemsLineHeightWithSpacing() * (float)marker.m_depth * 0.5f);
 					vec2 lend = vec2(timeToWindowX(marker.m_cpuStart), wbeg.y + wsize.y);
 					drawList.AddLine(lbeg, lend, kColors->kMarkerColors[coli], 2.0f);
 					ImGui::BeginTooltip();
@@ -242,8 +263,12 @@ struct ProfilerViewer
 
 		// CPU ---
 		kColors   = &kColorsCpu;
-		wbeg.y    = wend.y;
-		wend.y    = wbeg.y + wsize.y;
+		wbeg.y    = wend.y + 1.0f;
+		wend.y    = wbeg.y + wsize.y + 1.0f;
+
+		str.setf("CPU\n%s", timeToStr(Profiler::GetCpuAvgFrameDuration()));
+		drawList.AddText(vec2(infoX, wbeg.y), kColors->kBackground, str);
+
 		ImGui::PushClipRect(wbeg, wend, false);
 		for (uint i = 0, n = Profiler::GetGpuFrameCount() - 1; i < n; ++i) {
 			const Profiler::CpuFrame& frame = Profiler::GetCpuFrame(i);
@@ -255,10 +280,11 @@ struct ProfilerViewer
 		 // markers
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 			wbeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
+			float fend = timeToWindowX(frameNext.m_start);
 			coli = 0;
 			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
 				const Profiler::CpuMarker& marker = Profiler::GetCpuMarker(j);
-				if (drawFrameMarker(marker)) {
+				if (drawFrameMarker(marker, fend)) {
 					ImGui::BeginTooltip();
 						ImGui::TextColored(ImColor(kColors->kMarkerColors[coli]), marker.m_name);
 						ImGui::Text("Duration: %s", timeToStr(marker.m_end - marker.m_start));
@@ -379,10 +405,10 @@ static ProfilerData<Profiler::GpuFrame, Profiler::GpuMarker> s_gpu(Profiler::kMa
 
 
 
-static uint64 g_gpuTickOffset                                                                           = 0;
-static bool   g_gpuInit                                                                                 = true;
-static uint   g_gpuFrameQueryRetrieved                                                                  = 0;
-static GLuint g_gpuFrameStartQueries[Profiler::kMaxFrameCount]                                          = {};
+static uint64 g_gpuTickOffset; // convert gpu time -> cpu time; note that this value can be arbitrarily large as the clocks aren't necessarily relative to the same moment
+static uint   g_gpuFrameQueryRetrieved;
+static bool   g_gpuInit = true;
+static GLuint g_gpuFrameStartQueries[Profiler::kMaxFrameCount] = {};
 static GLuint g_gpuMarkerStartQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame] = {};
 static GLuint g_gpuMarkerEndQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame]   = {};
 
@@ -526,7 +552,7 @@ uint Profiler::GetGpuFrameCount()
 	return s_gpu.m_frames.size();
 }
 
-const uint64 Profiler::GetGpuAvgFrameDuration()
+uint64 Profiler::GetGpuAvgFrameDuration()
 {
 	return s_gpu.m_avgFrameDuration;
 }
