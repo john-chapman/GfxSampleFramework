@@ -282,6 +282,8 @@ Node* Scene::createNode(Node::Type _type, Node* _parent)
 	CPU_AUTO_MARKER("Scene::createNode");
 
 	Node* ret = m_nodePool.alloc(Node(m_nextNodeId++));
+	ret->setActive(true);
+	ret->setDynamic(true);
 	AutoName(_type, ret->m_name);
 	ret->m_type = _type;
 	_parent = _parent ? _parent : m_root;
