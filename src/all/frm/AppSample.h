@@ -13,9 +13,9 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class AppSample
-/// Base class for graphics samples. Provides a window, OpenGL context + ImGui
-/// integration. 
+// AppSample
+// Base class for graphics samples. Provides a window, OpenGL context + ImGui
+// integration. 
 ////////////////////////////////////////////////////////////////////////////////
 class AppSample: public App
 {
@@ -39,8 +39,7 @@ public:
 	GlContext*          getGlContext()                { return m_glContext; }
 	const GlContext*    getGlContext() const          { return m_glContext; }
 
-	/// Get/set the framebuffer to which UI/overlays are drawn (a null ptr means
-	/// the context backbuffer).
+	// Get/set the framebuffer to which UI/overlays are drawn (a null ptr means the context backbuffer).
 	const Framebuffer*  getDefaultFramebuffer() const                 { return m_fbDefault; }
 	void                setDefaultFramebuffer(const Framebuffer* _fb) { m_fbDefault = _fb; }
 
@@ -52,7 +51,7 @@ protected:
 	AppSample(const char* _title);
 	virtual ~AppSample();
 
-	virtual void ImGui_OverrideIo() {}
+	virtual void overrideInput() {}
 
 	AppProperties      m_properties;
 	ivec2              m_resolution;
@@ -68,8 +67,8 @@ private:
 	GlContext*         m_glContext;
 	uint64             m_frameIndex;
 
-	const Framebuffer* m_fbDefault; //< Where to draw overlays, or m_glContext backbuffer if 0.
-	Mesh*              m_msQuad;    //< NDC quad.
+	const Framebuffer* m_fbDefault; // Where to draw overlays, or m_glContext backbuffer if 0.
+	Mesh*              m_msQuad;    // NDC quad.
 
 	int*               m_vsyncMode;
 	bool*              m_showMenu;

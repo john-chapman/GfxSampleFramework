@@ -42,8 +42,8 @@ public:
 			return false;
 		}
 		
-		m_teapot = Mesh::Create("models/teapot.obj");
-		m_shModel = Shader::CreateVsFs("shaders/Model_vs.glsl", "shaders/Model_fs.glsl");
+		//m_teapot = Mesh::Create("models/teapot.obj");
+		//m_shModel = Shader::CreateVsFs("shaders/Model_vs.glsl", "shaders/Model_fs.glsl");
 				
 		/*LCG lcg(1223781730);
 		for (int i = 0; i < 4; ++i) {
@@ -152,7 +152,7 @@ public:
 		static mat4 teapotMat(1.0f);
 		Im3d::Gizmo("Teapot", (float*)&teapotMat);
 
-		ctx->setShader(m_shModel);
+		/*ctx->setShader(m_shModel);
 		ctx->setMesh(m_teapot);
 		ctx->setUniform("uWorldMatrix", teapotMat);
 		ctx->setUniform("uViewMatrix", Scene::GetDrawCamera()->m_view);
@@ -161,7 +161,7 @@ public:
 		glAssert(glEnable(GL_CULL_FACE));
 		ctx->draw();
 		glAssert(glDisable(GL_CULL_FACE));
-		glAssert(glDisable(GL_DEPTH_TEST));
+		glAssert(glDisable(GL_DEPTH_TEST));*/
 		
 		AppBase::draw();
 	}

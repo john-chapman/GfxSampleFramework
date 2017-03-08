@@ -17,7 +17,7 @@ namespace frm {
 class Scene;
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class AppSample3d
+// AppSample3d
 ////////////////////////////////////////////////////////////////////////////////
 class AppSample3d: public AppSample
 {
@@ -30,8 +30,7 @@ public:
 	virtual void drawMainMenuBar() override;
 	virtual void drawStatusBar() override;
 
-	/// Get a world/view space ray corresponding to the cursor position (by default
-	/// the window-relative mouse position).
+	// Get a world/view space ray corresponding to the cursor position (by default the window-relative mouse position).
 	virtual Ray getCursorRayW() const;
 	virtual Ray getCursorRayV() const;
 

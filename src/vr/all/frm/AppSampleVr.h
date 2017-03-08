@@ -6,6 +6,7 @@
 #include <frm/geom.h>
 #include <frm/AppSample3d.h>
 #include <frm/Camera.h>
+#include <frm/Input.h>
 #include <frm/Scene.h>
 
 namespace frm {
@@ -44,7 +45,7 @@ protected:
 	AppSampleVr(const char* _title);
 	virtual ~AppSampleVr();
 
-	virtual void ImGui_OverrideIo() override;
+	virtual void overrideInput() override;
 
 	bool isVrMode() const                 { return m_vrMode; }
 
@@ -70,6 +71,9 @@ private:
 	bool         m_vrMode;
 	bool         m_disableRender;
 	bool         m_showGazeCursor;
+
+	ProxyGamepad m_proxyGamepad;
+	ProxyMouse   m_proxyMouse;
 
 	float        m_eyeFovScale;         // Global fov scale (use with caution).
 	float        m_clipNear, m_clipFar;

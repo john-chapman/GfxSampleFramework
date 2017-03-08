@@ -9,20 +9,20 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class App
-/// Base class for framework apps. 
+// App
+// Base class for framework apps. 
 ////////////////////////////////////////////////////////////////////////////////
 class App: private apt::non_copyable<App>
 {
 public:
-	virtual bool   init(const apt::ArgList& _args);
-	virtual void   shutdown();
+	virtual bool init(const apt::ArgList& _args);
+	virtual void shutdown();
 
-	/// \return true if the application should continue (i.e. if no quit message was received).
-	virtual bool   update();
+	// Return true if the application should continue (i.e. if no quit message was received).
+	virtual bool update();
 
-	/// Call immediately after blocking i/o or slow operations.
-	void           resetTime()                  { m_deltaTime = 0.0; m_prevUpdate = apt::Time::GetTimestamp(); }
+	// Call immediately after blocking i/o or slow operations.
+	void  resetTime() { m_deltaTime = 0.0; m_prevUpdate = apt::Time::GetTimestamp(); }
 
 	apt::Timestamp getCurrentTime() const       { return m_prevUpdate; }
 	double         getDeltaTime() const         { return m_deltaTime; }

@@ -72,6 +72,7 @@ struct frm::AppSampleVr::VrContext
 	ovrTrackingState    m_ovrTrackingState;
 	ovrPosef            m_ovrEyePose[Eye_Count];
 	OvrLayer            m_layers[Layer_Count];
+	ovrInputState       m_ovrInputState;
 
 };
 
@@ -87,6 +88,7 @@ void SetCombinedProjection(const Camera& _left, const Camera& _right, Camera& re
 	ret_.m_right = _right.m_right;
 	ret_.m_aspectRatio = fabs(_right.m_right - _left.m_left) / fabs(ret_.m_up - ret_.m_down);
 
+	// \todo make this work - need to move ret_ position as well to fit the
 
 	ret_.m_projDirty = true;
 }
@@ -129,7 +131,7 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 
 	m_shVuiScreen = Shader::CreateVsFs("shaders/VuiScreen_vs.glsl", "shaders/VuiScreen_fs.glsl");
 	if (!m_shVuiScreen) return false;
-	m_vuiScreenPlane = Plane(normalize(GetTranslation(m_nodeHead->getLocalMatrix()) - *m_vuiScreenOrigin), *m_vuiScreenOrigin);
+	m_vuiScreenPlane = Plane(normalize(GetTranslation(m_nodeHead->getWorldMatrix()) - *m_vuiScreenOrigin), *m_vuiScreenOrigin);
 
 	m_txVuiScreen = Texture::Create2d(1920, 1080, GL_RGBA8, APT_MIN(Texture::GetMaxMipCount(1920, 1080), 8));
 	if (!m_txVuiScreen) return false;
@@ -161,7 +163,9 @@ bool AppSampleVr::update()
 		return false;
 	}
 	AUTO_MARKER("AppSampleVR::update");
-
+if (Input::GetMouse()->wasPressed(Mouse::Button_Left)) {
+	APT_LOG_DBG("LMOUSE %s %u ", Im3d::GetContext().wasKeyPressed(Im3d::Action_Select) ? "Im3d" : "", Time::GetTimestamp().getRaw());
+}
 	if (*m_showVrOptions) {
 		ImGui::Begin("VR");
 			ImGui::AlignFirstTextHeightToWidgets();
@@ -209,7 +213,7 @@ bool AppSampleVr::update()
 	if (sessionStatus.ShouldRecenter) {
 		// \todo
 	}	
-	
+
 	Scene& scene = Scene::GetCurrent();
 	ImGuiIO& io = ImGui::GetIO();
 	if (sessionStatus.IsVisible && !m_vrMode) {
@@ -219,6 +223,7 @@ bool AppSampleVr::update()
 		m_nodeOrigin->setSelected(true);
 		io.FontGlobalScale = 2.0f;
 		m_vrMode = true;
+		Profiler::ResetGpuOffset();
 	}
 	if (!sessionStatus.IsVisible && m_vrMode) {
 		APT_LOG("Leaving VR mode");
@@ -227,12 +232,15 @@ bool AppSampleVr::update()
 		m_nodeOrigin->setSelected(false);
 		io.FontGlobalScale = 1.0f;
 		m_vrMode = false;
+		Profiler::ResetGpuOffset();
 	}
 	if (!m_vrMode) {
 		pollHmd();
 		return true;
 	}
 	
+	ovrAssert(ovr_GetInputState(m_vrCtx->m_ovrSession, ovrControllerType_Active, &m_vrCtx->m_ovrInputState));
+
 	ImGui::Begin("##vuiscreenmove", 0,
 		ImGuiWindowFlags_NoTitleBar |
 		ImGuiWindowFlags_NoResize |
@@ -309,10 +317,11 @@ bool AppSampleVr::update()
 		Ray r = getCursorRayW();
 		float t0;
 		if (Intersect(r, Plane(vec3(0.0f, 1.0f, 0.0f), 0.0f), t0)) {
-			t0 = min(t0, 1.0f);
+			//t0 = min(t0, 1.0f);
 		} else {
 			t0 = 1.0f;
 		}
+		t0 = min(t0, Im3d::GetContext().m_hotDepth);
 
 		Im3d::PushDrawState();
 			Im3d::SetColor(Im3d::Color(1.0f, 0.1f, 0.8f));
@@ -419,10 +428,8 @@ void AppSampleVr::draw()
 		if (m_showHelpers) {
 		 // draw the HMD position/combined eye frustum
 			if (Input::GetKeyboard()->isDown(Keyboard::Key_B)) {
-				Im3d::PushAlpha(0.5f);
 				DrawFrustum(m_eyeCameras[0].m_worldFrustum);
-				Im3d::PopAlpha();
-				//DrawFrustum(m_eyeCameras[1].m_worldFrustum);
+				DrawFrustum(m_eyeCameras[1].m_worldFrustum);
 			} else {
 				DrawFrustum(m_vrDrawCamera->m_worldFrustum);
 			}
@@ -487,24 +494,33 @@ AppSampleVr::~AppSampleVr()
 {
 }
 
-void AppSampleVr::ImGui_OverrideIo()
+void AppSampleVr::overrideInput()
 {
-	ImGuiIO& io = ImGui::GetIO();
+// \todo proxies not working properly here?
+	ImGuiIO& imgui = ImGui::GetIO();
+	Im3d::AppData& im3d = Im3d::GetAppData();
+m_proxyMouse.setButtonState(Mouse::Button_Left, Input::GetGamepad()->isDown(Gamepad::Button_A));
+imgui.MouseDown[0] = Input::GetGamepad()->isDown(Gamepad::Button_A);		
 	// \todo acquire tracking data for 3d cursor / UI cursor (or use last frame's = probably fine).
 	// \todo apply modifications to ImGui here? seems to work, but why?
 	// \todo also handle ovr remote input here (modify gamepad 0 state?)
 	// \todo don't render ImGui when the screen isn't visible
 	if (m_vrMode) {
-		io.MouseDrawCursor = false;
 
-// tmp, gamepad a = left click
-Gamepad* gpad = Input::GetGamepad();
-if (gpad) {
-	io.MouseDown[0] = gpad->isDown(Gamepad::Button_A);
-	Im3d::GetAppData().m_keyDown[Im3d::Action_Select] = io.MouseDown[0];
-}
+		ovrAssert(ovr_GetInputState(m_vrCtx->m_ovrSession, ovrControllerType_Active, &m_vrCtx->m_ovrInputState));
+
+		//m_proxyMouse.setButtonState(Mouse::Button_Left, (m_vrCtx->m_ovrInputState.Buttons & ovrButton_Enter) != 0);
+		//m_proxyGamepad.setButtonState(Gamepad::Button_A, (m_vrCtx->m_ovrInputState.Buttons & ovrButton_Enter) != 0);
+		//m_proxyGamepad.setButtonState(Gamepad::Button_Up, (m_vrCtx->m_ovrInputState.Buttons & ovrButton_Up) != 0);
+		//m_proxyGamepad.setButtonState(Gamepad::Button_Down, (m_vrCtx->m_ovrInputState.Buttons & ovrButton_Down) != 0);
+		//m_proxyGamepad.setButtonState(Gamepad::Button_Right, (m_vrCtx->m_ovrInputState.Buttons & ovrButton_Right) != 0);
+		//m_proxyGamepad.setButtonState(Gamepad::Button_Left, (m_vrCtx->m_ovrInputState.Buttons & ovrButton_Left) != 0);
+
+		
+
 
 	 // gaze cursor -> vui screen
+		imgui.MouseDrawCursor = false;
 		Ray gazeW = getCursorRayW();
 		float t0;
 		if (Intersect(gazeW, m_vuiScreenPlane, t0)) {
@@ -515,9 +531,9 @@ if (gpad) {
 			pndc.y /= sz.y;
 			if ((abs(pndc.x) < 1.0f) && (abs(pndc.y) < 1.0f)) {
 				m_showGazeCursor = false;
-				io.MouseDrawCursor = true;
-				io.MousePos.x = (pndc.x * 0.5f + 0.5f) * (float)m_txVuiScreen->getWidth();
-				io.MousePos.y = (-pndc.y * 0.5f + 0.5f) * (float)m_txVuiScreen->getHeight();
+				imgui.MouseDrawCursor = true;
+				imgui.MousePos.x = (pndc.x * 0.5f + 0.5f) * (float)m_txVuiScreen->getWidth();
+				imgui.MousePos.y = (-pndc.y * 0.5f + 0.5f) * (float)m_txVuiScreen->getHeight();
 			} else {
 				m_showGazeCursor = true;
 			}
@@ -651,7 +667,6 @@ bool AppSampleVr::initVr()
 		APT_LOG_ERR("Invalid HMD (only Oculus CV1 supported)");
 		m_vrMode = false;
 		return true;
-		APT_ASSERT(false);
 	}
 
 	unsigned trackerCount = APT_MAX(ovr_GetTrackerCount(m_vrCtx->m_ovrSession), APT_ARRAY_COUNT(m_vrCtx->m_ovrTrackerDesc));
