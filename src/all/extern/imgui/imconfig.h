@@ -52,9 +52,10 @@ namespace ImGui
 }
 */
 
+#define IM_COLOR_ALPHA(_rgb8, _af) ((_rgb8 & ~IM_COL32_A_MASK) | ((ImU32)(_af * 255.0f) << IM_COL32_A_SHIFT))
+
 namespace ImGui
 {
 	bool ComboInt(const char* label, int* current_value, const char* items_separated_by_zeros, const int* item_values, int value_count);
 	bool ComboFloat(const char* label, float* current_value, const char* items_separated_by_zeros, const float* item_values, int value_count);
-
 }
