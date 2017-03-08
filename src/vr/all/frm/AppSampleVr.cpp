@@ -6,8 +6,10 @@
 #include <frm/Profiler.h>
 #include <frm/Shader.h>
 #include <frm/Texture.h>
-#include <frm/ui/TextureViewer.h>
 #include <frm/XForm.h>
+
+#include <im3d/im3d.h>
+#include <imgui/imgui.h>
 
 #include <OVR_CAPI.h>
 #include <OVR_CAPI_GL.h>
@@ -50,11 +52,11 @@ static mat4 OvrMatrixToMat4(const ovrMatrix4f& _mat)
 struct OvrLayer
 {
 	ovrLayerEyeFov      m_ovrLayer;
-	ovrTextureSwapChain m_ovrSwapChain[frm::AppSampleVr::kEyeCount]; // swap chains are per-eye per layer
+	ovrTextureSwapChain m_ovrSwapChain[frm::AppSampleVr::Eye_Count]; // swap chains are per-eye per layer
 	int                 m_swapChainLength;
-	int                 m_currentSwapChainIndex[frm::AppSampleVr::kEyeCount];
-	frm::Texture        **m_chainTextures[frm::AppSampleVr::kEyeCount]; // swapChainLength proxy textures per eye
-	frm::Framebuffer    **m_chainFramebuffers[frm::AppSampleVr::kEyeCount]; // swapChainLength proxy framebuffers per eye
+	int                 m_currentSwapChainIndex[frm::AppSampleVr::Eye_Count];
+	frm::Texture        **m_chainTextures[frm::AppSampleVr::Eye_Count]; // swapChainLength proxy textures per eye
+	frm::Framebuffer    **m_chainFramebuffers[frm::AppSampleVr::Eye_Count]; // swapChainLength proxy framebuffers per eye
 };
 struct frm::AppSampleVr::VrContext
 {
@@ -63,29 +65,30 @@ struct frm::AppSampleVr::VrContext
 	ovrGraphicsLuid     m_ovrGraphicsLuid;
 	ovrHmdDesc          m_ovrHmdDesc;
 	ovrTrackerDesc      m_ovrTrackerDesc[4];
-	ovrEyeRenderDesc    m_ovrEyeDesc[kEyeCount];
+	ovrEyeRenderDesc    m_ovrEyeDesc[Eye_Count];
 	ovrMirrorTexture    m_ovrMirrorTexture;
 
  // per frame
 	ovrTrackingState    m_ovrTrackingState;
-	ovrPosef            m_ovrEyePose[kEyeCount];
-	OvrLayer            m_layers[kLayerCount];
+	ovrPosef            m_ovrEyePose[Eye_Count];
+	OvrLayer            m_layers[Layer_Count];
 
 };
 
 void SetCombinedProjection(const Camera& _left, const Camera& _right, Camera& ret_)
 {
-	ret_.setClipNear(APT_MIN(_left.getClipNear(), _right.getClipNear()));
-	ret_.setClipFar(APT_MIN(_left.getClipFar(), _right.getClipFar()));
+	ret_.m_near = APT_MIN(_left.m_near, _right.m_near);
+	ret_.m_far  = APT_MAX(_left.m_far,  _right.m_far);
 
- // up/down should be symmetrical for both eyes
-	ret_.setTanFovUp(APT_MAX(_left.getTanFovUp(), _right.getTanFovUp()));
-	ret_.setTanFovDown(APT_MIN(_left.getTanFovDown(), _right.getTanFovDown()));
+ 	ret_.m_up   = APT_MAX(_left.m_up,   _right.m_up);
+	ret_.m_down = APT_MIN(_left.m_down, _right.m_down);
 
- // left/right are combined
-	float hfov = (_right.getLocalFrustum().m_vertices[5].x - _left.getLocalFrustum().m_vertices[4].x) * 0.5f / ret_.getClipFar();
-	ret_.setTanFovLeft(hfov);
-	ret_.setTanFovRight(hfov);
+	ret_.m_left = _left.m_left;
+	ret_.m_right = _right.m_right;
+	ret_.m_aspectRatio = fabs(_right.m_right - _left.m_left) / fabs(ret_.m_up - ret_.m_down);
+
+
+	ret_.m_projDirty = true;
 }
 
 
@@ -98,7 +101,7 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	}
 	Scene& scene = Scene::GetCurrent();
 	m_sceneDrawCamera = scene.getDrawCamera();
-	getGlContext()->setVsyncMode(GlContext::VsyncMode::kOff);
+	getGlContext()->setVsync(GlContext::Vsync_Off);
 
 	m_vrMode = false;
 	m_vrCtx = new VrContext;
@@ -108,15 +111,16 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 
 	m_eyeFovScale = 1.0f;
 	m_clipNear = 0.05f;
-	m_clipFar = 1000.0f;
+	m_clipFar = 4.0f;
 	m_nodeOrigin = scene.createNode(Node::kTypeRoot);
 	m_nodeOrigin->setName("#VrOrigin");
 	m_nodeOrigin->setLocalMatrix(translate(mat4(1.0f), vec3(0.0f, *m_userHeight, 0.0f)));
-	m_nodeOrigin->addXForm(XForm::Create("VRGamepadXForm"));
+	m_nodeOrigin->addXForm(XForm::Create("XForm_VRGamepad"));
 
 	m_nodeHead = scene.createNode(Node::kTypeRoot, m_nodeOrigin);
 	m_nodeHead->setName("#VrHead"); 
 	m_vrDrawCamera = scene.createCamera(Camera(), m_nodeHead);
+	m_vrDrawCamera->m_parent->setName("#VrCombinedCamera");
 	pollHmd(); // update head position
 
 
@@ -136,7 +140,7 @@ bool AppSampleVr::init(const apt::ArgList& _args)
 	if (!m_txVuiScreenButtonMove) return false;
 	m_txVuiScreenButtonScale = Texture::Create("textures/button_scale.dds");
 	if (!m_txVuiScreenButtonScale) return false;
-	m_txVuiScreenButtonDistance = Texture::Create("textures/button_distance.dds");
+	m_txVuiScreenButtonDistance = Texture::Create("textures/button_zoom.dds");
 	if (!m_txVuiScreenButtonDistance) return false;
 
 	m_fbVuiScreen = Framebuffer::Create(1, m_txVuiScreen);
@@ -161,27 +165,24 @@ bool AppSampleVr::update()
 	if (*m_showVrOptions) {
 		ImGui::Begin("VR");
 			ImGui::AlignFirstTextHeightToWidgets();
-			if (ImGui::Button("Recenter") || Input::GetGamepad() && Input::GetGamepad()->wasPressed(Gamepad::kStart)) {
+			if (ImGui::Button("Recenter") || Input::GetGamepad() && Input::GetGamepad()->wasPressed(Gamepad::Button_Start)) {
 				recenter();
 			}
 			if (ImGui::SliderFloat("User Height (m)", m_userHeight, 0.0f, 2.0f)) {
 				m_nodeOrigin->setLocalMatrix(translate(mat4(1.0f), vec3(0.0f, *m_userHeight, 0.0f)));
 			}
 			ImGui::Checkbox("Show Tracking Frusta", m_showTrackingFrusta);
+			ImGui::SliderFloat("FOV Scale", &m_eyeFovScale, 0.0f, 2.0f);
 		ImGui::End();
 	}
 	if (*m_showTrackingFrusta) {
 		unsigned trackerCount = ovr_GetTrackerCount(m_vrCtx->m_ovrSession);
-		for (unsigned i = 0; i < trackerCount; ++i) {		 
-			float tanV = apt::tan(m_vrCtx->m_ovrTrackerDesc[i].FrustumVFovInRadians * 0.5f);
-			float tanH = apt::tan(m_vrCtx->m_ovrTrackerDesc[i].FrustumHFovInRadians * 0.5f);
-			Frustum f(
-				tanV, tanV,
-				tanH, tanH,
-			 // oculus tracker projection oriented along +z, so negate here
-				-m_vrCtx->m_ovrTrackerDesc[i].FrustumNearZInMeters,
-				-m_vrCtx->m_ovrTrackerDesc[i].FrustumFarZInMeters
-				);
+		for (unsigned i = 0; i < trackerCount; ++i) {
+			float fovV = tanf(m_vrCtx->m_ovrTrackerDesc[i].FrustumVFovInRadians * 0.5f);
+			float fovH = tanf(m_vrCtx->m_ovrTrackerDesc[i].FrustumHFovInRadians * 0.5f);
+			float near = m_vrCtx->m_ovrTrackerDesc[i].FrustumNearZInMeters;
+			float far  = m_vrCtx->m_ovrTrackerDesc[i].FrustumFarZInMeters;
+			Frustum f(fovV, -fovV, fovH, -fovH, -near, -far, false);
 			mat4 wm = OvrPoseToMat4(ovr_GetTrackerPose(m_vrCtx->m_ovrSession, i).Pose);
 			Im3d::PushMatrix();
 				Im3d::SetMatrix(m_nodeOrigin->getWorldMatrix());
@@ -281,11 +282,11 @@ bool AppSampleVr::update()
 	}
 
  // update mipmap for txVuiScreen (rendered last frame)
-	m_vuiScreenWorldMatrix = GetLookAtMatrix(*m_vuiScreenOrigin, *m_vuiScreenOrigin - m_vuiScreenPlane.m_normal);
+	m_vuiScreenWorldMatrix = LookAt(*m_vuiScreenOrigin, *m_vuiScreenOrigin - m_vuiScreenPlane.m_normal);
 	m_txVuiScreen->generateMipmap();
 
-	for (int i = 0; i < kLayerCount; ++i) {
-		for (int j = 0; j < kEyeCount; ++j) {
+	for (int i = 0; i < Layer_Count; ++i) {
+		for (int j = 0; j < Eye_Count; ++j) {
 			OvrLayer& layer = m_vrCtx->m_layers[i];
 			ovrAssert(ovr_GetTextureSwapChainCurrentIndex(m_vrCtx->m_ovrSession, layer.m_ovrSwapChain[j], &layer.m_currentSwapChainIndex[j]));
 			#ifdef APT_DEBUG
@@ -333,8 +334,8 @@ bool AppSampleVr::update()
 			Im3d::SetSize(1.0f);
 			Im3d::PushMatrix();
 				Im3d::SetMatrix(m_nodeOrigin->getWorldMatrix());
-				Im3d::SetColor(Im3d::kColorMagenta);
-				Im3d::DrawBox(vec3(-0.05f), vec3(0.05f));
+				Im3d::SetColor(Im3d::Color_Magenta);
+				Im3d::DrawAlignedBox(vec3(-0.05f), vec3(0.05f));
 			Im3d::PopMatrix();
 			//Im3d::PushMatrix();
 			//	Im3d::SetMatrix(m_nodeHead->getWorldMatrix());
@@ -346,8 +347,8 @@ bool AppSampleVr::update()
 
 
 	GlContext* ctx = getGlContext();
-	for (int i = 0; i < kEyeCount; ++i) {
-		ctx->setFramebufferAndViewport(getEyeFramebuffer((Eye)i, kLayerText));
+	for (int i = 0; i < Eye_Count; ++i) {
+		ctx->setFramebufferAndViewport(getEyeFramebuffer((Eye)i, Layer_Text));
 		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		glAssert(glClear(GL_COLOR_BUFFER_BIT));
 	}
@@ -397,12 +398,12 @@ void AppSampleVr::draw()
 		glAssert(glClear(GL_COLOR_BUFFER_BIT));
 
 		{	AUTO_MARKER("ovr_SubmitFrame");
-			ovrLayerHeader* layers[kLayerCount] = {};
-			for (int i = 0; i < kLayerCount; ++i) {
+			ovrLayerHeader* layers[Layer_Count] = {};
+			for (int i = 0; i < Layer_Count; ++i) {
 				layers[i] = &m_vrCtx->m_layers[i].m_ovrLayer.Header;
 			};
 			ovrResult submitRet;
-			ovrAssert(submitRet = ovr_SubmitFrame(m_vrCtx->m_ovrSession, (long long)getFrameIndex(), 0, layers, kLayerCount));
+			ovrAssert(submitRet = ovr_SubmitFrame(m_vrCtx->m_ovrSession, (long long)getFrameIndex(), 0, layers, Layer_Count));
 			m_disableRender = submitRet == ovrSuccess_NotVisible;
 		}
 
@@ -417,8 +418,14 @@ void AppSampleVr::draw()
 
 		if (m_showHelpers) {
 		 // draw the HMD position/combined eye frustum
-			DrawFrustum(m_eyeCameras[0].getWorldFrustum());
-			DrawFrustum(m_eyeCameras[1].getWorldFrustum());
+			if (Input::GetKeyboard()->isDown(Keyboard::Key_B)) {
+				Im3d::PushAlpha(0.5f);
+				DrawFrustum(m_eyeCameras[0].m_worldFrustum);
+				Im3d::PopAlpha();
+				//DrawFrustum(m_eyeCameras[1].m_worldFrustum);
+			} else {
+				DrawFrustum(m_vrDrawCamera->m_worldFrustum);
+			}
 		}
 	}
 
@@ -493,8 +500,8 @@ void AppSampleVr::ImGui_OverrideIo()
 // tmp, gamepad a = left click
 Gamepad* gpad = Input::GetGamepad();
 if (gpad) {
-	io.MouseDown[0] = gpad->isDown(Gamepad::kA);
-	Im3d::GetCurrentContext().m_keyDown[0] = io.MouseDown[0];
+	io.MouseDown[0] = gpad->isDown(Gamepad::Button_A);
+	Im3d::GetAppData().m_keyDown[Im3d::Action_Select] = io.MouseDown[0];
 }
 
 	 // gaze cursor -> vui screen
@@ -532,14 +539,16 @@ const Framebuffer* AppSampleVr::getEyeFramebuffer(Eye _eye, Layer _layer)
 
 void AppSampleVr::commitEye(Eye _eye, Layer _layer)
 {
-	if (_layer == kLayerText) {
+	GlContext* ctx = getGlContext();
+
+	if (_layer == Layer_Text) {
 	// render UI/Im3d
-		GlContext* ctx = getGlContext();
-		const Camera& cam = m_eyeCameras[_eye];
-		ctx->setFramebufferAndViewport(getEyeFramebuffer(_eye, kLayerText));
-		Im3d_Render(Im3d::GetCurrentContext(), cam);
-		drawVuiScreen(cam);
-		const_cast<Texture*>(getEyeTexture(_eye, kLayerText))->generateMipmap();
+		ctx->setFramebufferAndViewport(getEyeFramebuffer(_eye, Layer_Text));
+
+		Scene::GetCurrent().setDrawCamera(&m_eyeCameras[_eye]);		
+		Im3d::Draw();
+		drawVuiScreen(m_eyeCameras[_eye]);
+		const_cast<Texture*>(getEyeTexture(_eye, Layer_Text))->generateMipmap();
 	}
 
 	ovrAssert(ovr_CommitTextureSwapChain(m_vrCtx->m_ovrSession, m_vrCtx->m_layers[_layer].m_ovrSwapChain[_eye]));
@@ -565,12 +574,12 @@ void AppSampleVr::pollHmd()
 		m_nodeHead->setLocalMatrix(headMat);
 
 		// re-acquire eye render descs (IPD can change during runtime)
-		for (int i = 0; i < kEyeCount; ++i) {
+		for (int i = 0; i < Eye_Count; ++i) {
 			m_vrCtx->m_ovrEyeDesc[i] = ovr_GetRenderDesc(m_vrCtx->m_ovrSession, (ovrEyeType)i, m_vrCtx->m_ovrHmdDesc.DefaultEyeFov[i]);
 		}
 
 		// calculate eye poses
-		ovrVector3f hmdToEyeOffset[kEyeCount] = {
+		ovrVector3f hmdToEyeOffset[Eye_Count] = {
 			m_vrCtx->m_ovrEyeDesc[0].HmdToEyeOffset,
 			m_vrCtx->m_ovrEyeDesc[1].HmdToEyeOffset
 			};
@@ -578,21 +587,26 @@ void AppSampleVr::pollHmd()
 
 
 		// build eye cameras
-		for (int i = 0; i < kEyeCount; ++i) {
+		for (int i = 0; i < Eye_Count; ++i) {
 			const ovrEyeRenderDesc& eyeDesc = m_vrCtx->m_ovrEyeDesc[i];
 			const ovrPosef& eyePose = m_vrCtx->m_ovrEyePose[i];
-			m_eyeCameras[i].setClipNear(m_clipNear);
-			m_eyeCameras[i].setClipFar(m_clipFar);
-			m_eyeCameras[i].setTanFovUp(eyeDesc.Fov.UpTan * m_eyeFovScale);
-			m_eyeCameras[i].setTanFovDown(eyeDesc.Fov.DownTan * m_eyeFovScale);
-			m_eyeCameras[i].setTanFovLeft(eyeDesc.Fov.LeftTan * m_eyeFovScale);
-			m_eyeCameras[i].setTanFovRight(eyeDesc.Fov.RightTan * m_eyeFovScale);
 		
+		// \todo update the projections only when transitioning to VR mode?
+			m_eyeCameras[i].m_up    = eyeDesc.Fov.UpTan * m_eyeFovScale;
+			m_eyeCameras[i].m_down  = -eyeDesc.Fov.DownTan * m_eyeFovScale;
+			m_eyeCameras[i].m_right = eyeDesc.Fov.RightTan * m_eyeFovScale;
+			m_eyeCameras[i].m_left  = -eyeDesc.Fov.LeftTan * m_eyeFovScale;
+			m_eyeCameras[i].m_near  = m_clipNear;
+			m_eyeCameras[i].m_far   = m_clipFar;
+			m_eyeCameras[i].m_aspectRatio = fabs(m_eyeCameras[i].m_right - m_eyeCameras[i].m_left) / fabs(m_eyeCameras[i].m_up - m_eyeCameras[i].m_down);
+			m_eyeCameras[i].m_projFlags = Camera::ProjFlag_Perspective | Camera::ProjFlag_Infinite | Camera::ProjFlag_Asymmetrical;
+			m_eyeCameras[i].m_projDirty = true;
+			
 			mat4 eyeMat = m_nodeOrigin->getWorldMatrix() * OvrPoseToMat4(eyePose);
-			m_eyeCameras[i].setWorldMatrix(eyeMat);
-			m_eyeCameras[i].build();
+			m_eyeCameras[i].m_world = eyeMat;
+			m_eyeCameras[i].update();
 
-			for (int j = 0; j < kLayerCount; ++j) {
+			for (int j = 0; j < Layer_Count; ++j) {
 				OvrLayer& layer = m_vrCtx->m_layers[j];
 				layer.m_ovrLayer.Fov[i] = eyeDesc.Fov;
 				layer.m_ovrLayer.RenderPose[i] = eyePose;
@@ -603,11 +617,9 @@ void AppSampleVr::pollHmd()
 		// build combined frustum
 		//m_vrDrawCamera->setTanFovUp   (APT_MAX(m_eyeCameras[0].getTanFovUp(),    m_eyeCameras[1].getTanFovUp()));
 		//m_vrDrawCamera->setTanFovDown (APT_MIN(m_eyeCameras[0].getTanFovDown(),  m_eyeCameras[1].getTanFovDown()));
-		//m_vrDrawCamera->setTanFovRight(m_eyeCameras[kEyeRight].getTanFovRight() + m_eyeCameras[kEyeRight].getTanFovLeft());
-		//m_vrDrawCamera->setTanFovLeft (m_eyeCameras[kEyeLeft].getTanFovLeft() + m_eyeCameras[kEyeLeft].getTanFovRight());
-		SetCombinedProjection(m_eyeCameras[kEyeLeft], m_eyeCameras[kEyeRight], *m_vrDrawCamera);
-		m_vrDrawCamera->setClipNear(m_clipNear);
-		m_vrDrawCamera->setClipFar(m_clipFar * 0.005f);
+		//m_vrDrawCamera->setTanFovRight(m_eyeCameras[Eye_Right].getTanFovRight() + m_eyeCameras[Eye_Right].getTanFovLeft());
+		//m_vrDrawCamera->setTanFovLeft (m_eyeCameras[Eye_Left].getTanFovLeft() + m_eyeCameras[Eye_Left].getTanFovRight());
+		SetCombinedProjection(m_eyeCameras[Eye_Left], m_eyeCameras[Eye_Right], *m_vrDrawCamera);
 	}
 }
 
@@ -658,15 +670,15 @@ bool AppSampleVr::initVr()
 	APT_LOG((const char*)descStr);
 
  // init layers = 1 swap chain per layer per eye
-	for (int i = 0; i < kLayerCount; ++i) {
+	for (int i = 0; i < Layer_Count; ++i) {
 		OvrLayer& layer = m_vrCtx->m_layers[i];
 		layer.m_ovrLayer.Header.Type = ovrLayerType_EyeFov;
 		layer.m_ovrLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft; // OpenGL
-		if (i == kLayerText) {
+		if (i == Layer_Text) {
 			layer.m_ovrLayer.Header.Flags |= ovrLayerFlag_HighQuality;
 		}
 
-		for (int j = 0; j < kEyeCount; ++j) {
+		for (int j = 0; j < Eye_Count; ++j) {
 			ovrSizei renderSize = ovr_GetFovTextureSize(m_vrCtx->m_ovrSession, (ovrEyeType)j, m_vrCtx->m_ovrHmdDesc.DefaultEyeFov[j], 1.0f);
 
 		 // \todo per-sample settings for these?
@@ -680,7 +692,7 @@ bool AppSampleVr::initVr()
 			swapDesc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
 			swapDesc.SampleCount = 1;
 			swapDesc.MipLevels = 1;
-			if (i == kLayerText) {
+			if (i == Layer_Text) {
 			 // allocate mip chain for the text layer
 				swapDesc.MipLevels = APT_MIN(Texture::GetMaxMipCount(renderSize.w, renderSize.h), 8); 
 			}
@@ -732,12 +744,12 @@ void AppSampleVr::shutdownVr()
 		ovr_DestroyMirrorTexture(m_vrCtx->m_ovrSession, m_vrCtx->m_ovrMirrorTexture);
 	}
 
-	for (int i = 0; i < kLayerCount; ++i) {
+	for (int i = 0; i < Layer_Count; ++i) {
 		OvrLayer& layer = m_vrCtx->m_layers[i];
 		if (!layer.m_ovrSwapChain) {
 			continue;
 		}
-		for (int j = 0; j < kEyeCount; ++j) {
+		for (int j = 0; j < Eye_Count; ++j) {
 			for (int k = 0; k < layer.m_swapChainLength; ++k) {
 				Framebuffer::Destroy(layer.m_chainFramebuffers[j][k]);
 				Texture::Destroy(layer.m_chainTextures[j][k]);
@@ -760,7 +772,7 @@ void AppSampleVr::drawVuiScreen(const Camera& _cam)
 	ctx->bindTexture("txVuiScreen", m_txVuiScreen);
 	ctx->setUniform ("uScale", vec2(*m_vuiScreenSize * *m_vuiScreenAspect, *m_vuiScreenSize));
 	ctx->setUniform ("uWorldMatrix", m_vuiScreenWorldMatrix);
-	ctx->setUniform ("uViewProjMatrix", _cam.getViewProjMatrix());
+	ctx->setUniform ("uViewProjMatrix", _cam.m_viewProj);
 	drawNdcQuad();
 	glAssert(glDisable(GL_BLEND));
 }
