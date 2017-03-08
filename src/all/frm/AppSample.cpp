@@ -57,8 +57,8 @@ bool AppSample::init(const apt::ArgList& _args)
 	}
 	
  // init FileSystem roots
-	FileSystem::SetRoot(FileSystem::kCommon, "common");
-	FileSystem::SetRoot(FileSystem::kApplication, (const char*)m_name);
+	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
+	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
 
  // load settings from ini
 	m_properties.setIniPath(PathStr("%s.ini", (const char*)m_name));
@@ -72,7 +72,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	bool glCompatibility = props["GlCompatibility"].getValue<bool>();
 	m_glContext = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
 	m_glContext->setVsync((GlContext::Vsync)(*m_vsyncMode - 1));
-	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::kApplication);
+	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::RootType_Application);
 	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
 	if (!ImGui_Init()) {
 		return false;
@@ -85,8 +85,8 @@ bool AppSample::init(const apt::ArgList& _args)
 
 	MeshDesc quadDesc;
 	quadDesc.setPrimitive(MeshDesc::Primitive_TriangleStrip);
-	quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::kFloat32);
-	//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::kFloat32);
+	quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::Float32);
+	//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Float32);
 	float quadVertexData[] = { 
 		-1.0f, -1.0f, //0.0f, 0.0f,
 		 1.0f, -1.0f, //1.0f, 0.0f,
@@ -172,31 +172,31 @@ bool AppSample::update()
 
  // keyboard shortcuts
 	Keyboard* keyboard = Input::GetKeyboard();
-	if (keyboard->wasPressed(Keyboard::kEscape)) {
+	if (keyboard->wasPressed(Keyboard::Key_Escape)) {
 		return false;
 	}
-	if (keyboard->wasPressed(Keyboard::kF1)) {
+	if (keyboard->wasPressed(Keyboard::Key_F1)) {
 		*m_showMenu = !*m_showMenu;
 	}
-	if (keyboard->wasPressed(Keyboard::kF8)) {
+	if (keyboard->wasPressed(Keyboard::Key_F8)) {
 		m_glContext->clearTextureBindings();
 		Texture::ReloadAll();
 	}
-	if (keyboard->wasPressed(Keyboard::kF9)) {
+	if (keyboard->wasPressed(Keyboard::Key_F9)) {
 		m_glContext->setShader(0);
 		Shader::ReloadAll();
 	}
 
-	if (ImGui::IsKeyPressed(Keyboard::kP) && ImGui::IsKeyDown(Keyboard::kLCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_P) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
 		*m_showPropertyEditor = !*m_showPropertyEditor;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::k1) && ImGui::IsKeyDown(Keyboard::kLCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_1) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
 		*m_showProfilerViewer = !*m_showProfilerViewer;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::k2) && ImGui::IsKeyDown(Keyboard::kLCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_2) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
 		*m_showTextureViewer = !*m_showTextureViewer;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::k3) && ImGui::IsKeyDown(Keyboard::kLCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_3) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
 		*m_showShaderViewer = !*m_showShaderViewer;
 	}
 	
@@ -392,9 +392,9 @@ bool AppSample::ImGui_Init()
 		Mesh::Release(g_msImGui);
 	}	
 	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::kFloat32);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::kFloat32);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::kUint8N);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::Float32);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Float32);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::Uint8N);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
 	g_msImGui = Mesh::Create(meshDesc);
 
@@ -439,25 +439,25 @@ bool AppSample::ImGui_Init()
 
 	
  // init ImGui state
-	io.KeyMap[ImGuiKey_Tab]        = Keyboard::kTab;
-    io.KeyMap[ImGuiKey_LeftArrow]  = Keyboard::kLeft;
-    io.KeyMap[ImGuiKey_RightArrow] = Keyboard::kRight;
-    io.KeyMap[ImGuiKey_UpArrow]	   = Keyboard::kUp;
-    io.KeyMap[ImGuiKey_DownArrow]  = Keyboard::kDown;
-	io.KeyMap[ImGuiKey_PageUp]	   = Keyboard::kPageUp;
-    io.KeyMap[ImGuiKey_PageDown]   = Keyboard::kPageDown;
-    io.KeyMap[ImGuiKey_Home]	   = Keyboard::kHome;
-    io.KeyMap[ImGuiKey_End]		   = Keyboard::kEnd;
-    io.KeyMap[ImGuiKey_Delete]	   = Keyboard::kDelete;
-	io.KeyMap[ImGuiKey_Backspace]  = Keyboard::kBackspace;
-    io.KeyMap[ImGuiKey_Enter]	   = Keyboard::kReturn;
-	io.KeyMap[ImGuiKey_Escape]	   = Keyboard::kEscape;
-    io.KeyMap[ImGuiKey_A]		   = Keyboard::kA;
-    io.KeyMap[ImGuiKey_C]		   = Keyboard::kC;
-    io.KeyMap[ImGuiKey_V]		   = Keyboard::kV;
-    io.KeyMap[ImGuiKey_X]		   = Keyboard::kX;
-    io.KeyMap[ImGuiKey_Y]		   = Keyboard::kY;
-    io.KeyMap[ImGuiKey_Z]		   = Keyboard::kZ;
+	io.KeyMap[ImGuiKey_Tab]        = Keyboard::Key_Tab;
+    io.KeyMap[ImGuiKey_LeftArrow]  = Keyboard::Key_Left;
+    io.KeyMap[ImGuiKey_RightArrow] = Keyboard::Key_Right;
+    io.KeyMap[ImGuiKey_UpArrow]	   = Keyboard::Key_Up;
+    io.KeyMap[ImGuiKey_DownArrow]  = Keyboard::Key_Down;
+	io.KeyMap[ImGuiKey_PageUp]	   = Keyboard::Key_PageUp;
+    io.KeyMap[ImGuiKey_PageDown]   = Keyboard::Key_PageDown;
+    io.KeyMap[ImGuiKey_Home]	   = Keyboard::Key_Home;
+    io.KeyMap[ImGuiKey_End]		   = Keyboard::Key_End;
+    io.KeyMap[ImGuiKey_Delete]	   = Keyboard::Key_Delete;
+	io.KeyMap[ImGuiKey_Backspace]  = Keyboard::Key_Backspace;
+    io.KeyMap[ImGuiKey_Enter]	   = Keyboard::Key_Return;
+	io.KeyMap[ImGuiKey_Escape]	   = Keyboard::Key_Escape;
+    io.KeyMap[ImGuiKey_A]		   = Keyboard::Key_A;
+    io.KeyMap[ImGuiKey_C]		   = Keyboard::Key_C;
+    io.KeyMap[ImGuiKey_V]		   = Keyboard::Key_V;
+    io.KeyMap[ImGuiKey_X]		   = Keyboard::Key_X;
+    io.KeyMap[ImGuiKey_Y]		   = Keyboard::Key_Y;
+    io.KeyMap[ImGuiKey_Z]		   = Keyboard::Key_Z;
 	io.DisplayFramebufferScale     = ImVec2(1.0f, 1.0f);
 	io.RenderDrawListsFn           = ImGui_RenderDrawLists;
 	io.IniSavingRate               = -1.0f; // never save automatically
@@ -600,7 +600,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 	 // upload vertex/index data
 		g_msImGui->setVertexData((GLvoid*)&drawList->VtxBuffer.front(), (GLsizeiptr)drawList->VtxBuffer.size(), GL_STREAM_DRAW);
 		APT_STATIC_ASSERT(sizeof(ImDrawIdx) == sizeof(uint16)); // need to change the index data type if this fails
-		g_msImGui->setIndexData(DataType::kUint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
+		g_msImGui->setIndexData(DataType::Uint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
 	
 	 // dispatch draw commands
 		for (const ImDrawCmd* pcmd = drawList->CmdBuffer.begin(); pcmd != drawList->CmdBuffer.end(); ++pcmd) {
@@ -641,9 +641,9 @@ bool AppSample::ImGui_OnMouseButton(Window* _window, unsigned _button, bool _isD
 	ImGuiIO& io = ImGui::GetIO();
 	APT_ASSERT(_button < APT_ARRAY_COUNT(io.MouseDown)); // button index out of bounds
 	switch ((Mouse::Button)_button) {
-		case Mouse::kLeft:    io.MouseDown[0] = _isDown; break;
-		case Mouse::kRight:   io.MouseDown[1] = _isDown; break;
-		case Mouse::kMiddle:  io.MouseDown[2] = _isDown; break;
+		case Mouse::Button_Left:    io.MouseDown[0] = _isDown; break;
+		case Mouse::Button_Right:   io.MouseDown[1] = _isDown; break;
+		case Mouse::Button_Middle:  io.MouseDown[2] = _isDown; break;
 		default: break;
 	};
 	
@@ -662,17 +662,17 @@ bool AppSample::ImGui_OnKey(Window* _window, unsigned _key, bool _isDown)
 	io.KeysDown[_key] = _isDown;
 
 	// handle modifiers
-	switch ((Keyboard::Button)_key) {
-		case Keyboard::kLCtrl:
-		case Keyboard::kRCtrl:
+	switch ((Keyboard::Key)_key) {
+		case Keyboard::Key_LCtrl:
+		case Keyboard::Key_RCtrl:
 			io.KeyCtrl = _isDown;
 			break;
-		case Keyboard::kLShift:
-		case Keyboard::kRShift:
+		case Keyboard::Key_LShift:
+		case Keyboard::Key_RShift:
 			io.KeyShift = _isDown;
 			break;			
-		case Keyboard::kLAlt:
-		case Keyboard::kRAlt:
+		case Keyboard::Key_LAlt:
+		case Keyboard::Key_RAlt:
 			io.KeyAlt = _isDown;
 			break;
 		default: 

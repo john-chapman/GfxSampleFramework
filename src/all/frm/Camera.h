@@ -60,9 +60,10 @@ public:
 	void setPerspective(float _fovVertical, float _aspect, float _near, float _far, uint32 _flags = ProjFlag_Default);
 	// Set an asymmetrical (oblique) perspective projection.
 	void setPerspective(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags = ProjFlag_Default | ProjFlag_Asymmetrical);
-	
-	float getAspect() const               { return (fabs(m_right) + fabs(m_left)) / (fabs(m_up) + fabs(m_down)); }
-	void  setAspect(float _aspect);  // forces a symmetrical projection
+	// Set an asymmetrical orthographic projection. _up/_down/_left/_right are ­±world units from the view plane origin.
+	void setOrtho(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags = ProjFlag_Orthographic | ProjFlag_Asymmetrical);
+	// Force a symmetrical projection with the specified aspect ratio.
+	void setAspectRatio(float _aspectRatio);
 
 	
 	// Update the derived members (view matrix + world frustum, proj matrix + local frustum if dirty).
@@ -98,6 +99,7 @@ public:
 	mat4    m_view;
 	mat4    m_proj;
 	mat4    m_viewProj;
+	float   m_aspectRatio;    // Derived from the projection parameters.
 
 	Frustum m_localFrustum;   // Derived from the projection parameters.
 	Frustum m_worldFrustum;   // World space frustum (use for culling).

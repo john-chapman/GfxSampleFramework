@@ -43,13 +43,16 @@ public:
 	GLenum getIndexDataType() const                    { return m_indexDataType; }
 	GLenum getPrimitive() const                        { return m_primitive;     }
 
+	const AlignedBox& getBoundingBox() const           { return m_submeshes[0].m_boundingBox;    }
+	const Sphere&     getBoundingSphere() const        { return m_submeshes[0].m_boundingSphere; }
+
 private:
-	apt::String<32> m_path; // Empty if not from a file.
+	apt::String<32> m_path; // empty if not from a file
 
 	MeshDesc m_desc;
 	std::vector<MeshData::Submesh> m_submeshes;
 
-	GLuint m_vertexArray;   // Vertex array state (only bind this when drawing).
+	GLuint m_vertexArray;   // vertex array state (only bind this when drawing)
 	GLuint m_vertexBuffer;
 	GLuint m_indexBuffer;
 	GLenum m_indexDataType;

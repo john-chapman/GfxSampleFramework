@@ -104,20 +104,20 @@ int frm::internal::ShaderStageToIndex(GLenum _stage)
 GLenum frm::internal::GlDataTypeToEnum(DataType _type)
 {
 	switch (_type) {
-		case DataType::kSint8:
-		case DataType::kSint8N:   return GL_BYTE;
-		case DataType::kSint16:
-		case DataType::kSint16N:  return GL_SHORT;
-		case DataType::kSint32:
-		case DataType::kSint32N:  return GL_INT;
-		case DataType::kUint8: 
-		case DataType::kUint8N:   return GL_UNSIGNED_BYTE;
-		case DataType::kUint16:
-		case DataType::kUint16N:  return GL_UNSIGNED_SHORT;
-		case DataType::kUint32:
-		case DataType::kUint32N:  return GL_UNSIGNED_INT;
-		case DataType::kFloat16:  return GL_HALF_FLOAT;
-		case DataType::kFloat32:  return GL_FLOAT;
+		case DataType::Sint8:
+		case DataType::Sint8N:   return GL_BYTE;
+		case DataType::Sint16:
+		case DataType::Sint16N:  return GL_SHORT;
+		case DataType::Sint32:
+		case DataType::Sint32N:  return GL_INT;
+		case DataType::Uint8: 
+		case DataType::Uint8N:   return GL_UNSIGNED_BYTE;
+		case DataType::Uint16:
+		case DataType::Uint16N:  return GL_UNSIGNED_SHORT;
+		case DataType::Uint32:
+		case DataType::Uint32N:  return GL_UNSIGNED_INT;
+		case DataType::Float16:  return GL_HALF_FLOAT;
+		case DataType::Float32:  return GL_FLOAT;
 		default:                  APT_ASSERT(false); return GL_INVALID_VALUE;
 	};
 }

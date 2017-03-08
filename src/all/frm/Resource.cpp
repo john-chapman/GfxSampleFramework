@@ -17,10 +17,10 @@ void Resource<tDerived>::Use(Derived* _inst_)
 {
 	if (_inst_) {
 		++(_inst_->m_refs);
-		if (_inst_->m_refs == 1) {
-			_inst_->m_state = kError;
+		if (_inst_->m_refs == 1 && _inst_->m_state != State_Loaded) {
+			_inst_->m_state = State_Error;
 			if (_inst_->load()) {
-				_inst_->m_state = kLoaded;
+				_inst_->m_state = State_Loaded;
 			}
 		}
 	}
@@ -132,7 +132,7 @@ void Resource<tDerived>::init(Id _id, const char* _name)
  // prior to calling the Resource ctor
 	APT_ASSERT_MSG(Find(_id) == 0, "Resource '%s' already exists", _name);
 
-	m_state = State::kUnloaded;
+	m_state = State::State_Unloaded;
 	m_id = _id;
 	m_name.set(_name);
 	m_refs = 0;

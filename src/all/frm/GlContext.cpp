@@ -156,7 +156,7 @@ void GlContext::setShader(const Shader* _shader)
 	if (_shader == m_currentShader) {
 		return;
 	}
-	if (!_shader || _shader->getState() != Shader::State::kLoaded) {
+	if (!_shader || _shader->getState() != Shader::State_Loaded) {
 		glAssert(glUseProgram(0));
 	} else {
 		glAssert(glUseProgram(_shader->getHandle()));
@@ -238,7 +238,7 @@ void GlContext::setMesh(const Mesh* _mesh, int _submeshId)
 	if (_mesh == m_currentMesh) {
 		return;
 	}
-	if (!_mesh || _mesh->getState() != Mesh::State::kLoaded) {
+	if (!_mesh || _mesh->getState() != Mesh::State_Loaded) {
 		glAssert(glBindVertexArray(0));
 	} else {
 		glAssert(glBindVertexArray(_mesh->getVertexArrayHandle()));

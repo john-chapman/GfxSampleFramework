@@ -93,7 +93,7 @@ void Sphere::transform(const mat4& _mat)
 	m_origin *= maxScale;
 
  // translate after scaling
-	m_origin = m_origin + vec3(column(_mat, 3));
+	m_origin = vec3(_mat * vec4(m_origin, 1.0f));
 }
 
 /*******************************************************************************
@@ -261,36 +261,36 @@ vec3 Capsule::getOrigin() const
 
 *******************************************************************************/
 
-Frustum::Frustum(float _aspect, float _tanHalfFov, float _clipNear, float _clipFar)
+Frustum::Frustum(float _aspect, float _tanHalfFov, float _near, float _far)
 {
 	/*if (_isOrtho) {
-		float right = tanHalfFov * _clipFar * _aspect;
-		float up = tanHalfFov * _clipFar;
+		float right = tanHalfFov * _far * _aspect;
+		float up = tanHalfFov * _far;
 	 // near plane
-		m_vertices[0] = vec3( right,  up, -_clipNear);
-		m_vertices[1] = vec3(-right,  up, -_clipNear);
-		m_vertices[2] = vec3(-right, -up, -_clipNear);
-		m_vertices[3] = vec3( right, -up, -_clipNear);
+		m_vertices[0] = vec3( right,  up, -_near);
+		m_vertices[1] = vec3(-right,  up, -_near);
+		m_vertices[2] = vec3(-right, -up, -_near);
+		m_vertices[3] = vec3( right, -up, -_near);
 	 // far plane
-		m_vertices[4] = vec3( right,  up, -_clipFar);
-		m_vertices[5] = vec3(-right,  up, -_clipFar);
-		m_vertices[6] = vec3(-right, -up, -_clipFar);
-		m_vertices[7] = vec3( right, -up, -_clipFar);
+		m_vertices[4] = vec3( right,  up, -_far);
+		m_vertices[5] = vec3(-right,  up, -_far);
+		m_vertices[6] = vec3(-right, -up, -_far);
+		m_vertices[7] = vec3( right, -up, -_far);
 	} else {*/
-	 	float ny = _tanHalfFov * _clipNear;
+	 	float ny = _tanHalfFov * _near;
 		float nx = _aspect * ny;
 	 // near plane
-		m_vertices[0] = vec3( nx,  ny, -_clipNear);
-		m_vertices[1] = vec3(-nx,  ny, -_clipNear);
-		m_vertices[2] = vec3(-nx, -ny, -_clipNear);
-		m_vertices[3] = vec3( nx, -ny, -_clipNear);
+		m_vertices[0] = vec3( nx,  ny, -_near);
+		m_vertices[1] = vec3(-nx,  ny, -_near);
+		m_vertices[2] = vec3(-nx, -ny, -_near);
+		m_vertices[3] = vec3( nx, -ny, -_near);
 	//	far plane
-		float fy = _tanHalfFov * _clipFar;
+		float fy = _tanHalfFov * _far;
 		float fx = _aspect * fy;
-		m_vertices[4] = vec3( fx,  fy, -_clipFar);
-		m_vertices[5] = vec3(-fx,  fy, -_clipFar);
-		m_vertices[6] = vec3(-fx, -fy, -_clipFar);
-		m_vertices[7] = vec3( fx, -fy, -_clipFar);
+		m_vertices[4] = vec3( fx,  fy, -_far);
+		m_vertices[5] = vec3(-fx,  fy, -_far);
+		m_vertices[6] = vec3(-fx, -fy, -_far);
+		m_vertices[7] = vec3( fx, -fy, -_far);
 	/*}*/
 
 	initPlanes();
@@ -346,21 +346,21 @@ Frustum::Frustum(const Frustum& _left, const Frustum& _right)
 	initPlanes();
 }
 
-Frustum::Frustum(const Frustum& _base, float _clipNear, float _clipFar)
+Frustum::Frustum(const Frustum& _base, float _nearOffset, float _farOffset)
 {
 	float d = length(_base.m_planes[Plane_Far].getOrigin() - _base.m_planes[Plane_Near].getOrigin());
-	float n = _clipNear / d;
-	float f = _clipFar  / d;
+	float n = _nearOffset / d;
+	float f = _farOffset  / d;
 	for (int i = 0; i < 4; ++i) {
 		m_vertices[i]     = mix(_base.m_vertices[i], _base.m_vertices[i + 4], n);
-		m_vertices[i + 4] = mix(_base.m_vertices[i], _base.m_vertices[i + 4], f);
+		m_vertices[i + 4] = mix(_base.m_vertices[i], _base.m_vertices[i + 4], 1.0f + f);
 	}
 	initPlanes();
 }
 
 void Frustum::transform(const mat4& _mat)
 {
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < Plane_Count; ++i) {
 		m_planes[i].transform(_mat);
 	}
 	for (int i = 0; i < 8; ++i) {
@@ -370,7 +370,7 @@ void Frustum::transform(const mat4& _mat)
 
 bool Frustum::inside(const Sphere& _sphere) const
 {
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < Plane_Count; ++i) {
 		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
 			return false;
 		}
@@ -380,7 +380,7 @@ bool Frustum::inside(const Sphere& _sphere) const
 
 bool Frustum::insideIgnoreNear(const Sphere& _sphere) const
 {
-	for (int i = 1; i < 6; ++i) {
+	for (int i = 1; i < Plane_Count; ++i) {
 		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
 			return false;
 		}
