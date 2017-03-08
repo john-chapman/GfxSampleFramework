@@ -38,6 +38,7 @@ class Camera
 public:
 	enum ProjFlag
 	{
+		ProjFlag_Perspective  = 0,
 		ProjFlag_Orthographic = 1 << 0,
 		ProjFlag_Asymmetrical = 1 << 1,
 		ProjFlag_Infinite     = 1 << 2,
