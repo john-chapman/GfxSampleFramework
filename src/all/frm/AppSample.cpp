@@ -166,7 +166,7 @@ bool AppSample::update()
 		window->getWindowRelativeCursor(&x, &y);
 		ImGui::GetIO().MousePos = ImVec2((float)x, (float)y);
 	}
-	ImGui_OverrideIo();
+	overrideInput(); // must call after Input::PollAllDevices (App::update()) but before ImGui_Update
 	ImGui_Update(this);
 
  // keyboard shortcuts
