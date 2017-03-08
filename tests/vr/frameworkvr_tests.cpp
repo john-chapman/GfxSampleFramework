@@ -56,9 +56,9 @@ public:
 	{
 		if (isVrMode()) {
 			GlContext* ctx = getGlContext();
-			for (int eye = 0; eye < kEyeCount; ++eye) {
-				commitEye((Eye)eye, kLayerMain);
-				commitEye((Eye)eye, kLayerText);
+			for (int eye = 0; eye < Eye_Count; ++eye) {
+				commitEye((Eye)eye, Layer_Main);
+				commitEye((Eye)eye, Layer_Text);
 			}
 		}
 

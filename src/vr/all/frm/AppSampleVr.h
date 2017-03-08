@@ -8,30 +8,25 @@
 #include <frm/Camera.h>
 #include <frm/Scene.h>
 
-#include <frm/im3d.h>
-
 namespace frm {
 
-////////////////////////////////////////////////////////////////////////////////
-/// \class AppSampleVr
-////////////////////////////////////////////////////////////////////////////////
 class AppSampleVr: public AppSample3d
 {
 public:
 	enum Eye
 	{
-		kEyeLeft,
-		kEyeRight,
+		Eye_Left,
+		Eye_Right,
 		
-		kEyeCount
+		Eye_Count
 	};
 
 	enum Layer
 	{
-		kLayerMain,
-		kLayerText,
+		Layer_Main,
+		Layer_Text,
 
-		kLayerCount
+		Layer_Count
 	};
 	
 	virtual bool init(const apt::ArgList& _args) override;
@@ -55,20 +50,20 @@ protected:
 
 	const Camera&  getEyeCamera(Eye _eye) { return m_eyeCameras[_eye]; }
 
-	/// \return Current texture for the specified _eye/_layer.
+	// Current texture for the specified _eye/_layer.
 	const Texture* getEyeTexture(Eye _eye, Layer _layer);
 
-	/// \return Current framebuffer for the specified _eye/_layer.
+	// Current framebuffer for the specified _eye/_layer.
 	const Framebuffer* getEyeFramebuffer(Eye _eye, Layer _layer);
 
-	/// Signal that rendering is complete for the specified _eye/_layer.
-	/// \note UI rendering to kLayerText occurs here.
+	// Signal that rendering is complete for the specified _eye/_layer.
+	// \note UI rendering to Layer_Text occurs here.
 	void commitEye(Eye _eye, Layer _layer);
 
-	/// Poll the HMD position, update eye poses.
+	// Poll the HMD position, update eye poses.
 	void pollHmd();
 
-	/// Recent origin to HMD position (+ vertical offset).
+	// Recent origin to HMD position (+ vertical offset).
 	void recenter();
 
 private:
@@ -76,15 +71,15 @@ private:
 	bool         m_disableRender;
 	bool         m_showGazeCursor;
 
-	float        m_eyeFovScale;         //< Global fov scale (use with caution).
+	float        m_eyeFovScale;         // Global fov scale (use with caution).
 	float        m_clipNear, m_clipFar;
 
 	Camera       m_eyeCameras[2];
-	Camera*      m_vrDrawCamera;        //< Combined eye cameras, override scene cull/draw camera for Im3d, etc.
-	Camera*      m_sceneDrawCamera;     //< Store/restore when entering/leaving VR mode.
-	Node*        m_nodeOrigin;          //< VR origin (parent of head).
+	Camera*      m_vrDrawCamera;        // Combined eye cameras, override scene cull/draw camera for Im3d, etc.
+	Camera*      m_sceneDrawCamera;     // Store/restore when entering/leaving VR mode.
+	Node*        m_nodeOrigin;          // VR origin (parent of head).
 	Node*        m_nodeHead;
-	float*       m_userHeight;          //< User height property, meters.
+	float*       m_userHeight;          // User height property, meters.
 	
 	vec2         m_headRotationDelta; // \todo encapsulte in gaze cursor?
 
