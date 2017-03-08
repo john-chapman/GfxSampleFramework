@@ -140,7 +140,7 @@ Node::~Node()
 		Node* n = *it;
 		n->m_parent = nullptr; // prevent m_parent->addChild calling removeChild on this (invalidates it)
 		if (m_parent) {
-			m_parent->addChild(n->m_parent);
+			m_parent->addChild(n);
 		}
 	}
  // de-parent this
