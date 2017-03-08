@@ -12,7 +12,6 @@
 #include <frm/Texture.h>
 #include <frm/Window.h>
 #include <frm/ui/Log.h>
-#include <frm/ui/ProfilerViewer.h>
 
 #include <apt/ArgList.h>
 #include <apt/File.h>

@@ -85,12 +85,12 @@ public:
 	// Access to profiler frames. 0 is the oldest frame in the history buffer.
 	static const GpuFrame&  GetGpuFrame(uint _i);
 	static uint             GetGpuFrameCount();
-	static const uint64     GetGpuAvgFrameDuration();
+	static uint64           GetGpuAvgFrameDuration();
 	// Access to marker data. Unlike access to frame data, the index accesses the internal ring buffer directly.
 	static const GpuMarker& GetGpuMarker(uint _i);
 
 	// Reset Cpu->Gpu offset (call if the graphics context changes).
-	static void ResetGpuOffset();
+	static void   ResetGpuOffset();
 
 	class CpuAutoMarker
 	{
