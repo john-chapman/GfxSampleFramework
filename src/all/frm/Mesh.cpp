@@ -43,7 +43,7 @@ Mesh* Mesh::Create(const char* _path)
 		ret->m_path.set(_path);
 	}
 	Use(ret);
-	if (ret->getState() != kLoaded) {
+	if (ret->getState() != State_Loaded) {
 	 // \todo replace with default
 	}
 	return ret;
@@ -175,7 +175,7 @@ void Mesh::unload()
 		m_indexBuffer = 0;
 	}
 	m_submeshes.clear();
-	setState(State::kUnloaded);
+	setState(State_Unloaded);
 }
 
 
@@ -192,7 +192,7 @@ void Mesh::load(const MeshData& _data)
 	if (_data.m_indexData) {
 		setIndexData((DataType)_data.m_indexDataType, _data.m_indexData, _data.getIndexCount(), GL_STATIC_DRAW);
 	}
-	setState(State::kLoaded);
+	setState(State_Loaded);
 }
 
 void Mesh::load(const MeshDesc& _desc)
@@ -200,5 +200,5 @@ void Mesh::load(const MeshDesc& _desc)
 	m_desc = _desc;
 	m_primitive = PrimitiveToGl(_desc.getPrimitive());
 	glAssert(glGenVertexArrays(1, &m_vertexArray));
-	setState(State::kLoaded);
+	setState(State_Loaded);
 }

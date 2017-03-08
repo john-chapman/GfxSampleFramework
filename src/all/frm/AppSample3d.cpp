@@ -71,21 +71,21 @@ bool AppSample3d::update()
 		int winY = win->getHeight();
 		if (winX != 0 && winY != 0) {
 			float aspect = (float)winX / (float)winY;
-			if (currentCamera->getAspect() != aspect) {
-				currentCamera->setAspect(aspect);
+			if (currentCamera->m_aspectRatio != aspect) {
+				currentCamera->setAspectRatio(aspect);
 			}
 		}
 	}
 
  // keyboard shortcuts
 	Keyboard* keyb = Input::GetKeyboard();
-	if (keyb->wasPressed(Keyboard::kF2)) {
+	if (keyb->wasPressed(Keyboard::Key_F2)) {
 		*m_showHelpers = !*m_showHelpers;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::kO) && ImGui::IsKeyDown(Keyboard::kLCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_O) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
 		*m_showSceneEditor = !*m_showSceneEditor;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::kC) && ImGui::IsKeyDown(Keyboard::kLCtrl) && ImGui::IsKeyDown(Keyboard::kLShift)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_C) && ImGui::IsKeyDown(Keyboard::Key_LCtrl) && ImGui::IsKeyDown(Keyboard::Key_LShift)) {
 		if (m_dbgCullCamera) {
 			scene.destroyCamera(m_dbgCullCamera);
 			scene.setCullCamera(scene.getDrawCamera());
@@ -247,6 +247,33 @@ void AppSample3d::DrawFrustum(const Frustum& _frustum)
 		Im3d::Vertex(verts[6]);
 		Im3d::Vertex(verts[7]);
 	Im3d::End();
+
+ // plane normals
+ //  4------------5
+ //  |\          /|
+ //  7-\--------/-6
+ //   \ 0------1 /
+ //    \|      |/
+ //     3------2
+	/*struct FrustumPlane { int m_index; int m_vertices[4]; };
+	static const FrustumPlane fplanes[6] = {
+		{ Frustum::Plane_Near,   { 0, 1, 3, 2 } },
+		{ Frustum::Plane_Far,    { 4, 5, 7, 6 } },
+		{ Frustum::Plane_Right,  { 1, 5, 2, 6 } },
+		{ Frustum::Plane_Left,   { 0, 4, 3, 7 } },
+		{ Frustum::Plane_Top,    { 4, 5, 0, 1 } },
+		{ Frustum::Plane_Bottom, { 7, 6, 3, 2 } }
+	};
+	Im3d::PushColor(Im3d::Color(1.0f, 0.2f, 0.1f, 0.75f));
+	Im3d::PushSize(4.0f);
+	for (int i = 0; i < 6; ++i) {
+		const FrustumPlane& fp = fplanes[i];
+		vec3 origin = mix(mix(verts[fp.m_vertices[0]], verts[fp.m_vertices[1]], 0.5f), mix(verts[fp.m_vertices[2]], verts[fp.m_vertices[3]], 0.5f), 0.5f);
+		Im3d::DrawArrow(origin, origin + _frustum.m_planes[fp.m_index].m_normal, 0.15f);
+	}
+	Im3d::PopSize();
+	Im3d::PopColor();
+	*/
 }
 
 AppSample3d::AppSample3d(const char* _title)
@@ -291,8 +318,8 @@ bool AppSample3d::Im3d_Init()
 
 
 	MeshDesc meshDesc(MeshDesc::Primitive_Points);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 4, DataType::kFloat32);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::kUint8N);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, 4, DataType::Float32);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    4, DataType::Uint8N);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::VertexData));
 	s_msIm3dPoints = Mesh::Create(meshDesc);
 	meshDesc.setPrimitive(MeshDesc::Primitive_Lines);
@@ -333,14 +360,14 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	ad.m_worldUp = vec3(0.0f, 1.0f, 0.0f);
 
 	Mouse* mouse = Input::GetMouse();	
-	ad.m_keyDown[Im3d::Mouse_Left/*Im3d::Action_Select*/] = mouse->isDown(Mouse::kLeft);
+	ad.m_keyDown[Im3d::Mouse_Left/*Im3d::Action_Select*/] = mouse->isDown(Mouse::Button_Left);
 
 	Keyboard* keyb = Input::GetKeyboard();
-	bool ctrlDown = keyb->isDown(Keyboard::kLCtrl);
-	ad.m_keyDown[Im3d::Key_L/*Action_GizmoLocal*/]       = ctrlDown && keyb->wasPressed(Keyboard::kL);
-	ad.m_keyDown[Im3d::Key_T/*Action_GizmoTranslation*/] = ctrlDown && keyb->wasPressed(Keyboard::kT);
-	ad.m_keyDown[Im3d::Key_R/*Action_GizmoRotation*/]    = ctrlDown && keyb->wasPressed(Keyboard::kR);
-	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::kS);
+	bool ctrlDown = keyb->isDown(Keyboard::Key_LCtrl);
+	ad.m_keyDown[Im3d::Key_L/*Action_GizmoLocal*/]       = ctrlDown && keyb->wasPressed(Keyboard::Key_L);
+	ad.m_keyDown[Im3d::Key_T/*Action_GizmoTranslation*/] = ctrlDown && keyb->wasPressed(Keyboard::Key_T);
+	ad.m_keyDown[Im3d::Key_R/*Action_GizmoRotation*/]    = ctrlDown && keyb->wasPressed(Keyboard::Key_R);
+	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::Key_S);
 
 	Im3d::NewFrame();
 }

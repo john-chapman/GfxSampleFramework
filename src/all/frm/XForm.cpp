@@ -63,7 +63,7 @@ const XForm::Callback* XForm::FindCallback(OnComplete* _callback)
 }
 bool XForm::SerializeCallback(const char* _name, OnComplete*& _callback, JsonSerializer& _serializer_)
 {
-	if (_serializer_.getMode() == JsonSerializer::kRead) {
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		String<64> tmp;
 		_serializer_.value(_name, (StringBase&)tmp);
 		const Callback* cbk = FindCallback(StringHash(tmp));
@@ -165,35 +165,35 @@ void XForm_FreeCamera::apply(float _dt)
 	bool isAccel = false;
 	vec3 dir = vec3(0.0);		
 	if (gpad) {			
-		float x = gpad->getAxisState(Gamepad::kLeftStickX);
-		float y = gpad->getAxisState(Gamepad::kLeftStickY);
-		float z = gpad->isDown(Gamepad::kRight1) ? 1.0f : (gpad->isDown(Gamepad::kLeft1) ? -1.0f : 0.0f);
+		float x = gpad->getAxisState(Gamepad::Axis_LeftStickX);
+		float y = gpad->getAxisState(Gamepad::Axis_LeftStickY);
+		float z = gpad->isDown(Gamepad::Button_Right1) ? 1.0f : (gpad->isDown(Gamepad::Button_Left1) ? -1.0f : 0.0f);
 		dir += vec3(column(localMatrix, 0)) * x;
 		dir += vec3(column(localMatrix, 2)) * y;
 		dir += vec3(column(localMatrix, 1)) * z;
 		isAccel = abs(x + y + z) > 0.0f;
 	}
-	if (keyb->isDown(Keyboard::kW)) {
+	if (keyb->isDown(Keyboard::Key_W)) {
 		dir -= vec3(column(localMatrix, 2));
 		isAccel = true;
 	}
-	if (keyb->isDown(Keyboard::kA)) {
+	if (keyb->isDown(Keyboard::Key_A)) {
 		dir -= vec3(column(localMatrix, 0));
 		isAccel = true;
 	}
-	if (keyb->isDown(Keyboard::kS)) {
+	if (keyb->isDown(Keyboard::Key_S)) {
 		dir += vec3(column(localMatrix, 2));
 		isAccel = true;
 	}
-	if (keyb->isDown(Keyboard::kD)) {
+	if (keyb->isDown(Keyboard::Key_D)) {
 		dir += vec3(column(localMatrix, 0));
 		isAccel = true;
 	}
-	if (keyb->isDown(Keyboard::kQ)) {
+	if (keyb->isDown(Keyboard::Key_Q)) {
 		dir -= vec3(column(localMatrix, 1));
 		isAccel = true;
 	}
-	if (keyb->isDown(Keyboard::kE)) {
+	if (keyb->isDown(Keyboard::Key_E)) {
 		dir += vec3(column(localMatrix, 1));
 		isAccel = true;
 	}
@@ -207,9 +207,9 @@ void XForm_FreeCamera::apply(float _dt)
 	m_accelCount = clamp(m_accelCount, 0.0f, m_accelTime);
 	m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
 	if (gpad) {
-		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::kRightTrigger);
+		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
 	}
-	if (keyb->isDown(Keyboard::kLShift)) {
+	if (keyb->isDown(Keyboard::Key_LShift)) {
 		m_speed *= m_maxSpeedMul;
 	}
 	float len2 = apt::length2(m_velocity);
@@ -221,12 +221,12 @@ void XForm_FreeCamera::apply(float _dt)
 
 	Mouse* mouse = Input::GetMouse();
 	if (gpad) {
-		m_pitchYawRoll.x -= gpad->getAxisState(Gamepad::kRightStickY) * 16.0f * _dt;//* m_rotationInputMul * 6.0f; // \todo setter for this?
-		m_pitchYawRoll.y -= gpad->getAxisState(Gamepad::kRightStickX) * 16.0f * _dt;//* m_rotationInputMul * 6.0f;
+		m_pitchYawRoll.x -= gpad->getAxisState(Gamepad::Axis_RightStickY) * 16.0f * _dt;//* m_rotationInputMul * 6.0f; // \todo setter for this?
+		m_pitchYawRoll.y -= gpad->getAxisState(Gamepad::Axis_RightStickX) * 16.0f * _dt;//* m_rotationInputMul * 6.0f;
 	}
-	if (mouse->isDown(Mouse::kRight)) {
-		m_pitchYawRoll.x -= mouse->getAxisState(Mouse::kY) * m_rotationInputMul;
-		m_pitchYawRoll.y -= mouse->getAxisState(Mouse::kX) * m_rotationInputMul;
+	if (mouse->isDown(Mouse::Button_Right)) {
+		m_pitchYawRoll.x -= mouse->getAxisState(Mouse::Axis_Y) * m_rotationInputMul;
+		m_pitchYawRoll.y -= mouse->getAxisState(Mouse::Axis_X) * m_rotationInputMul;
 	}
 	quat qpitch     = angleAxis(m_pitchYawRoll.x * _dt, vec3(column(localMatrix, 0)));
 	quat qyaw       = angleAxis(m_pitchYawRoll.y * _dt, vec3(0.0f, 1.0f, 0.0f));
@@ -581,14 +581,14 @@ struct XForm_VRGamepad: public XForm
 	
 		bool isAccel = false;		
 		vec3 dir = vec3(0.0);		
-		float x = gpad->getAxisState(Gamepad::kLeftStickX);
+		float x = gpad->getAxisState(Gamepad::Axis_LeftStickX);
 		dir += vec3(cosTheta, 0.0f, -sinTheta) * x;
-		float y = gpad->getAxisState(Gamepad::kLeftStickY);
+		float y = gpad->getAxisState(Gamepad::Axis_LeftStickY);
 		dir += vec3(sinTheta, 0.0f, cosTheta) * y;
-		if (gpad->isDown(Gamepad::kLeft1)) {
+		if (gpad->isDown(Gamepad::Button_Left1)) {
 			dir -= vec3(0.0f, 1.0f, 0.0f);
 		}
-		if (gpad->isDown(Gamepad::kRight1)) {
+		if (gpad->isDown(Gamepad::Button_Right1)) {
 			dir += vec3(0.0f, 1.0f, 0.0f);
 		}
 		isAccel = true;
@@ -602,14 +602,14 @@ struct XForm_VRGamepad: public XForm
 		m_accelCount += isAccel ? _dt : -_dt;
 		m_accelCount = apt::clamp(m_accelCount, 0.0f, m_accelTime);
 		m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
-		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::kRightTrigger);
+		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
 		float len = apt::length(m_velocity);
 		if (len > 0.0f) {
 			m_velocity = (m_velocity / len) * m_speed;
 		}
 		m_position += m_velocity * _dt;
 	
-		m_yaw -= gpad->getAxisState(Gamepad::kRightStickX) * 0.5f * _dt;//* m_rotationInputMul * 6.0f;
+		m_yaw -= gpad->getAxisState(Gamepad::Axis_RightStickX) * 0.5f * _dt;//* m_rotationInputMul * 6.0f;
 		m_orientation += m_yaw;
 		m_yaw *= powf(m_rotationDamp, _dt);
 

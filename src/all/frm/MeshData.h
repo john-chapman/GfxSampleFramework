@@ -34,7 +34,7 @@ public:
 	
 	VertexAttr()
 		: m_semantic(Semantic_Count)
-		, m_dataType((uint8)DataType::kInvalidType)
+		, m_dataType((uint8)DataType::InvalidType)
 		, m_count(0)
 		, m_offset(0)
 	{
@@ -120,6 +120,10 @@ public:
 	bool operator==(const MeshDesc& _rhs) const;
 	bool operator!=(const MeshDesc& _lhs) const  { return !(*this == _lhs); }
 
+	int getVertexAttrCount() const             { return m_vertexAttrCount; }
+	const VertexAttr& operator[](int _i) const { APT_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
+	      VertexAttr& operator[](int _i)       { APT_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
+
 private:
 	static const int  kMaxVertexAttrCount = VertexAttr::Semantic_Count + 1;
 	VertexAttr        m_vertexDesc[kMaxVertexAttrCount];
@@ -143,9 +147,9 @@ class MeshData: private apt::non_copyable<MeshData>
 public:
 	struct Submesh
 	{ 
-		uint       m_indexOffset;
+		uint       m_indexOffset;  // bytes
 		uint       m_indexCount;
-		uint       m_vertexOffset;
+		uint       m_vertexOffset; // bytes
 		uint       m_vertexCount;
 		uint       m_materialId;
 		AlignedBox m_boundingBox;
@@ -210,6 +214,9 @@ protected:
 
 	// \todo 
 	void beginSubmesh(uint _materialId);
+	void addSubmeshVertexData(const void* _src, uint _vertexCount);
+	void addSubmeshIndexData(const void* _src, uint _indexCount);
+	void updateSubmeshBounds(Submesh& _submesh); // computes the bounds from vertex positions
 	void endSubmesh();
 
 	MeshData();
@@ -217,10 +224,10 @@ protected:
 	MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder);
 	~MeshData();
 
-	void updateSubmeshBounds(Submesh& _submesh);
 	
 	static bool ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
 	static bool ReadBlend(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
+
 }; // class MeshData
 
 
@@ -237,7 +244,7 @@ public:
 		vec3   m_position;
 		vec2   m_texcoord;
 		vec3   m_normal;
-		vec3   m_tangent;
+		vec4   m_tangent; // use tangent w to handle mirroring \todo this should be a separate attribute?
 		vec4   m_color;
 		vec4   m_boneWeights;
 		uvec4  m_boneIndices;
@@ -258,31 +265,41 @@ public:
 
 	MeshBuilder();
 
-	void              transform(const mat4& _mat);
-	void              transformTexcoords(const mat3& _mat);
-	void              transformColors(const mat4& _mat);
-	void              normalizeBoneWeights();
-	void              generateNormals();
-	void              generateTangents();
-	void              updateBounds();
+	void               transform(const mat4& _mat);
+	void               transformTexcoords(const mat3& _mat);
+	void               transformColors(const mat4& _mat);
+	void               normalizeBoneWeights();
+	void               generateNormals();
+	void               generateTangents();
+	void               updateBounds();
 
-	uint32            addTriangle(uint32 _a, uint32 _b, uint32 _c);
-	uint32            addTriangle(const Triangle& _triangle);
-	uint32            addVertex(const Vertex& _vertex);
+	uint32             addTriangle(uint32 _a, uint32 _b, uint32 _c);
+	uint32             addTriangle(const Triangle& _triangle);
+	uint32             addVertex(const Vertex& _vertex);
+	
+	void               addVertexData(const MeshDesc& _desc, const void* _data, uint32 _count);
+	void               addIndexData(DataType _type, const void* _data, uint32 _count);
 
-	Vertex&           getVertex(uint32 _i)         { APT_ASSERT(_i < getVertexCount()); return m_vertices[_i]; }
-	const Vertex&     getVertex(uint32 _i) const   { APT_ASSERT(_i < getVertexCount()); return m_vertices[_i]; }
-	Triangle&         getTriangle(uint32 _i)       { APT_ASSERT(_i < getTriangleCount()); return m_triangles[_i]; }
-	const Triangle&   getTriangle(uint32 _i) const { APT_ASSERT(_i < getTriangleCount()); return m_triangles[_i]; }
-	uint32            getVertexCount() const       { return (uint32)m_vertices.size(); }
-	uint32            getTriangleCount() const     { return (uint32)m_triangles.size(); }
-	uint32            getIndexCount() const        { return (uint32)m_triangles.size() * 3; }
-	const AlignedBox& getBoundingBox() const       { return m_boundingBox; }
-	const Sphere&     getBoundingSphere() const    { return m_boundingSphere; }
+	MeshData::Submesh& beginSubmesh(uint _materialId); // invalidates any references previously returned
+	void               endSubmesh();
+
+	Vertex&            getVertex(uint32 _i)         { APT_ASSERT(_i < getVertexCount()); return m_vertices[_i]; }
+	const Vertex&      getVertex(uint32 _i) const   { APT_ASSERT(_i < getVertexCount()); return m_vertices[_i]; }
+	Triangle&          getTriangle(uint32 _i)       { APT_ASSERT(_i < getTriangleCount()); return m_triangles[_i]; }
+	const Triangle&    getTriangle(uint32 _i) const { APT_ASSERT(_i < getTriangleCount()); return m_triangles[_i]; }
+	uint32             getVertexCount() const       { return (uint32)m_vertices.size(); }
+	uint32             getTriangleCount() const     { return (uint32)m_triangles.size(); }
+	uint32             getIndexCount() const        { return (uint32)m_triangles.size() * 3; }
+	MeshData::Submesh& getSubmesh(uint32 _i)        { APT_ASSERT(_i < getSubmeshCount()); return m_submeshes[_i]; }
+	uint32             getSubmeshCount() const      { (uint32)m_submeshes.size(); }
+	const AlignedBox&  getBoundingBox() const       { return m_boundingBox; }
+	const Sphere&      getBoundingSphere() const    { return m_boundingSphere; }
+
+
 private:
-	MeshDesc m_desc;
-	std::vector<Vertex>   m_vertices;
-	std::vector<Triangle> m_triangles;
+	std::vector<Vertex>            m_vertices;
+	std::vector<Triangle>          m_triangles;
+	std::vector<MeshData::Submesh> m_submeshes;  // vertex/index offsets are not bytes here
 
 	AlignedBox m_boundingBox;
 	Sphere     m_boundingSphere;

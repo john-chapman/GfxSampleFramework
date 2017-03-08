@@ -528,7 +528,7 @@ bool Shader::reload()
 			glAssert(glDeleteProgram(handle));
 			if (m_handle == 0) {
 			 // handle is 0, meaning we didn't successfully load a shader previously
-				setState(State::kError);
+				setState(State_Error);
 			}
 			ret = false;
 			//APT_ASSERT(false);
@@ -539,11 +539,11 @@ bool Shader::reload()
 			}
 			m_handle = handle;
 			ret = true;
-			setState(State::kLoaded);
+			setState(State_Loaded);
 		}
 	} else {
 		if (m_handle == 0) {
-			setState(State::kError);
+			setState(State_Error);
 		}
 	}
 	return ret;
@@ -552,8 +552,8 @@ bool Shader::reload()
 
 GLint Shader::getResourceIndex(GLenum _type, const char* _name) const
 {
-	APT_ASSERT(getState() == State::kLoaded);
-	if (getState() != State::kLoaded) {
+	APT_ASSERT(getState() == State_Loaded);
+	if (getState() != State_Loaded) {
 		return -1;
 	}
 	GLint ret = 0;
@@ -563,8 +563,8 @@ GLint Shader::getResourceIndex(GLenum _type, const char* _name) const
 
 GLint Shader::getUniformLocation(const char* _name) const
 {
-	APT_ASSERT(getState() == State::kLoaded);
-	if (getState() != State::kLoaded) {
+	APT_ASSERT(getState() == State_Loaded);
+	if (getState() != State_Loaded) {
 		return -1;
 	}
 	GLint ret = 0;
@@ -623,7 +623,7 @@ Shader::~Shader()
 		glAssert(glDeleteProgram(m_handle));
 		m_handle = 0;
 	}
-	setState(State::kUnloaded);
+	setState(State_Unloaded);
 }
 
 
