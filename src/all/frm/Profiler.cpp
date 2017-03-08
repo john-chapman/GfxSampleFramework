@@ -4,6 +4,7 @@
 
 #include <apt/log.h>
 #include <apt/RingBuffer.h>
+#include <apt/String.h>
 #include <apt/Time.h>
 
 #include <imgui/imgui.h>
@@ -33,9 +34,10 @@ struct ProfilerViewer
 	static Colors* kColors;
 
 
-	uint64 mbeg; // all markers draw relative to this time
+	uint64 beg; // all markers draw relative to this time
 	float  tbeg, tsize; // viewing region start/size in ms relative to mbeg
 	vec2   wbeg, wend, wsize;
+	uint   coli;
 	
 	ProfilerViewer()
 		: tbeg(0.0f)
@@ -68,11 +70,95 @@ struct ProfilerViewer
 		kColorsCpu.kMarkerColors[8] = ImColor( 79,  76, 156);
 	}
 
+	const char* timeToStr(uint64 _time)
+	{
+		static String<sizeof("999.999ms\0")> s_buf; // safe because we're single threaded
+		Timestamp t(_time);
+		float x = (float)t.asSeconds();
+		if (x >= 1.0f) {
+			s_buf.setf("%1.3fs", x);
+		} else {
+			x = (float)t.asMilliseconds();
+			if (x >= 0.1f) {
+				s_buf.setf("%1.2fms", x);
+			} else {
+				x = (float)t.asMicroseconds();
+				s_buf.setf("%1.0fus", x);
+			}
+		}
+		return s_buf;
+	}
+
 	float timeToWindowX(uint64 _time)
 	{
-		float ms = (float)Timestamp(_time - mbeg).asMilliseconds();
+		float ms = (float)Timestamp(_time - beg).asMilliseconds();
 		ms = (ms - tbeg) / tsize;
 		return wbeg.x + ms * wsize.x;
+	}
+
+	bool isMouseInside(const vec2& _rectMin, const vec2& _rectMax)
+	{
+		const vec2 mpos = ImGui::GetIO().MousePos;
+		return
+			(mpos.x > _rectMin.x && mpos.x < _rectMax.x) &&
+			(mpos.y > _rectMin.y && mpos.y < _rectMax.y);
+	}
+
+	bool cullFrame(const Profiler::Frame& _frame, const Profiler::Frame& _frameNext)
+	{
+		float fbeg = timeToWindowX(_frame.m_start);
+		float fend = timeToWindowX(_frameNext.m_start);
+		return fbeg > wend.x || fend < wbeg.x;
+	}
+	
+	void drawFrameBounds(const Profiler::Frame& _frame, const Profiler::Frame& _frameNext)
+	{
+		float fbeg = timeToWindowX(_frame.m_start);
+		float fend = timeToWindowX(_frameNext.m_start);
+		fbeg = APT_MAX(fbeg, wbeg.x);
+		ImDrawList& drawList = *ImGui::GetWindowDrawList();
+		if (isMouseInside(vec2(fbeg, wbeg.y), vec2(fend, wend.y))) {
+			drawList.AddRectFilled(vec2(fbeg, wbeg.y), vec2(fend, wend.y), IM_COLOR_ALPHA(kColors->kFrame, kColors->kFrameHoverAlpha));
+			drawList.AddText(vec2(fbeg + 4.0f, wbeg.y + 2.0f), kColors->kFrame, timeToStr(_frameNext.m_start - _frame.m_start));
+		}
+		drawList.AddLine(vec2(fbeg, wbeg.y), vec2(fbeg, wend.y), kColors->kFrame);
+	}
+
+	// Return true if the marker is hovered.
+	bool drawFrameMarker(const Profiler::Marker& _marker)
+	{
+		float mheight = ImGui::GetItemsLineHeightWithSpacing();
+		vec2 mbeg = vec2(timeToWindowX(_marker.m_start), wbeg.y + mheight * (float)_marker.m_depth);
+		vec2 mend = vec2(timeToWindowX(_marker.m_end) - 1.0f, mbeg.y + mheight);
+		if (mbeg.x > wend.x || mend.x < wbeg.x) {
+			return false;
+		}
+		
+		float msize = mend.x - mbeg.x;
+		if (msize < 2.0f) {
+		 // \todo push culled markers into a list, display on the tooltip
+			return false;
+		}
+		
+		mbeg.x = APT_MAX(mbeg.x, wbeg.x);
+		mend.x = APT_MIN(mend.x, wend.x);
+
+		//ImDrawList& drawList = *ImGui::GetWindowDrawList();
+		//drawList.AddRectFilled(mbeg, mend, kColors->kMarkerColors[coli]);
+
+		vec2 wpos = ImGui::GetWindowPos();
+		ImGui::SetCursorPosX(mbeg.x - wpos.x);
+		ImGui::SetCursorPosY(mbeg.y - wpos.y);
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImColor(kColors->kMarkerColors[coli]));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor(kColors->kMarkerHover));
+
+		ImGui::Button(_marker.m_name, ImVec2(msize, mheight));
+		
+		ImGui::PopStyleColor(2);
+
+
+		return isMouseInside(mbeg, mend);
 	}
 
 	void draw(bool* _open_)
@@ -105,11 +191,10 @@ struct ProfilerViewer
 		
 		ImDrawList& drawList = *ImGui::GetWindowDrawList();
 		
-		mbeg = APT_MIN(Profiler::GetCpuFrame(0).m_start, Profiler::GetGpuFrame(0).m_start);
+		beg   = APT_MIN(Profiler::GetCpuFrame(0).m_start, Profiler::GetGpuFrame(0).m_start);
 		wbeg  = vec2(ImGui::GetContentRegionMax()) + vec2(ImGui::GetWindowContentRegionMin());
 		wsize = ImGui::GetContentRegionMax();
 		wend  = vec2(ImGui::GetWindowPos()) + wsize;
-		//ImGui::PushClipRect(wbeg, wend, false);
 
 		// GPU ---
 		kColors   = &kColorsGpu;
@@ -117,25 +202,78 @@ struct ProfilerViewer
 		wsize     = vec2(ImGui::GetContentRegionMax()) - (wbeg - vec2(ImGui::GetWindowPos()));
 		wsize.y   = wsize.y * 0.5f;
 		wend      = wbeg + wsize;
+		ImGui::PushClipRect(wbeg, wend, false);
 		
-		for (uint i = 0, n = Profiler::GetGpuFrameCount(); i < n; ++i) {
+		// \todo this skips drawing the newest frame's data, add an extra step to draw those markers?
+		for (uint i = 0, n = Profiler::GetGpuFrameCount() - 1; i < n; ++i) {
 			const Profiler::GpuFrame& frame = Profiler::GetGpuFrame(i);
+			const Profiler::GpuFrame& frameNext = Profiler::GetGpuFrame(i + 1);
+			if (cullFrame(frame, frameNext)) {
+				continue;
+			}
+			
+		 // markers
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+			wbeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
+			coli = 0;
+			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
+				const Profiler::GpuMarker& marker = Profiler::GetGpuMarker(j);
+				if (drawFrameMarker(marker)) {
+					vec2 lbeg = vec2(timeToWindowX(marker.m_start), wbeg.y + ImGui::GetItemsLineHeightWithSpacing() * 0.5f);
+					vec2 lend = vec2(timeToWindowX(marker.m_cpuStart), wbeg.y + wsize.y);
+					drawList.AddLine(lbeg, lend, kColors->kMarkerColors[coli], 2.0f);
+					ImGui::BeginTooltip();
+						ImGui::TextColored(ImColor(kColors->kMarkerColors[coli]), marker.m_name);
+						ImGui::Text("Duration: %s", timeToStr(marker.m_end - marker.m_start));
+						ImGui::Text("Latency:  %s", timeToStr(marker.m_start - marker.m_cpuStart));
+					ImGui::EndTooltip();
+				}
+				if (marker.m_depth == 0) { // cycle color at depth 0
+					coli = (coli + 1) % APT_ARRAY_COUNT(kColors->kMarkerColors);
+				}
+			}
+			wbeg.y -= ImGui::GetFontSize() + 2.0f;
+			ImGui::PopStyleVar();
 
-			float frameX = timeToWindowX(frame.m_start);
-			drawList.AddLine(vec2(frameX, wbeg.y), vec2(frameX, wend.y), kColors->kFrame);
+			drawFrameBounds(frame, frameNext);
 		}
+		ImGui::PopClipRect();
 		drawList.AddRect(wbeg, wend, kColors->kBackground);
 
 		// CPU ---
 		kColors   = &kColorsCpu;
 		wbeg.y    = wend.y;
 		wend.y    = wbeg.y + wsize.y;
-		for (uint i = 0, n = Profiler::GetGpuFrameCount(); i < n; ++i) {
+		ImGui::PushClipRect(wbeg, wend, false);
+		for (uint i = 0, n = Profiler::GetGpuFrameCount() - 1; i < n; ++i) {
 			const Profiler::CpuFrame& frame = Profiler::GetCpuFrame(i);
+			const Profiler::CpuFrame& frameNext = Profiler::GetCpuFrame(i + 1);
+			if (cullFrame(frame, frameNext)) {
+				continue;
+			}
 
-			float frameX = timeToWindowX(frame.m_start);
-			drawList.AddLine(vec2(frameX, wbeg.y), vec2(frameX, wend.y), kColors->kFrame);
+		 // markers
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+			wbeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
+			coli = 0;
+			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
+				const Profiler::CpuMarker& marker = Profiler::GetCpuMarker(j);
+				if (drawFrameMarker(marker)) {
+					ImGui::BeginTooltip();
+						ImGui::TextColored(ImColor(kColors->kMarkerColors[coli]), marker.m_name);
+						ImGui::Text("Duration: %s", timeToStr(marker.m_end - marker.m_start));
+					ImGui::EndTooltip();
+				}
+				if (marker.m_depth == 0) { // cycle color at depth 0
+					coli = (coli + 1) % APT_ARRAY_COUNT(kColors->kMarkerColors);
+				}
+			}
+			wbeg.y -= ImGui::GetFontSize() + 2.0f;
+			ImGui::PopStyleVar();
+
+			drawFrameBounds(frame, frameNext);
 		}
+		ImGui::PopClipRect();
 		drawList.AddRect(wbeg, wend, kColors->kBackground);
 
 		ImGui::End();
@@ -270,14 +408,9 @@ void Profiler::NextFrame()
 		glAssert(glGenQueries(kMaxFrameCount, g_gpuFrameStartQueries));
 		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, g_gpuMarkerStartQueries));
 		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, g_gpuMarkerEndQueries));
-
-		GLint64 gpuTime;
-		glAssert(glGetInteger64v(GL_TIMESTAMP, &gpuTime));
-		uint64 cpuTicks = Time::GetTimestamp().getRaw();
-		uint64 gpuTicks = GpuToSystemTicks(gpuTime);
-		APT_ASSERT(gpuTicks < cpuTicks);
-		g_gpuTickOffset = cpuTicks - gpuTicks; // \todo is it possible that gpuTicks > cpuTicks?
 		g_gpuInit = false;
+
+		ResetGpuOffset();
 	}
 
 	if (s_pause) {
@@ -410,7 +543,12 @@ const Profiler::GpuMarker& Profiler::GetGpuMarker(uint _i)
 
 void Profiler::ResetGpuOffset()
 {
-	g_gpuInit = false;
+	GLint64 gpuTime;
+	glAssert(glGetInteger64v(GL_TIMESTAMP, &gpuTime));
+	uint64 cpuTicks = Time::GetTimestamp().getRaw();
+	uint64 gpuTicks = GpuToSystemTicks(gpuTime);
+	APT_ASSERT(gpuTicks < cpuTicks);
+	g_gpuTickOffset = cpuTicks - gpuTicks; // \todo is it possible that gpuTicks > cpuTicks?
 }
 
 // PROTECTED
