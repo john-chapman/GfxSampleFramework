@@ -789,9 +789,12 @@ void Scene::editNodes()
 			ImGui::PopID();
 
 			if (newParent != m_editNode->getParent()) {
+			 // maintain child world space position when changing parent
+				mat4 parentWorld = m_editNode->m_parent ? m_editNode->m_parent->m_worldMatrix : mat4(1.0f);
+				mat4 childWorld = parentWorld * m_editNode->m_localMatrix;
 				m_editNode->setParent(newParent);
-			 // \todo modify local matrix so that the node position doesn't change
-				m_editNode->m_localMatrix = m_editNode->m_worldMatrix * inverse(newParent->getWorldMatrix());
+				parentWorld = m_editNode->m_parent ? m_editNode->m_parent->m_worldMatrix : mat4(1.0f);
+				m_editNode->m_localMatrix = inverse(parentWorld) * childWorld;
 			}
 			ImGui::SameLine();
 			if (m_editNode->getParent()) {
@@ -820,9 +823,14 @@ void Scene::editNodes()
 			}
 
 			if (ImGui::TreeNode("Local Matrix")) {
-				if (Im3d::Gizmo("EditNodeGizmo", (float*)&m_editNode->m_localMatrix)) {
+			 // hierarchical update - modify the world space node and transform back into parent space
+				mat4 parentWorld = m_editNode->m_parent ? m_editNode->m_parent->m_worldMatrix : mat4(1.0f);
+				mat4 childWorld = parentWorld * m_editNode->m_localMatrix;
+				if (Im3d::Gizmo("GizmoNodeLocal", (float*)&childWorld)) {
+					m_editNode->m_localMatrix = inverse(parentWorld) * childWorld;
 					Node::Update(m_editNode, 0.0f, Node::State_Any); // force node update
 				}
+
 				vec3 position = GetTranslation(m_editNode->m_localMatrix);
 				vec3 rotation = ToEulerXYZ(GetRotation(m_editNode->m_localMatrix));
 				vec3 scale    = GetScale(m_editNode->m_localMatrix);
