@@ -210,6 +210,56 @@ void Keyboard::InitKeyNames()
 	SET_KEY_NAME(NumpadPeriod);
 }
 
+char Keyboard::ToChar(Key _key)
+{
+	if (_key >= Key_A && _key <= Key_Z) {
+		return 'A' + (_key - Key_A);
+	}
+	if (_key >= Key_0 && _key <= Key_9) {
+		return '0' + (_key - Key_0);
+	}
+	if (_key >= Key_Numpad0 && _key <= Key_Numpad9) {
+		return '0' + (_key - Key_Numpad0);
+	}
+	switch (_key) {
+		case Key_Space:           return ' ';
+		case Key_Plus:
+		case Key_NumpadPlus:      return '+';
+		case Key_Minus:
+		case Key_NumpadMinus:     return '-';
+		case Key_NumpadMultiply:  return '*';
+		case Key_NumpadDivide:    return '/';
+		case Key_NumpadPeriod:
+		case Key_Period:          return '.';
+		case Key_Comma:           return ',';
+		default:                  break;
+	};
+	return 0;
+}
+Keyboard::Key Keyboard::FromChar(char _c)
+{
+	if (_c >= 'A' && _c <= 'Z') {
+		return (Key)(Key_A + (_c - 'A'));
+	}
+	if (_c >= 'a' && _c <= 'z') {
+		return (Key)(Key_A + (_c - 'a'));
+	}
+	if (_c >= '0' && _c <= '9') {
+		return (Key)(Key_0 + (_c - '0'));
+	}
+	switch (_c) {
+		case ' ': return Key_Space;
+		case '+': return Key_Plus;
+		case '-': return Key_Minus;
+		case '*': return Key_NumpadMultiply;
+		case '/': return Key_NumpadDivide;
+		case '.': return Key_Period;
+		case ',': return Key_Comma;
+		default:  break;
+	};
+	return Key_Unmapped;
+}
+
 const char* Mouse::s_buttonNames[Mouse::Button_Count];
 void Mouse::InitButtonNames()
 {
