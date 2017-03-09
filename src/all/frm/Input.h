@@ -99,7 +99,7 @@ public:
 		
 	 // character keys
 		Key_A, Key_B, Key_C, Key_D, Key_E, Key_F, Key_G, Key_H, Key_I, Key_J, Key_K, Key_L, Key_M, Key_N, Key_O, Key_P, Key_Q, Key_R, Key_S, Key_T, Key_U, Key_V, Key_W, Key_X, Key_Y, Key_Z,
-		Key_1, Key_2, Key_3, Key_4, Key_5, Key_6, Key_7, Key_8, Key_9, Key_0,
+		Key_0, Key_1, Key_2, Key_3, Key_4, Key_5, Key_6, Key_7, Key_8, Key_9,
 		Key_Plus, Key_Minus, Key_Period, Key_Comma,
 		Key_Misc0, Key_Misc1, Key_Misc2, Key_Misc3, Key_Misc4, Key_Misc5, Key_Misc6, Key_Misc7, // layout-specific
 		
@@ -107,8 +107,23 @@ public:
 		Key_Numpad0, Key_Numpad1, Key_Numpad2, Key_Numpad3, Key_Numpad4, Key_Numpad5, Key_Numpad6, Key_Numpad7, Key_Numpad8, Key_Numpad9,
 		Key_NumpadEnter, Key_NumpadPlus, Key_NumpadMinus, Key_NumpadMultiply, Key_NumpadDivide, Key_NumpadPeriod,
 
-		Key_Count
+		Key_Count,
+		
+	 // ranges
+		Key_Function_Begin  = Key_Escape,  Key_Function_End  = Key_Space,
+		Key_Cursor_Begin    = Key_Space,   Key_Cursor_End    = Key_A,
+		Key_Character_Begin = Key_A,       Key_Character_End = Key_Count, // characters include numpad
+		Key_Numpad_Begin    = Key_Numpad0, Key_Numpad_End    = Key_Count
 	};
+
+	static bool IsFunctionKey(Key _key)     { return _key >= Key_Function_Begin && _key < Key_Function_End;   }
+	static bool IsCursorKey(Key _key)       { return _key >= Key_Cursor_Begin && _key < Key_Cursor_End;       }
+	static bool IsCharacterKey(Key _key)    { return _key >= Key_Character_Begin && _key < Key_Character_End; }
+	static bool IsNumpadKey(Key _key)       { return _key >= Key_Numpad_Begin && _key < Key_Numpad_End;       }
+
+	// \note This interface is unreliable for anything other than alpha numeric chars.
+	static char ToChar(Key _key);
+	static Key  FromChar(char _c);
 
 	static const char* GetKeyName(Key _key) { return s_keyNames[_key]; }
 
