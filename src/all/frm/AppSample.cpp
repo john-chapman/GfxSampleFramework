@@ -97,11 +97,12 @@ bool AppSample::init(const apt::ArgList& _args)
 	MeshData::Destroy(quadData);
 	
  // set ImGui callbacks
+ // \todo poll input directly = easier to use proxy devices
 	Window::Callbacks cb = m_window->getCallbacks();
 	cb.m_OnMouseButton = ImGui_OnMouseButton;
-	cb.m_OnMouseWheel  = ImGui_OnMouseWheel;
-	cb.m_OnKey         = ImGui_OnKey;
-	cb.m_OnChar        = ImGui_OnChar;
+	cb.m_OnMouseWheel = ImGui_OnMouseWheel;
+	cb.m_OnKey = ImGui_OnKey;
+	cb.m_OnChar = ImGui_OnChar;
 	m_window->setCallbacks(cb);
 
 
@@ -535,8 +536,25 @@ void AppSample::ImGui_Shutdown()
 
 void AppSample::ImGui_Update(AppSample* _app)
 {
- // consume keybaord/mouse input
 	ImGuiIO& io = ImGui::GetIO();
+
+ // extract keyboard/mouse input
+	/*Mouse* mouse = Input::GetMouse();
+	io.MouseDown[0] = mouse->isDown(Mouse::Button_Left);
+	io.MouseDown[1] = mouse->isDown(Mouse::Button_Right);
+	io.MouseDown[2] = mouse->isDown(Mouse::Button_Middle);
+	io.MouseWheel   = mouse->getAxisState(Mouse::Axis_Wheel) / 120.0f;
+
+	Keyboard* keyb = Input::GetKeyboard();
+	for (int i = 0, n = APT_MIN((int)APT_ARRAY_COUNT(io.KeysDown), (int)Keyboard::Key_Count); i < n; ++i) {
+		io.KeysDown[i] = keyb->isDown(i);
+	}
+	io.KeyCtrl  = keyb->isDown(Keyboard::Key_LCtrl) | keyb->isDown(Keyboard::Key_RCtrl);
+	io.KeyAlt   = keyb->isDown(Keyboard::Key_LAlt) | keyb->isDown(Keyboard::Key_RAlt);
+	io.KeyShift = keyb->isDown(Keyboard::Key_LShift) | keyb->isDown(Keyboard::Key_RShift);
+	*/
+
+ // consume keyboard/mouse input
 	if (io.WantCaptureKeyboard) {
 		Input::ResetKeyboard();
 	}
@@ -659,6 +677,7 @@ bool AppSample::ImGui_OnKey(Window* _window, unsigned _key, bool _isDown)
 	ImGuiIO& io = ImGui::GetIO();
 	APT_ASSERT(_key < APT_ARRAY_COUNT(io.KeysDown)); // key index out of bounds
 	io.KeysDown[_key] = _isDown;
+
 
 	// handle modifiers
 	switch ((Keyboard::Key)_key) {
