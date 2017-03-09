@@ -36,12 +36,12 @@ static const char* kNodeTypeIconStr[] =
 };
 static Node::Type NodeTypeFromStr(const char* _str)
 {
-	for (int i = 0; i < Node::kTypeCount; ++i) {
+	for (int i = 0; i < Node::Type_Count; ++i) {
 		if (strcmp(kNodeTypeStr[i], _str) == 0) {
 			return (Node::Type)i;
 		}
 	}
-	return Node::kTypeCount;
+	return Node::Type_Count;
 }
 
 // PUBLIC
@@ -107,6 +107,10 @@ void Node::addChild(Node* _node)
 		_node->m_parent->removeChild(_node);
 	}
 	_node->m_parent = this;
+
+	if (_node->isStatic()) {
+		Update(_node, 0.0f, Node::State_Any);
+	}
 }
 
 void Node::removeChild(Node* _node)
@@ -122,15 +126,74 @@ void Node::removeChild(Node* _node)
 
 // PRIVATE
 
-Node::Node(Id _id)
+static unsigned s_typeCounters[Node::Type_Count] = {}; // for auto name
+void Node::AutoName(Node::Type _type, Node::NameStr& out_)
+{
+	out_.setf("%s_%03u", kNodeTypeStr[_type], s_typeCounters[_type]);
+}
+
+void Node::Update(Node* _node_, float _dt, uint8 _stateMask)
+{
+	if (!(_node_->m_state & _stateMask)) {
+		return;
+	}
+
+ // reset world matrix
+	_node_->m_worldMatrix = _node_->m_localMatrix;
+
+ // apply xforms
+	for (auto& xform : _node_->m_xforms) {
+		xform->apply(_dt);
+	}
+
+ // move to parent space
+	if (_node_->m_parent) {
+		_node_->m_worldMatrix = _node_->m_parent->m_worldMatrix * _node_->m_worldMatrix;
+	}
+
+ // type-specific update
+	switch (_node_->getType()) {
+		case Node::Type_Camera: {
+			Camera* camera = _node_->getSceneDataCamera();
+			APT_ASSERT(camera);
+			APT_ASSERT(camera->m_parent == _node_);
+			camera->update();
+			}
+			break;
+		default: 
+			break;
+	};
+
+ // update children
+	for (auto& child : _node_->m_children) {
+		Update(child, _dt, _stateMask);
+	}
+}
+
+Node::Node()
+	: m_id(kInvalidId)
+	, m_type(Type_Count)
+	, m_state(0)
+	, m_parent(nullptr)
+{
+}
+
+Node::Node(Type _type, Id _id, uint8 _state, const char* _name)
 	: m_id(_id)
-	, m_type(kTypeCount)
-	, m_state(0x00)
+	, m_type(_type)
+	, m_state(_state)
 	, m_userData(0)
 	, m_sceneData(0)
 	, m_localMatrix(mat4(1.0f))
-	, m_parent(0)
+	, m_parent(nullptr)
 {
+	APT_ASSERT(_type < Type_Count);
+	if (_name) {
+		m_name.set(_name);
+	} else {
+		AutoName(_type, m_name);
+		s_typeCounters[_type]++;
+	}
 }
 
 Node::~Node()
@@ -169,7 +232,6 @@ int Node::moveXForm(int _i, int _dir)
 
 *******************************************************************************/
 static Scene s_defaultScene;
-static unsigned s_typeCounters[Node::kTypeCount] = {}; // for auto name
 Scene* Scene::s_currentScene = &s_defaultScene;
 
 void frm::swap(Scene& _a, Scene& _b)
@@ -231,12 +293,9 @@ Scene::Scene()
 	, m_storedDrawCamera(nullptr)
 #endif
 {
-	m_root = m_nodePool.alloc(Node(m_nextNodeId++));
-	m_nodes[Node::kTypeRoot].push_back(m_root);
-	m_root->setName("ROOT");
-	m_root->setType(Node::kTypeRoot);
-	m_root->setStateMask(Node::kStateAny);
+	m_root = m_nodePool.alloc(Node(Node::Type_Root, m_nextNodeId++, Node::State_Any, "ROOT"));
 	m_root->setSceneDataScene(this);
+	m_nodes[Node::Type_Root].push_back(m_root);
 }
 
 Scene::~Scene()
@@ -245,7 +304,7 @@ Scene::~Scene()
 		m_cameraPool.free(m_cameras.back());
 		m_cameras.pop_back();
 	}
-	for (int i = 0; i < Node::kTypeCount; ++i) {
+	for (int i = 0; i < Node::Type_Count; ++i) {
 		while (!m_nodes[i].empty()) {
 			m_nodePool.free(m_nodes[i].back());
 			m_nodes[i].pop_back();
@@ -257,7 +316,7 @@ void Scene::update(float _dt, uint8 _stateMask)
 {
 	CPU_AUTO_MARKER("Scene::update");
 	
-	update(m_root, _dt, _stateMask);
+	Node::Update(m_root, _dt, _stateMask);
 }
 
 bool Scene::traverse(Node* _root_, uint8 _stateMask, OnVisit* _callback)
@@ -281,15 +340,13 @@ Node* Scene::createNode(Node::Type _type, Node* _parent)
 {
 	CPU_AUTO_MARKER("Scene::createNode");
 
-	Node* ret = m_nodePool.alloc(Node(m_nextNodeId++));
-	ret->setActive(true);
-	ret->setDynamic(true);
-	AutoName(_type, ret->m_name);
-	ret->m_type = _type;
+	Node* ret = m_nodePool.alloc(Node(_type, m_nextNodeId++, Node::State_Active));
+	if (_type == Node::Type_Camera || _type == Node::Type_Root) {
+		ret->setDynamic(true);
+	}
 	_parent = _parent ? _parent : m_root;
 	_parent->addChild(ret);
 	m_nodes[_type].push_back(ret);
-	++s_typeCounters[_type]; // auto name counter
 	return ret;
 }
 
@@ -301,7 +358,7 @@ void Scene::destroyNode(Node*& _node_)
 	
 	Node::Type type = _node_->getType();
 	switch (type) {
-		case Node::kTypeCamera:
+		case Node::Type_Camera:
 			if (_node_->m_sceneData) {
 				Camera* camera = _node_->getSceneDataCamera();
 				auto it = std::find(m_cameras.begin(), m_cameras.end(), camera);
@@ -329,7 +386,7 @@ Node* Scene::findNode(Node::Id _id, Node::Type _typeHint)
 	CPU_AUTO_MARKER("Scene::findNode");
 
 	Node* ret = nullptr;
-	if (_typeHint != Node::kTypeCount) {
+	if (_typeHint != Node::Type_Count) {
 		for (auto it = m_nodes[_typeHint].begin(); it != m_nodes[_typeHint].end(); ++it) {
 			if ((*it)->getId() == _id) {
 				ret = *it;
@@ -337,7 +394,7 @@ Node* Scene::findNode(Node::Id _id, Node::Type _typeHint)
 			}
 		}
 	}
-	for (int i = 0; ret == nullptr && i < Node::kTypeCount; ++i) {
+	for (int i = 0; ret == nullptr && i < Node::Type_Count; ++i) {
 		if (i == _typeHint) {
 			continue;
 		}
@@ -356,7 +413,7 @@ Node* Scene::findNode(const char* _name, Node::Type _typeHint)
 	CPU_AUTO_MARKER("Scene::findNode");
 
 	Node* ret = nullptr;
-	if (_typeHint != Node::kTypeCount) {
+	if (_typeHint != Node::Type_Count) {
 		for (auto it = m_nodes[_typeHint].begin(); it != m_nodes[_typeHint].end(); ++it) {
 			if (strcmp((*it)->getName(), _name) == 0) {
 				ret = *it;
@@ -364,7 +421,7 @@ Node* Scene::findNode(const char* _name, Node::Type _typeHint)
 			}
 		}
 	}
-	for (int i = 0; ret == nullptr && i < Node::kTypeCount; ++i) {
+	for (int i = 0; ret == nullptr && i < Node::Type_Count; ++i) {
 		if (i == _typeHint) {
 			continue;
 		}
@@ -383,7 +440,7 @@ Camera* Scene::createCamera(const Camera& _copyFrom, Node* _parent_)
 	CPU_AUTO_MARKER("Scene::createCamera");
 
 	Camera* ret = m_cameraPool.alloc(_copyFrom);
-	Node* node = createNode(Node::kTypeCamera, _parent_);
+	Node* node = createNode(Node::Type_Camera, _parent_);
 	node->setSceneDataCamera(ret);
 	ret->m_parent = node;
 
@@ -445,16 +502,20 @@ bool Scene::serialize(JsonSerializer& _serializer_)
 	_serializer_.value("CullCameraId", cullCameraId);
 	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		if (drawCameraId != Node::kInvalidId) {
-			Node* n = findNode(drawCameraId, Node::kTypeCamera);
+			Node* n = findNode(drawCameraId, Node::Type_Camera);
 			if (n != nullptr) {
 				m_drawCamera = n->getSceneDataCamera();
 			}
 		}
 		if (cullCameraId != Node::kInvalidId) {
-			Node* n = findNode(cullCameraId, Node::kTypeCamera);
+			Node* n = findNode(cullCameraId, Node::Type_Camera);
 			if (n != nullptr) {
 				m_cullCamera = n->getSceneDataCamera();
 			}
+		}
+
+		for (int i = 0; i < Node::Type_Count; ++i) {
+			s_typeCounters[i] = APT_MAX((unsigned int)m_nodes[i].size(), s_typeCounters[i]);
 		}
 	}
 
@@ -468,9 +529,21 @@ bool Scene::serialize(JsonSerializer& _serializer_)
 
 bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 {
-	_serializer_.value("Id",          _node_.m_id);
-	_serializer_.value("Name",        (StringBase&)_node_.m_name);
-	_serializer_.value("State",       _node_.m_state);
+	_serializer_.value("Id", _node_.m_id);
+	_serializer_.value("Name", (StringBase&)_node_.m_name);
+	
+	bool active   = _node_.isActive();
+	bool dynamic  = _node_.isDynamic();
+	bool selected = _node_.isSelected();
+	_serializer_.value("Active",   active);
+	_serializer_.value("Dynamic",  dynamic);
+	_serializer_.value("Selected", selected);
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
+		_node_.setActive(active);
+		_node_.setDynamic(dynamic);
+		_node_.setSelected(selected);
+	}
+
 	_serializer_.value("UserData",    _node_.m_userData);
 	_serializer_.value("LocalMatrix", _node_.m_localMatrix);
 
@@ -478,17 +551,17 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 	_serializer_.value("Type", (StringBase&)tmp);
 	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		_node_.m_type = NodeTypeFromStr(tmp);
-		if (_node_.m_type == Node::kTypeCount) {
+		if (_node_.m_type == Node::Type_Count) {
 			APT_LOG_ERR("Scene: Invalid node type '%s'", (const char*)tmp);
 			return false;
 		}
 
 		switch (_node_.m_type) {
-			case Node::kTypeRoot: {
+			case Node::Type_Root: {
 				_node_.setSceneDataScene(this);
 				break;
 			}
-			case Node::kTypeCamera: {
+			case Node::Type_Camera: {
 				Camera* cam = m_cameraPool.alloc();
 				cam->m_parent = &_node_;
 				if (!cam->serialize(_serializer_)) {
@@ -506,7 +579,7 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 
 		if (_serializer_.beginArray("Children")) {
 			while (_serializer_.beginObject()) {
-				Node* child = m_nodePool.alloc(Node(m_nextNodeId)); // node id gets overwritten in the next call to serialize()
+				Node* child = m_nodePool.alloc(Node());
 				if (!serialize(_serializer_, *child)) {
 					m_nodePool.free(child);
 					return false;
@@ -537,7 +610,7 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 		
 	} else { // if writing
 		switch (_node_.m_type) {
-			case Node::kTypeCamera: {
+			case Node::Type_Camera: {
 				Camera* cam = _node_.getSceneDataCamera();
 				if (!cam->serialize(_serializer_)) {
 					return false;
@@ -584,8 +657,8 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 
 static const Im3d::Color kNodeTypeCol[] = 
 {
-	Im3d::Color(0.5f, 0.5f, 0.5f, 0.5f), // kTypeRoot,
-	Im3d::Color(0.5f, 0.5f, 1.0f, 0.5f), // kTypeCamera,
+	Im3d::Color(0.5f, 0.5f, 0.5f, 0.5f), // Type_Root,
+	Im3d::Color(0.5f, 0.5f, 1.0f, 0.5f), // Type_Camera,
 	Im3d::Color(0.5f, 1.0f, 0.5f, 1.0f), // kTypeObject,
 	Im3d::Color(1.0f, 0.5f, 0.0f, 1.0f)  // kTypeLight,
 };
@@ -599,7 +672,7 @@ void Scene::edit()
 
 	if (ImGui::TreeNode("Scene Info")) {
 		int totalNodes = 0;
-		for (int i = 0; i < Node::kTypeCount; ++i) {
+		for (int i = 0; i < Node::Type_Count; ++i) {
 			ImGui::Text("%d %s ", (int)m_nodes[i].size(), kNodeTypeIconStr[i]);
 			ImGui::SameLine();
 			totalNodes += (int)m_nodes[i].size();
@@ -620,7 +693,7 @@ void Scene::edit()
 		Im3d::PushMatrix();
 		Im3d::SetAlpha(1.0f);
 		traverse(
-			m_root, Node::kStateAny, 
+			m_root, Node::State_Any, 
 			[](Node* _node_)->bool {
 				Im3d::SetMatrix(_node_->getWorldMatrix());
 				Im3d::DrawXyzAxes();
@@ -676,7 +749,7 @@ void Scene::editNodes()
 				destroyNode = true;
 			 // don't destroy the last root/camera
 			 // \todo modal warning when deleting a root or a node with children?
-				if (m_editNode->getType() == Node::kTypeRoot || m_editNode->getType() == Node::kTypeCamera) {
+				if (m_editNode->getType() == Node::Type_Root || m_editNode->getType() == Node::Type_Camera) {
 					if (m_nodes[m_editNode->getType()].size() == 1) {
 						APT_LOG_ERR("Error: Can't delete the only %s", kNodeTypeStr[m_editNode->getType()]);
 						destroyNode = false;
@@ -748,7 +821,7 @@ void Scene::editNodes()
 
 			if (ImGui::TreeNode("Local Matrix")) {
 				if (Im3d::Gizmo("EditNodeGizmo", (float*)&m_editNode->m_localMatrix)) {
-					update(m_editNode, 0.0f, Node::kStateAny); // force node update
+					Node::Update(m_editNode, 0.0f, Node::State_Any); // force node update
 				}
 				vec3 position = GetTranslation(m_editNode->m_localMatrix);
 				vec3 rotation = ToEulerXYZ(GetRotation(m_editNode->m_localMatrix));
@@ -826,7 +899,7 @@ void Scene::editNodes()
 
 		 // deferred destroy
 			if (destroyNode) {
-				if (m_editNode->getType() == Node::kTypeCamera) {
+				if (m_editNode->getType() == Node::Type_Camera) {
 				 // destroyNode will implicitly destroy camera, so deselect camera if selected
 					if (m_editNode->getSceneDataCamera() == m_editCamera) {
 						m_editCamera = nullptr;
@@ -845,7 +918,7 @@ void Scene::editNodes()
 			if (newEditNode) {
 				newEditNode->setSelected(true);
 			}
-			if (newEditNode->m_type == Node::kTypeCamera) {
+			if (newEditNode->m_type == Node::Type_Camera) {
 				m_editCamera = newEditNode->getSceneDataCamera();
 			}
 
@@ -916,8 +989,8 @@ void Scene::editCameras()
 					m_storedNode->setSelected(true);
 				} else {
 				 // deselect any camera nodes \todo potentially buggy
-					for (int i = 0; i < getNodeCount(Node::kTypeCamera); ++i) {
-						Node* node = getNode(Node::kTypeCamera, i);
+					for (int i = 0; i < getNodeCount(Node::Type_Camera); ++i) {
+						Node* node = getNode(Node::Type_Camera, i);
 						if (node->isSelected()) {
 							m_storedNode = node;
 							node->setSelected(false);
@@ -947,6 +1020,22 @@ void Scene::editCameras()
 				}
 				destroyCamera(m_editCamera);
 				newEditCamera = m_cameras[0];
+
+			 // reset stored cameras
+				if (m_storedDrawCamera == m_editCamera) {
+					m_storedDrawCamera = nullptr;
+				}
+				if (m_storedCullCamera == m_editCamera) {
+					m_storedCullCamera = nullptr;
+				}
+
+			 // reset draw/cull cameras
+				if (m_drawCamera == m_editCamera) {
+					m_drawCamera = m_storedDrawCamera ? m_storedDrawCamera : m_cameras[0];
+				}
+				if (m_cullCamera == m_editCamera) {
+					m_cullCamera = m_storedCullCamera ? m_storedCullCamera : m_cameras[0];
+				}
 			}
 		}
 	 // deferred select
@@ -972,8 +1061,8 @@ Node* Scene::selectNode(Node* _current, Node::Type _type)
 	if (ImGui::BeginPopup("Select Node")) {
 		static ImGuiTextFilter filter;
 		filter.Draw("Filter##Node");
-		int type = _type == Node::kTypeCount ? 0 : _type;
-		int typeEnd = APT_MIN((int)_type + 1, (int)Node::kTypeCount);
+		int type = _type == Node::Type_Count ? 0 : _type;
+		int typeEnd = APT_MIN((int)_type + 1, (int)Node::Type_Count);
 		for (; type < typeEnd; ++type) {
 			for (int node = 0; node < (int)m_nodes[type].size(); ++node) {
 				if (m_nodes[type][node] == _current) {
@@ -1035,21 +1124,21 @@ Node* Scene::createNode(Node* _current)
 	Node* ret = _current;
 	if (ImGui::BeginPopup("Create Node")) {
 		static const char* kNodeTypeComboStr = ICON_FA_COG " Root\0" ICON_FA_VIDEO_CAMERA " Camera\0" ICON_FA_CUBE " Object\0" ICON_FA_LIGHTBULB_O " Light\0";
-		static int s_type = Node::kTypeObject;
+		static int s_type = Node::Type_Object;
 		ImGui::Combo("Type", &s_type , kNodeTypeComboStr);
 
 		static Node::NameStr s_name;
 		ImGui::InputText("Name", s_name, s_name.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue);
-		AutoName((Node::Type)s_type, s_name);
+		Node::AutoName((Node::Type)s_type, s_name);
 
 		if (ImGui::Button("Create")) {
 			ret = createNode((Node::Type)s_type);
 			ret->setName(s_name);
-			ret->setStateMask(Node::kStateActive | Node::kStateDynamic | Node::kStateSelected);
+			ret->setStateMask(Node::State_Active | Node::State_Dynamic | Node::State_Selected);
 			switch (ret->getType()) {
-				case Node::kTypeRoot:   ret->setSceneDataScene(this); break;
-				case Node::kTypeCamera: APT_ASSERT(false); break; // \todo creata a camera in this case?
-				case Node::kTypeLight:  APT_ASSERT(false); break; // \todo creata a light in this case?
+				case Node::Type_Root:   ret->setSceneDataScene(this); break;
+				case Node::Type_Camera: APT_ASSERT(false); break; // \todo creata a camera in this case?
+				case Node::Type_Light:  APT_ASSERT(false); break; // \todo creata a light in this case?
 				default:                break;
 			};
 			ImGui::CloseCurrentPopup();
@@ -1070,13 +1159,13 @@ void Scene::drawHierarchy(Node* _node)
 	if (m_editNode == _node) {
 		tmp.append(" " ICON_FA_CARET_LEFT);
 	}
-	if (_node->getType() == Node::kTypeCamera && _node->isSelected()) {
+	if (_node->getType() == Node::Type_Camera && _node->isSelected()) {
 		tmp.append(" " ICON_FA_GAMEPAD);
 	}
-	if (_node->getType() == Node::kTypeCamera && m_drawCamera == _node->getSceneDataCamera()) {
+	if (_node->getType() == Node::Type_Camera && m_drawCamera == _node->getSceneDataCamera()) {
 		tmp.append(" " ICON_FA_VIDEO_CAMERA);
 	}
-	if (_node->getType() == Node::kTypeCamera && m_cullCamera == _node->getSceneDataCamera()) {
+	if (_node->getType() == Node::Type_Camera && m_cullCamera == _node->getSceneDataCamera()) {
 		tmp.append(" " ICON_FA_CUBES);
 	}
 	ImVec4 col = ImColor(0.1f, 0.1f, 0.1f, 1.0f); // = inactive
@@ -1128,48 +1217,3 @@ XForm* Scene::createXForm(XForm* _current)
 }
 
 #endif // frm_Scene_ENABLE_EDIT
-
-// PRIVATE
-
-void Scene::update(Node* _node_, float _dt, uint8 _stateMask)
-{
-	if (!(_node_->m_state & _stateMask)) {
-		return;
-	}
-
- // reset world matrix
-	_node_->m_worldMatrix = _node_->m_localMatrix;
-
- // apply xforms
-	for (auto it = _node_->m_xforms.begin(); it != _node_->m_xforms.end(); ++it) {
-		(*it)->apply(_dt);
-	}
-
- // move to parent space
-	if (_node_->m_parent) {
-		_node_->m_worldMatrix = _node_->m_parent->m_worldMatrix * _node_->m_worldMatrix;
-	}
-
- // type-specific update
-	switch (_node_->getType()) {
-		case Node::kTypeCamera: {
-			Camera* camera = _node_->getSceneDataCamera();
-			APT_ASSERT(camera);
-			APT_ASSERT(camera->m_parent == _node_);
-			camera->update();
-			}
-			break;
-		default: 
-			break;
-	};
-
- // update children
-	for (auto it = _node_->m_children.begin(); it != _node_->m_children.end(); ++it) {
-		update(*it, _dt, _stateMask);
-	}
-}
-
-void Scene::AutoName(Node::Type _type, Node::NameStr& out_)
-{
-	out_.setf("%s_%03u", kNodeTypeStr[_type], s_typeCounters[_type]);
-}
