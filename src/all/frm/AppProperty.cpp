@@ -27,7 +27,7 @@ static uint kPropTypeSizes[] =
 	sizeof(bool),
 	sizeof(int),
 	sizeof(float),
-	sizeof(char*) // kString
+	sizeof(char*) // Type_String
 };
 
 // PUBLIC
@@ -72,16 +72,16 @@ AppProperty::~AppProperty()
 		APT_ASSERT_MSG(getType() == _typeEnum, "AppProperty::getDefault -- '%s' is not " # _type, getName()); \
 		return *((_type*)(m_data + m_size)); \
 	}
-DEFINE_getValue_getDefault(bool,  kBool,   1);
-DEFINE_getValue_getDefault(int,   kInt,    1);
-DEFINE_getValue_getDefault(float, kFloat,  1);
-DEFINE_getValue_getDefault(vec2,  kFloat,  2);
-DEFINE_getValue_getDefault(vec3,  kFloat,  3);
-DEFINE_getValue_getDefault(vec4,  kFloat,  4);
-DEFINE_getValue_getDefault(ivec2, kInt,    2);
-DEFINE_getValue_getDefault(ivec3, kInt,    3);
-DEFINE_getValue_getDefault(ivec4, kInt,    4);
-DEFINE_getValue_getDefault(char*, kString, 1);
+DEFINE_getValue_getDefault(bool,  Type_Bool,   1);
+DEFINE_getValue_getDefault(int,   Type_Int,    1);
+DEFINE_getValue_getDefault(float, Type_Float,  1);
+DEFINE_getValue_getDefault(vec2,  Type_Float,  2);
+DEFINE_getValue_getDefault(vec3,  Type_Float,  3);
+DEFINE_getValue_getDefault(vec4,  Type_Float,  4);
+DEFINE_getValue_getDefault(ivec2, Type_Int,    2);
+DEFINE_getValue_getDefault(ivec3, Type_Int,    3);
+DEFINE_getValue_getDefault(ivec4, Type_Int,    4);
+DEFINE_getValue_getDefault(char*, Type_String, 1);
 //DEFINE_getValue_getDefault(char*, kPath, 1);
 #undef DEFINE_getValue_getDefault
 
@@ -97,16 +97,16 @@ DEFINE_getValue_getDefault(char*, kString, 1);
 		APT_ASSERT_MSG(getType() == _typeEnum, "AppProperty::getMax -- '%s' is not " # _type, getName()); \
 		return *((_type*)(m_data + m_size * 3)); \
 	}
-//DEFINE_getMin_getMax(bool, kBool);
-DEFINE_getMin_getMax(int,   kInt,   1);
-DEFINE_getMin_getMax(float, kFloat, 1);
-DEFINE_getMin_getMax(vec2,  kFloat, 2);
-DEFINE_getMin_getMax(vec3,  kFloat, 3);
-DEFINE_getMin_getMax(vec4,  kFloat, 4);
-DEFINE_getMin_getMax(ivec2, kInt,   2);
-DEFINE_getMin_getMax(ivec3, kInt,   3);
-DEFINE_getMin_getMax(ivec4, kInt,   4);
-//DEFINE_getMin_getMax(char*, kString);
+//DEFINE_getMin_getMax(bool, Type_Bool);
+DEFINE_getMin_getMax(int,   Type_Int,   1);
+DEFINE_getMin_getMax(float, Type_Float, 1);
+DEFINE_getMin_getMax(vec2,  Type_Float, 2);
+DEFINE_getMin_getMax(vec3,  Type_Float, 3);
+DEFINE_getMin_getMax(vec4,  Type_Float, 4);
+DEFINE_getMin_getMax(ivec2, Type_Int,   2);
+DEFINE_getMin_getMax(ivec3, Type_Int,   3);
+DEFINE_getMin_getMax(ivec4, Type_Int,   4);
+//DEFINE_getMin_getMax(char*, Type_String);
 //DEFINE_getMin_getMax(char*, kPath);
 #undef DEFINE_getMin_getMax
 
@@ -122,7 +122,7 @@ bool AppProperty::edit()
 		ret = m_pfEdit(*this);
 	} else {
 		switch (m_type) {
-			case kBool:
+			case Type_Bool:
 				switch (m_count) {
 					case 1:
 						ret |= ImGui::Checkbox((const char*)m_displayName, &getValue<bool>());
@@ -138,7 +138,7 @@ bool AppProperty::edit()
 				};
 				break;
 
-			case kInt:
+			case Type_Int:
 				switch (m_count) {
 					case 1:
 						ret |= ImGui::SliderInt((const char*)m_displayName, &getValue<int>(), getMin<int>(), getMax<int>());
@@ -159,7 +159,7 @@ bool AppProperty::edit()
 				};
 				break;
 
-			case kFloat:
+			case Type_Float:
 				switch (m_count) {
 					case 1:
 						ret |= ImGui::SliderFloat((const char*)m_displayName, &getValue<float>(), getMin<float>(), getMax<float>());
@@ -180,7 +180,7 @@ bool AppProperty::edit()
 				};
 				break;
 
-			case kString:
+			case Type_String:
 				switch (m_count) {
 					case 1:
 						ret |= ImGui::InputText((const char*)m_displayName, getValue<char*>(), kMaxStringLength);
@@ -231,7 +231,7 @@ AppProperty::AppProperty(
 	, m_data(0)
 	, m_pfEdit(_pfEdit)
 {
-	if (_type == kString) {
+	if (_type == Type_String) {
 	 // alloc a single buffer for the value/default
 		if (_default) {
 			APT_ASSERT(strlen((const char*)_default) + 1 < kMaxStringLength);
@@ -260,7 +260,7 @@ void AppProperty::allocData(
 	const void* _max
 	)
 {
-	APT_STATIC_ASSERT((sizeof(kPropTypeSizes) / sizeof(uint)) == AppProperty::kTypeCount);
+	APT_STATIC_ASSERT((sizeof(kPropTypeSizes) / sizeof(uint)) == AppProperty::Type_Count);
 
 	m_data = (char*)malloc_aligned(m_size * (_min ? 4 : 2), 16); // conservative alignment
 	if (_value) {
@@ -278,7 +278,7 @@ void AppProperty::allocData(
 }
 void AppProperty::freeData()
 {
-	if (getType() == kString) {
+	if (getType() == Type_String) {
 		delete[] getValue<char*>();
 	}
 
@@ -345,59 +345,59 @@ void frm::swap(AppPropertyGroup& _a, AppPropertyGroup& _b)
 
 bool* AppPropertyGroup::addBool(const char* _name, const char* _displayName, bool _default, bool _isHidden)
 {
-	return &add(_name, _displayName, AppProperty::kBool, 1, _isHidden, &_default, &_default, 0, 0)->getValue<bool>();
+	return &add(_name, _displayName, AppProperty::Type_Bool, 1, _isHidden, &_default, &_default, 0, 0)->getValue<bool>();
 }
 int* AppPropertyGroup::addInt(const char* _name, const char* _displayName, int _default, int _min, int _max, bool _isHidden)
 {
-	return &add(_name, _displayName, AppProperty::kInt, 1, _isHidden, &_default, &_default, &_min, &_max)->getValue<int>();
+	return &add(_name, _displayName, AppProperty::Type_Int, 1, _isHidden, &_default, &_default, &_min, &_max)->getValue<int>();
 }
 float* AppPropertyGroup::addFloat(const char* _name, const char* _displayName, float _default, float _min, float _max, bool _isHidden)
 {
-	return &add(_name, _displayName, AppProperty::kFloat, 1, _isHidden, &_default, &_default, &_min, &_max)->getValue<float>();
+	return &add(_name, _displayName, AppProperty::Type_Float, 1, _isHidden, &_default, &_default, &_min, &_max)->getValue<float>();
 }
 vec2* AppPropertyGroup::addVec2(const char* _name, const char* _displayName, const vec2& _default, float _min, float _max, bool _isHidden)
 {
-	return &add(_name, _displayName, AppProperty::kFloat, 2, _isHidden, &_default, &_default, &_min, &_max)->getValue<vec2>();
+	return &add(_name, _displayName, AppProperty::Type_Float, 2, _isHidden, &_default, &_default, &_min, &_max)->getValue<vec2>();
 }
 vec3* AppPropertyGroup::addVec3(const char* _name, const char* _displayName, const vec3& _default, float _min, float _max, bool _isHidden)
 {
-	return &add(_name, _displayName, AppProperty::kFloat, 3, _isHidden, &_default, &_default, &_min, &_max)->getValue<vec3>();
+	return &add(_name, _displayName, AppProperty::Type_Float, 3, _isHidden, &_default, &_default, &_min, &_max)->getValue<vec3>();
 }
 vec4* AppPropertyGroup::addVec4(const char* _name, const char* _displayName, const vec4& _default, float _min, float _max, bool _isHidden)
 {
-	return &add(_name, _displayName, AppProperty::kFloat, 4, _isHidden, &_default, &_default, &_min, &_max)->getValue<vec4>();
+	return &add(_name, _displayName, AppProperty::Type_Float, 4, _isHidden, &_default, &_default, &_min, &_max)->getValue<vec4>();
 }
 ivec2* AppPropertyGroup::addVec2i(const char* _name, const char* _displayName, const ivec2& _default, int _min, int _max, bool _isHidden)
 {
-	return &add(_name, _displayName, AppProperty::kInt, 2, _isHidden, &_default, &_default, &_min, &_max)->getValue<ivec2>();
+	return &add(_name, _displayName, AppProperty::Type_Int, 2, _isHidden, &_default, &_default, &_min, &_max)->getValue<ivec2>();
 }
 ivec3* AppPropertyGroup::addVec3i(const char* _name, const char* _displayName, const ivec3& _default, int _min, int _max, bool _isHidden)
 {
-	return &add(_name, _displayName, AppProperty::kInt, 3, _isHidden, &_default, &_default, &_min, &_max)->getValue<ivec3>();
+	return &add(_name, _displayName, AppProperty::Type_Int, 3, _isHidden, &_default, &_default, &_min, &_max)->getValue<ivec3>();
 }
 ivec4* AppPropertyGroup::addVec4i(const char* _name, const char* _displayName, const ivec4& _default, int _min, int _max, bool _isHidden)
 {
-	return &add(_name, _displayName, AppProperty::kInt, 4, _isHidden, &_default, &_default, &_min, &_max)->getValue<ivec4>();
+	return &add(_name, _displayName, AppProperty::Type_Int, 4, _isHidden, &_default, &_default, &_min, &_max)->getValue<ivec4>();
 }
 vec3* AppPropertyGroup::addRgb(const char* _name, const char* _displayName, const vec3& _default, bool _isHidden)
 {
-	AppProperty* ret = add(_name, _displayName, AppProperty::kFloat, 3, _isHidden, &_default, &_default, 0, 0);
+	AppProperty* ret = add(_name, _displayName, AppProperty::Type_Float, 3, _isHidden, &_default, &_default, 0, 0);
 	ret->m_pfEdit = &ColorEdit;
 	return &ret->getValue<vec3>();
 }
 vec4* AppPropertyGroup::addRgba(const char* _name, const char* _displayName, const vec4& _default, bool _isHidden)
 {
-	AppProperty* ret = add(_name, _displayName, AppProperty::kFloat, 4, _isHidden, &_default, &_default, 0, 0);
+	AppProperty* ret = add(_name, _displayName, AppProperty::Type_Float, 4, _isHidden, &_default, &_default, 0, 0);
 	ret->m_pfEdit = &ColorEdit;
 	return &ret->getValue<vec4>();
 }
 char* AppPropertyGroup::addString(const char* _name, const char* _displayName, const char* _default, bool _isHidden)
 {
-	return add(_name, _displayName, AppProperty::kString, 1, _isHidden, _default, _default, 0, 0)->getValue<char*>();
+	return add(_name, _displayName, AppProperty::Type_String, 1, _isHidden, _default, _default, 0, 0)->getValue<char*>();
 }
 char* AppPropertyGroup::addPath(const char* _name, const char* _displayName, const char* _default, bool _isHidden)
 {
-	AppProperty* ret = add(_name, _displayName, AppProperty::kString, 1, _isHidden, _default, _default, 0, 0);
+	AppProperty* ret = add(_name, _displayName, AppProperty::Type_String, 1, _isHidden, _default, _default, 0, 0);
 	ret->m_pfEdit = &PathEdit;
 	return ret->getValue<char*>();
 }
@@ -550,21 +550,21 @@ void AppProperties::setValues(const ArgList& _argList)
 			if (arg) {
 				APT_ASSERT_MSG(prop.getCount() == arg->getValueCount(), "AppProperties: Count mismatch with arg list, '%s' has size %d, the argument has size %d", prop.getName(), prop.getSize(), arg->getValueCount());
 				switch (prop.getType()) {
-				case AppProperty::kBool: {
+				case AppProperty::Type_Bool: {
 					bool* v = &prop.getValue<bool>();
 					for (int k = 0; k < prop.getCount(); ++k) {
 						v[k] = arg->getValue(k).asBool();
 					}
 					break;
 				}
-				case AppProperty::kInt: {
+				case AppProperty::Type_Int: {
 					int* v = &prop.getValue<int>();
 					for (int k = 0; k < prop.getCount(); ++k) {
 						v[k] = (int)arg->getValue(k).asInt();
 					}
 					break;
 				}
-				case AppProperty::kFloat: {
+				case AppProperty::Type_Float: {
 					float* v = &prop.getValue<float>();
 					for (int k = 0; k < prop.getCount(); ++k) {
 						v[k] = (float)arg->getValue(k).asDouble();
@@ -592,28 +592,28 @@ void AppProperties::setValues(const IniFile& _ini)
 			if (!p.isNull()) {
 				APT_ASSERT_MSG(prop.getCount() == p.getCount(), "AppProperties: Count mismatch with INI, '%s' has size %d, the INI property has size %d", prop.getName(), prop.getSize(), p.getCount());
 				switch (prop.getType()) {
-				case AppProperty::kBool: {
+				case AppProperty::Type_Bool: {
 					bool* v = &prop.getValue<bool>();
 					for (int k = 0; k < prop.getCount(); ++k) {
 						v[k] = p.asBool(k);
 					}
 					break;
 				}
-				case AppProperty::kInt: {
+				case AppProperty::Type_Int: {
 					int* v = &prop.getValue<int>();
 					for (int k = 0; k < prop.getCount(); ++k) {
 						v[k] = (int)p.asInt(k);
 					}
 					break;
 				}
-				case AppProperty::kFloat: {
+				case AppProperty::Type_Float: {
 					float* v = &prop.getValue<float>();
 					for (int k = 0; k < prop.getCount(); ++k) {
 						v[k] = (float)p.asDouble(k);
 					}
 					break;
 				}
-				case AppProperty::kString: {
+				case AppProperty::Type_String: {
 					char* v = prop.getValue<char*>();
 					strncpy(v, p.asString(), AppProperty::kMaxStringLength);
 					break;
@@ -635,10 +635,10 @@ void AppProperties::appendToIni(apt::IniFile& _ini_) const
 		for (int j = 0; j < group.getSize(); ++j) {
 			AppProperty& prop = const_cast<AppProperty&>(group[j]);
 			switch (prop.getType()) {
-				case AppProperty::kBool:   _ini_.pushValueArray<bool>(prop.getName(), &prop.getValue<bool>(), prop.getCount()); break;
-				case AppProperty::kInt:    _ini_.pushValueArray<int>(prop.getName(), &prop.getValue<int>(), prop.getCount()); break;
-				case AppProperty::kFloat:  _ini_.pushValueArray<float>(prop.getName(), &prop.getValue<float>(), prop.getCount()); break;
-				case AppProperty::kString: _ini_.pushValueArray(prop.getName(), (const char**)&prop.getValue<char*>(), 1); break;
+				case AppProperty::Type_Bool:   _ini_.pushValueArray<bool>(prop.getName(), &prop.getValue<bool>(), prop.getCount()); break;
+				case AppProperty::Type_Int:    _ini_.pushValueArray<int>(prop.getName(), &prop.getValue<int>(), prop.getCount()); break;
+				case AppProperty::Type_Float:  _ini_.pushValueArray<float>(prop.getName(), &prop.getValue<float>(), prop.getCount()); break;
+				case AppProperty::Type_String: _ini_.pushValueArray(prop.getName(), (const char**)&prop.getValue<char*>(), 1); break;
 				default: APT_ASSERT(false);
 			};
 		}
