@@ -17,11 +17,11 @@ namespace apt {
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class AppProperty
-/// \note Data is conservatively aligned on 16-byte boundaries to permit 
-///   directly casting to/from SIMD types (vec4, etc.).
-/// \note String properties are implemented as char[kMaxStringLength].
-/// \todo Validate names.
+// AppProperty
+// \note Data is conservatively aligned on 16-byte boundaries to permit 
+//   directly casting to/from SIMD types (vec4, etc.).
+// \note String properties are implemented as char[kMaxStringLength].
+// \todo Validate names.
 ////////////////////////////////////////////////////////////////////////////////
 class AppProperty: private apt::non_copyable<AppProperty>
 {
@@ -34,12 +34,12 @@ public:
 
 	enum Type
 	{
-		kBool,
-		kInt,
-		kFloat,
-		kString,
+		Type_Bool,
+		Type_Int,
+		Type_Float,
+		Type_String,
 
-		kTypeCount
+		Type_Count
 	};
 
 	AppProperty(AppProperty&& _rhs);
@@ -70,17 +70,17 @@ public:
 	uint8       getSize() const        { return m_size; }
 	bool        isHidden() const       { return m_isHidden; }
 
-	/// \return true if the value was changed.
+	/// Return true if the value was changed.
 	bool edit();
 
 private:
-	String   m_name;        //< Identifier (must be unique within a group).
-	String   m_displayName; //< User-friendly name.
-	uint8    m_type;        //< Type enum.
-	uint8    m_count;       //< 1,2,3 or 4 for vector types.
-	uint8    m_size;        //< Bytes, size of the base type * m_count.
-	bool     m_isHidden;    //< Don't render in the UI.
-	char*    m_data;        //< Property value, default value + optional min/max values.
+	String   m_name;        // Identifier (must be unique within a group).
+	String   m_displayName; // User-friendly name.
+	uint8    m_type;        // Type enum.
+	uint8    m_count;       // 1,2,3 or 4 for vector types.
+	uint8    m_size;        // Bytes, size of the base type * m_count.
+	bool     m_isHidden;    // Don't render in the UI.
+	char*    m_data;        // Property value, default value + optional min/max values.
 	Edit*    m_pfEdit;
 
 	AppProperty(
@@ -108,9 +108,9 @@ private:
 }; // class AppProperty
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class AppPropertyGroup
-/// Sub container for AppProperty instances.
-/// \note Ptrs returnd by operator[] are guaranteed to be persistent.
+// AppPropertyGroup
+// Sub container for AppProperty instances.
+// \note Ptrs returnd by operator[] are guaranteed to be persistent.
 ////////////////////////////////////////////////////////////////////////////////
 class AppPropertyGroup: private apt::non_copyable<AppPropertyGroup>
 {
@@ -150,7 +150,7 @@ public:
 	const char* getName() const                             { return m_name; }
 	int         getSize() const                             { return (int)m_props.size(); }
 
-	/// \return true if any value was changed.
+	/// Return true if any value was changed.
 	bool edit(bool _showHidden);
 
 private:
@@ -176,7 +176,7 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class AppProperties
+// AppProperties
 ////////////////////////////////////////////////////////////////////////////////
 class AppProperties: private apt::non_copyable<AppProperties>
 {
@@ -199,17 +199,16 @@ public:
 	
 	int getSize() const                                     { return (int)m_groups.size(); }
 
-	/// \return true if any value was changed.
+	// Return true if any value was changed.
 	bool edit(const char* _title);
 
-	/// Set values from command line arguments. Groups are ignored.
+	// Set values from command line arguments. Groups are ignored.
 	void setValues(const apt::ArgList& _argList);
 
-	/// Set values from an ini file. Ini sections map to groups; ini properties
-	/// in the default section are ignored.
+	// Set values from an ini file. Ini sections map to groups; ini properties in the default section are ignored.
 	void setValues(const apt::IniFile& _ini);
 
-	/// Add groups/values to _ini_.
+	// Add groups/values to _ini_.
 	void appendToIni(apt::IniFile& _ini_) const;
 
 	void        save() const;
