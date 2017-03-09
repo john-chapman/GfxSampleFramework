@@ -33,7 +33,7 @@ bool AppSample3d::init(const apt::ArgList& _args)
 	if (!Scene::Load(m_scenePath, Scene::GetCurrent())) {
  		Camera* defaultCamera = Scene::GetCurrent().createCamera(Camera());
 		Node* defaultCameraNode = defaultCamera->m_parent;
-		defaultCameraNode->setStateMask(Node::kStateActive | Node::kStateDynamic | Node::kStateSelected);
+		defaultCameraNode->setStateMask(Node::State_Active | Node::State_Dynamic | Node::State_Selected);
 		XForm* freeCam = XForm::Create("XForm_FreeCamera");
 		((XForm_FreeCamera*)freeCam)->m_position = vec3(0.0f, 5.0f, 22.5f);
 		defaultCameraNode->addXForm(freeCam);
@@ -56,7 +56,7 @@ bool AppSample3d::update()
 	Im3d_Update(this);
 
 	Scene& scene = Scene::GetCurrent();
-	scene.update((float)m_deltaTime, Node::kStateActive | Node::kStateDynamic);
+	scene.update((float)m_deltaTime, Node::State_Active | Node::State_Dynamic);
 	#ifdef frm_Scene_ENABLE_EDIT
 		if (*m_showSceneEditor) {
 			Scene::GetCurrent().edit();
