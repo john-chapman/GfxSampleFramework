@@ -24,6 +24,12 @@
 using namespace frm;
 using namespace apt;
 
+static void asin2f(float _theta, float& out0_, float& out1_)
+{
+	out0_ = asinf(_theta);
+	out1_ = out0_ > 0.0f ? (out0_ + half_pi<float>()) : (out0_ - pi<float>());
+}
+
 class AppSampleTest: public AppSample3d
 {
 public:
@@ -55,6 +61,38 @@ public:
 		if (!AppBase::update()) {
 			return false;
 		}
+
+		Ray r;
+		r.m_origin = Scene::GetCullCamera()->getPosition();
+		r.m_direction = Scene::GetCullCamera()->getViewVector();
+
+		Cylinder cylinder(vec3(0.0f), vec3(0.0f, 2.0f, 0.0f), 1.0f);
+		static mat4 cylinderMatrix(1.0f);
+		Im3d::Gizmo("Cylinder", (float*)&cylinderMatrix);
+		cylinder.transform(cylinderMatrix);
+
+		Im3d::PushDrawState();
+			Im3d::SetSize(1.0f);
+			Im3d::SetColor(Im3d::Color_Magenta);
+			Im3d::DrawPrism(cylinder.m_start, cylinder.m_end, cylinder.m_radius, 32);
+			
+			float t0, t1;
+			bool intersects = Intersect(r, cylinder, t0, t1);
+			Im3d::SetColor(intersects ? Im3d::Color_Green : Im3d::Color_Red);
+			
+			Im3d::BeginLines();
+				Im3d::Vertex(r.m_origin + r.m_direction * t0, 2.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * t1, 2.0f);
+			Im3d::End();
+			Im3d::BeginPoints();
+				Im3d::Vertex(r.m_origin + r.m_direction * t0, 6.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * t1, 6.0f);
+			Im3d::End();
+
+		Im3d::PopDrawState();
+		
+
+
 		return true;
 	}
 
