@@ -2,6 +2,11 @@
 
 #include <frm/math.h>
 
+//#define geom_debug
+#ifdef geom_debug
+	#include <im3d/im3d.h>
+#endif
+
 using namespace frm;
 
 static float GetMaxScale(const mat4& _mat)
@@ -755,8 +760,30 @@ bool frm::Intersects(const Ray& _r, const Cylinder& _c)
 }
 bool frm::Intersect(const Ray& _r, const Cylinder& _c, float& t0_, float& t1_)
 {
-	APT_ASSERT(false); // \todo
-	return false;
+	vec3 dir = _c.m_end - _c.m_start;
+	vec3 p   = _r.m_origin - _c.m_start;
+	vec3 q   = cross(p, dir);
+	vec3 r   = cross(_r.m_direction, dir);
+	float a  = length2(r);
+	float b  = 2.0f * dot(r, q);
+	float c  = length2(q) - (_c.m_radius * _c.m_radius * length2(dir));
+
+	float d = b * b - 4.0f * a * c;
+	if (d < 0.0f) {
+		t0_ = t1_ = 0.0f;
+		return false;
+	} 
+
+	d = sqrtf(d);
+	t1_ = (-b + d) / (2.0f * a);
+	if (t1_ < 0.0f) {
+		t0_ = t1_ = 0.0f;
+		return false;
+	}
+	t0_ = (-b - d) / (2.0f * a); // t0 is the nearest point
+
+
+	return true;
 }
 
 bool frm::Intersects(const Ray& _r, const Capsule& _c)
