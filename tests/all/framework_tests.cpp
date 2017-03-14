@@ -66,7 +66,7 @@ public:
 		r.m_origin = Scene::GetCullCamera()->getPosition();
 		r.m_direction = Scene::GetCullCamera()->getViewVector();
 
-		Cylinder cylinder(vec3(0.0f), vec3(0.0f, 2.0f, 0.0f), 1.0f);
+		Cylinder cylinder(vec3(0.0f, 0.0f, -99.0f), vec3(0.0f, 0.0f, 99.0f), 1.0f);
 		static mat4 cylinderMatrix(1.0f);
 		Im3d::Gizmo("Cylinder", (float*)&cylinderMatrix);
 		cylinder.transform(cylinderMatrix);
@@ -78,15 +78,17 @@ public:
 			
 			float t0, t1;
 			bool intersects = Intersect(r, cylinder, t0, t1);
-			Im3d::SetColor(intersects ? Im3d::Color_Green : Im3d::Color_Red);
-			
+			if (!intersects) {
+				ImGui::Text("No intersection");
+			}			
+
 			Im3d::BeginLines();
-				Im3d::Vertex(r.m_origin + r.m_direction * t0, 2.0f);
-				Im3d::Vertex(r.m_origin + r.m_direction * t1, 2.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * t0, 2.0f, Im3d::Color_Blue);
+				Im3d::Vertex(r.m_origin + r.m_direction * t1, 2.0f, Im3d::Color_Green);
 			Im3d::End();
 			Im3d::BeginPoints();
-				Im3d::Vertex(r.m_origin + r.m_direction * t0, 6.0f);
-				Im3d::Vertex(r.m_origin + r.m_direction * t1, 6.0f);
+				Im3d::Vertex(r.m_origin + r.m_direction * t0, 6.0f, Im3d::Color_Blue);
+				Im3d::Vertex(r.m_origin + r.m_direction * t1, 6.0f, Im3d::Color_Green);
 			Im3d::End();
 
 		Im3d::PopDrawState();
