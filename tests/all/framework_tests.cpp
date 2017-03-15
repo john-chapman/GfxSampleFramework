@@ -66,14 +66,14 @@ public:
 		r.m_origin = Scene::GetCullCamera()->getPosition();
 		r.m_direction = Scene::GetCullCamera()->getViewVector();
 
-		Cylinder cylinder(vec3(0.0f, 0.0f, -99.0f), vec3(0.0f, 0.0f, 99.0f), 1.0f);
+		Cylinder cylinder(vec3(0.0f, 0.0f, -3.0f), vec3(0.0f, 0.0f, 3.0f), 1.5f);
 		static mat4 cylinderMatrix(1.0f);
 		Im3d::Gizmo("Cylinder", (float*)&cylinderMatrix);
 		cylinder.transform(cylinderMatrix);
 
 		Im3d::PushDrawState();
 			Im3d::SetSize(1.0f);
-			Im3d::SetColor(Im3d::Color_Magenta);
+			Im3d::SetColor(Im3d::Color_Red);
 			Im3d::DrawPrism(cylinder.m_start, cylinder.m_end, cylinder.m_radius, 32);
 			
 			float t0, t1;
@@ -87,7 +87,7 @@ public:
 				Im3d::Vertex(r.m_origin + r.m_direction * t1, 2.0f, Im3d::Color_Green);
 			Im3d::End();
 			Im3d::BeginPoints();
-				Im3d::Vertex(r.m_origin + r.m_direction * t0, 6.0f, Im3d::Color_Blue);
+				Im3d::Vertex(r.m_origin + r.m_direction * t0, 8.0f, Im3d::Color_Blue);
 				Im3d::Vertex(r.m_origin + r.m_direction * t1, 6.0f, Im3d::Color_Green);
 			Im3d::End();
 
