@@ -62,7 +62,116 @@ public:
 			return false;
 		}
 
-		Ray r;
+		ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
+		if (ImGui::TreeNode("Intersection Tests")) {
+			Im3d::PushDrawState();
+
+			enum Primitive
+			{
+				Primitive_Sphere,
+				Primitive_Plane,
+				Primitive_AlignedBox,
+				Primitive_Cylinder,
+				Primitive_Capsule
+			};
+			const char* primitiveList =
+				"Sphere\0"
+				"Plane\0"
+				"AlignedBox\0"
+				"Cylinder\0"
+				"Capsule\0"
+				;
+			static int currentPrim = Primitive_Sphere;
+			ImGui::Combo("Primitive", &currentPrim, primitiveList);
+
+			static mat4 primMat(1.0f);
+			static float length = 3.0f;
+			static float width  = 3.0f;
+			static float radius = 1.0f;
+
+			Ray r;
+			r.m_origin = Scene::GetCullCamera()->getPosition();
+			r.m_direction = Scene::GetCullCamera()->getViewVector();
+			bool intersects = false;
+			float t0, t1;
+	
+			Im3d::Gizmo("Primitive", (float*)&primMat);
+			Im3d::SetColor(Im3d::Color_Red);
+			Im3d::SetSize(3.0f);
+			switch ((Primitive)currentPrim) {
+				case Primitive_Sphere: {
+					ImGui::SliderFloat("Radius", &radius, 0.0f, 8.0f);
+					Sphere sphere(vec3(0.0f), radius);
+					intersects = Intersect(r, sphere, t0, t1);
+					sphere.transform(primMat);
+					Im3d::DrawSphere(sphere.m_origin, sphere.m_radius);
+					break;
+				}
+				case Primitive_Plane: {
+					ImGui::SliderFloat("Display Size", &width, 0.0f, 8.0f);
+					Plane plane(vec3(0.0f, 1.0f, 0.0f), 0.0f);
+					plane.transform(primMat);
+					intersects = Intersect(r, plane, t0);
+					t1 = t0;
+					Im3d::DrawQuad(plane.getOrigin(), plane.m_normal, vec2(width));
+					Im3d::BeginLines();
+						Im3d::Vertex(plane.getOrigin());
+						Im3d::Vertex(plane.getOrigin() + plane.m_normal);
+					Im3d::End();
+					break;
+				}
+				case Primitive_AlignedBox: {
+					ImGui::SliderFloat("X", &length, 0.0f, 8.0f);
+					ImGui::SliderFloat("Y",  &width,  0.0f, 8.0f);
+					ImGui::SliderFloat("Z", &radius, 0.0f, 8.0f);
+					AlignedBox alignedBox(vec3(-length, -width, -radius) * 0.5f, vec3(length, width, radius) * 0.5f);
+					alignedBox.transform(primMat);
+					intersects = Intersect(r, alignedBox, t0, t1);
+					Im3d::DrawAlignedBox(alignedBox.m_min, alignedBox.m_max);
+					break;
+				}
+				case Primitive_Cylinder: {
+					ImGui::SliderFloat("Length", &length, 0.0f, 8.0f);
+					ImGui::SliderFloat("Radius", &radius, 0.0f, 8.0f);
+					Cylinder cylinder(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
+					cylinder.transform(primMat);
+					intersects = Intersect(r, cylinder, t0, t1);
+					Im3d::DrawCylinder(cylinder.m_start, cylinder.m_end, cylinder.m_radius);
+					break;
+				}
+				case Primitive_Capsule:	{
+					ImGui::SliderFloat("Length", &length, 0.0f, 8.0f);
+					ImGui::SliderFloat("Radius", &radius, 0.0f, 8.0f);
+					Cylinder capsule(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
+					capsule.transform(primMat);
+					intersects = Intersect(r, capsule, t0, t1);
+					Im3d::DrawCapsule(capsule.m_start, capsule.m_end, capsule.m_radius);
+					break;
+				}
+				default:
+					APT_ASSERT(false);
+					break;
+			};
+
+			ImGui::Text("Intersects: %s", intersects ? "TRUE" : "FALSE");
+			if (intersects) {
+				ImGui::TextColored(ImColor(0.0f, 0.0f, 1.0f), "t0 %.3f", t0);
+				ImGui::TextColored(ImColor(0.0f, 1.0f, 0.0f), "t1 %.3f", t1);
+				Im3d::BeginLines();
+					Im3d::Vertex(r.m_origin + r.m_direction * t0, Im3d::Color_Blue);
+					Im3d::Vertex(r.m_origin + r.m_direction * t1, Im3d::Color_Green);
+				Im3d::End();
+				Im3d::BeginPoints();
+					Im3d::Vertex(r.m_origin + r.m_direction * t0, 8.0f, Im3d::Color_Blue);
+					Im3d::Vertex(r.m_origin + r.m_direction * t1, 6.0f, Im3d::Color_Green);
+				Im3d::End();			
+			}
+ 
+			Im3d::PopDrawState();
+			ImGui::TreePop();
+		}
+
+		/*Ray r;
 		r.m_origin = Scene::GetCullCamera()->getPosition();
 		r.m_direction = Scene::GetCullCamera()->getViewVector();
 
@@ -92,7 +201,7 @@ public:
 			Im3d::End();
 
 		Im3d::PopDrawState();
-		
+		*/
 
 
 		return true;
