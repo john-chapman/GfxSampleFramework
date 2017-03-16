@@ -93,6 +93,7 @@ public:
 			r.m_origin = Scene::GetCullCamera()->getPosition();
 			r.m_direction = Scene::GetCullCamera()->getViewVector();
 			bool intersects = false;
+			bool intersectCheck = false;
 			float t0, t1;
 	
 			Im3d::Gizmo("Primitive", (float*)&primMat);
@@ -102,8 +103,9 @@ public:
 				case Primitive_Sphere: {
 					ImGui::SliderFloat("Radius", &radius, 0.0f, 8.0f);
 					Sphere sphere(vec3(0.0f), radius);
-					intersects = Intersect(r, sphere, t0, t1);
 					sphere.transform(primMat);
+					intersects = Intersect(r, sphere, t0, t1);
+					intersectCheck = Intersects(r, sphere);
 					Im3d::DrawSphere(sphere.m_origin, sphere.m_radius);
 					break;
 				}
@@ -112,6 +114,7 @@ public:
 					Plane plane(vec3(0.0f, 1.0f, 0.0f), 0.0f);
 					plane.transform(primMat);
 					intersects = Intersect(r, plane, t0);
+					intersectCheck = Intersects(r, plane);
 					t1 = t0;
 					Im3d::DrawQuad(plane.getOrigin(), plane.m_normal, vec2(width));
 					Im3d::BeginLines();
@@ -127,6 +130,7 @@ public:
 					AlignedBox alignedBox(vec3(-length, -width, -radius) * 0.5f, vec3(length, width, radius) * 0.5f);
 					alignedBox.transform(primMat);
 					intersects = Intersect(r, alignedBox, t0, t1);
+					intersectCheck = Intersects(r, alignedBox);
 					Im3d::DrawAlignedBox(alignedBox.m_min, alignedBox.m_max);
 					break;
 				}
@@ -136,6 +140,7 @@ public:
 					Cylinder cylinder(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
 					cylinder.transform(primMat);
 					intersects = Intersect(r, cylinder, t0, t1);
+					intersectCheck = Intersects(r, cylinder);
 					Im3d::DrawCylinder(cylinder.m_start, cylinder.m_end, cylinder.m_radius);
 					break;
 				}
@@ -145,6 +150,7 @@ public:
 					Cylinder capsule(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
 					capsule.transform(primMat);
 					intersects = Intersect(r, capsule, t0, t1);
+					intersectCheck = Intersects(r, capsule);
 					Im3d::DrawCapsule(capsule.m_start, capsule.m_end, capsule.m_radius);
 					break;
 				}
@@ -153,7 +159,15 @@ public:
 					break;
 			};
 
-			ImGui::Text("Intersects: %s", intersects ? "TRUE" : "FALSE");
+			ImGui::Text("Intersects: %s ", intersects ? "TRUE" : "FALSE");
+			ImGui::SameLine();
+			ImGui::TextColored((intersectCheck == intersects) ? ImColor(0.0f, 1.0f, 0.0f) : ImColor(1.0f, 0.0f, 0.0f), "+");
+			Im3d::PushAlpha(0.7f);
+			Im3d::BeginLines();
+				Im3d::Vertex(r.m_origin, 1.0f, Im3d::Color_Cyan);
+				Im3d::Vertex(r.m_origin + r.m_direction * 999.0f, 1.0f, Im3d::Color_Cyan);
+			Im3d::End();
+			Im3d::PopAlpha();
 			if (intersects) {
 				ImGui::TextColored(ImColor(0.0f, 0.0f, 1.0f), "t0 %.3f", t0);
 				ImGui::TextColored(ImColor(0.0f, 1.0f, 0.0f), "t1 %.3f", t1);

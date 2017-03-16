@@ -699,9 +699,9 @@ float frm::Distance2(const AlignedBox& _box, const vec3& _point)
 
 bool frm::Intersects(const Ray& _r, const Sphere& _s)
 {
-	vec3 p = _s.m_origin - _r.m_origin;
+	vec3  p  = _s.m_origin - _r.m_origin;
 	float p2 = length2(p);
-	float q = dot(p, _r.m_direction);
+	float q  = dot(p, _r.m_direction);
 	float r2 = _s.m_radius * _s.m_radius;
 	if (q < 0.0f && p2 > r2) {
 		return false;
@@ -710,20 +710,20 @@ bool frm::Intersects(const Ray& _r, const Sphere& _s)
 }
 bool frm::Intersect(const Ray& _r, const Sphere& _s, float& t0_, float& t1_)
 {
-	vec3 p = _s.m_origin - _r.m_origin; 
-	float q = dot(p, _r.m_direction); 
-	if (q < 0.0f) {
-		return false;
-	}
-	float p2 = length2(p) - q * q; 
+	vec3  p  = _s.m_origin - _r.m_origin; 
+	float p2 = length2(p); 
+	float q  = dot(p, _r.m_direction);
 	float r2 = _s.m_radius * _s.m_radius;
-	if (p2 > r2) {
+	if (q < 0.0f && p2 > r2) {
 		return false;
 	}
+	p2 -= q * q;
 	float s = sqrt(r2 - p2); 
-	t0_ = apt::max(q - s, 0.0f);
 	t1_ = q + s;
-	 
+	t0_ = q - s;
+	if (t0_ < 0.0f) {
+		t0_ = t1_; // inside the sphere, both intersections at t1
+	} 
 	return true;
 }
 bool frm::Intersects(const Ray& _r, const AlignedBox& _b)
@@ -739,7 +739,7 @@ bool frm::Intersect(const Ray& _r, const AlignedBox& _b, float& t0_, float& t1_)
 	vec3 tmax = apt::max(omax, omin);
 	vec3 tmin = apt::min(omax, omin);
 	t1_ = apt::min(tmax.x, apt::min(tmax.y, tmax.z));
-	t0_ = apt::max(apt::max(tmin.x, 0.0f), apt::max(tmin.y, tmin.z));
+	t0_ = apt::max(tmin.x, apt::max(tmin.y, tmin.z));
 	return t1_ > t0_;
 }
 
