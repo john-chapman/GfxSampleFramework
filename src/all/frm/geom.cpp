@@ -697,6 +697,37 @@ float frm::Distance2(const AlignedBox& _box, const vec3& _point)
 	return ret;
 }
 
+inline static bool SolveQuadratic(float _a, float _b, float _c, float& x0_, float &x1_) 
+{
+ // \todo _a is usually 1 in the cases we care about, could remove
+	float d = _b * _b - 4.0f * _a * _c; 
+    if (d <= 0.0f) {
+		return false;
+	}
+
+	d = sqrtf(d);
+
+ 	//float q = (_b > 0.0f) ? 
+	//	0.5f * (_b + d) : 
+	//	0.5f * (_b - d)
+	//	;
+	//x0_ = q / _a; 
+	//x1_ = _c / q; 
+	//if (x0_ > x1_) {
+	//	std::swap(x0_, x1_);
+	//}
+
+	//x1_ = (0.5f * (_b + d)) / _a;
+	//x0_ = (0.5f * (_b - d)) / _a;
+
+ // robust solution http://stackoverflow.com/questions/898076/solve-quadratic-equation-in-c
+	float q = 0.5f * (_b + copysignf(1.0f, _b) * d);
+	x0_ = _c / q;
+	x1_ = q / _a;
+    
+	return true; 
+} 
+
 bool frm::Intersects(const Ray& _r, const Sphere& _s)
 {
 	vec3  p  = _s.m_origin - _r.m_origin;
@@ -710,20 +741,22 @@ bool frm::Intersects(const Ray& _r, const Sphere& _s)
 }
 bool frm::Intersect(const Ray& _r, const Sphere& _s, float& t0_, float& t1_)
 {
-	vec3  p  = _s.m_origin - _r.m_origin; 
-	float p2 = length2(p); 
-	float q  = dot(p, _r.m_direction);
-	float r2 = _s.m_radius * _s.m_radius;
-	if (q < 0.0f && p2 > r2) {
+	vec3 p = _s.m_origin - _r.m_origin;
+	float a = 1.0f;//length2(_r.m_direction);
+	float b = 2.0f * dot(_r.m_direction, p);
+	float c = length2(p) - (_s.m_radius * _s.m_radius);
+	if (!SolveQuadratic(a, b, c, t0_, t1_)) { // gives 2 solutions on the line
 		return false;
 	}
-	p2 -= q * q;
-	float s = sqrt(r2 - p2); 
-	t1_ = q + s;
-	t0_ = q - s;
-	if (t0_ < 0.0f) {
-		t0_ = t1_; // inside the sphere, both intersections at t1
-	} 
+// both are negative = sphere behind ray
+// else either is negative = ray is in sphere (choose non-negative one)
+// else both are positive, do nothing
+	//if (t1_ < 0.0f) { // sphere behind ray
+	//	return false;
+	//}
+	//if (t0_ < 0.0f) { // ray inside sphere
+	//	t0_ = t1_;
+	//}
 	return true;
 }
 bool frm::Intersects(const Ray& _r, const AlignedBox& _b)
