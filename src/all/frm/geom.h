@@ -234,7 +234,7 @@ void Nearest(const Ray& _ray, const Line& _line, float& tr_, float& tl_);
 // Find point tr_ along _ray nearest to _segment, return point on segment nearest to _ray.
 vec3 Nearest(const Ray& _ray, const LineSegment& _segment, float& tr_);
 
-// Find the square distance/distance between two primitives.
+// Find the distance/square distance between two primitives.
 float        Distance2(const Line& _line, const vec3& _point);
 inline float Distance (const Line& _line, const vec3& _point)                        { return apt::sqrt(Distance2(_line, _point)); }
 float        Distance2(const Ray& _ray, const vec3& _point);
@@ -252,7 +252,7 @@ float        Distance2(const AlignedBox& _box, const vec3& _point);
 inline float Distance (const AlignedBox& _box, const vec3& _point)                   { return apt::sqrt(Distance2(_box, _point)); }
 
 // Ray-primitive intersection.
-// t0_/t1_ return the first/second intersections. If the ray origin is inside the primitive, t0_ will be 0.
+// t0_/t1_ return the first/second intersections (t0_ < t1_). If the ray origin is inside the primitive, t0_ == t1_.
 // Intersects() may be cheaper than Intersect() hence use these functions if t0_/t1_ aren't required.
 bool Intersects(const Ray& _r, const Sphere& _s);
 bool Intersect (const Ray& _r, const Sphere& _s, float& t0_, float& t1_);
