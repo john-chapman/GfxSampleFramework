@@ -81,20 +81,42 @@ public:
 				"Cylinder\0"
 				"Capsule\0"
 				;
-			static int currentPrim = Primitive_Sphere;
+			static int currentPrim = Primitive_Cylinder;
 			ImGui::Combo("Primitive", &currentPrim, primitiveList);
+			static int useLine = 1;
+			ImGui::RadioButton("Ray", &useLine, 0);
+			ImGui::SameLine();
+			ImGui::RadioButton("Line", &useLine, 1);
 
 			static mat4 primMat(1.0f);
 			static float length = 3.0f;
 			static float width  = 3.0f;
 			static float radius = 1.0f;
 
-			Ray r;
-			r.m_origin = Scene::GetCullCamera()->getPosition();
-			r.m_direction = Scene::GetCullCamera()->getViewVector();
+			Ray ray;
+			ray.m_origin = Scene::GetCullCamera()->getPosition();
+			ray.m_direction = Scene::GetCullCamera()->getViewVector();
+			Line line(ray.m_origin, ray.m_direction);
 			bool intersects = false;
 			bool intersectCheck = false;
 			float t0, t1;
+
+			#define Intersect1(prim) \
+				if (useLine) { \
+					intersects = Intersect(line, prim, t0); \
+					intersectCheck = Intersects(line, prim); \
+				} else { \
+					intersects = Intersect(ray, prim, t0); \
+					intersectCheck = Intersects(ray, prim); \
+				}
+			#define Intersect2(prim) \
+				if (useLine) { \
+					intersects = Intersect(line, prim, t0, t1); \
+					intersectCheck = Intersects(line, prim); \
+				} else { \
+					intersects = Intersect(ray, prim, t0, t1); \
+					intersectCheck = Intersects(ray, prim); \
+				}
 	
 			Im3d::Gizmo("Primitive", (float*)&primMat);
 			Im3d::SetColor(Im3d::Color_Red);
@@ -104,8 +126,7 @@ public:
 					ImGui::SliderFloat("Radius", &radius, 0.0f, 8.0f);
 					Sphere sphere(vec3(0.0f), radius);
 					sphere.transform(primMat);
-					intersects = Intersect(r, sphere, t0, t1);
-					intersectCheck = Intersects(r, sphere);
+					Intersect2(sphere);
 					Im3d::DrawSphere(sphere.m_origin, sphere.m_radius);
 					break;
 				}
@@ -113,8 +134,7 @@ public:
 					ImGui::SliderFloat("Display Size", &width, 0.0f, 8.0f);
 					Plane plane(vec3(0.0f, 1.0f, 0.0f), 0.0f);
 					plane.transform(primMat);
-					intersects = Intersect(r, plane, t0);
-					intersectCheck = Intersects(r, plane);
+					Intersect1(plane);
 					t1 = t0;
 					Im3d::DrawQuad(plane.getOrigin(), plane.m_normal, vec2(width));
 					Im3d::BeginLines();
@@ -129,8 +149,7 @@ public:
 					ImGui::SliderFloat("Z", &radius, 0.0f, 8.0f);
 					AlignedBox alignedBox(vec3(-length, -width, -radius) * 0.5f, vec3(length, width, radius) * 0.5f);
 					alignedBox.transform(primMat);
-					intersects = Intersect(r, alignedBox, t0, t1);
-					intersectCheck = Intersects(r, alignedBox);
+					Intersect2(alignedBox);
 					Im3d::DrawAlignedBox(alignedBox.m_min, alignedBox.m_max);
 					break;
 				}
@@ -139,8 +158,7 @@ public:
 					ImGui::SliderFloat("Radius", &radius, 0.0f, 8.0f);
 					Cylinder cylinder(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
 					cylinder.transform(primMat);
-					intersects = Intersect(r, cylinder, t0, t1);
-					intersectCheck = Intersects(r, cylinder);
+					Intersect2(cylinder);
 					Im3d::DrawCylinder(cylinder.m_start, cylinder.m_end, cylinder.m_radius);
 					break;
 				}
@@ -149,8 +167,7 @@ public:
 					ImGui::SliderFloat("Radius", &radius, 0.0f, 8.0f);
 					Cylinder capsule(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
 					capsule.transform(primMat);
-					intersects = Intersect(r, capsule, t0, t1);
-					intersectCheck = Intersects(r, capsule);
+					Intersect2(capsule);
 					Im3d::DrawCapsule(capsule.m_start, capsule.m_end, capsule.m_radius);
 					break;
 				}
@@ -158,65 +175,96 @@ public:
 					APT_ASSERT(false);
 					break;
 			};
+			#undef Intersect1
+			#undef Intersect2
 
-			ImGui::Text("Intersects: %s ", intersects ? "TRUE" : "FALSE");
+			ImGui::Text("Intersects: %s", intersects ? "TRUE" : "FALSE");
 			ImGui::SameLine();
 			ImGui::TextColored((intersectCheck == intersects) ? ImColor(0.0f, 1.0f, 0.0f) : ImColor(1.0f, 0.0f, 0.0f), "+");
 			Im3d::PushAlpha(0.7f);
 			Im3d::BeginLines();
-				Im3d::Vertex(r.m_origin, 1.0f, Im3d::Color_Cyan);
-				Im3d::Vertex(r.m_origin + r.m_direction * 999.0f, 1.0f, Im3d::Color_Cyan);
+				if (useLine) {
+					Im3d::Vertex(line.m_origin - line.m_direction * 999.0f, 1.0f, Im3d::Color_Cyan);
+					Im3d::Vertex(line.m_origin + line.m_direction * 999.0f, 1.0f, Im3d::Color_Cyan);
+				} else {
+					Im3d::Vertex(ray.m_origin, 1.0f, Im3d::Color_Cyan);
+					Im3d::Vertex(ray.m_origin + ray.m_direction * 999.0f, 1.0f, Im3d::Color_Cyan);
+				}
 			Im3d::End();
 			Im3d::PopAlpha();
 			if (intersects) {
 				ImGui::TextColored(ImColor(0.0f, 0.0f, 1.0f), "t0 %.3f", t0);
+				ImGui::SameLine();
 				ImGui::TextColored(ImColor(0.0f, 1.0f, 0.0f), "t1 %.3f", t1);
 				Im3d::BeginLines();
-					Im3d::Vertex(r.m_origin + r.m_direction * t0, Im3d::Color_Blue);
-					Im3d::Vertex(r.m_origin + r.m_direction * t1, Im3d::Color_Green);
+					Im3d::Vertex(ray.m_origin + ray.m_direction * t0, Im3d::Color_Blue);
+					Im3d::Vertex(ray.m_origin + ray.m_direction * t1, Im3d::Color_Green);
 				Im3d::End();
 				Im3d::BeginPoints();
-					Im3d::Vertex(r.m_origin + r.m_direction * t0, 8.0f, Im3d::Color_Blue);
-					Im3d::Vertex(r.m_origin + r.m_direction * t1, 6.0f, Im3d::Color_Green);
+					Im3d::Vertex(ray.m_origin + ray.m_direction * t0, 8.0f, Im3d::Color_Blue);
+					Im3d::Vertex(ray.m_origin + ray.m_direction * t1, 6.0f, Im3d::Color_Green);
 				Im3d::End();			
 			}
  
 			Im3d::PopDrawState();
+
+			static bool enablePerf = false;	
+			ImGui::Checkbox("Perf Test", &enablePerf);
+			if (enablePerf) {
+				static int opCount = 100000;
+				ImGui::SliderInt("Op Count", &opCount, 1, 10000);
+				double avg;
+				#define PerfTest1(prim) \
+					Timestamp t = Time::GetTimestamp(); \
+					for (int i = 0; i < opCount; ++i) \
+						Intersect(ray, prim, t0); \
+					avg = (Time::GetTimestamp() - t).asMicroseconds();
+				#define PerfTest2(prim) \
+					Timestamp t = Time::GetTimestamp(); \
+					for (int i = 0; i < opCount; ++i) \
+						Intersect(ray, prim, t0, t1); \
+					avg = (Time::GetTimestamp() - t).asMicroseconds();
+
+				switch ((Primitive)currentPrim) {
+					case Primitive_Sphere: {
+						Sphere sphere(vec3(0.0f), radius);
+						sphere.transform(primMat);
+						PerfTest2(sphere);
+						break;
+					}
+					case Primitive_Plane: {
+						Plane plane(vec3(0.0f, 1.0f, 0.0f), 0.0f);
+						plane.transform(primMat);
+						PerfTest1(plane);
+						break;
+					}
+					case Primitive_AlignedBox: {
+						AlignedBox alignedBox(vec3(-length, -width, -radius) * 0.5f, vec3(length, width, radius) * 0.5f);
+						alignedBox.transform(primMat);
+						PerfTest2(alignedBox);
+						break;
+					}
+					case Primitive_Cylinder: {
+						Cylinder cylinder(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
+						cylinder.transform(primMat);
+						PerfTest2(cylinder);
+						break;
+					}
+					case Primitive_Capsule: {
+						break;
+					}
+					default:
+						APT_ASSERT(false);
+						break;
+				};
+				#undef PerfTest1
+				#undef PerfTest2
+				avg /= (double)opCount;
+				ImGui::Text("%fus", (float)avg);
+			}
+
 			ImGui::TreePop();
 		}
-
-		/*Ray r;
-		r.m_origin = Scene::GetCullCamera()->getPosition();
-		r.m_direction = Scene::GetCullCamera()->getViewVector();
-
-		Cylinder cylinder(vec3(0.0f, 0.0f, -3.0f), vec3(0.0f, 0.0f, 3.0f), 1.5f);
-		static mat4 cylinderMatrix(1.0f);
-		Im3d::Gizmo("Cylinder", (float*)&cylinderMatrix);
-		cylinder.transform(cylinderMatrix);
-
-		Im3d::PushDrawState();
-			Im3d::SetSize(1.0f);
-			Im3d::SetColor(Im3d::Color_Red);
-			Im3d::DrawPrism(cylinder.m_start, cylinder.m_end, cylinder.m_radius, 32);
-			
-			float t0, t1;
-			bool intersects = Intersect(r, cylinder, t0, t1);
-			if (!intersects) {
-				ImGui::Text("No intersection");
-			}			
-
-			Im3d::BeginLines();
-				Im3d::Vertex(r.m_origin + r.m_direction * t0, 2.0f, Im3d::Color_Blue);
-				Im3d::Vertex(r.m_origin + r.m_direction * t1, 2.0f, Im3d::Color_Green);
-			Im3d::End();
-			Im3d::BeginPoints();
-				Im3d::Vertex(r.m_origin + r.m_direction * t0, 8.0f, Im3d::Color_Blue);
-				Im3d::Vertex(r.m_origin + r.m_direction * t1, 6.0f, Im3d::Color_Green);
-			Im3d::End();
-
-		Im3d::PopDrawState();
-		*/
-
 
 		return true;
 	}

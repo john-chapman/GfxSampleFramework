@@ -251,19 +251,33 @@ float        Distance (const Plane& _plane, const vec3& _point);
 float        Distance2(const AlignedBox& _box, const vec3& _point);
 inline float Distance (const AlignedBox& _box, const vec3& _point)                   { return apt::sqrt(Distance2(_box, _point)); }
 
+// Line-primitive intersection.
+// t0_/t1_ return the first/second intersections along the line relative to the origin (|t0_| < |t1_|).
+// Intersects() may be cheaper than Intersect() if t0_/t1_ aren't required.
+bool Intersects(const Line& _line, const Sphere& _sphere);
+bool Intersect (const Line& _line, const Sphere& _sphere, float& t0_, float& t1_);
+bool Intersects(const Line& _line, const Plane& _plane);
+bool Intersect (const Line& _line, const Plane& _plane, float& t0_);
+bool Intersects(const Line& _line, const AlignedBox& _box);
+bool Intersect (const Line& _line, const AlignedBox& _box, float& t0_, float& t1_);
+bool Intersects(const Line& _line, const Capsule& _capsule);
+bool Intersect (const Line& _line, const Capsule& _capsule, float& t0_, float& t1_);
+bool Intersects(const Line& _line, const Cylinder& _cylinder);
+bool Intersect (const Line& _line, const Cylinder& _cylinder, float& t0_, float& t1_);
+
 // Ray-primitive intersection.
 // t0_/t1_ return the first/second intersections (t0_ < t1_). If the ray origin is inside the primitive, t0_ == t1_.
-// Intersects() may be cheaper than Intersect() hence use these functions if t0_/t1_ aren't required.
-bool Intersects(const Ray& _r, const Sphere& _s);
-bool Intersect (const Ray& _r, const Sphere& _s, float& t0_, float& t1_);
-bool Intersects(const Ray& _r, const AlignedBox& _b);
-bool Intersect (const Ray& _r, const AlignedBox& _b, float& t0_, float& t1_);
-bool Intersects(const Ray& _r, const Plane& _p);
-bool Intersect (const Ray& _r, const Plane& _p, float& t0_);
-bool Intersects(const Ray& _r, const Cylinder& _c);
-bool Intersect (const Ray& _r, const Cylinder& _c, float& t0_, float& t1_);
-bool Intersects(const Ray& _r, const Capsule& _c);
-bool Intersect (const Ray& _r, const Capsule& _c, float& t0_, float& t1_);
+// Intersects() may be cheaper than Intersect() if t0_/t1_ aren't required.
+bool Intersects(const Ray& _ray, const Sphere& _sphere);
+bool Intersect (const Ray& _ray, const Sphere& _sphere, float& t0_, float& t1_);
+bool Intersects(const Ray& _ray, const AlignedBox& _box);
+bool Intersect (const Ray& _ray, const AlignedBox& _box, float& t0_, float& t1_);
+bool Intersects(const Ray& _ray, const Plane& _plane);
+bool Intersect (const Ray& _ray, const Plane& _plane, float& t0_);
+bool Intersects(const Ray& _ray, const Capsule& _capsule);
+bool Intersect (const Ray& _ray, const Capsule& _capsule, float& t0_, float& t1_);
+bool Intersects(const Ray& _ray, const Cylinder& _cylinder);
+bool Intersect (const Ray& _ray, const Cylinder& _cylinder, float& t0_, float& t1_);
 
 // Primitive-primitive intersection.
 bool Intersects(const Sphere& _sphere0, const Sphere& _sphere1);
