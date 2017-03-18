@@ -697,28 +697,27 @@ float frm::Distance2(const AlignedBox& _box, const vec3& _point)
 	return ret;
 }
 
+inline static void OrderByMagnitude(float& _t0_, float& _t1_)
+{
+	float a = _t0_;
+	float b = _t1_;
+	if (fabs(a) < fabs(b)) {
+		_t0_ = a;
+		_t1_ = b;
+	} else {
+		_t1_ = a;
+		_t0_ = b;
+	}
+}
+
 inline static bool SolveQuadratic(float _a, float _b, float _c, float& x0_, float &x1_) 
 {
- // \todo _a is usually 1 in the cases we care about, could remove
 	float d = _b * _b - 4.0f * _a * _c; 
     if (d <= 0.0f) {
 		return false;
 	}
 
 	d = sqrtf(d);
-
- 	//float q = (_b > 0.0f) ? 
-	//	0.5f * (_b + d) : 
-	//	0.5f * (_b - d)
-	//	;
-	//x0_ = q / _a; 
-	//x1_ = _c / q; 
-	//if (x0_ > x1_) {
-	//	std::swap(x0_, x1_);
-	//}
-
-	//x1_ = (0.5f * (_b + d)) / _a;
-	//x0_ = (0.5f * (_b - d)) / _a;
 
  // robust solution http://stackoverflow.com/questions/898076/solve-quadratic-equation-in-c
 	float q = 0.5f * (_b + copysignf(1.0f, _b) * d);
@@ -728,118 +727,190 @@ inline static bool SolveQuadratic(float _a, float _b, float _c, float& x0_, floa
 	return true; 
 } 
 
-bool frm::Intersects(const Ray& _r, const Sphere& _s)
+// Line-primitive intersection
+
+bool frm::Intersects(const Line& _line, const Sphere& _sphere)
 {
-	vec3  p  = _s.m_origin - _r.m_origin;
+	vec3 p = _sphere.m_origin - _line.m_origin;
+	float b = 2.0f * dot(_line.m_direction, p);
+	float c = length2(p) - (_sphere.m_radius * _sphere.m_radius);
+	float d = b * b - 4.0f * c;
+	return d > 0.0f;
+}
+bool frm::Intersect(const Line& _line, const Sphere& _sphere, float& t0_, float& t1_)
+{
+	vec3 p = _sphere.m_origin - _line.m_origin;
+	float a = 1.0f;//length2(_r.m_direction);
+	float b = 2.0f * dot(_line.m_direction, p);
+	float c = length2(p) - (_sphere.m_radius * _sphere.m_radius);
+	return SolveQuadratic(a, b, c, t0_, t1_);
+}
+bool frm::Intersects(const Line& _line, const Plane& _plane)
+{
+	return dot(_line.m_direction, _plane.m_normal) != 0.0f;
+}
+bool frm::Intersect(const Line& _line, const Plane& _plane, float& t0_)
+{
+	float x = dot(_plane.m_normal, _line.m_direction);
+	t0_ = dot(_plane.m_normal, (_plane.m_normal * _plane.m_offset) - _line.m_origin) / x;
+	return x != 0.0f;
+}
+bool frm::Intersects(const Line& _line, const AlignedBox& _box)
+{
+ // \todo cheaper version?
+	float t0, t1;
+	return Intersect(_line, _box, t0, t1);
+}
+bool frm::Intersect(const Line& _line, const AlignedBox& _box, float& t0_, float& t1_)
+{
+	vec3 omin = (_box.m_min - _line.m_origin) / _line.m_direction;
+	vec3 omax = (_box.m_max - _line.m_origin) / _line.m_direction;
+	vec3 tmax = apt::max(omax, omin);
+	vec3 tmin = apt::min(omax, omin);
+	t1_ = apt::min(tmax.x, apt::min(tmax.y, tmax.z));
+	t0_ = apt::max(tmin.x, apt::max(tmin.y, tmin.z));
+	if (t1_ < t0_) {
+		return false;
+	}
+	OrderByMagnitude(t0_, t1_);
+	return true;
+}
+bool frm::Intersects(const Line& _line, const Capsule& _capsule)
+{
+	return false;
+}
+bool frm::Intersect(const Line& _line, const Capsule& _capsule, float& t0_, float& t1_)
+{
+	return false;
+}
+bool frm::Intersects(const Line& _line, const Cylinder& _cylinder)
+{
+ // \todo cheaper version?
+	float t0, t1;
+	return Intersect(_line, _cylinder, t0, t1);
+}
+bool frm::Intersect(const Line& _line, const Cylinder& _cylinder, float& t0_, float& t1_)
+{
+	vec3 cdir = _cylinder.m_end - _cylinder.m_start;
+	vec3 p = _cylinder.m_start - _line.m_origin;
+	vec3 q = cross(p, cdir);
+	vec3 r = cross(_line.m_direction, cdir);
+	float a = length2(r);
+	float b = 2.0f * dot(r, q);
+	float c = length2(q) - (_cylinder.m_radius * _cylinder.m_radius * length2(cdir));
+	if (SolveQuadratic(a, b, c, t0_, t1_)) { // intersects the infinite cylinder
+	 // cap intersections, clamp t between the end planes
+		vec3 nrm = normalize(cdir);
+		float t2, t3;
+		Intersect(_line, Plane(nrm, _cylinder.m_end), t2);
+		Intersect(_line, Plane(-nrm, _cylinder.m_start), t3);
+		if (t3 < t2) {
+			t0_ = apt::clamp(t0_, t3, t2);
+			t1_ = apt::clamp(t1_, t3, t2);
+		} else {
+			t0_ = apt::clamp(t0_, t2, t3);
+			t1_ = apt::clamp(t1_, t2, t3);
+		}
+		OrderByMagnitude(t0_, t1_);
+		
+		return t0_ != t1_;
+	}
+	return false;
+}
+
+
+// Ray-primitive intersection
+
+bool frm::Intersects(const Ray& _ray, const Sphere& _sphere)
+{
+	vec3  p  = _sphere.m_origin - _ray.m_origin;
 	float p2 = length2(p);
-	float q  = dot(p, _r.m_direction);
-	float r2 = _s.m_radius * _s.m_radius;
+	float q  = dot(p, _ray.m_direction);
+	float r2 = _sphere.m_radius * _sphere.m_radius;
 	if (q < 0.0f && p2 > r2) {
 		return false;
 	}
 	return p2 - (q * q) <= r2;
 }
-bool frm::Intersect(const Ray& _r, const Sphere& _s, float& t0_, float& t1_)
+bool frm::Intersect(const Ray& _ray, const Sphere& _sphere, float& t0_, float& t1_)
 {
-	vec3 p = _s.m_origin - _r.m_origin;
-	float a = 1.0f;//length2(_r.m_direction);
-	float b = 2.0f * dot(_r.m_direction, p);
-	float c = length2(p) - (_s.m_radius * _s.m_radius);
-	if (!SolveQuadratic(a, b, c, t0_, t1_)) { // gives 2 solutions on the line
+	if (!frm::Intersect(Line(_ray.m_origin, _ray.m_direction), _sphere, t0_, t1_)) {
 		return false;
 	}
-// both are negative = sphere behind ray
-// else either is negative = ray is in sphere (choose non-negative one)
-// else both are positive, do nothing
-	//if (t1_ < 0.0f) { // sphere behind ray
-	//	return false;
-	//}
-	//if (t0_ < 0.0f) { // ray inside sphere
-	//	t0_ = t1_;
-	//}
+	if (t0_ < 0.0f && t1_ < 0.0f) { // sphere behind ray origin
+		return false;
+	} else if (t0_ < 0.0f || t1_ < 0.0f) { // ray origin inside sphere
+		float t = apt::max(t0_, t1_);
+		t0_ = t1_ = t;
+	}
 	return true;
 }
-bool frm::Intersects(const Ray& _r, const AlignedBox& _b)
+bool frm::Intersects(const Ray& _ray, const Plane& _plane)
+{
+	float t0 = dot(_plane.m_normal, (_plane.m_normal * _plane.m_offset) - _ray.m_origin) / dot(_plane.m_normal, _ray.m_direction);
+	return t0 >= 0.0f;
+}
+bool frm::Intersect(const Ray& _ray, const Plane& _plane, float& t0_)
+{
+	t0_ = dot(_plane.m_normal, (_plane.m_normal * _plane.m_offset) - _ray.m_origin) / dot(_plane.m_normal, _ray.m_direction);
+	return t0_ >= 0.0f;
+}
+bool frm::Intersects(const Ray& _ray, const AlignedBox& _box)
 {
  // \todo cheaper version?
 	float t0, t1;
-	return Intersect(_r, _b, t0, t1);
+	return Intersect(_ray, _box, t0, t1);
 }
-bool frm::Intersect(const Ray& _r, const AlignedBox& _b, float& t0_, float& t1_)
+bool frm::Intersect(const Ray& _ray, const AlignedBox& _box, float& t0_, float& t1_)
 {
-	vec3 omin = (_b.m_min - _r.m_origin) / _r.m_direction;
-	vec3 omax = (_b.m_max - _r.m_origin) / _r.m_direction;
+	vec3 omin = (_box.m_min - _ray.m_origin) / _ray.m_direction;
+	vec3 omax = (_box.m_max - _ray.m_origin) / _ray.m_direction;
 	vec3 tmax = apt::max(omax, omin);
 	vec3 tmin = apt::min(omax, omin);
 	t1_ = apt::min(tmax.x, apt::min(tmax.y, tmax.z));
 	t0_ = apt::max(tmin.x, apt::max(tmin.y, tmin.z));
-	return t1_ > t0_;
+	if (t0_ >= t1_) {
+		return false;
+	}
+	if (t0_ < 0.0f && t1_ < 0.0f) { // box behind ray origin
+		return false;
+	} else if (t0_ < 0.0f || t1_ < 0.0f) { // ray origin inside box
+		float t = apt::max(t0_, t1_);
+		t0_ = t1_ = t;
+	}
+	return true;
 }
-
-bool frm::Intersects(const Ray& _r, const Plane& _p)
+bool frm::Intersects(const Ray& _ray, const Capsule& _capsule)
 {
-	float x = dot(_p.m_normal, _r.m_direction);
-	return x <= 0.0f;
+	float c2 = _capsule.m_radius * _capsule.m_radius;
+	return Distance2(_ray, LineSegment(_capsule.m_start, _capsule.m_end)) < c2;
 }
-bool frm::Intersect(const Ray& _r, const Plane& _p, float& t0_)
-{
-	t0_ = dot(_p.m_normal, (_p.m_normal * _p.m_offset) - _r.m_origin) / dot(_p.m_normal, _r.m_direction);
-	return t0_ >= 0.0f;
-}
-
-bool frm::Intersects(const Ray& _r, const Cylinder& _c)
+bool frm::Intersect(const Ray& _ray, const Capsule& _capsule, float& t0_, float& t1_)
 {
 	APT_ASSERT(false); // \todo
 	return false;
 }
-bool frm::Intersect(const Ray& _r, const Cylinder& _c, float& t0_, float& t1_)
+bool frm::Intersects(const Ray& _ray, const Cylinder& _c)
 {
-	vec3 cdir = _c.m_end - _c.m_start;
-	vec3 p    = _r.m_origin - _c.m_start;
-	vec3 q    = cross(p, cdir);
-	vec3 r    = cross(_r.m_direction, cdir);
-	float a   = length2(r);
-	float b   = 2.0f * dot(r, q);
-
-	float c  = length2(q) - (_c.m_radius * _c.m_radius * length2(cdir));
-	float d  = b * b - 4.0f * a * c;
-
-	if (d < 0.0f) {
-		return false;
-	} 
-
-	d = sqrtf(d);
-	t1_ = (-b + d) / (2.0f * a); // t1 is the furthest point
-	if (t1_ < 0.0f) {
+	//APT_ASSERT(false); // \todo
+	return false;
+}
+bool frm::Intersect(const Ray& _ray, const Cylinder& _cylinder, float& t0_, float& t1_)
+{
+	if (!frm::Intersect(Line(_ray.m_origin, _ray.m_direction), _cylinder, t0_, t1_)) {
 		return false;
 	}
-
-
-//float e0, e1;
-//cdir = normalize(cdir);
-//bool ehit = Intersect(_r, Plane(cdir, _c.m_end), e0);
-//ehit |= Intersect(_r, Plane(-cdir, _c.m_start), e1);
-
-
-	if (c > 0.0f) { // ray origin is outside the cylinder
-		t0_ = (-b - d) / (2.0f * a); // t0 is the nearest point
-	} else {
-		t0_ = t1_; // ray origin is inside the cylinder, t0 = t1
+	if (t0_ < 0.0f && t1_ < 0.0f) { // sphere behind ray origin
+		return false;
+	} else if (t0_ < 0.0f || t1_ < 0.0f) { // ray origin inside sphere
+		float t = apt::max(t0_, t1_);
+		t0_ = t1_ = t;
 	}
-
 	return true;
 }
 
-bool frm::Intersects(const Ray& _r, const Capsule& _c)
-{
-	return Distance2(_r, LineSegment(_c.m_start, _c.m_end)) < _c.m_radius * _c.m_radius;
-}
-bool frm::Intersect(const Ray& _r, const Capsule& _c, float& t0_, float& t1_)
-{
-	APT_ASSERT(false); // \todo
-	return false;
-}
 
+// Primitive-primitive intersection
 
 bool frm::Intersects(const Sphere& _sphere0, const Sphere& _sphere1)
 {
