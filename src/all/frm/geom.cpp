@@ -716,16 +716,13 @@ inline static bool SolveQuadratic(float _a, float _b, float _c, float& x0_, floa
     if (d <= 0.0f) {
 		return false;
 	}
-
 	d = sqrtf(d);
-
- // robust solution http://stackoverflow.com/questions/898076/solve-quadratic-equation-in-c
 	float q = 0.5f * (_b + copysignf(1.0f, _b) * d);
 	x0_ = _c / q;
 	x1_ = q / _a;
-    
 	return true; 
 } 
+
 
 // Line-primitive intersection
 
@@ -781,7 +778,72 @@ bool frm::Intersects(const Line& _line, const Capsule& _capsule)
 }
 bool frm::Intersect(const Line& _line, const Capsule& _capsule, float& t0_, float& t1_)
 {
+	vec3 cdir = normalize(_capsule.m_end - _capsule.m_start);
+	vec3 cc = (_capsule.m_start + _capsule.m_end) * 0.5f;
+	vec3 oc = _line.m_origin - cc;
+	float r2 = _capsule.m_radius * _capsule.m_radius;
+	float ch = length(_capsule.m_end - _capsule.m_start) * 0.5f;
+	float card = dot(cdir, _line.m_direction);
+	float caoc = dot(cdir,oc);
+
+	float a = 1.0f - card*card;
+	float b = dot( oc, _line.m_direction) - caoc * card;
+	float c = length2(oc) - caoc * caoc - r2;
+	float d = b * b - a * c;
+	if (d <= 0.0f) {
+		return false;
+	}
+	d = sqrtf(d);
+
+    float t = (-b - d) / a;
+	float y = caoc + t * card;
+
+    if (fabs(y) < ch) {
+	 // t0 intersects the body
+		t0_ = t;
+		t1_ = (-b + d) / a; // second solution for the infinite cylinder
+
+	 // t1 may intersect a cap
+		oc = _line.m_origin - (cc + copysignf(1.0f, y) * cdir * ch);
+		b = dot(_line.m_direction, oc);
+		c = length2(oc) - r2;
+		d = b * b - c;
+		if (d > 0.0f) {
+			d = sqrtf(d);
+			t1_ -b + d;
+			//t1_ = apt::min(t1_, -b + d);
+		}
+
+		return true;
+	}
+
+	oc = _line.m_origin - (cc + copysignf(1.0f, y) * cdir * ch);
+	b = dot(_line.m_direction, oc);
+	c = length2(oc) - r2;
+	d = b * b - c;
+	if (d > 0.0f) {
+	 // t0 intersects a cap
+		d = sqrtf(d);
+		t0_ = -b - d;
+
+	 // t1 may intersect the body
+		t1_ = apt::max(t1_, -b + d);
+		return true;
+    }
 	return false;
+
+	/*vec3 cdir = _capsule.m_end - _capsule.m_start;
+	vec3 p = _capsule.m_start - _line.m_origin;
+	vec3 q = cross(p, cdir);
+	vec3 r = cross(_line.m_direction, cdir);
+	float a = length2(r);
+	float b = 2.0f * dot(r, q);
+	float c = length2(q) - (_capsule.m_radius * _capsule.m_radius * length2(cdir));
+	if (SolveQuadratic(a, b, c, t0_, t1_)) { // intersects the infinite cylinder
+	 // clamp t at endpoint spheres
+		return true;//t0_ != t1_;
+	}
+	return false;*/
 }
 bool frm::Intersects(const Line& _line, const Cylinder& _cylinder)
 {
@@ -799,7 +861,7 @@ bool frm::Intersect(const Line& _line, const Cylinder& _cylinder, float& t0_, fl
 	float b = 2.0f * dot(r, q);
 	float c = length2(q) - (_cylinder.m_radius * _cylinder.m_radius * length2(cdir));
 	if (SolveQuadratic(a, b, c, t0_, t1_)) { // intersects the infinite cylinder
-	 // cap intersections, clamp t between the end planes
+	 // clamp t at endpoint planes
 		vec3 nrm = normalize(cdir);
 		float t2, t3;
 		Intersect(_line, Plane(nrm, _cylinder.m_end), t2);
@@ -887,13 +949,18 @@ bool frm::Intersects(const Ray& _ray, const Capsule& _capsule)
 }
 bool frm::Intersect(const Ray& _ray, const Capsule& _capsule, float& t0_, float& t1_)
 {
-	APT_ASSERT(false); // \todo
-	return false;
+	float tr;
+	vec3 ps = Nearest(_ray, LineSegment(_capsule.m_start, _capsule.m_end), tr);
+	
+t0_ = tr;
+t1_ = length(ps - _capsule.m_start);
+	return true;
 }
-bool frm::Intersects(const Ray& _ray, const Cylinder& _c)
+bool frm::Intersects(const Ray& _ray, const Cylinder& _cylinder)
 {
-	//APT_ASSERT(false); // \todo
-	return false;
+ // \todo cheaper version?
+	float t0, t1;
+	return Intersect(_ray, _cylinder, t0, t1);
 }
 bool frm::Intersect(const Ray& _ray, const Cylinder& _cylinder, float& t0_, float& t1_)
 {
