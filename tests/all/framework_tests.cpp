@@ -81,7 +81,7 @@ public:
 				"Cylinder\0"
 				"Capsule\0"
 				;
-			static int currentPrim = Primitive_Cylinder;
+			static int currentPrim = Primitive_Capsule;
 			ImGui::Combo("Primitive", &currentPrim, primitiveList);
 			static int useLine = 1;
 			ImGui::RadioButton("Ray", &useLine, 0);
@@ -165,7 +165,7 @@ public:
 				case Primitive_Capsule:	{
 					ImGui::SliderFloat("Length", &length, 0.0f, 8.0f);
 					ImGui::SliderFloat("Radius", &radius, 0.0f, 8.0f);
-					Cylinder capsule(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
+					Capsule capsule(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
 					capsule.transform(primMat);
 					Intersect2(capsule);
 					Im3d::DrawCapsule(capsule.m_start, capsule.m_end, capsule.m_radius);
@@ -251,6 +251,9 @@ public:
 						break;
 					}
 					case Primitive_Capsule: {
+						Capsule capsule(vec3(0.0f, -length * 0.5f, 0.0f), vec3(0.0f, length * 0.5f, 0.0f), radius);
+						capsule.transform(primMat);
+						PerfTest2(capsule);
 						break;
 					}
 					default:
