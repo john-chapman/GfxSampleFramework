@@ -26,13 +26,18 @@ struct ProfilerViewer
 		ImU32 kBackground;
 		ImU32 kFrame;
 		float kFrameHoverAlpha;
-		ImU32 kMarkerHover;
-		ImU32 kMarkerColors[9];
+		ImU32 kMarkerText;
+		ImU32 kMarkerTextGray;
+		ImU32 kMarkerGray;
+		ImU32 kMarkerColors[10];
 	};
 	static Colors  kColorsGpu;
 	static Colors  kColorsCpu;
 	static Colors* kColors;
 
+	bool            m_isMarkerHovered;
+	String<64>      m_hoverName;
+	ImGuiTextFilter m_markerFilter;
 
 	uint64 beg; // all markers draw relative to this time
 	uint64 end; // start of the last marker
@@ -46,29 +51,33 @@ struct ProfilerViewer
 	{
 		kColorsGpu.kBackground      = kColorsCpu.kBackground = ImColor(0xff8e8e8e);
 		kColorsGpu.kFrameHoverAlpha = kColorsCpu.kFrameHoverAlpha = 0.1f;
-		kColorsGpu.kMarkerHover     = kColorsCpu.kMarkerHover = ImColor(0.3f, 0.3f, 0.3f, 1.0f);
-		
-		kColorsGpu.kFrame           = ImColor(215,  46, 165);
-		kColorsGpu.kMarkerColors[0] = ImColor( 63,  52, 183);
-		kColorsGpu.kMarkerColors[1] = ImColor( 95,  54, 183);
-		kColorsGpu.kMarkerColors[2] = ImColor(154,  23, 179);
-		kColorsGpu.kMarkerColors[3] = ImColor(183,  22, 173);
-		kColorsGpu.kMarkerColors[4] = ImColor(159, 107,  73);
-		kColorsGpu.kMarkerColors[5] = ImColor(125, 184,  84);
-		kColorsGpu.kMarkerColors[6] = ImColor(100, 158,  56);
-		kColorsGpu.kMarkerColors[7] = ImColor( 53, 178,  21);
-		kColorsGpu.kMarkerColors[8] = ImColor( 76, 156, 100);
+		kColorsGpu.kMarkerText      = kColorsCpu.kMarkerText = ImColor(0xffffffff);
+		kColorsGpu.kMarkerTextGray  = kColorsCpu.kMarkerTextGray = ImColor(0xff4c4b4b);
+		kColorsGpu.kMarkerGray      = kColorsCpu.kMarkerGray = ImColor(0xff383838);
 
-		kColorsCpu.kFrame           = ImColor(229, 190,  47);
-		kColorsCpu.kMarkerColors[0] = ImColor(183,  52,  76);
-		kColorsCpu.kMarkerColors[1] = ImColor(183,  61,  54);
-		kColorsCpu.kMarkerColors[2] = ImColor(179, 113,  23);
-		kColorsCpu.kMarkerColors[3] = ImColor(182, 148,  22);
-		kColorsCpu.kMarkerColors[4] = ImColor( 73, 159,  84);
-		kColorsCpu.kMarkerColors[5] = ImColor( 84, 152, 184);
-		kColorsCpu.kMarkerColors[6] = ImColor( 56, 127, 158);
-		kColorsCpu.kMarkerColors[7] = ImColor( 21,  95, 178);
-		kColorsCpu.kMarkerColors[8] = ImColor( 79,  76, 156);
+		kColorsGpu.kFrame           = ImColor(0xff298FF5);
+		kColorsGpu.kMarkerColors[0] = ImColor(0xff4D7CBE);
+		kColorsGpu.kMarkerColors[1] = ImColor(0xff0C1492);
+		kColorsGpu.kMarkerColors[2] = ImColor(0xff2256EE);
+		kColorsGpu.kMarkerColors[3] = ImColor(0xff072758);
+		kColorsGpu.kMarkerColors[4] = ImColor(0xff072D97);
+		kColorsGpu.kMarkerColors[5] = ImColor(0xff018FF1);
+		kColorsGpu.kMarkerColors[6] = ImColor(0xff3E4BFF);
+		kColorsGpu.kMarkerColors[7] = ImColor(0xff3C97D8);
+		kColorsGpu.kMarkerColors[8] = ImColor(0xff204EEC);
+		kColorsGpu.kMarkerColors[9] = ImColor(0xff3AC5FF);
+
+		kColorsCpu.kFrame           = ImColor(0xffA66B00);
+		kColorsCpu.kMarkerColors[0] = ImColor(0xff6B1A03);
+		kColorsCpu.kMarkerColors[1] = ImColor(0xff603803);
+		kColorsCpu.kMarkerColors[2] = ImColor(0xffA66B00);
+		kColorsCpu.kMarkerColors[3] = ImColor(0xffB64C31);
+		kColorsCpu.kMarkerColors[4] = ImColor(0xffFF9604);
+		kColorsCpu.kMarkerColors[5] = ImColor(0xff5F4B11);
+		kColorsCpu.kMarkerColors[6] = ImColor(0xffAC7C4F);
+		kColorsCpu.kMarkerColors[7] = ImColor(0xff92EA8A);
+		kColorsCpu.kMarkerColors[8] = ImColor(0xff8ABC09);
+		kColorsCpu.kMarkerColors[9] = ImColor(0xff908002);
 	}
 
 	const char* timeToStr(uint64 _time)
@@ -148,20 +157,40 @@ struct ProfilerViewer
 		ImGui::SetCursorPosX(mbeg.x - wpos.x);
 		ImGui::SetCursorPosY(mbeg.y - wpos.y);
 
-		ImGui::PushStyleColor(ImGuiCol_Button, ImColor(kColors->kMarkerColors[coli]));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor(kColors->kMarkerHover));
+		ImU32 buttonColor = kColors->kMarkerGray;
+		ImU32 textColor = kColors->kMarkerTextGray;
+		
+	 // if the marker is hovered and no filter is set, highlight the marker
+		bool hoverMatch = true;
+		if (!m_markerFilter.IsActive() && !m_hoverName.isEmpty()) {
+			hoverMatch = m_hoverName == _marker.m_name;
+		}
+		if (hoverMatch && m_markerFilter.PassFilter(_marker.m_name)) {
+			buttonColor =  kColors->kMarkerColors[coli];
+			textColor = kColors->kMarkerText;
+		}
+		ImGui::PushStyleColor(ImGuiCol_Button, ImColor(buttonColor));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor(buttonColor));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImColor(buttonColor));
+		ImGui::PushStyleColor(ImGuiCol_Text, ImColor(textColor)); 
 
 		ImGui::Button(_marker.m_name, ImVec2(msize, mheight - 1.0f));
 		
-		ImGui::PopStyleColor(2);
+		ImGui::PopStyleColor(4);
 
-
-		return isMouseInside(mbeg, mend);
+		if (isMouseInside(mbeg, mend)) {
+			m_hoverName.set(_marker.m_name);
+			m_isMarkerHovered = true;
+			return true;
+		}
+		return false;
 	}
 
 	void draw(bool* _open_)
 	{
 		String<sizeof("999.999ms\0")> str;
+
+		m_isMarkerHovered = false;
 
 		beg = APT_MIN(Profiler::GetCpuFrame(0).m_start, Profiler::GetGpuFrame(0).m_start);
 		end = APT_MAX(Profiler::GetCpuFrame(Profiler::GetCpuFrameCount() - 1).m_start, Profiler::GetGpuFrame(Profiler::GetGpuFrameCount() - 1).m_start);
@@ -189,6 +218,7 @@ struct ProfilerViewer
 				tbeg = 0.0f;
 			}
 			ImGui::SameLine();
+			m_markerFilter.Draw("Filter", 160.0f);
 
 			ImGui::EndMenuBar();
 		}
@@ -303,6 +333,10 @@ struct ProfilerViewer
 		drawList.AddRect(wbeg, wend, kColors->kBackground);
 
 		ImGui::End();
+
+		if (!m_isMarkerHovered) {
+			m_hoverName.clear();
+		}
 	}
 };
 ProfilerViewer::Colors  ProfilerViewer::kColorsGpu;

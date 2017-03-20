@@ -64,7 +64,7 @@ public:
 	{
 	};
 	
-	static void             NextFrame();
+	static void NextFrame();
 
 	// Push/pop a named Cpu marker.
 	static void             PushCpuMarker(const char* _name);
