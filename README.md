@@ -16,9 +16,9 @@ Build via build/GfxSampleFramework_premake.lua as follows, requires [premake5](h
 
 Submodule dependencies:
  - [ApplicationTools](https://github.com/john-chapman/ApplicationTools)
- - [GLM](https://github.com/g-truc/glm)
-	
+ 
 Committed dependencies:
+ - [GLM](https://github.com/g-truc/glm)
  - [Im3d](https://github.com/john-chapman/im3d/)
  - [ImGui](https://github.com/ocornut/imgui)
  - [RapidJSON](http://rapidjson.org/)
