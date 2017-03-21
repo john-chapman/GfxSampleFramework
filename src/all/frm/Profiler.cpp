@@ -29,7 +29,6 @@ struct ProfilerViewer
 		ImU32 kMarkerText;
 		ImU32 kMarkerTextGray;
 		ImU32 kMarkerGray;
-		ImU32 kMarkerColors[10];
 	};
 	static Colors  kColorsGpu;
 	static Colors  kColorsCpu;
@@ -43,7 +42,6 @@ struct ProfilerViewer
 	uint64 end; // start of the last marker
 	float  tbeg, tsize; // viewing region start/size in ms relative to mbeg
 	vec2   wbeg, wend, wsize;
-	uint   coli;
 	
 	ProfilerViewer()
 		: tbeg(0.0f)
@@ -55,29 +53,8 @@ struct ProfilerViewer
 		kColorsGpu.kMarkerTextGray  = kColorsCpu.kMarkerTextGray = ImColor(0xff4c4b4b);
 		kColorsGpu.kMarkerGray      = kColorsCpu.kMarkerGray = ImColor(0xff383838);
 
-		kColorsGpu.kFrame           = ImColor(0xff298FF5);
-		kColorsGpu.kMarkerColors[0] = ImColor(0xff4D7CBE);
-		kColorsGpu.kMarkerColors[1] = ImColor(0xff0C1492);
-		kColorsGpu.kMarkerColors[2] = ImColor(0xff2256EE);
-		kColorsGpu.kMarkerColors[3] = ImColor(0xff072758);
-		kColorsGpu.kMarkerColors[4] = ImColor(0xff072D97);
-		kColorsGpu.kMarkerColors[5] = ImColor(0xff018FF1);
-		kColorsGpu.kMarkerColors[6] = ImColor(0xff3E4BFF);
-		kColorsGpu.kMarkerColors[7] = ImColor(0xff3C97D8);
-		kColorsGpu.kMarkerColors[8] = ImColor(0xff204EEC);
-		kColorsGpu.kMarkerColors[9] = ImColor(0xff3AC5FF);
-
-		kColorsCpu.kFrame           = ImColor(0xffA66B00);
-		kColorsCpu.kMarkerColors[0] = ImColor(0xff6B1A03);
-		kColorsCpu.kMarkerColors[1] = ImColor(0xff603803);
-		kColorsCpu.kMarkerColors[2] = ImColor(0xffA66B00);
-		kColorsCpu.kMarkerColors[3] = ImColor(0xffB64C31);
-		kColorsCpu.kMarkerColors[4] = ImColor(0xffFF9604);
-		kColorsCpu.kMarkerColors[5] = ImColor(0xff5F4B11);
-		kColorsCpu.kMarkerColors[6] = ImColor(0xffAC7C4F);
-		kColorsCpu.kMarkerColors[7] = ImColor(0xff92EA8A);
-		kColorsCpu.kMarkerColors[8] = ImColor(0xff8ABC09);
-		kColorsCpu.kMarkerColors[9] = ImColor(0xff908002);
+		kColorsGpu.kFrame           = ImColor(0xffb55f29);
+		kColorsCpu.kFrame           = ImColor(0xff0087db);
 	}
 
 	const char* timeToStr(uint64 _time)
@@ -166,7 +143,7 @@ struct ProfilerViewer
 			hoverMatch = m_hoverName == _marker.m_name;
 		}
 		if (hoverMatch && m_markerFilter.PassFilter(_marker.m_name)) {
-			buttonColor =  kColors->kMarkerColors[coli];
+			buttonColor =  kColors->kFrame;
 			textColor = kColors->kMarkerText;
 		}
 		ImGui::PushStyleColor(ImGuiCol_Button, ImColor(buttonColor));
@@ -266,21 +243,17 @@ struct ProfilerViewer
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 			wbeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
 			float fend = timeToWindowX(frameNext.m_start);
-			coli = 0;
 			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
 				const Profiler::GpuMarker& marker = Profiler::GetGpuMarker(j);
 				if (drawFrameMarker(marker, fend)) {
 					vec2 lbeg = vec2(timeToWindowX(marker.m_start), wbeg.y + ImGui::GetItemsLineHeightWithSpacing() * (float)marker.m_depth * 0.5f);
 					vec2 lend = vec2(timeToWindowX(marker.m_cpuStart), wbeg.y + wsize.y);
-					drawList.AddLine(lbeg, lend, kColors->kMarkerColors[coli], 2.0f);
+					drawList.AddLine(lbeg, lend, kColors->kFrame, 2.0f);
 					ImGui::BeginTooltip();
-						ImGui::TextColored(ImColor(kColors->kMarkerColors[coli]), marker.m_name);
+						ImGui::TextColored(ImColor(kColors->kFrame), marker.m_name);
 						ImGui::Text("Duration: %s", timeToStr(marker.m_end - marker.m_start));
 						ImGui::Text("Latency:  %s", timeToStr(marker.m_start - marker.m_cpuStart));
 					ImGui::EndTooltip();
-				}
-				if (marker.m_depth == 0) { // cycle color at depth 0
-					coli = (coli + 1) % APT_ARRAY_COUNT(kColors->kMarkerColors);
 				}
 			}
 			wbeg.y -= ImGui::GetFontSize() + 2.0f;
@@ -311,17 +284,13 @@ struct ProfilerViewer
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 			wbeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
 			float fend = timeToWindowX(frameNext.m_start);
-			coli = 0;
 			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
 				const Profiler::CpuMarker& marker = Profiler::GetCpuMarker(j);
 				if (drawFrameMarker(marker, fend)) {
 					ImGui::BeginTooltip();
-						ImGui::TextColored(ImColor(kColors->kMarkerColors[coli]), marker.m_name);
+						ImGui::TextColored(ImColor(kColors->kFrame), marker.m_name);
 						ImGui::Text("Duration: %s", timeToStr(marker.m_end - marker.m_start));
 					ImGui::EndTooltip();
-				}
-				if (marker.m_depth == 0) { // cycle color at depth 0
-					coli = (coli + 1) % APT_ARRAY_COUNT(kColors->kMarkerColors);
 				}
 			}
 			wbeg.y -= ImGui::GetFontSize() + 2.0f;
