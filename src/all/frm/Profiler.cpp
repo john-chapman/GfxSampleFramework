@@ -38,14 +38,14 @@ struct ProfilerViewer
 	String<64>      m_hoverName;
 	ImGuiTextFilter m_markerFilter;
 
-	uint64 beg; // all markers draw relative to this time
-	uint64 end; // start of the last marker
-	float  tbeg, tsize; // viewing region start/size in ms relative to mbeg
-	vec2   wbeg, wend, wsize;
+	uint64 m_timeBeg; // all markers draw relative to this time
+	uint64 m_timeEnd; // start of the last marker
+	float  m_regionBeg, m_regionSize; // viewing region start/size in ms relative to m_timeBeg
+	vec2   m_windowBeg, m_windowEnd, m_windowSize;
 	
 	ProfilerViewer()
-		: tbeg(0.0f)
-		, tsize(100.0f)
+		: m_regionBeg(0.0f)
+		, m_regionSize(100.0f)
 	{
 		kColorsGpu.kBackground      = kColorsCpu.kBackground = ImColor(0xff8e8e8e);
 		kColorsGpu.kFrameHoverAlpha = kColorsCpu.kFrameHoverAlpha = 0.1f;
@@ -78,9 +78,9 @@ struct ProfilerViewer
 
 	float timeToWindowX(uint64 _time)
 	{
-		float ms = (float)Timestamp(_time - beg).asMilliseconds();
-		ms = (ms - tbeg) / tsize;
-		return wbeg.x + ms * wsize.x;
+		float ms = (float)Timestamp(_time - m_timeBeg).asMilliseconds();
+		ms = (ms - m_regionBeg) / m_regionSize;
+		return m_windowBeg.x + ms * m_windowSize.x;
 	}
 
 	bool isMouseInside(const vec2& _rectMin, const vec2& _rectMax)
@@ -93,46 +93,46 @@ struct ProfilerViewer
 
 	bool cullFrame(const Profiler::Frame& _frame, const Profiler::Frame& _frameNext)
 	{
-		float fbeg = timeToWindowX(_frame.m_start);
-		float fend = timeToWindowX(_frameNext.m_start);
-		return fbeg > wend.x || fend < wbeg.x;
+		float frameBeg = timeToWindowX(_frame.m_start);
+		float frameEnd = timeToWindowX(_frameNext.m_start);
+		return frameBeg > m_windowEnd.x || frameEnd < m_windowBeg.x;
 	}
 	
 	void drawFrameBounds(const Profiler::Frame& _frame, const Profiler::Frame& _frameNext)
 	{
-		float fbeg = timeToWindowX(_frame.m_start);
-		float fend = timeToWindowX(_frameNext.m_start);
-		fbeg = APT_MAX(fbeg, wbeg.x);
+		float frameBeg = timeToWindowX(_frame.m_start);
+		float frameEnd = timeToWindowX(_frameNext.m_start);
+		frameBeg = APT_MAX(frameBeg, m_windowBeg.x);
 		ImDrawList& drawList = *ImGui::GetWindowDrawList();
-		if (isMouseInside(vec2(fbeg, wbeg.y), vec2(fend, wend.y))) {
-			drawList.AddRectFilled(vec2(fbeg, wbeg.y), vec2(fend, wend.y), IM_COLOR_ALPHA(kColors->kFrame, kColors->kFrameHoverAlpha));
-			drawList.AddText(vec2(fbeg + 4.0f, wbeg.y + 2.0f), kColors->kFrame, timeToStr(_frameNext.m_start - _frame.m_start));
+		if (isMouseInside(vec2(frameBeg, m_windowBeg.y), vec2(frameEnd, m_windowEnd.y))) {
+			drawList.AddRectFilled(vec2(frameBeg, m_windowBeg.y), vec2(frameEnd, m_windowEnd.y), IM_COLOR_ALPHA(kColors->kFrame, kColors->kFrameHoverAlpha));
+			drawList.AddText(vec2(frameBeg + 4.0f, m_windowBeg.y + 2.0f), kColors->kFrame, timeToStr(_frameNext.m_start - _frame.m_start));
 		}
-		drawList.AddLine(vec2(fbeg, wbeg.y), vec2(fbeg, wend.y), kColors->kFrame);
+		drawList.AddLine(vec2(frameBeg, m_windowBeg.y), vec2(frameBeg, m_windowEnd.y), kColors->kFrame);
 	}
 
 	// Return true if the marker is hovered.
 	bool drawFrameMarker(const Profiler::Marker& _marker, float _frameEndX)
 	{
-		float mheight = ImGui::GetItemsLineHeightWithSpacing();
-		vec2 mbeg = vec2(timeToWindowX(_marker.m_start), wbeg.y + mheight * (float)_marker.m_depth);
-		vec2 mend = vec2(timeToWindowX(_marker.m_end) - 1.0f, mbeg.y + mheight);
-		if (mbeg.x > wend.x || mend.x < wbeg.x) {
+		float markerHeight = ImGui::GetItemsLineHeightWithSpacing();
+		vec2 markerBeg = vec2(timeToWindowX(_marker.m_start), m_windowBeg.y + markerHeight * (float)_marker.m_depth);
+		vec2 markerEnd = vec2(timeToWindowX(_marker.m_end) - 1.0f, markerBeg.y + markerHeight);
+		if (markerBeg.x > m_windowEnd.x || markerEnd.x < m_windowBeg.x) {
 			return false;
 		}
 		
-		mbeg.x = APT_MAX(mbeg.x, wbeg.x);
-		mend.x = APT_MIN(APT_MIN(mend.x, wend.x), _frameEndX);
+		markerBeg.x = APT_MAX(markerBeg.x, m_windowBeg.x);
+		markerEnd.x = APT_MIN(APT_MIN(markerEnd.x, m_windowEnd.x), _frameEndX);
 
-		float msize = mend.x - mbeg.x;
-		if (msize < 2.0f) {
+		float markerWidth = markerEnd.x - markerBeg.x;
+		if (markerWidth < 2.0f) {
 		 // \todo push culled markers into a list, display on the tooltip
 			return false;
 		}
 		
 		vec2 wpos = ImGui::GetWindowPos();
-		ImGui::SetCursorPosX(mbeg.x - wpos.x);
-		ImGui::SetCursorPosY(mbeg.y - wpos.y);
+		ImGui::SetCursorPosX(markerBeg.x - wpos.x);
+		ImGui::SetCursorPosY(markerBeg.y - wpos.y);
 
 		ImU32 buttonColor = kColors->kMarkerGray;
 		ImU32 textColor = kColors->kMarkerTextGray;
@@ -151,11 +151,11 @@ struct ProfilerViewer
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImColor(buttonColor));
 		ImGui::PushStyleColor(ImGuiCol_Text, ImColor(textColor)); 
 
-		ImGui::Button(_marker.m_name, ImVec2(msize, mheight - 1.0f));
+		ImGui::Button(_marker.m_name, ImVec2(markerWidth, markerHeight - 1.0f));
 		
 		ImGui::PopStyleColor(4);
 
-		if (isMouseInside(mbeg, mend)) {
+		if (isMouseInside(markerBeg, markerEnd)) {
 			m_hoverName.set(_marker.m_name);
 			m_isMarkerHovered = true;
 			return true;
@@ -169,15 +169,14 @@ struct ProfilerViewer
 
 		m_isMarkerHovered = false;
 
-		beg = APT_MIN(Profiler::GetCpuFrame(0).m_start, Profiler::GetGpuFrame(0).m_start);
-		end = APT_MAX(Profiler::GetCpuFrame(Profiler::GetCpuFrameCount() - 1).m_start, Profiler::GetGpuFrame(Profiler::GetGpuFrameCount() - 1).m_start);
-		float rangeMs = (float)Timestamp(end - beg).asMilliseconds();
+		m_timeBeg = APT_MIN(Profiler::GetCpuFrame(0).m_start, Profiler::GetGpuFrame(0).m_start);
+		m_timeEnd = APT_MAX(Profiler::GetCpuFrame(Profiler::GetCpuFrameCount() - 1).m_start, Profiler::GetGpuFrame(Profiler::GetGpuFrameCount() - 1).m_start);
+		float timeRange = (float)Timestamp(m_timeEnd - m_timeBeg).asMilliseconds();
 
 		ImGuiIO& io = ImGui::GetIO();
 		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiSetCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y / 4), ImGuiSetCond_FirstUseEver);
-		//ImGui::SetNextWindowContentWidth(2000.0f);//rangeMs / tsize * io.DisplaySize.x);
-		ImGui::Begin("Profiler", _open_, ImGuiWindowFlags_MenuBar /*| ImGuiWindowFlags_HorizontalScrollbar*/);
+		ImGui::Begin("Profiler", _open_, ImGuiWindowFlags_MenuBar);
 
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("Options")) {
@@ -191,8 +190,8 @@ struct ProfilerViewer
 			}
 			ImGui::SameLine();
 			if (ImGui::SmallButton("Fit")) {
-				tsize = (float)Timestamp(end - beg).asMilliseconds();
-				tbeg = 0.0f;
+				m_regionSize = timeRange;
+				m_regionBeg = 0.0f;
 			}
 			ImGui::SameLine();
 			m_markerFilter.Draw("Filter", 160.0f);
@@ -204,32 +203,33 @@ struct ProfilerViewer
 		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered()) {
 			float wx = ImGui::GetWindowContentRegionMax().x;
 		 // zoom
-			float zoom = (io.MouseWheel * tsize * 0.1f);
-			float before = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * tsize;
-			tsize = APT_MAX(tsize - zoom, 0.1f);
-			float after = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * tsize;
-			tbeg += (before - after);
+			float zoom = (io.MouseWheel * m_regionSize * 0.1f);
+			float before = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize;
+			m_regionSize = APT_MAX(m_regionSize - zoom, 0.1f);
+			float after = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize;
+			m_regionBeg += (before - after);
 
 		 // pan
 			if (io.MouseDown[2]) {
-				tbeg -= io.MouseDelta.x / wx * tsize;
+				m_regionBeg -= io.MouseDelta.x / wx * m_regionSize;
 			}
 		}
 
 		ImDrawList& drawList = *ImGui::GetWindowDrawList();
 		// GPU ---
-		kColors   = &kColorsGpu;
-		wbeg      = vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowContentRegionMin());
-		float infoX = wbeg.x; // where to draw the CPU/GPU global info
-		wbeg.x   += ImGui::GetFontSize() * 4.0f;
-		wsize     = vec2(ImGui::GetContentRegionMax()) - (wbeg - vec2(ImGui::GetWindowPos()));
-		wsize.y   = wsize.y * 0.5f;
-		wend      = wbeg + wsize;
+		kColors          = &kColorsGpu;
+		m_windowBeg      = vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowContentRegionMin());
+		float infoX      = m_windowBeg.x; // where to draw the CPU/GPU global info
+		m_windowBeg.x   += ImGui::GetFontSize() * 4.0f;
+		m_windowSize     = vec2(ImGui::GetContentRegionMax()) - (m_windowBeg - vec2(ImGui::GetWindowPos()));
+		m_windowSize    -= ImGui::GetItemsLineHeightWithSpacing();
+		m_windowSize.y   = m_windowSize.y * 0.5f;
+		m_windowEnd      = m_windowBeg + m_windowSize;
 		
 		str.setf("GPU\n%s", timeToStr(Profiler::GetGpuAvgFrameDuration()));
-		drawList.AddText(vec2(infoX, wbeg.y), kColors->kBackground, str);
+		drawList.AddText(vec2(infoX, m_windowBeg.y), kColors->kBackground, str);
 		
-		ImGui::PushClipRect(wbeg, wend, false);
+		ImGui::PushClipRect(m_windowBeg, m_windowEnd, false);
 		
 		// \todo this skips drawing the newest frame's data, add an extra step to draw those markers?
 		for (uint i = 0, n = Profiler::GetGpuFrameCount() - 1; i < n; ++i) {
@@ -241,13 +241,13 @@ struct ProfilerViewer
 			
 		 // markers
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
-			wbeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
+			m_windowBeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
 			float fend = timeToWindowX(frameNext.m_start);
 			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
 				const Profiler::GpuMarker& marker = Profiler::GetGpuMarker(j);
 				if (drawFrameMarker(marker, fend)) {
-					vec2 lbeg = vec2(timeToWindowX(marker.m_start), wbeg.y + ImGui::GetItemsLineHeightWithSpacing() * (float)marker.m_depth * 0.5f);
-					vec2 lend = vec2(timeToWindowX(marker.m_cpuStart), wbeg.y + wsize.y);
+					vec2 lbeg = vec2(timeToWindowX(marker.m_start), m_windowBeg.y + ImGui::GetItemsLineHeightWithSpacing() * (float)marker.m_depth * 0.5f);
+					vec2 lend = vec2(timeToWindowX(marker.m_cpuStart), m_windowBeg.y + m_windowSize.y);
 					drawList.AddLine(lbeg, lend, kColors->kFrame, 2.0f);
 					ImGui::BeginTooltip();
 						ImGui::TextColored(ImColor(kColors->kFrame), marker.m_name);
@@ -256,23 +256,23 @@ struct ProfilerViewer
 					ImGui::EndTooltip();
 				}
 			}
-			wbeg.y -= ImGui::GetFontSize() + 2.0f;
+			m_windowBeg.y -= ImGui::GetFontSize() + 2.0f;
 			ImGui::PopStyleVar();
 
 			drawFrameBounds(frame, frameNext);
 		}
 		ImGui::PopClipRect();
-		drawList.AddRect(wbeg, wend, kColors->kBackground);
+		drawList.AddRect(m_windowBeg, m_windowEnd, kColors->kBackground);
 
 		// CPU ---
-		kColors   = &kColorsCpu;
-		wbeg.y    = wend.y + 1.0f;
-		wend.y    = wbeg.y + wsize.y + 1.0f;
+		kColors       = &kColorsCpu;
+		m_windowBeg.y = m_windowEnd.y + 1.0f;
+		m_windowEnd.y = m_windowBeg.y + m_windowSize.y + 1.0f;
 
 		str.setf("CPU\n%s", timeToStr(Profiler::GetCpuAvgFrameDuration()));
-		drawList.AddText(vec2(infoX, wbeg.y), kColors->kBackground, str);
+		drawList.AddText(vec2(infoX, m_windowBeg.y), kColors->kBackground, str);
 
-		ImGui::PushClipRect(wbeg, wend, false);
+		ImGui::PushClipRect(m_windowBeg, m_windowEnd, false);
 		for (uint i = 0, n = Profiler::GetGpuFrameCount() - 1; i < n; ++i) {
 			const Profiler::CpuFrame& frame = Profiler::GetCpuFrame(i);
 			const Profiler::CpuFrame& frameNext = Profiler::GetCpuFrame(i + 1);
@@ -282,7 +282,7 @@ struct ProfilerViewer
 
 		 // markers
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
-			wbeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
+			m_windowBeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
 			float fend = timeToWindowX(frameNext.m_start);
 			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
 				const Profiler::CpuMarker& marker = Profiler::GetCpuMarker(j);
@@ -293,13 +293,24 @@ struct ProfilerViewer
 					ImGui::EndTooltip();
 				}
 			}
-			wbeg.y -= ImGui::GetFontSize() + 2.0f;
+			m_windowBeg.y -= ImGui::GetFontSize() + 2.0f;
 			ImGui::PopStyleVar();
 
 			drawFrameBounds(frame, frameNext);
 		}
 		ImGui::PopClipRect();
-		drawList.AddRect(wbeg, wend, kColors->kBackground);
+		drawList.AddRect(m_windowBeg, m_windowEnd, kColors->kBackground);
+
+		float regionSizePx = timeRange / m_regionSize * m_windowSize.x;
+		ImGui::SetNextWindowContentSize(ImVec2(regionSizePx, 0.0f));
+		ImGui::SetCursorPosX(m_windowBeg.x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x);
+		ImGui::SetCursorPosY(m_windowEnd.y - ImGui::GetItemsLineHeightWithSpacing() * 0.5f);
+		ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, ImColor(IM_COL32_BLACK_TRANS));
+		ImGui::BeginChild("hscroll", ImVec2(m_windowSize.x, ImGui::GetStyle().ScrollbarSize), true, ImGuiWindowFlags_HorizontalScrollbar);
+			//ImGui::SetScrollX(m_regionBeg / m_regionSize * regionSizePx);
+			m_regionBeg = ImGui::GetScrollX() / regionSizePx * m_regionSize;
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
 
 		ImGui::End();
 
