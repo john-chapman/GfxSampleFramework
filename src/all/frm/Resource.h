@@ -46,6 +46,9 @@ public:
 	// Call reload() on all instances. Return true if *all* instances were successfully reloaded, false if any failed.
 	static bool     ReloadAll();
 
+	static bool     Load(Derived* _inst_)            { return _inst_->load();   }
+	static bool     Reload(Derived* _inst_)          { return _inst_->reload(); }
+
 	static Derived* Find(Id _id);
 	static Derived* Find(const char* _name);
 	static int      GetInstanceCount()               { return (int)s_instances.size(); }
