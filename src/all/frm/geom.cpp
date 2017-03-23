@@ -810,7 +810,7 @@ bool frm::Intersect(const Line& _line, const Capsule& _capsule, float& t0_, floa
 		d = b * b - c;
 		if (d > 0.0f) {
 			d = sqrtf(d);
-			t1_ -b + d;
+			t1_ = -b + d;
 			//t1_ = apt::min(t1_, -b + d);
 		}
 
