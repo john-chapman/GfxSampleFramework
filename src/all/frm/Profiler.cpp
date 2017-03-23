@@ -1,6 +1,7 @@
 #include <frm/Profiler.h>
 
 #include <frm/gl.h>
+#include <frm/Input.h>
 
 #include <apt/log.h>
 #include <apt/RingBuffer.h>
@@ -190,8 +191,9 @@ struct ProfilerViewer
 			}
 			ImGui::SameLine();
 			if (ImGui::SmallButton("Fit")) {
-				m_regionSize = timeRange;
-				m_regionBeg = 0.0f;
+				float spacing = timeRange * 0.01f;
+				m_regionSize = timeRange + spacing * 2.0f;
+				m_regionBeg = - spacing;
 			}
 			ImGui::SameLine();
 			m_markerFilter.Draw("Filter", 160.0f);
@@ -199,7 +201,7 @@ struct ProfilerViewer
 			ImGui::EndMenuBar();
 		}
 		
-
+		bool regionBegChanged = false; // don't set from scrollbar when dragging the region view
 		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered()) {
 			float wx = ImGui::GetWindowContentRegionMax().x;
 		 // zoom
@@ -208,10 +210,17 @@ struct ProfilerViewer
 			m_regionSize = APT_MAX(m_regionSize - zoom, 0.1f);
 			float after = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize;
 			m_regionBeg += (before - after);
+			regionBegChanged = fabs(before - after) > FLT_EPSILON;
 
 		 // pan
 			if (io.MouseDown[2]) {
+				regionBegChanged = true;
 				m_regionBeg -= io.MouseDelta.x / wx * m_regionSize;
+			}
+
+		 // shortcuts
+			if (Input::GetKeyboard()->wasPressed(Keyboard::Key_P)) {
+				Profiler::s_pause = !Profiler::s_pause;
 			}
 		}
 
@@ -246,7 +255,8 @@ struct ProfilerViewer
 			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
 				const Profiler::GpuMarker& marker = Profiler::GetGpuMarker(j);
 				if (drawFrameMarker(marker, fend)) {
-					vec2 lbeg = vec2(timeToWindowX(marker.m_start), m_windowBeg.y + ImGui::GetItemsLineHeightWithSpacing() * (float)marker.m_depth * 0.5f);
+					vec2 lbeg = vec2(timeToWindowX(marker.m_start), m_windowBeg.y + ImGui::GetItemsLineHeightWithSpacing() * (float)marker.m_depth);
+					lbeg.y += ImGui::GetItemsLineHeightWithSpacing() * 0.5f;
 					vec2 lend = vec2(timeToWindowX(marker.m_cpuStart), m_windowBeg.y + m_windowSize.y);
 					drawList.AddLine(lbeg, lend, kColors->kFrame, 2.0f);
 					ImGui::BeginTooltip();
@@ -303,14 +313,22 @@ struct ProfilerViewer
 
 		float regionSizePx = timeRange / m_regionSize * m_windowSize.x;
 		ImGui::SetNextWindowContentSize(ImVec2(regionSizePx, 0.0f));
-		ImGui::SetCursorPosX(m_windowBeg.x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x);
-		ImGui::SetCursorPosY(m_windowEnd.y - ImGui::GetItemsLineHeightWithSpacing() * 0.5f);
+		ImGui::SetCursorPosX(m_windowBeg.x - ImGui::GetWindowPos().x);
+		ImGui::SetCursorPosY(m_windowEnd.y - ImGui::GetWindowPos().y);
 		ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, ImColor(IM_COL32_BLACK_TRANS));
+		bool refocusMainWindow = ImGui::IsWindowFocused();
 		ImGui::BeginChild("hscroll", ImVec2(m_windowSize.x, ImGui::GetStyle().ScrollbarSize), true, ImGuiWindowFlags_HorizontalScrollbar);
-			//ImGui::SetScrollX(m_regionBeg / m_regionSize * regionSizePx);
-			m_regionBeg = ImGui::GetScrollX() / regionSizePx * m_regionSize;
+			if (regionBegChanged) {
+				ImGui::SetScrollX(m_regionBeg / timeRange * regionSizePx);
+			} else {
+				m_regionBeg = ImGui::GetScrollX() / regionSizePx * timeRange;
+			}
 		ImGui::EndChild();
 		ImGui::PopStyleColor();
+
+		if (refocusMainWindow) {
+			ImGui::SetWindowFocus();
+		}
 
 		ImGui::End();
 
