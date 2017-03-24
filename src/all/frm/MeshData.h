@@ -226,6 +226,7 @@ protected:
 
 	
 	static bool ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
+	static bool ReadMD5(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
 	static bool ReadBlend(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
 
 }; // class MeshData

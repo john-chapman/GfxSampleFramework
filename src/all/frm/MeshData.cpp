@@ -3,6 +3,7 @@
 #include <apt/log.h>
 #include <apt/hash.h>
 #include <apt/FileSystem.h>
+#include <apt/TextParser.h>
 #include <apt/Time.h>
 
 #include <algorithm> // swap
@@ -564,7 +565,7 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 
 	bool ret = tinyobj::LoadObj(shapes, materials, err, dstream, matreader);
 	if (!ret) {
-		goto Mesh_LoadObj_end;
+		goto MeshData_LoadObj_end;
 	}
 
 	bool hasNormals = true;
@@ -587,7 +588,7 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 		if (pcount > std::numeric_limits<uint32>::max()) {
 			ret = false;
 			err = "Too many vertices";
-			goto Mesh_LoadObj_end;
+			goto MeshData_LoadObj_end;
 		}
 
 	 // vertex data
@@ -619,7 +620,7 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 			if (m.num_vertices[face] != 3) {
 				ret = false;
 				err = "Invalid face (only triangles supported";
-				goto Mesh_LoadObj_end;
+				goto MeshData_LoadObj_end;
 			}
 
 		 // find the relevant Submesh list for the mat index, or push a new one
@@ -673,7 +674,7 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 	}
 	tmpMesh.updateBounds();
 
-Mesh_LoadObj_end:
+MeshData_LoadObj_end:
 	if (!ret) {
 		APT_LOG_ERR("obj error:\n\t'%s'", err.c_str());
 		return false;
@@ -683,6 +684,90 @@ Mesh_LoadObj_end:
 	swap(mesh_, retMesh);
 
 	return true;
+}
+
+
+bool MeshData::ReadMD5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
+{
+	TextParser tp(_srcData);
+
+	long int numJoints = -1;
+	long int numMeshes = -1;
+
+	bool ret = true;
+	#define syntax_error(_msg) \
+		APT_LOG_ERR("MD5 syntax error, line %d: '%s'", tp.getLineCount(_srcData), _msg); \
+		ret = false; \
+		goto MeshData_LoadMD5_end
+
+	#define misc_error(_fmt, ...) \
+		APT_LOG_ERR("MD5 error: " _fmt, __VA_ARGS__); \
+		ret = false; \
+		goto MeshData_LoadMD5_end
+	
+
+	while (!tp.isNull()) {
+		tp.skipWhitespace();
+		
+		if (tp[0] == '/' && tp[1] == '/') { // comment
+			tp.skipLine();
+			continue;
+		}
+		if (tp.compareNext("MD5Version")) {
+			tp.skipWhitespace();
+			long int version;
+			if (!tp.readNextInt(version)) {
+				syntax_error("MD5Version");
+			}
+			if (version != 10) {
+				misc_error("Unsupported version (%d), only version 10 supported", version);
+			}
+			continue;
+		}
+		if (tp.compareNext("commandLine")) {
+			continue;
+		}
+		if (tp.compareNext("numJoints")) {
+			tp.skipWhitespace();
+			if (!tp.readNextInt(numJoints)) {
+				syntax_error("numJoints");
+			}
+			continue;
+		}
+		if (tp.compareNext("numMeshes")) {
+			tp.skipWhitespace();
+			if (!tp.readNextInt(numMeshes)) {
+				syntax_error("numMeshes");
+			}
+			continue;
+		}
+		if (tp.compareNext("joints")) {
+			if (tp.advanceToNext('{') != '{') {
+				syntax_error("expected a '{'");
+			}
+			while (!tp.isNull() && !(*tp == '}')) {
+				tp.skipWhitespace();
+			}
+			continue;
+		}
+		if (tp.compareNext("mesh")) {
+			if (tp.advanceToNext('{') != '{') {
+				syntax_error("expected a '{'");
+			}
+			while (!tp.isNull() && !(*tp == '}')) {
+				tp.skipWhitespace();
+			}
+			continue;
+		}
+		
+	}
+
+	#undef syntax_error
+	#undef misc_error
+
+MeshData_LoadMD5_end:
+
+	return ret;
 }
 
 /*	Blender file format: http://www.atmind.nl/blender/mystery_ot_blend.html

@@ -20,6 +20,7 @@
 #include <apt/Json.h>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 using namespace frm;
 using namespace apt;
@@ -62,7 +63,7 @@ public:
 			return false;
 		}
 
-		ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
 		if (ImGui::TreeNode("Intersection Tests")) {
 			Im3d::PushDrawState();
 
