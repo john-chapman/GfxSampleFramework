@@ -49,6 +49,8 @@ public:
 			return false;
 
 		}
+		MeshData::Create("models/md5/bob_lamp_update.md5mesh");
+
 		return true;
 	}
 

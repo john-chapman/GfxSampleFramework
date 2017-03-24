@@ -174,11 +174,27 @@ MeshData* MeshData::Create(const char* _path)
 	}
 	MeshData* ret = new MeshData();
 	ret->m_path.set(_path);
-	if (!ReadObj(*ret, f.getData(), f.getDataSize())) {
-		delete ret;
-		ret = nullptr;
+
+	const char* ext = FileSystem::GetExtension(_path);
+
+	if (strcmp(ext, "obj") == 0) {
+		if (!ReadObj(*ret, f.getData(), f.getDataSize())) {
+			goto MeshData_Create_error;
+		}
+	} else if (strcmp(ext, "md5mesh") == 0) {
+		if (!ReadMD5(*ret, f.getData(), f.getDataSize())) {
+			goto MeshData_Create_error;
+		}
+	} else {
+		APT_ASSERT(false); // unsupported format
+		goto MeshData_Create_error;
 	}
+	
 	return ret;
+
+MeshData_Create_error:
+	delete ret;
+	return nullptr;
 }
 
 MeshData* MeshData::Create(
@@ -689,14 +705,49 @@ MeshData_LoadObj_end:
 
 bool MeshData::ReadMD5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 {
+	APT_AUTOTIMER_DBG("MeshData::ReadMD5");
+
+
 	TextParser tp(_srcData);
 
 	long int numJoints = -1;
 	long int numMeshes = -1;
 
+	struct MD5Joint {
+		String<32> m_name;
+		long int   m_parentIndex;
+		vec3       m_position;
+		quat       m_orientation;
+	};
+	std::vector<MD5Joint> joints;
+
+	struct MD5Vert {
+		long int   m_index;
+		vec2       m_texcoord;
+		long int   m_weightStart;
+		long int   m_weightCount;
+	};
+	struct MD5Tri {
+		long int   m_index;
+		long int   m_verts[3];
+	};
+	struct MD5Weight {
+		long int   m_index;
+		long int   m_jointIndex;
+		float      m_bias;
+		vec3       m_position;
+	};
+	struct MD5Mesh {
+		String<32>             m_name;   // from the shader field
+		std::vector<MD5Vert>   m_verts;
+		std::vector<MD5Tri>    m_tris;
+		std::vector<MD5Weight> m_weights;
+	};
+	std::vector<MD5Mesh> meshes;
+
 	bool ret = true;
 	#define syntax_error(_msg) \
-		APT_LOG_ERR("MD5 syntax error, line %d: '%s'", tp.getLineCount(_srcData), _msg); \
+		APT_LOG_ERR("MD5 syntax error, line %d: '%s'", tp.getLineCount(), _msg); \
 		ret = false; \
 		goto MeshData_LoadMD5_end
 
@@ -724,7 +775,8 @@ bool MeshData::ReadMD5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 			}
 			continue;
 		}
-		if (tp.compareNext("commandLine")) {
+		if (tp.compareNext("commandline")) {
+			tp.skipLine();
 			continue;
 		}
 		if (tp.compareNext("numJoints")) {
@@ -745,21 +797,265 @@ bool MeshData::ReadMD5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 			if (tp.advanceToNext('{') != '{') {
 				syntax_error("expected a '{'");
 			}
+			tp.advance(); // skip {
+
 			while (!tp.isNull() && !(*tp == '}')) {
+				joints.push_back(MD5Joint());
+				MD5Joint& joint = joints.back();
+
+			 // name
 				tp.skipWhitespace();
+				if (*tp != '"') {
+					syntax_error("expected '\"' (joint name)");
+				}
+				tp.advance(); // skip "
+				const char* beg = tp;
+				if (tp.advanceToNext('"') != '"') {
+					syntax_error("expected '\"' (joint name)");
+				}
+				joint.m_name.set(beg, tp - beg);
+				tp.advance(); // skip "
+
+			 // parent
+				tp.skipWhitespace();
+				if (!tp.readNextInt(joint.m_parentIndex)) {
+					misc_error("joint '%s' missing parent index", (const char*)joint.m_name);
+				}
+
+			 // position
+				tp.skipWhitespace();
+				if (*tp != '(') { 
+					syntax_error("expected '(' (joint position)");
+				}
+				tp.advance(); // skip (
+				for (int i = 0; i < 3; ++i) {
+					tp.skipWhitespace();
+					double d;
+					if (!tp.readNextDouble(d)) {
+						syntax_error("expected a number (joint position)");
+					}
+					joint.m_position[i] = (float)d;
+				}
+				tp.skipWhitespace();
+				if (*tp != ')') { 
+					syntax_error("expected ')' (joint position)");
+				}
+				tp.advance(); // skip )
+
+			 // orientation
+				tp.skipWhitespace();
+				if (*tp != '(') { 
+					syntax_error("expected '(' (joint orientation)");
+				}
+				tp.advance(); // skip (
+				joint.m_orientation = quat(0.0f, 0.0f, 0.0f, 0.0f);
+				for (int i = 0; i < 3; ++i) {
+					tp.skipWhitespace();
+					double d;
+					if (!tp.readNextDouble(d)) {
+						syntax_error("expected a number (joint orientation)");
+					}
+					joint.m_orientation[i] = (float)d;
+				}
+				// recover w
+				float t = 1.0f - length2(joint.m_orientation);
+				joint.m_orientation.w = t < 0.0f ? 0.0f : -sqrtf(t);
+
+				tp.skipWhitespace();
+				if (*tp != ')') { 
+					syntax_error("expected ')' (joint orientation)");
+				}
+
+				tp.skipLine();
 			}
+
+			tp.advanceToNextWhitespace();
 			continue;
 		}
 		if (tp.compareNext("mesh")) {
+			long int numVerts   = -1;
+			long int numTris    = -1;
+			long int numWeights = -1;
+
+			meshes.push_back(MD5Mesh());
+			MD5Mesh& mesh = meshes.back();
+
 			if (tp.advanceToNext('{') != '{') {
 				syntax_error("expected a '{'");
 			}
+			tp.advance(); // skip {
+
 			while (!tp.isNull() && !(*tp == '}')) {
+
+			 // shader
 				tp.skipWhitespace();
+				if (tp.compareNext("shader")) {
+					tp.skipWhitespace();
+					if (*tp != '"') {
+						syntax_error("expected '\"' (mesh name)");
+					}
+					tp.advance(); // skip "
+					const char* beg = tp;
+					if (tp.advanceToNext('"') != '"') {
+						syntax_error("expected '\"' (mesh name)");
+					}
+					mesh.m_name.set(beg, tp - beg);
+
+					tp.skipLine();
+					continue;
+				}
+
+			 // vertex count
+				if (tp.compareNext("numverts")) {
+					tp.skipWhitespace();
+					if (!tp.readNextInt(numVerts)) {
+						syntax_error("numverts");
+					}
+					continue;
+				}
+			 // triangle count
+				if (tp.compareNext("numtris")) {
+					tp.skipWhitespace();
+					if (!tp.readNextInt(numTris)) {
+						syntax_error("numtris");
+					}
+					continue;
+				}
+			 // weight count
+				if (tp.compareNext("numweights")) {
+					tp.skipWhitespace();
+					if (!tp.readNextInt(numWeights)) {
+						syntax_error("numweights");
+					}
+					continue;
+				}
+
+			 // vertex
+				if (tp.compareNext("vert")) {
+					mesh.m_verts.push_back(MD5Vert());
+					MD5Vert& vert = mesh.m_verts.back();
+					
+					tp.skipWhitespace();
+					if (!tp.readNextInt(vert.m_index)) {
+						syntax_error("expected a number (vert index)");
+					}
+
+					tp.skipWhitespace();
+					if (*tp != '(') {
+						syntax_error("expected '(' (vert texcoord)");
+					}
+					tp.advance(); // skip (
+					for (int i = 0; i < 2; ++i) {
+						tp.skipWhitespace();
+						double d;
+						if (!tp.readNextDouble(d)) {
+							syntax_error("expected a number (vert texcoord)");
+						}
+						vert.m_texcoord[i] = (float)d;
+					}
+					tp.skipWhitespace();
+					if (*tp != ')') {
+						syntax_error("expected ')' (vert texcoord)");
+					}
+					tp.advance(); // skip (
+
+					tp.skipWhitespace();
+					if (!tp.readNextInt(vert.m_weightStart)) {
+						syntax_error("expected a number (vert start weight)");
+					}
+					tp.skipWhitespace();
+					if (!tp.readNextInt(vert.m_weightCount)) {
+						syntax_error("expected a number (vert weight count)");
+					}
+
+					tp.skipLine();
+					continue;
+				}
+
+			 // triangle
+				if (tp.compareNext("tri")) {
+					mesh.m_tris.push_back(MD5Tri());
+					MD5Tri& tri = mesh.m_tris.back();
+
+					tp.skipWhitespace();
+					if (!tp.readNextInt(tri.m_index)) {
+						syntax_error("expected a number (tri index)");
+					}
+					for (int i = 0; i < 3; ++i) {
+						tp.skipWhitespace();
+						if (!tp.readNextInt(tri.m_verts[i])) {
+							syntax_error("expected a number (vert index)");
+						}
+					}
+
+					tp.skipLine();
+					continue;
+				}
+
+			 // weight
+				if (tp.compareNext("weight")) {
+					mesh.m_weights.push_back(MD5Weight());
+					MD5Weight& weight = mesh.m_weights.back();
+					double d;
+
+					tp.skipWhitespace();
+					if (!tp.readNextInt(weight.m_index)) {
+						syntax_error("expected a number (weight index)");
+					}
+					tp.skipWhitespace();
+					if (!tp.readNextInt(weight.m_jointIndex)) {
+						syntax_error("expected a number (joint index)");
+					}
+					tp.skipWhitespace();
+					if (!tp.readNextDouble(d)) {
+						syntax_error("expected a number (weight bias)");
+					}
+					weight.m_bias = (float)d;
+
+					tp.skipWhitespace();
+					if (*tp != '(') {
+						syntax_error("expected '(' (weight position)");
+					}
+					tp.advance(); // skip (
+					for (int i = 0; i < 3; ++i) {
+						tp.skipWhitespace();
+						if (!tp.readNextDouble(d)) {
+							syntax_error("expected a number (weight position)");
+						}
+						weight.m_position[i] = (float)d;
+					}
+					tp.skipWhitespace();
+					if (*tp != ')') {
+						syntax_error("expected ')' (weight position)");
+					}
+
+
+					tp.skipLine();
+					continue;
+				}
 			}
+
+			if ((int)mesh.m_verts.size() != numVerts) {
+				misc_error("%s - numVerts (%d) did not match the actual vertex count (%d)", (const char*)mesh.m_name, numVerts, mesh.m_verts.size());
+			}
+			if ((int)mesh.m_tris.size() != numTris) {
+				misc_error("%s - numTris (%d) did not match the actual triangle count (%d)", (const char*)mesh.m_name, numTris, mesh.m_tris.size());
+			}
+			if ((int)mesh.m_weights.size() != numWeights) {
+				misc_error("%s - numWeights (%d) did not match the actual weight count (%d)", (const char*)mesh.m_name, numWeights, mesh.m_weights.size());
+			}
+
+			tp.advanceToNextWhitespace();
+			tp.skipWhitespace(); // handle whitespace at end of file
 			continue;
-		}
-		
+		}	
+	}
+
+	if ((int)joints.size() != numJoints) {
+		misc_error("numJoints (%d) did not match the actual joint count (%d)", numJoints, joints.size());
+	}
+	if ((int)meshes.size() != numMeshes) {
+		misc_error("numMeshes (%d) did not match the actual mesh count (%d)", numMeshes, meshes.size());
 	}
 
 	#undef syntax_error
