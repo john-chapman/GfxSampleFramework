@@ -703,12 +703,16 @@ MeshData_LoadObj_end:
 }
 
 
+#include <algorithm> // std::sort
+#include <vector>
+
 bool MeshData::ReadMD5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 {
 	APT_AUTOTIMER_DBG("MeshData::ReadMD5");
 
-
 	TextParser tp(_srcData);
+	
+	MeshBuilder tmpMesh;
 
 	long int numJoints = -1;
 	long int numMeshes = -1;
@@ -1061,7 +1065,74 @@ bool MeshData::ReadMD5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 	#undef syntax_error
 	#undef misc_error
 
+	for (auto& mesh : meshes) {
+		tmpMesh.beginSubmesh(0);
+
+		uint32 vertOffset = tmpMesh.getVertexCount();
+		tmpMesh.setVertexCount(vertOffset + (uint32)mesh.m_verts.size());
+
+		for (auto& src : mesh.m_verts) {
+			MeshBuilder::Vertex& dst = tmpMesh.getVertex(vertOffset + src.m_index);
+			memset(&dst, 0, sizeof(MeshBuilder::Vertex));
+			dst.m_texcoord = src.m_texcoord;
+
+		 // construct a sorted list of weights
+			std::vector<MD5Weight> weights;
+			for (long int i = 0; i < src.m_weightCount; ++i) {
+				weights.push_back(mesh.m_weights[src.m_weightStart + i]);
+			}
+			std::sort(weights.begin(), weights.end(), [](const MD5Weight& _a, const MD5Weight& _b) { return _b.m_bias < _a.m_bias; });
+		 
+		 // copy the first 4 weights/indices into the vertex and normalize
+			for (int i = 0, n = APT_MIN(4, (int)weights.size()); i < n; ++i) {
+				dst.m_boneIndices[i] = weights[i].m_jointIndex;
+				dst.m_boneWeights[i] = weights[i].m_bias;
+			}
+			dst.m_boneWeights = normalize(dst.m_boneWeights);
+
+		 // construct object space vertex position
+			dst.m_position = vec3(0.0f);
+			for (auto& weight : weights) {
+				const MD5Joint& joint = joints[weight.m_jointIndex];
+				vec3 posJ = joint.m_orientation * weight.m_position;
+				dst.m_position += (joint.m_position + posJ) * weight.m_bias;
+			}
+			dst.m_boneWeights = normalize(dst.m_boneWeights);
+		}
+
+		uint32 triOffset = tmpMesh.getTriangleCount();
+		tmpMesh.setTriangleCount(tmpMesh.getTriangleCount() + (uint32)mesh.m_tris.size());
+		for (auto& src : mesh.m_tris) {
+			MeshBuilder::Triangle& dst = tmpMesh.getTriangle(triOffset + src.m_index);
+			//for (int i = 0; i < 3; ++i) {
+			//	dst[i] = src.m_verts[i] + vertOffset;
+			//}
+		 // \todo winding inverted?
+			dst.a = src.m_verts[0] + vertOffset;
+			dst.b = src.m_verts[2] + vertOffset;
+			dst.c = src.m_verts[1] + vertOffset;
+		}
+
+		tmpMesh.endSubmesh();
+	}
+
+	tmpMesh.generateNormals();
+	tmpMesh.generateTangents();
+	tmpMesh.updateBounds();
+
 MeshData_LoadMD5_end:
+	if (ret) {
+	 // \todo use _mesh desc as a conversion target
+		MeshDesc retDesc(MeshDesc::Primitive_Triangles);
+		retDesc.addVertexAttr(VertexAttr::Semantic_Positions,   3, DataType::Float32);
+		retDesc.addVertexAttr(VertexAttr::Semantic_Normals,     3, DataType::Sint8N);
+		retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,    3, DataType::Sint8N);
+		retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords,   2, DataType::Uint16N);
+		retDesc.addVertexAttr(VertexAttr::Semantic_BoneWeights, 4, DataType::Uint16N);
+		retDesc.addVertexAttr(VertexAttr::Semantic_BoneIndices, 4, DataType::Uint8);
+		MeshData retMesh(retDesc, tmpMesh);
+		swap(mesh_, retMesh);
+	}
 
 	return ret;
 }
@@ -1300,6 +1371,15 @@ void MeshBuilder::addIndexData(DataType _type, const void* _data, uint32 _count)
 		m_triangles.push_back(Triangle(tmp[i], tmp[i + 1], tmp[i + 2]));
 	}
 	delete[] tmp;
+}
+
+void MeshBuilder::setVertexCount(uint32 _count)
+{
+	m_vertices.resize(_count);
+}
+void MeshBuilder::setTriangleCount(uint32 _count)
+{
+	m_triangles.resize(_count);
 }
 
 MeshData::Submesh& MeshBuilder::beginSubmesh(uint _materialId)

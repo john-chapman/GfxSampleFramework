@@ -49,8 +49,8 @@ public:
 			return false;
 
 		}
-		MeshData::Create("models/md5/bob_lamp_update.md5mesh");
-
+		m_teapot = Mesh::Create("models/md5/bob_lamp_update.md5mesh");
+		m_shModel = Shader::CreateVsFs("shaders/Model_vs.glsl", "shaders/Model_fs.glsl");
 		return true;
 	}
 
@@ -288,6 +288,25 @@ public:
 	virtual void draw() override
 	{
 		GlContext* ctx = GlContext::GetCurrent();
+
+		static mat4 meshWorld(1.0f);
+		Im3d::Gizmo("MeshWorld", (float*)&meshWorld);
+
+		ctx->setFramebufferAndViewport(0);
+		glAssert(glClear(GL_DEPTH_BUFFER_BIT));
+
+		ctx->setMesh(m_teapot);
+		ctx->setShader(m_shModel);
+
+		ctx->setUniform("uWorldMatrix", meshWorld);
+		ctx->setUniform("uViewMatrix", Scene::GetDrawCamera()->m_view);
+		ctx->setUniform("uProjMatrix", Scene::GetDrawCamera()->m_proj);
+
+		glAssert(glEnable(GL_DEPTH_TEST));
+		glAssert(glEnable(GL_CULL_FACE));
+		ctx->draw();
+		glAssert(glDisable(GL_CULL_FACE));
+		glAssert(glDisable(GL_DEPTH_TEST));
 
 		AppBase::draw();
 	}
