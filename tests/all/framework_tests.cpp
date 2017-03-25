@@ -20,6 +20,7 @@
 #include <apt/Json.h>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 using namespace frm;
 using namespace apt;
@@ -37,8 +38,8 @@ public:
 
 	SplinePath m_splinePath;
 
-	Mesh* m_teapot;
-	Shader* m_shModel;
+	Mesh* m_mesh;
+	Shader* m_shMesh;
 
 	AppSampleTest(): AppBase("AppSampleTest") {}
 	
@@ -48,6 +49,8 @@ public:
 			return false;
 
 		}
+		m_mesh = Mesh::Create("models/md5/bob_lamp_update.md5mesh");
+		m_shMesh = Shader::CreateVsFs("shaders/Model_vs.glsl", "shaders/Model_fs.glsl");
 		return true;
 	}
 
@@ -62,7 +65,7 @@ public:
 			return false;
 		}
 
-		ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
 		if (ImGui::TreeNode("Intersection Tests")) {
 			Im3d::PushDrawState();
 
@@ -285,6 +288,27 @@ public:
 	virtual void draw() override
 	{
 		GlContext* ctx = GlContext::GetCurrent();
+
+		static mat4 meshWorld(1.0f);
+		Im3d::Gizmo("MeshWorld", (float*)&meshWorld);
+
+		ctx->setFramebufferAndViewport(0);
+		glAssert(glClear(GL_DEPTH_BUFFER_BIT));
+
+		static int submesh = 0;
+		ImGui::SliderInt("Submesh", &submesh, 0, m_mesh->getSubmeshCount() - 1);
+		ctx->setMesh(m_mesh, submesh);
+		ctx->setShader(m_shMesh);
+
+		ctx->setUniform("uWorldMatrix", meshWorld);
+		ctx->setUniform("uViewMatrix", Scene::GetDrawCamera()->m_view);
+		ctx->setUniform("uProjMatrix", Scene::GetDrawCamera()->m_proj);
+
+		glAssert(glEnable(GL_DEPTH_TEST));
+		glAssert(glEnable(GL_CULL_FACE));
+		ctx->draw();
+		glAssert(glDisable(GL_CULL_FACE));
+		glAssert(glDisable(GL_DEPTH_TEST));
 
 		AppBase::draw();
 	}

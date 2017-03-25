@@ -37,22 +37,21 @@ void GlContext::draw(GLsizei _instances)
 	glAssert(glGetProgramiv(m_currentShader->getHandle(), GL_ACTIVE_ATTRIBUTES, &activeAttribCount));
 	APT_ASSERT(m_currentMesh->m_desc.getVertexComponentCount() == activeAttribCount);
 #endif
-	const MeshData::Submesh& Submesh = m_currentMesh->getSubmesh(m_currentSubmesh);
+	const MeshData::Submesh& submesh = m_currentMesh->getSubmesh(m_currentSubmesh);
 
 	if (m_currentMesh->getIndexBufferHandle() != 0) {
-		glAssert(glDrawElementsInstancedBaseVertex(
+		glAssert(glDrawElementsInstanced(
 			m_currentMesh->getPrimitive(), 
-			(GLsizei)Submesh.m_indexCount, 
+			(GLsizei)submesh.m_indexCount, 
 			m_currentMesh->getIndexDataType(), 
-			(GLvoid*)Submesh.m_indexOffset, 
-			_instances, 
-			(GLint)Submesh.m_vertexOffset)
-			);
+			(GLvoid*)submesh.m_indexOffset, 
+			_instances
+			));
 	} else {
 		glAssert(glDrawArraysInstanced(
 			m_currentMesh->getPrimitive(),
-			(GLint)Submesh.m_vertexOffset, 
-			(GLsizei)Submesh.m_vertexCount, 
+			(GLint)submesh.m_vertexOffset, 
+			(GLsizei)submesh.m_vertexCount, 
 			_instances
 			));
 	}

@@ -3,6 +3,7 @@
 #include <apt/log.h>
 #include <apt/hash.h>
 #include <apt/FileSystem.h>
+#include <apt/TextParser.h>
 #include <apt/Time.h>
 
 #include <algorithm> // swap
@@ -173,11 +174,27 @@ MeshData* MeshData::Create(const char* _path)
 	}
 	MeshData* ret = new MeshData();
 	ret->m_path.set(_path);
-	if (!ReadObj(*ret, f.getData(), f.getDataSize())) {
-		delete ret;
-		ret = nullptr;
+
+	const char* ext = FileSystem::GetExtension(_path);
+
+	if (strcmp(ext, "obj") == 0) {
+		if (!ReadObj(*ret, f.getData(), f.getDataSize())) {
+			goto MeshData_Create_error;
+		}
+	} else if (strcmp(ext, "md5mesh") == 0) {
+		if (!ReadMd5(*ret, f.getData(), f.getDataSize())) {
+			goto MeshData_Create_error;
+		}
+	} else {
+		APT_ASSERT(false); // unsupported format
+		goto MeshData_Create_error;
 	}
+	
 	return ret;
+
+MeshData_Create_error:
+	delete ret;
+	return nullptr;
 }
 
 MeshData* MeshData::Create(
@@ -519,203 +536,6 @@ void MeshData::updateSubmeshBounds(Submesh& _submesh)
 	_submesh.m_boundingSphere = Sphere(_submesh.m_boundingBox);
 }
 
-
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-
-bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
-{
-	using std::istream;
-	using std::map;
-	using std::string;
-	using std::vector;
-
-	APT_AUTOTIMER_DBG("MeshData::ReadObj");
-	
-	vector<tinyobj::shape_t> shapes;
-	vector<tinyobj::material_t> materials;
-	string err;
-	
- // \todo use _mesh desc as a conversion target
-	MeshDesc retDesc(MeshDesc::Primitive_Triangles);
-	VertexAttr* positionAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Positions, 3, DataType::Float32);
-	VertexAttr* normalAttr   = retDesc.addVertexAttr(VertexAttr::Semantic_Normals,   3, DataType::Sint8N);
-	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  3, DataType::Sint8N);
-	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Uint16N);
-	
-	MeshBuilder tmpMesh; // append vertices/indices here
-
-	struct mem_streambuf: std::streambuf {
-		mem_streambuf(const char* _data, uint _dataSize) {
-			char* d = const_cast<char*>(_data);
-			setg(d, d, d + _dataSize);
-		};
-	};
-	struct DummyMatReader: public tinyobj::MaterialReader {
-		DummyMatReader() {}
-		virtual ~DummyMatReader() {}	
-		virtual bool operator()(const string& matId, vector<tinyobj::material_t>& materials, map<string, int>& matMap, string& err) {
-			return true;
-		}
-	} matreader;
-
-	mem_streambuf dbuf(_srcData, _srcDataSize);
-	istream dstream(&dbuf);
-
-	bool ret = tinyobj::LoadObj(shapes, materials, err, dstream, matreader);
-	if (!ret) {
-		goto Mesh_LoadObj_end;
-	}
-
-	bool hasNormals = true;
-	bool hasTexcoords = true;
-	uint32 voffset = 0;
-	for (auto shape = shapes.begin(); shape != shapes.end(); ++shape) {
-		tinyobj::mesh_t& m = shape->mesh;
-
-		uint pcount = m.positions.size() / 3;
-		uint tcount = m.texcoords.size() / 2;
-		hasTexcoords &= tcount != 0;
-		uint ncount = m.normals.size() / 3;
-		hasNormals &= ncount != 0;
-		/*if (!((pcount == ncount) && (tcount ? pcount == tcount : true) && (ncount ? pcount == ncount : true))) {
-			ret = false;
-			err = "Mesh data error (position/normal/texcoord counts didn't match)";
-			APT_ASSERT(false);
-			goto Mesh_LoadObj_end;
-		}*/
-		if (pcount > std::numeric_limits<uint32>::max()) {
-			ret = false;
-			err = "Too many vertices";
-			goto Mesh_LoadObj_end;
-		}
-
-	 // vertex data
-		for (auto i = 0; i < pcount; ++i) {
-			MeshBuilder::Vertex vtx;
-			
-			vtx.m_position.x = m.positions[i * 3 + 0];
-			vtx.m_position.y = m.positions[i * 3 + 1];
-			vtx.m_position.z = m.positions[i * 3 + 2];
-
-			if (ncount) {
-				vtx.m_normal.x = m.normals[i * 3 + 0];
-				vtx.m_normal.y = m.normals[i * 3 + 1];
-				vtx.m_normal.z = m.normals[i * 3 + 2];
-			}
-
-			if (tcount) {
-				vtx.m_texcoord.x = m.texcoords[i * 2 + 0];
-				vtx.m_texcoord.y = m.texcoords[i * 2 + 1];
-			}
-
-			tmpMesh.addVertex(vtx);
-		}
-
-	 // submeshes - each unique material ID maps to a submesh, which is a range of indices
-		vector<vector<uint32> > submeshIndices;
-		vector<int> submeshMaterialMap; // map material IDs to Submesh indices
-		for (auto face = 0; face < shape->mesh.material_ids.size(); ++face) {
-			if (m.num_vertices[face] != 3) {
-				ret = false;
-				err = "Invalid face (only triangles supported";
-				goto Mesh_LoadObj_end;
-			}
-
-		 // find the relevant Submesh list for the mat index, or push a new one
-			int matIndex = -1;
-			for (auto i = 0; i < submeshMaterialMap.size(); ++i) {
-				if (submeshMaterialMap[i] == m.material_ids[face]) {
-					matIndex = (int)i;
-					break;
-				}
-			}
-			if (matIndex == -1) {
-				matIndex = (int)submeshMaterialMap.size();
-				submeshMaterialMap.push_back(m.material_ids[face]);
-				submeshIndices.push_back(vector<unsigned int>());
-			}
-
-		 // add face indices to the appropriate index list
-			submeshIndices[matIndex].push_back(m.indices[face * 3 + 0] + voffset);
-			submeshIndices[matIndex].push_back(m.indices[face * 3 + 1] + voffset);
-			submeshIndices[matIndex].push_back(m.indices[face * 3 + 2] + voffset);
-		}
-	 
-		for (auto submesh = 0; submesh < submeshIndices.size(); ++submesh) {
-			for (auto i = 0; i < submeshIndices[submesh].size(); i += 3) {
-				tmpMesh.addTriangle(
-					submeshIndices[submesh][i + 0],
-					submeshIndices[submesh][i + 1],
-					submeshIndices[submesh][i + 2]
-					);
-			}
-			
-			/*retMesh.beginSubmesh(submesh); // \todo material id is implicit in this case?
-			retMesh.m_submeshes[submesh].m_vertexOffset = 0;
-			retMesh.m_submeshes[submesh].m_vertexCount = retMesh.getVertexCount();
-			retMesh.m_submeshes[submesh].m_indexCount = submeshIndices[submesh].size();
-			retMesh.m_submeshes[submesh].m_indexOffset = 
-				submesh == 0 ? 0 : submeshIndices[submesh - 1].size();
-			
-			retMesh.endSubmesh();*/
-		}
-
-		voffset += (uint32)pcount;
-	}
-
-	
-	if (normalAttr != 0 && !hasNormals) {
-		tmpMesh.generateNormals();
-	}
-	if (tangentAttr != 0) {
-		tmpMesh.generateTangents();
-	}
-	tmpMesh.updateBounds();
-
-Mesh_LoadObj_end:
-	if (!ret) {
-		APT_LOG_ERR("obj error:\n\t'%s'", err.c_str());
-		return false;
-	}
-	
-	MeshData retMesh(retDesc, tmpMesh);
-	swap(mesh_, retMesh);
-
-	return true;
-}
-
-/*	Blender file format: http://www.atmind.nl/blender/mystery_ot_blend.html
-	
-	Blender files begin with a 12 byte header:
-		- The chars 'BLENDER'
-		- 1 byte pointer size flag; '_' means 32 bits, '-' means 64 bit.
-		- 1 byte endianness flag; 'v' means little-endian, 'V' means big-endian.
-		- 3 byte version string; '248' means 2.48
-
-	There then follows some number of file blocks:
-		- 4-byte aligned, 20 or 24 bytes size depending on the pointer size.
-		- 4 byte block type code.
-		- 4 byte block size (excluding header).
-		- 4/8 byte address of the block when the file was written. Treat this as an ID.
-		- 4 byte SDNA index.
-		- 4 byte SDNA count.
-
-	Block types:
-		- ENDB marks the end of the blend file.
-		- DNA1 contains the structure DNA data.
-
-	SDNA:
-		- Database of descriptors in a special file block (DNA1).
-		- Hundreds of them, only interested in a few: http://www.atmind.nl/blender/blender-sdna.html.
-*/
-bool MeshData::ReadBlend(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
-{
-
-	return true;
-}
-
-
 /*******************************************************************************
 
                                  MeshBuilder
@@ -763,7 +583,7 @@ void MeshBuilder::normalizeBoneWeights()
 }
 
 void MeshBuilder::generateNormals()
-{	APT_AUTOTIMER_DBG("MeshBuilder::generateNormals");
+{	MeshData_AUTOTIMER("MeshBuilder::generateNormals");
 
  // zero normals for accumulation
 	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
@@ -792,7 +612,7 @@ void MeshBuilder::generateNormals()
 }
 
 void MeshBuilder::generateTangents()
-{	APT_AUTOTIMER_DBG("MeshBuilder::generateTangents");
+{	MeshData_AUTOTIMER("MeshBuilder::generateTangents");
 
  // zero tangents for accumulation
 	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
@@ -830,7 +650,7 @@ void MeshBuilder::generateTangents()
 }
 
 void MeshBuilder::updateBounds()
-{	APT_AUTOTIMER_DBG("MeshBuilder::updateBounds");
+{	MeshData_AUTOTIMER("MeshBuilder::updateBounds");
 
 	if (m_vertices.empty()) {
 		return;
@@ -921,6 +741,15 @@ void MeshBuilder::addIndexData(DataType _type, const void* _data, uint32 _count)
 	delete[] tmp;
 }
 
+void MeshBuilder::setVertexCount(uint32 _count)
+{
+	m_vertices.resize(_count);
+}
+void MeshBuilder::setTriangleCount(uint32 _count)
+{
+	m_triangles.resize(_count);
+}
+
 MeshData::Submesh& MeshBuilder::beginSubmesh(uint _materialId)
 {
 	MeshData::Submesh submesh;
@@ -935,9 +764,9 @@ MeshData::Submesh& MeshBuilder::beginSubmesh(uint _materialId)
 }
 void MeshBuilder::endSubmesh()
 {
-	m_submeshes.back().m_vertexCount = m_vertices.size() - m_submeshes.back().m_vertexOffset;
-	m_submeshes.back().m_indexCount  = m_triangles.size() * 3 - m_submeshes.back().m_indexOffset;
 	MeshData::Submesh& submesh = m_submeshes.back();
+	submesh.m_vertexCount = m_vertices.size() - submesh.m_vertexOffset;
+	submesh.m_indexCount  = m_triangles.size() * 3 - submesh.m_indexOffset;
 	if (submesh.m_vertexCount == 0) {
 		return;
 	}

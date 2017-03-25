@@ -9,6 +9,13 @@
 
 #include <vector>
 
+#define MeshData_ENABLE_TIMER
+#ifdef MeshData_ENABLE_TIMER
+	#define MeshData_AUTOTIMER(_name) APT_AUTOTIMER(_name)
+#else
+	#define MeshData_AUTOTIMER(_name)
+#endif
+
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -226,6 +233,7 @@ protected:
 
 	
 	static bool ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
+	static bool ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
 	static bool ReadBlend(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
 
 }; // class MeshData
@@ -234,6 +242,7 @@ protected:
 ////////////////////////////////////////////////////////////////////////////////
 // MeshBuilder
 // Mesh construction/manipulation tools.
+// \note Unlike Mesh, the first submesh has no special meaning here. 
 ////////////////////////////////////////////////////////////////////////////////
 class MeshBuilder
 {
@@ -253,11 +262,14 @@ public:
 	struct Triangle
 	{
 		uint32 a, b, c;
+		Triangle() 
+		{
+		}
 		Triangle(uint32 _a, uint32 _b, uint32 _c)
 			: a(_a), b(_b), c(_c) 
 		{
 		}
-		uint32 operator[](int _i)
+		uint32& operator[](int _i)
 		{ 
 			return (&a)[_i]; 
 		}
@@ -279,6 +291,9 @@ public:
 	
 	void               addVertexData(const MeshDesc& _desc, const void* _data, uint32 _count);
 	void               addIndexData(DataType _type, const void* _data, uint32 _count);
+	
+	void               setVertexCount(uint32 _count);
+	void               setTriangleCount(uint32 _count);
 
 	MeshData::Submesh& beginSubmesh(uint _materialId); // invalidates any references previously returned
 	void               endSubmesh();
