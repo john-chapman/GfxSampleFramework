@@ -328,5 +328,8 @@
     <ClCompile Include="..\..\src\win\frm\WindowImpl.cpp">
       <Filter>win</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\MeshData_md5.cpp" />
+    <ClCompile Include="..\..\src\all\frm\MeshData_obj.cpp" />
+    <ClCompile Include="..\..\src\all\frm\MeshData_blend.cpp" />
   </ItemGroup>
 </Project>

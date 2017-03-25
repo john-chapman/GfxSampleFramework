@@ -209,6 +209,9 @@
     <ClCompile Include="..\..\src\all\frm\LuaScript.cpp" />
     <ClCompile Include="..\..\src\all\frm\Mesh.cpp" />
     <ClCompile Include="..\..\src\all\frm\MeshData.cpp" />
+    <ClCompile Include="..\..\src\all\frm\MeshData_blend.cpp" />
+    <ClCompile Include="..\..\src\all\frm\MeshData_md5.cpp" />
+    <ClCompile Include="..\..\src\all\frm\MeshData_obj.cpp" />
     <ClCompile Include="..\..\src\all\frm\Profiler.cpp" />
     <ClCompile Include="..\..\src\all\frm\Resource.cpp" />
     <ClCompile Include="..\..\src\all\frm\Scene.cpp" />

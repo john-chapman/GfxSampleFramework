@@ -9,6 +9,13 @@
 
 #include <vector>
 
+#define MeshData_ENABLE_TIMER
+#ifdef MeshData_ENABLE_TIMER
+	#define MeshData_AUTOTIMER(_name) APT_AUTOTIMER(_name)
+#else
+	#define MeshData_AUTOTIMER(_name)
+#endif
+
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -226,7 +233,7 @@ protected:
 
 	
 	static bool ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
-	static bool ReadMD5(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
+	static bool ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
 	static bool ReadBlend(MeshData& mesh_, const char* _srcData, uint _srcDataSize);
 
 }; // class MeshData
