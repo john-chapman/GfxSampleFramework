@@ -38,8 +38,8 @@ public:
 
 	SplinePath m_splinePath;
 
-	Mesh* m_teapot;
-	Shader* m_shModel;
+	Mesh* m_mesh;
+	Shader* m_shMesh;
 
 	AppSampleTest(): AppBase("AppSampleTest") {}
 	
@@ -49,8 +49,8 @@ public:
 			return false;
 
 		}
-		m_teapot = Mesh::Create("models/md5/bob_lamp_update.md5mesh");
-		m_shModel = Shader::CreateVsFs("shaders/Model_vs.glsl", "shaders/Model_fs.glsl");
+		m_mesh = Mesh::Create("models/md5/bob_lamp_update.md5mesh");
+		m_shMesh = Shader::CreateVsFs("shaders/Model_vs.glsl", "shaders/Model_fs.glsl");
 		return true;
 	}
 
@@ -295,8 +295,10 @@ public:
 		ctx->setFramebufferAndViewport(0);
 		glAssert(glClear(GL_DEPTH_BUFFER_BIT));
 
-		ctx->setMesh(m_teapot);
-		ctx->setShader(m_shModel);
+		static int submesh = 0;
+		ImGui::SliderInt("Submesh", &submesh, 0, m_mesh->getSubmeshCount() - 1);
+		ctx->setMesh(m_mesh, submesh);
+		ctx->setShader(m_shMesh);
 
 		ctx->setUniform("uWorldMatrix", meshWorld);
 		ctx->setUniform("uViewMatrix", Scene::GetDrawCamera()->m_view);
