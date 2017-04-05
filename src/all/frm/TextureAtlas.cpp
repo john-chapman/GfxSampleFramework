@@ -6,7 +6,7 @@
 
 #ifdef frm_TextureAtlas_DEBUG
 	#include <imgui/imgui.h>
-	static std::vector<frm::TextureAtlas::Region*> s_dbgRegionList;
+	static eastl::vector<frm::TextureAtlas::Region*> s_dbgRegionList;
 #endif
 
 using namespace frm;

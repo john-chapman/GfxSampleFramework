@@ -9,7 +9,7 @@
 #include <apt/Pool.h>
 #include <apt/StringHash.h>
 
-#include <vector>
+#include <EASTL/vector.h>
 
 #ifdef APT_DEBUG
 	#define frm_TextureAtlas_DEBUG
@@ -18,11 +18,11 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class TextureAtlas
-/// \todo Pass an ID when uploading an image (detect if you already uploaded the
-///   the image). Requires refcounting for regions!
-/// \todo Select between quadtree/BSP allocator, more efficient implementation
-///   for both. See commit 7c6ac7e for a working version of the BSP.
+// TextureAtlas
+// \todo Pass an ID when uploading an image (detect if you already uploaded the
+//   the image). Requires refcounting for regions!
+// \todo Select between quadtree/BSP allocator, more efficient implementation
+//   for both. See commit 7c6ac7e for a working version of the BSP.
 ////////////////////////////////////////////////////////////////////////////////
 class TextureAtlas: public Texture
 {
@@ -39,23 +39,21 @@ public:
 	static TextureAtlas* Create(GLsizei _width, GLsizei _height, GLenum _format, GLint _mipCount = 1);
 	static void Destroy(TextureAtlas*& _inst_);
 
-	/// Alloc an uninitialized _width * _height region.
-	/// \return 0 if the allocation failed.
+	// Alloc an uninitialized _width * _height region. Return 0 if the allocation failed.
 	Region* alloc(GLsizei _width, GLsizei _height);
-	/// Alloc a region large enough to fit _img and upload data (to all mips). Optionally 
-	/// set the region id (e.g. a hash of the image path), see findUse()/unuseFree().
+	// Alloc a region large enough to fit _img and upload data (to all mips). Optionally 
+	// set the region id (e.g. a hash of the image path), see findUse()/unuseFree().
 	Region* alloc(const apt::Image& _img, RegionId _id = 0);
 
-	/// Free a previously allocated region.
+	// Free a previously allocated region.
 	void free(Region*& _region_);
 
-	/// Increment the ref count of a named region.
-	/// \return 0 if _id was not found.
+	// Increment the ref count of a named region. Return 0 if _id was not found.
 	Region* findUse(RegionId _id);
-	/// Decrement the ref count of named region, free the region if ref count == 0.
+	// Decrement the ref count of named region, free the region if ref count == 0.
 	void unuseFree(Region*& _region_);
 
-	/// Upload data to a previously allocated region.
+	// Upload data to a previously allocated region.
 	void upload(const Region& _region, const void* _data, GLenum _dataFormat, GLenum _dataType, GLint _mip = 0);
 
 
@@ -75,7 +73,7 @@ private:
 	apt::Pool<Region> m_regionPool;
 
 	struct RegionRef { RegionId m_id; Region* m_region; int m_refCount; };
-	std::vector<RegionRef> m_regionMap;
+	eastl::vector<RegionRef> m_regionMap;
 
  // quad tree allocator
  	struct Node;

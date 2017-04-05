@@ -10,6 +10,8 @@
 #include <apt/math.h>
 #include <apt/String.h>
 
+#include <EASTL/vector.h>
+
 #include <imgui/imgui.h>
 
 using namespace frm;
@@ -627,15 +629,14 @@ Shader::~Shader()
 }
 
 
-static void Append(const char* _str, std::vector<char>& _out_)
+static void Append(const char* _str, eastl::vector<char>& _out_)
 {
 	while (*_str) {
 		_out_.push_back(*_str);
 		++_str;
 	}
 }
-
-static void AppendLine(const char* _str, std::vector<char>& _out_)
+static void AppendLine(const char* _str, eastl::vector<char>& _out_)
 {
 	Append(_str, _out_);
 	_out_.push_back('\n');
@@ -662,7 +663,7 @@ bool Shader::loadStage(int _i)
 	}
 
  // build final source
-	std::vector<char> src;
+	eastl::vector<char> src;
 	Append("#version ", src);
 	AppendLine(m_desc.m_version, src);
 	for (auto it = desc.m_defines.begin(); it != desc.m_defines.end(); ++it) {

@@ -5,7 +5,7 @@
 #include <apt/hash.h>
 
 #include <cstdarg> // va_list
-#include <utility>
+#include <EASTL/algorithm.h>
 
 using namespace frm;
 using namespace apt;
@@ -104,9 +104,9 @@ template <typename tDerived>
 Resource<tDerived>::~Resource()
 {
 	APT_ASSERT(m_refs == 0); // resource still in use
-	auto it = std::find(s_instances.begin(), s_instances.end(), (Derived*)this);
+	auto it = eastl::find(s_instances.begin(), s_instances.end(), (Derived*)this);
 	APT_ASSERT(it != s_instances.end()); 
-	std::swap(*it, s_instances.back());
+	eastl::swap(*it, s_instances.back());
 	s_instances.pop_back();
 }
 
@@ -123,7 +123,7 @@ void Resource<tDerived>::setNamef(const char* _fmt, ...)
 // PRIVATE
 
 template <typename tDerived>  uint32 Resource<tDerived>::s_nextUniqueId;
-template <typename tDerived>  std::vector<tDerived*> Resource<tDerived>::s_instances;
+template <typename tDerived>  eastl::vector<tDerived*> Resource<tDerived>::s_instances;
 
 template <typename tDerived>
 void Resource<tDerived>::init(Id _id, const char* _name)
@@ -144,6 +144,8 @@ void Resource<tDerived>::init(Id _id, const char* _name)
 // Explicit template instantiations
 #include <frm/Mesh.h>
 template class Resource<Mesh>;
+#include <frm/SkeletonAnimation.h>
+template class Resource<SkeletonAnimation>;
 #include <frm/Shader.h>
 template class Resource<Shader>;
 #include <frm/Texture.h>

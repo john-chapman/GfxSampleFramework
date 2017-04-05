@@ -8,7 +8,7 @@
 
 #include <apt/String.h>
 
-#include <vector>
+#include <EASTL/vector.h>
 
 namespace frm
 {
@@ -88,9 +88,9 @@ private:
 		typedef apt::String<48> DefineStr;
 		typedef apt::String<32> PathStr;
 	
-		PathStr                 m_path;      // Source file path (if from a file).
-		std::vector<DefineStr>  m_defines;   // Name + value.       
-		std::vector<char>       m_source;    // Source (not including defines).
+		PathStr                   m_path;      // Source file path (if from a file).
+		eastl::vector<DefineStr>  m_defines;   // Name + value.       
+		eastl::vector<char>       m_source;    // Source (not including defines).
 
 		bool isEnabled() const;
 

@@ -5,31 +5,31 @@
 #include <frm/def.h>
 #include <frm/math.h>
 
-#include <vector>
+#include <EASTL/vector.h>
 
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class SplinePath
-/// Spline path with cubic interpolation.
-/// \todo Avoid clamping indices everywhere by maintaining dummy positions at 
-///   the start/end.
+// SplinePath
+// Spline path with cubic interpolation.
+// \todo Avoid clamping indices everywhere by maintaining dummy positions at 
+//   the start/end.
 ////////////////////////////////////////////////////////////////////////////////
 class SplinePath
 {
 public:
 	SplinePath();
 
-	/// Evaluate the spline at _t (in [0,1]). _hint_ is useful in the common 
-	/// case where evaluate() is called repeatedly with a monotonically increasing
-	/// _t, it avoids performing a binary search on the spline data.
-	vec3 evaluate(float _t, int* _hint_ = nullptr) const;
+	// Sample the spline at _t (in [0,1]). _hint_ is useful in the common 
+	// case where evaluate() is called repeatedly with a monotonically increasing
+	// _t, it avoids performing a binary search on the spline data.
+	vec3 sample(float _t, int* _hint_ = nullptr) const;
 
-	/// Append a control point to the spline. This invalidates the internal derived
-	/// data, so build() must be called again before using the spline.
+	// Append a control point to the spline. This invalidates the internal derived
+	// data, so build() must be called again before using the spline.
 	void append(const vec3& _position);
 
-	/// Construct derived members (evaluation metadata, spline length).
+	// Construct derived members (evaluation metadata, spline length).
 	void build();
 
 	void edit();
@@ -38,9 +38,9 @@ public:
 	float getLength() const { return m_length; }
 
 private:
-	std::vector<vec3> m_raw;    //< Raw control points (for edit/serialize).
-	std::vector<vec4> m_eval;   //< Subdivided spline (for evaluation). xyz = position, w = normalized segment start.
-	float             m_length; //< Total spline length.
+	eastl::vector<vec3> m_raw;    // Raw control points (for edit/serialize).
+	eastl::vector<vec4> m_eval;   // Subdivided spline (for evaluation). xyz = position, w = normalized segment start.
+	float               m_length; // Total spline length.
 
 	void subdiv(int _segment, float _t0 = 0.0f, float _t1 = 1.0f, float _maxError = 1e-6f, int _limit = 5);
 	

@@ -66,7 +66,7 @@ struct TextureViewer
 	bool m_showHidden;
 	bool m_showTexelGrid;
 	bool m_isDragging;
-	std::vector<TextureView> m_txViews;
+	eastl::vector<TextureView> m_txViews;
 
 	static vec2 ThumbToTxView(const frm::TextureView& _txView)
 	{

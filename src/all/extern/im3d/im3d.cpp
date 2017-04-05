@@ -1,5 +1,6 @@
 /*	CHANGE LOG
 	==========
+	2017-03-24 (v1.04) - DrawArrow() interface changed (world space length/pixel thickness instead of head fraction).
 	2017-03-01 (v1.02) - Configurable VertexData alignment (IM3D_VERTEX_ALIGNMENT).
 	2017-02-23 (v1.01) - Removed AppData::m_tanHalfFov, replaced with AppData::m_projScaleY. Added AppData::m_projOrtho.
 */
@@ -122,6 +123,21 @@ void Im3d::DrawXyzAxes()
 	ctx.popColor();
 
 }
+void Im3d::DrawPoint(const Vec3& _position, float _size, Color _color)
+{
+	Context& ctx = GetContext();
+	ctx.begin(PrimitiveMode_Points);
+		ctx.vertex(_position, _size, _color);
+	ctx.end();
+}
+void Im3d::DrawLine(const Vec3& _a, const Vec3& _b, float _size, Color _color)
+{
+	Context& ctx = GetContext();
+	ctx.begin(PrimitiveMode_Lines);
+		ctx.vertex(_a, _size, _color);
+		ctx.vertex(_b, _size, _color);
+	ctx.end();
+}
 void Im3d::DrawQuad(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d)
 {
 	Context& ctx = GetContext();
@@ -179,6 +195,29 @@ void Im3d::DrawCircle(const Vec3& _origin, const Vec3& _normal, float _radius, i
 		for (int i = 0; i < _detail; ++i) {
 			float rad = TwoPi * ((float)i / (float)_detail);
 			ctx.vertex(Vec3(cosf(rad) * _radius, sinf(rad) * _radius, 0.0f));
+		}
+	ctx.end();
+	ctx.popMatrix();
+}
+void Im3d::DrawCircleFilled(const Vec3& _origin, const Vec3& _normal, float _radius, int _detail)
+{
+	Context& ctx = GetContext();
+	if (_detail < 0) {
+		_detail = ctx.estimateLevelOfDetail(_origin, _radius);
+	}
+ 	ctx.pushMatrix(ctx.getMatrix() * LookAt(_origin, _origin + _normal, ctx.getAppData().m_worldUp));
+	ctx.begin(PrimitiveMode_Triangles);
+		float cp = cosf(0.0f) * _radius;
+		float sp = sinf(0.0f) * _radius;
+		for (int i = 1; i <= _detail; ++i) {
+			ctx.vertex(_origin);
+			ctx.vertex(Vec3(cp, sp, 0.0f));
+			float rad = TwoPi * ((float)i / (float)_detail);
+			float c = cosf(rad) * _radius;
+			float s = sinf(rad) * _radius;
+			ctx.vertex(Vec3(c, s, 0.0f));
+			cp = c;
+			sp = s;
 		}
 	ctx.end();
 	ctx.popMatrix();
@@ -335,15 +374,27 @@ void Im3d::DrawPrism(const Vec3& _start, const Vec3& _end, float _radius, int _s
 	ctx.end();
 	ctx.popMatrix();
 }
-void Im3d::DrawArrow(const Vec3& _start, const Vec3& _end, float _headFraction)
+void Im3d::DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength, float _headThickness)
 {
 	Context& ctx = GetContext();
-	Vec3 head = _start + (_end - _start) * (1.0f - _headFraction);
+	
+	if (_headThickness < 0.0f) {
+		_headThickness = ctx.getSize() * 2.0f;
+	}
+
+	Vec3 dir = _end - _start;
+	float dirlen = Length(dir);
+	if (_headLength < 0.0f) {
+		_headLength = Min(dirlen / 2.0f, ctx.pixelsToWorldSize(_end, _headThickness * 2.0f));
+	}
+	dir = dir / dirlen;
+
+	Vec3 head = _end - dir * _headLength;
 	ctx.begin(PrimitiveMode_Lines);
 		ctx.vertex(_start);
 		ctx.vertex(head);
-		ctx.vertex(head, Max(ctx.getSize() * 2.0f, 4.0f), ctx.getColor());
-		ctx.vertex(_end, 2.0f, ctx.getColor());
+		ctx.vertex(head, _headThickness, ctx.getColor());
+		ctx.vertex(_end, 2.0f, ctx.getColor()); // \hack \todo 2.0f here compensates for the shader antialiasing (which reduces alpha when size < 2)
 	ctx.end();
 }
 
@@ -351,7 +402,6 @@ void Im3d::DrawArrow(const Vec3& _start, const Vec3& _end, float _headFraction)
 static const U32 kFnv1aPrime32 = 0x01000193u;
 static U32 Hash(const char* _buf, int _buflen, U32 _base)
 {
-	IM3D_ASSERT(_buf);
 	U32 ret = _base;
 	const char* lim = _buf + _buflen;
 	while (_buf < lim) {
@@ -362,7 +412,6 @@ static U32 Hash(const char* _buf, int _buflen, U32 _base)
 }
 static U32 HashStr(const char* _str, U32 _base)
 {
-	IM3D_ASSERT(_str);
 	U32 ret = _base;
 	while (*_str) {
 		ret ^= (U32)*_str++;
@@ -1206,6 +1255,12 @@ float Context::pixelsToWorldSize(const Vec3& _position, float _pixels)
 	return m_appData.m_projScaleY * d * (_pixels / m_appData.m_viewportSize.y);
 }
 
+float Context::worldSizeToPixels(const Vec3& _position, float _size)
+{
+	float d = m_appData.m_projOrtho ? 1.0f : Length(_position - m_appData.m_viewOrigin);
+	return (_size * m_appData.m_viewportSize.y) / d / m_appData.m_projScaleY;
+}
+
 int Context::estimateLevelOfDetail(const Vec3& _position, float _worldSize, int _min, int _max)
 {
 	float d = Length(_position - m_appData.m_viewOrigin);
@@ -1257,9 +1312,9 @@ bool Context::gizmoAxisTranslation_Behavior(Id _id, const Vec3& _origin, const V
 			resetId();
 		}
 	} else {
-		float depth = Length2(axisCapsule.m_end - m_appData.m_viewOrigin);
-		bool intersects = Intersects(ray, axisCapsule);
-		makeHot(_id, depth, intersects);
+		float t0, t1;
+		bool intersects = Intersect(ray, axisCapsule, t0, t1);
+		makeHot(_id, t0, intersects);
 	}
 
 	return false;
@@ -1287,8 +1342,7 @@ void Context::gizmoAxisTranslation_Draw(Id _id, const Vec3& _origin, const Vec3&
 	pushSize(m_gizmoSizePixels);
 		DrawArrow(
 			_origin + _axis * (0.2f * _worldHeight), 
-			_origin + _axis * _worldHeight, 
-			0.3f
+			_origin + _axis * _worldHeight
 			);
 	popSize();
 	popColor();
@@ -1343,8 +1397,7 @@ bool Context::gizmoPlaneTranslation_Behavior(Id _id, const Vec3& _origin, const 
 			resetId();
 		}
 	} else {
-		float depth = Length2(_origin - m_appData.m_viewOrigin);
-		makeHot(_id, depth, intersects);
+		makeHot(_id, tr, intersects);
 	}
 
 	return false;
@@ -1403,8 +1456,7 @@ bool Context::gizmoAxislAngle_Behavior(Id _id, const Vec3& _origin, const Vec3& 
 			resetId();
 		}
 	} else {
-	 	float depth = Length2(intersection - m_appData.m_viewOrigin);
-		makeHot(_id, depth, intersects);
+		makeHot(_id, tr, intersects);
 	}
 	return false;
 }
@@ -1439,7 +1491,7 @@ void Context::gizmoAxislAngle_Draw(Id _id, const Vec3& _origin, const Vec3& _axi
 
 				pushColor(Color_GizmoHighlight);
 				pushSize(m_gizmoSizePixels);
-					DrawArrow(_origin, _origin + delta * _worldRadius, 0.3f);
+					DrawArrow(_origin, _origin + delta * _worldRadius);
 				popSize();
 				popColor();
 				begin(PrimitiveMode_Points);
@@ -1526,9 +1578,9 @@ bool Context::gizmoAxisScale_Behavior(Id _id, const Vec3& _origin, const Vec3& _
 			resetId();
 		}
 	} else {
-	 	float depth = Length2(axisCapsule.m_end - m_appData.m_viewOrigin);
-		bool intersects = Intersects(ray, axisCapsule);
-		makeHot(_id, depth, intersects);
+	 	float t0, t1;
+		bool intersects = Intersect(ray, axisCapsule, t0, t1);
+		makeHot(_id, t0, intersects);
 	}
 
 	return false;
@@ -1995,8 +2047,8 @@ bool Im3d::Intersects(const Ray& _ray, const Capsule& _capsule)
 }
 bool Im3d::Intersect(const Ray& _ray, const Capsule& _capsule, float& t0_, float& t1_)
 {
-	IM3D_ASSERT(false); // \todo implement
-	return false;
+	//IM3D_ASSERT(false); // \todo implement
+	return Intersects(_ray, _capsule);
 }
 
 void Im3d::Nearest(const Line& _line0, const Line& _line1, float& t0_, float& t1_)

@@ -126,6 +126,7 @@
     <ClInclude Include="..\..\src\all\extern\lua\lundump.h" />
     <ClInclude Include="..\..\src\all\extern\lua\lvm.h" />
     <ClInclude Include="..\..\src\all\extern\lua\lzio.h" />
+    <ClInclude Include="..\..\src\all\extern\md5mesh.h" />
     <ClInclude Include="..\..\src\all\extern\tiny_obj_loader.h" />
     <ClInclude Include="..\..\src\all\frm\App.h" />
     <ClInclude Include="..\..\src\all\frm\AppProperty.h" />
@@ -144,6 +145,7 @@
     <ClInclude Include="..\..\src\all\frm\Scene.h" />
     <ClInclude Include="..\..\src\all\frm\Shader.h" />
     <ClInclude Include="..\..\src\all\frm\ShaderPreprocessor.h" />
+    <ClInclude Include="..\..\src\all\frm\SkeletonAnimation.h" />
     <ClInclude Include="..\..\src\all\frm\Spline.h" />
     <ClInclude Include="..\..\src\all\frm\Texture.h" />
     <ClInclude Include="..\..\src\all\frm\TextureAtlas.h" />
@@ -217,6 +219,8 @@
     <ClCompile Include="..\..\src\all\frm\Scene.cpp" />
     <ClCompile Include="..\..\src\all\frm\Shader.cpp" />
     <ClCompile Include="..\..\src\all\frm\ShaderPreprocessor.cpp" />
+    <ClCompile Include="..\..\src\all\frm\SkeletonAnimation.cpp" />
+    <ClCompile Include="..\..\src\all\frm\SkeletonAnimation_md5.cpp" />
     <ClCompile Include="..\..\src\all\frm\Spline.cpp" />
     <ClCompile Include="..\..\src\all\frm\Texture.cpp" />
     <ClCompile Include="..\..\src\all\frm\TextureAtlas.cpp" />

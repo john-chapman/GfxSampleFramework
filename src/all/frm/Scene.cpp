@@ -8,8 +8,8 @@
 #include <apt/log.h>
 #include <apt/Json.h>
 
-#include <algorithm> // std::find
-#include <utility> // std::swap
+#include <EASTl/algorithm.h>
+#include <EASTL/utility.h> // eastl::swap
 
 using namespace frm;
 using namespace apt;
@@ -80,7 +80,7 @@ void Node::moveXForm(const XForm* _xform, int _dir)
 	for (int i = 0, n = getXFormCount(); i < n; ++i) {
 		if (m_xforms[i] == _xform) {
 			int j = APT_CLAMP(i + _dir, 0, n - 1);
-			std::swap(m_xforms[i], m_xforms[j]);
+			eastl::swap(m_xforms[i], m_xforms[j]);
 			return;
 		}
 	}
@@ -101,7 +101,7 @@ void Node::setParent(Node* _node)
 void Node::addChild(Node* _node)
 {
 	APT_ASSERT(_node);
-	APT_ASSERT(std::find(m_children.begin(), m_children.end(), _node) == m_children.end()); // added the same child multiple times?
+	APT_ASSERT(eastl::find(m_children.begin(), m_children.end(), _node) == m_children.end()); // added the same child multiple times?
 	m_children.push_back(_node);
 	if (_node->m_parent && _node->m_parent != this) {
 		_node->m_parent->removeChild(_node);
@@ -116,7 +116,7 @@ void Node::addChild(Node* _node)
 void Node::removeChild(Node* _node)
 {
 	APT_ASSERT(_node);
-	auto it = std::find(m_children.begin(), m_children.end(), _node);
+	auto it = eastl::find(m_children.begin(), m_children.end(), _node);
 	if (it != m_children.end()) {
 		(*it)->m_parent = nullptr;
 		m_children.erase(it);
@@ -221,7 +221,7 @@ Node::~Node()
 int Node::moveXForm(int _i, int _dir)
 {
 	int j = APT_CLAMP(_i + _dir, 0, (int)(m_xforms.size() - 1));
-	std::swap(m_xforms[_i], m_xforms[j]);
+	eastl::swap(m_xforms[_i], m_xforms[j]);
 	return j;
 }
 
@@ -236,13 +236,13 @@ Scene* Scene::s_currentScene = &s_defaultScene;
 
 void frm::swap(Scene& _a, Scene& _b)
 {
-	std::swap(_a.m_nextNodeId, _b.m_nextNodeId);
-	std::swap(_a.m_root,       _b.m_root);
-	std::swap(_a.m_nodes,      _b.m_nodes);
+	eastl::swap(_a.m_nextNodeId, _b.m_nextNodeId);
+	eastl::swap(_a.m_root,       _b.m_root);
+	eastl::swap(_a.m_nodes,      _b.m_nodes);
 	apt::swap(_a.m_nodePool,   _b.m_nodePool);
-	std::swap(_a.m_drawCamera, _b.m_drawCamera);
-	std::swap(_a.m_cullCamera, _b.m_cullCamera);
-	std::swap(_a.m_cameras,    _b.m_cameras);
+	eastl::swap(_a.m_drawCamera, _b.m_drawCamera);
+	eastl::swap(_a.m_cullCamera, _b.m_cullCamera);
+	eastl::swap(_a.m_cameras,    _b.m_cameras);
 	apt::swap(_a.m_cameraPool, _b.m_cameraPool);
 }
 
@@ -361,7 +361,7 @@ void Scene::destroyNode(Node*& _node_)
 		case Node::Type_Camera:
 			if (_node_->m_sceneData) {
 				Camera* camera = _node_->getSceneDataCamera();
-				auto it = std::find(m_cameras.begin(), m_cameras.end(), camera);
+				auto it = eastl::find(m_cameras.begin(), m_cameras.end(), camera);
 				if (it != m_cameras.end()) {
 					APT_ASSERT(camera->m_parent == _node_); // _node_ points to camera, but camera doesn't point to _node_
 					m_cameras.erase(it);
@@ -373,7 +373,7 @@ void Scene::destroyNode(Node*& _node_)
 			break;
 	};
 
-	auto it = std::find(m_nodes[type].begin(), m_nodes[type].end(), _node_);
+	auto it = eastl::find(m_nodes[type].begin(), m_nodes[type].end(), _node_);
 	if (it != m_nodes[type].end()) {
 		m_nodes[type].erase(it);
 		m_nodePool.free(_node_);

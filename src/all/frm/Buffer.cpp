@@ -16,9 +16,8 @@ Buffer* Buffer::Create(GLenum _target, GLsizei _size, GLbitfield _flags, GLvoid*
 
 void Buffer::Destroy(Buffer*& _inst_)
 {
-	APT_ASSERT(_inst_);
 	delete _inst_;
-	_inst_ = 0;
+	_inst_ = nullptr;
 }
 
 void Buffer::setData(GLsizeiptr _size, GLvoid* _data, GLintptr _offset)

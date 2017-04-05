@@ -4,7 +4,7 @@
 
 #include "im3d_config.h"
 
-#define IM3D_VERSION "1.03"
+#define IM3D_VERSION "1.04"
 
 #ifndef IM3D_ASSERT
 	#include <cassert>
@@ -112,17 +112,20 @@ void  Scale(float _x, float _y, float _z);
 
 // High order shapes. Where _detail = -1, an automatic level of detail is chosen based on the distance to the view origin.
 void  DrawXyzAxes();
+void  DrawPoint(const Vec3& _position, float _size, Color _color);
+void  DrawLine(const Vec3& _a, const Vec3& _b, float _size, Color _color);
 void  DrawQuad(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d);
 void  DrawQuad(const Vec3& _origin, const Vec3& _normal, const Vec2& _size);
 void  DrawQuadFilled(const Vec3& _a, const Vec3& _b, const Vec3& _c, const Vec3& _d);
 void  DrawQuadFilled(const Vec3& _origin, const Vec3& _normal, const Vec2& _size);
 void  DrawCircle(const Vec3& _origin, const Vec3& _normal, float _radius, int _detail = -1);
+void  DrawCircleFilled(const Vec3& _origin, const Vec3& _normal, float _radius, int _detail = -1);
 void  DrawSphere(const Vec3& _origin, float _radius, int _detail = -1);
 void  DrawAlignedBox(const Vec3& _min, const Vec3& _max);
 void  DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int _detail = -1);
 void  DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int _detail = -1);
 void  DrawPrism(const Vec3& _start, const Vec3& _end, float _radius, int _sides);
-void  DrawArrow(const Vec3& _start, const Vec3& _end, float _headFraction);
+void  DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength = -1.0f, float _headThickness = -1.0f);
 
 // Ids are used to uniquely identify gizmos. Each gizmo should have a unique Id during a frame.
 Id    MakeId(const char* _str);
@@ -518,6 +521,8 @@ public:
 
 	// Convert pixels -> world space size based on distance between _position and view origin.
 	float pixelsToWorldSize(const Vec3& _position, float _pixels);
+	// Convert world space size -> pixels based on distance between _position and view origin.
+	float worldSizeToPixels(const Vec3& _position, float _pixels);
 	// Blend between _min and _max based on distance betwen _position and view origin.
 	int estimateLevelOfDetail(const Vec3& _position, float _worldSize, int _min = 16, int _max = 256);
 	
@@ -535,7 +540,7 @@ public:
 	GizmoMode          m_gizmoMode;                //               "
 	Id                 m_activeId;                 // Currently active gizmo. If set, this is the same as m_hotId.
 	Id                 m_hotId;
-	float              m_hotDepth;                 // Depth of the current hot gizmo, for handling occlusion.
+	float              m_hotDepth;                 // Depth of the current hot gizmo along the cursor ray, for handling occlusion.
 	Vec3               m_gizmoStateVec3;           // Stored state for the active gizmo.
 	Mat3               m_gizmoStateMat3;           //               "
 	float              m_gizmoStateFloat;          //               "

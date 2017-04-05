@@ -118,7 +118,7 @@ GLenum frm::internal::GlDataTypeToEnum(DataType _type)
 		case DataType::Uint32N:  return GL_UNSIGNED_INT;
 		case DataType::Float16:  return GL_HALF_FLOAT;
 		case DataType::Float32:  return GL_FLOAT;
-		default:                  APT_ASSERT(false); return GL_INVALID_VALUE;
+		default:                 APT_ASSERT(false); return GL_INVALID_VALUE;
 	};
 }
 

@@ -81,10 +81,11 @@ bool Mesh::reload()
 		return true;
 	}
 	MeshData* data = MeshData::Create(m_path);
-	// \todo check data loaded correctly
+	if (!data) {
+		return false;
+	}
 	load(*data);
 	MeshData::Destroy(data);
-
 	return true;
 }
 
@@ -105,7 +106,13 @@ void Mesh::setVertexData(const void* _data, uint _vertexCount, GLenum _usage)
 		for (GLuint i = 0; i < m_desc.m_vertexAttrCount; ++i) {
 			const VertexAttr& attr = m_desc.m_vertexDesc[i];
 			glAssert(glEnableVertexAttribArray(i));
-			glAssert(glVertexAttribPointer(i, attr.getCount(), internal::GlDataTypeToEnum(attr.getDataType()), (GLboolean)DataType::IsNormalized(attr.getDataType()), m_desc.m_vertexSize, (const GLvoid*)attr.getOffset()));
+			if (DataType::IsInt(attr.getDataType()) && !DataType::IsNormalized(attr.getDataType())) {
+			 // non-normalized integer types bind as ints
+				glAssert(glVertexAttribIPointer(i, attr.getCount(), internal::GlDataTypeToEnum(attr.getDataType()), m_desc.m_vertexSize, (const GLvoid*)attr.getOffset()));
+			} else {
+			 // else bind as floats
+				glAssert(glVertexAttribPointer(i, attr.getCount(), internal::GlDataTypeToEnum(attr.getDataType()), (GLboolean)DataType::IsNormalized(attr.getDataType()), m_desc.m_vertexSize, (const GLvoid*)attr.getOffset()));
+			}
 		}
 	} else {
 		glAssert(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
@@ -139,12 +146,20 @@ void Mesh::setIndexData(DataType _dataType, const void* _data, uint _indexCount,
 	glAssert(glBindVertexArray(prevVao));
 }
 
+void Mesh::setBindPose(const Skeleton& _skel)
+{
+	if (!m_bindPose) {
+		m_bindPose = new Skeleton;
+	}
+	*m_bindPose = _skel;
+}
 
 // PRIVATE
 
 Mesh::Mesh(uint64 _id, const char* _name)
 	: Resource(_id, _name)
 	, m_desc(MeshDesc::Primitive_Count)
+	, m_bindPose(nullptr)
 	, m_vertexArray(0)
 	, m_vertexBuffer(0)
 	, m_indexBuffer(0)
@@ -162,17 +177,21 @@ Mesh::~Mesh()
 
 void Mesh::unload()
 {
-	if (m_vertexArray != 0) {
+	if (m_vertexArray) {
 		glAssert(glDeleteVertexArrays(1, &m_vertexArray));
 		m_vertexArray = 0;
 	}
-	if (m_vertexBuffer != 0) {
+	if (m_vertexBuffer) {
 		glAssert(glDeleteBuffers(1, &m_vertexBuffer));
 		m_vertexBuffer = 0;
 	}
-	if (m_indexBuffer != 0) {
+	if (m_indexBuffer) {
 		glAssert(glDeleteBuffers(1, &m_indexBuffer));
 		m_indexBuffer = 0;
+	}
+	if (m_bindPose) {
+		delete m_bindPose;
+		m_bindPose = nullptr;
 	}
 	m_submeshes.clear();
 	setState(State_Unloaded);
@@ -192,6 +211,11 @@ void Mesh::load(const MeshData& _data)
 	if (_data.m_indexData) {
 		setIndexData((DataType)_data.m_indexDataType, _data.m_indexData, _data.getIndexCount(), GL_STATIC_DRAW);
 	}
+	if (_data.m_bindPose) {
+		m_bindPose = new Skeleton;
+		*m_bindPose = *_data.m_bindPose;
+	}
+
 	setState(State_Loaded);
 }
 

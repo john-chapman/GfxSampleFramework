@@ -4,7 +4,7 @@
 
 #include <frm/def.h>
 #include <apt/String.h>
-#include <vector>
+#include <EASTL/vector.h>
 
 namespace frm {
 
@@ -75,11 +75,11 @@ protected:
 	void setState(State _state) { m_state = _state; }
 
 private:
-	static uint32                s_nextUniqueId;
-	static std::vector<Derived*> s_instances;
-	State                        m_state;
-	Id                           m_id;
-	sint64                       m_refs;
+	static uint32                  s_nextUniqueId;
+	static eastl::vector<Derived*> s_instances;
+	State                          m_state;
+	Id                             m_id;
+	sint64                         m_refs;
 
 	void init(Id _id, const char* _name);
 

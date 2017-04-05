@@ -14,24 +14,24 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class Camera
-/// Projection is defined either by 4 angles (±radians) from the view axis for
-/// perspective projections, or 4 offsets (±world units) from the view origin for
-/// parallel projections, plus a near/far clipping plane.
-///
-/// Projection flags control how the projection matrix is set up - this must be 
-/// congruent with the graphics API clip control settings and depth test, as
-/// well as any shader operations which might be affected (depth linearization,
-/// shadow tests, etc.).
-///
-/// ProjFlag_Reversed will give better precision when using a floating points
-/// depth buffer - in this case the following setup is required for OpenGL:
-///		glClearDepth(0.0f);
-///		glDepthFunc(GL_GREATER);
-///		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
-/// 
-/// ProjFlag_Infinite does not affect the frustum far plane, so m_far should be
-/// be set to a distance appropriate for culling.
+// Camera
+// Projection is defined either by 4 angles (±radians) from the view axis for
+// perspective projections, or 4 offsets (±world units) from the view origin for
+// parallel projections, plus a near/far clipping plane.
+//
+// Projection flags control how the projection matrix is set up - this must be 
+// congruent with the graphics API clip control settings and depth test, as
+// well as any shader operations which might be affected (depth linearization,
+// shadow tests, etc.).
+//
+// ProjFlag_Reversed will give better precision when using a floating points
+// depth buffer - in this case the following setup is required for OpenGL:
+//		glClearDepth(0.0f);
+//		glDepthFunc(GL_GREATER);
+//		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+// 
+// ProjFlag_Infinite does not affect the frustum far plane, so m_far should be
+// be set to a distance appropriate for culling.
 ////////////////////////////////////////////////////////////////////////////////
 class Camera
 {

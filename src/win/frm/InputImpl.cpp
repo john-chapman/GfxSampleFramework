@@ -10,7 +10,7 @@
 #include <new>
 #include <cmath>
 #include <cstring>
-#include <utility>
+#include <EASTL/utility.h>
 
 extern "C" {
 	#include <hidsdi.h>
@@ -137,7 +137,7 @@ struct ImplBase: public tDevice
 			for (int i = 1; i < Input::kMaxMouseCount; ++i) {
 				if (s_instances[i].m_handle != kNullHandle) {
 					APT_LOG("%s %d (0x%x) moved to index 0", getName(), i, s_instances[i].m_handle);
-					std::swap(s_instances[i].m_handle, s_instances[0].m_handle);
+					eastl::swap(s_instances[i].m_handle, s_instances[0].m_handle);
 					s_instances[0].reset(); // we didn't bother to swap the state as well, so reset the device
 					break;
 				}

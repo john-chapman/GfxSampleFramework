@@ -167,7 +167,6 @@ MeshData::Submesh::Submesh()
 
 MeshData* MeshData::Create(const char* _path)
 {
-	
 	File f;
 	if (!FileSystem::Read(f, _path)) {
 		return nullptr;
@@ -293,7 +292,6 @@ MeshData* MeshData::CreatePlane(
 
 void MeshData::Destroy(MeshData*& _meshData_)
 {
-	APT_ASSERT(_meshData_);
 	delete _meshData_;
 	_meshData_ = nullptr;
 }
@@ -306,6 +304,7 @@ void frm::swap(MeshData& _a, MeshData& _b)
 	swap(_a.m_indexData,      _b.m_indexData);
 	swap(_a.m_indexDataType,  _b.m_indexDataType);
 	swap(_a.m_submeshes,      _b.m_submeshes);
+	swap(_a.m_bindPose,       _b.m_bindPose);
 }
 
 void MeshData::setVertexData(const void* _src)
@@ -426,30 +425,47 @@ uint64 MeshData::getHash() const
 		if (m_indexData) {
 			ret = Hash<uint64>(m_indexData, DataType::GetSizeBytes(m_indexDataType) * getIndexCount(), ret);
 		}
+		if (m_bindPose) {
+			for (int i = 0; i < m_bindPose->getBoneCount(); ++i) {
+				const Skeleton::Bone& bone = m_bindPose->getBone(i);
+				ret = HashString<uint64>(m_bindPose->getBoneName(i), ret);
+			}
+		}
 		return ret;
 	}
+}
+
+void MeshData::setBindPose(const Skeleton& _skel)
+{
+	if (!m_bindPose) {
+		m_bindPose = new Skeleton;
+	}
+	*m_bindPose = _skel;
 }
 
 // PRIVATE
 
 MeshData::MeshData()
-	: m_vertexData(0)
-	, m_indexData(0)
+	: m_bindPose(nullptr)
+	, m_vertexData(nullptr)
+	, m_indexData(nullptr)
 {
 }
 
 MeshData::MeshData(const MeshDesc& _desc)
 	: m_desc(_desc)
-	, m_vertexData(0)
-	, m_indexData(0)
+	, m_bindPose(nullptr)
+	, m_vertexData(nullptr)
+	, m_indexData(nullptr)
 {
 	m_submeshes.push_back(Submesh());
 }
 
 MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	: m_desc(_desc)
-	, m_vertexData(0)
-	, m_indexData(0)
+	, m_bindPose(nullptr)
+	, m_vertexData(nullptr)
+	, m_indexData(nullptr)
 {
 	const VertexAttr* positionsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Positions);
 	const VertexAttr* texcoordsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Texcoords);
@@ -478,7 +494,7 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 			DataType::Convert(DataType::Float32, boneWeightsAttr->getDataType(), &src.m_boneWeights, dst + boneWeightsAttr->getOffset(), APT_MIN(4, (int)boneWeightsAttr->getCount()));
 		}
 		if (boneIndicesAttr) {
-			DataType::Convert(DataType::Float32, boneIndicesAttr->getDataType(), &src.m_boneIndices, dst + boneIndicesAttr->getOffset(), APT_MIN(4, (int)boneIndicesAttr->getCount()));
+			DataType::Convert(DataType::Uint32, boneIndicesAttr->getDataType(), &src.m_boneIndices, dst + boneIndicesAttr->getOffset(), APT_MIN(4, (int)boneIndicesAttr->getCount()));
 		}
 	}
 
@@ -507,6 +523,9 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 
 MeshData::~MeshData()
 {
+	if (m_bindPose) {
+		delete m_bindPose;
+	}
 	free(m_vertexData);
 	free(m_indexData);
 }
@@ -656,7 +675,7 @@ void MeshBuilder::updateBounds()
 		return;
 	}
 	m_boundingBox.m_min = m_boundingBox.m_max = m_vertices[0].m_position;
-	for (auto vert = ++m_vertices.begin(); vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin() + 1; vert != m_vertices.end(); ++vert) {
 		m_boundingBox.m_min = min(m_boundingBox.m_min, vert->m_position);
 		m_boundingBox.m_max = max(m_boundingBox.m_max, vert->m_position);
 	}

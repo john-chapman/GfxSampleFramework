@@ -7,26 +7,22 @@
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class Window
+// Window
 ////////////////////////////////////////////////////////////////////////////////
 class Window: private apt::non_copyable<Window>
 {
 public:
-	/// if _width or _height is -1, the windows size is set to the size of the
-	/// primary display.
+	// If _width or _height is -1, the windows size is set to the size of the primary display.
 	static Window* Create(int _width, int _height, const char* _title);
 	static void Destroy(Window*& _window_);
 	static Window* Find(const void* _handle);
 
-	/// Poll window events, dispatch to callbacks. The function is non-blocking.
-	/// \return true if the application should continue (i.e. if no quit message
-	///   was received.
+	// Poll window events, dispatch to callbacks. The function is non-blocking.
+	// Return true if the application should continue (i.e. if no quit message was received).
 	bool pollEvents() const;
 
-	/// Poll window events, dispatch to callbacks. The function blocks until an
-	/// event occurs.
-	/// \return true if the application should continue (i.e. if no quit message
-	///   was received.
+	// Poll window events, dispatch to callbacks. The function blocks until an event occurs.
+	// Return true if the application should continue (i.e. if no quit message was received).
 	bool waitEvents() const;
 
 	void show() const;
@@ -41,15 +37,15 @@ public:
 
 	void getWindowRelativeCursor(int* x_, int* y_) const;
 	
-	/// Callbacks should return true if the event was consumed.
+	// Callbacks should return true if the event was consumed.
 	typedef bool (OnShow)  (Window* _window);
 	typedef bool (OnHide)  (Window* _window);
 	typedef bool (OnResize)(Window* _window, int _width, int _height);
 	
-	typedef bool (OnKey) (Window* _window, unsigned _key, bool _isDown); //< _key is a Keyboard::Button
+	typedef bool (OnKey) (Window* _window, unsigned _key, bool _isDown); // _key is a Keyboard::Button
 	typedef bool (OnChar)(Window* _window, char _key);
 
-	typedef bool (OnMouseButton)(Window* _window, unsigned _button, bool _isDown); //< _key is a Mouse::Button
+	typedef bool (OnMouseButton)(Window* _window, unsigned _button, bool _isDown); // _key is a Mouse::Button
 	typedef bool (OnMouseWheel) (Window* _window, float _delta);
 	struct Callbacks
 	{

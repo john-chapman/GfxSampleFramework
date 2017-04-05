@@ -10,8 +10,6 @@
 
 #include <im3d/im3d.h>
 
-#include <vector>
-
 namespace frm {
 
 class Scene;

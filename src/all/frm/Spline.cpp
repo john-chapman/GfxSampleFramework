@@ -18,7 +18,7 @@ SplinePath::SplinePath()
 {
 }
 
-vec3 SplinePath::evaluate(float _t, int* _hint_) const
+vec3 SplinePath::sample(float _t, int* _hint_) const
 {
 	int seg;
 	if (_hint_ == nullptr) { // no hint, use binary search

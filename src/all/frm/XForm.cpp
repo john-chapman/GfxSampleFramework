@@ -331,7 +331,7 @@ bool XForm_LookAt::serialize(JsonSerializer& _serializer_)
 *******************************************************************************/
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_Spin);
 
-std::vector<const XForm::Callback*> XForm::s_callbackRegistry;
+eastl::vector<const XForm::Callback*> XForm::s_callbackRegistry;
 
 XForm_Spin::XForm_Spin()
 	: m_axis(0.0f, 0.0f, 1.0f)
@@ -462,7 +462,7 @@ void XForm_PositionTarget::relativeReset()
 
 void XForm_PositionTarget::reverse()
 {
-	std::swap(m_start, m_end);
+	eastl::swap(m_start, m_end);
 	m_currentTime = APT_MAX(m_duration - m_currentTime, 0.0f);
 }
 
@@ -493,7 +493,7 @@ void XForm_SplinePath::apply(float _dt)
 		m_onComplete(this);
 	}
 	vec3 position;
-	position = m_path->evaluate(m_currentTime / m_duration, &m_pathHint);
+	position = m_path->sample(m_currentTime / m_duration, &m_pathHint);
 	m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), position));
 }
 

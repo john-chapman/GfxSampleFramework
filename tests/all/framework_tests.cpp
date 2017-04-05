@@ -4,12 +4,14 @@
 #include <frm/gl.h>
 #include <frm/AppSample3d.h>
 #include <frm/AppProperty.h>
+#include <frm/Buffer.h>
 #include <frm/GlContext.h>
 #include <frm/Input.h>
 #include <frm/Mesh.h>
 #include <frm/MeshData.h>
 #include <frm/Profiler.h>
 #include <frm/Shader.h>
+#include <frm/SkeletonAnimation.h>
 #include <frm/Spline.h>
 #include <frm/Texture.h>
 #include <frm/Window.h>
@@ -21,6 +23,8 @@
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+
+#include <EASTL/vector.h>
 
 using namespace frm;
 using namespace apt;
@@ -36,12 +40,30 @@ class AppSampleTest: public AppSample3d
 public:
 	typedef AppSample3d AppBase;
 
-	SplinePath m_splinePath;
+	struct MeshTest {
+		char*              m_meshPath;
+		Mesh*              m_mesh;
+		char*              m_animPath;
+		SkeletonAnimation* m_anim;
+		float              m_animTime;
+		float              m_animSpeed;
+		eastl::vector<int> m_animHints;
+		Shader*            m_shMeshShaded;
+		Shader*            m_shMeshLines;
+		Buffer*            m_bfSkinning;
+		mat4               m_worldMatrix;
+	} m_meshTest;
 
-	Mesh* m_mesh;
-	Shader* m_shMesh;
-
-	AppSampleTest(): AppBase("AppSampleTest") {}
+	AppSampleTest()
+		: AppBase("AppSampleTest") 
+	{
+		memset(&m_meshTest, 0, sizeof(MeshTest));
+		
+		AppPropertyGroup& props = m_properties.addGroup("MeshTest");
+		//                                      name          display name     default              min    max        hidden
+		m_meshTest.m_meshPath   = props.addPath("MeshPath",   "Mesh Path",     "models/md5/bob_lamp_update.md5mesh",  false);
+		m_meshTest.m_animPath   = props.addPath("AnimPath",   "Anim Path",     "models/md5/bob_lamp_update.md5anim",  false);
+	}
 	
 	virtual bool init(const apt::ArgList& _args) override
 	{
@@ -49,13 +71,17 @@ public:
 			return false;
 
 		}
-		m_mesh = Mesh::Create("models/md5/bob_lamp_update.md5mesh");
-		m_shMesh = Shader::CreateVsFs("shaders/Model_vs.glsl", "shaders/Model_fs.glsl");
 		return true;
 	}
 
 	virtual void shutdown() override
 	{
+		Buffer::Destroy(m_meshTest.m_bfSkinning);
+		Mesh::Release(m_meshTest.m_mesh);
+		SkeletonAnimation::Release(m_meshTest.m_anim);
+		Shader::Release(m_meshTest.m_shMeshLines);
+		Shader::Release(m_meshTest.m_shMeshShaded);
+
 		AppBase::shutdown();
 	}
 
@@ -289,27 +315,122 @@ public:
 	{
 		GlContext* ctx = GlContext::GetCurrent();
 
-		static mat4 meshWorld(1.0f);
-		Im3d::Gizmo("MeshWorld", (float*)&meshWorld);
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
+		if (ImGui::TreeNode("Mesh/Anim Test")) {
+			if (!m_meshTest.m_mesh) {
+				if (!m_meshTest.m_shMeshShaded) {
+					m_meshTest.m_shMeshShaded = Shader::CreateVsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_fs.glsl", "SHADED\0");
+				} 
+				if (!m_meshTest.m_shMeshLines) {
+					m_meshTest.m_shMeshLines = Shader::CreateVsGsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_gs.glsl", "shaders/MeshView_fs.glsl", "LINES\0");
+				}
 
-		ctx->setFramebufferAndViewport(0);
-		glAssert(glClear(GL_DEPTH_BUFFER_BIT));
+				if (m_meshTest.m_meshPath[0] != '\0') {
+					m_meshTest.m_mesh = Mesh::Create(m_meshTest.m_meshPath);
+					Buffer::Destroy(m_meshTest.m_bfSkinning);
+					if (m_meshTest.m_mesh && m_meshTest.m_mesh->getBindPose()) {
+						m_meshTest.m_bfSkinning = Buffer::Create(GL_SHADER_STORAGE_BUFFER, sizeof(mat4) * m_meshTest.m_mesh->getBindPose()->getBoneCount(), GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+						m_meshTest.m_bfSkinning->setName("_bfSkinning");
+						mat4* bf = (mat4*)m_meshTest.m_bfSkinning->map(GL_WRITE_ONLY);
+						for (int i = 0; i < m_meshTest.m_mesh->getBindPose()->getBoneCount(); ++i) {
+							bf[i] = mat4(1.0f);
+						}
+						m_meshTest.m_bfSkinning->unmap();
+						
+					}
+					m_meshTest.m_worldMatrix = mat4_cast(angleAxis(radians(90.0f), vec3(-1.0f, 0.0f, 0.0f)));
+				}
+				if (m_meshTest.m_animPath[0] != '\0') {
+					m_meshTest.m_anim = SkeletonAnimation::Create(m_meshTest.m_animPath);
+					m_meshTest.m_animTime = 0.0f;
+					m_meshTest.m_animSpeed = 1.0f;
+					m_meshTest.m_animHints.resize(m_meshTest.m_anim->getTrackCount(), 0);
+				}
+			
+			} else {
+				Im3d::Gizmo("MeshTestWorldMatrix", (float*)&m_meshTest.m_worldMatrix);
+			
+				if (m_meshTest.m_anim && m_meshTest.m_mesh && m_meshTest.m_mesh->getBindPose()) {
+					ImGui::SliderFloat("Anim Time", &m_meshTest.m_animTime, 0.0f, 1.0f);
+					ImGui::SliderFloat("Anim Speed", &m_meshTest.m_animSpeed, 0.0f, 2.0f);
+					m_meshTest.m_animTime = fract(m_meshTest.m_animTime + (float)m_deltaTime * m_meshTest.m_animSpeed);
+					Skeleton framePose = m_meshTest.m_anim->getBaseFrame();
+					{	CPU_AUTO_MARKER("Skinning");
+						m_meshTest.m_anim->sample(m_meshTest.m_animTime, framePose, m_meshTest.m_animHints.data());
+						framePose.resolve();
+						mat4* bf = (mat4*)m_meshTest.m_bfSkinning->map(GL_WRITE_ONLY);
+						for (int i = 0; i < framePose.getBoneCount(); ++i) {
+							bf[i] = framePose.getPose()[i] * m_meshTest.m_mesh->getBindPose()->getPose()[i];
+						}
+						m_meshTest.m_bfSkinning->unmap();
+						Im3d::PushMatrix(m_meshTest.m_worldMatrix);
+							framePose.draw();
+						Im3d::PopMatrix();
+					}
+				} else {
+					
+				}
 
-		static int submesh = 0;
-		ImGui::SliderInt("Submesh", &submesh, 0, m_mesh->getSubmeshCount() - 1);
-		ctx->setMesh(m_mesh, submesh);
-		ctx->setShader(m_shMesh);
+				if (m_meshTest.m_mesh) {
+					static bool showWireframe   = true;
+					static bool showNormals     = false;
+					static bool showTangents    = false;
+					static bool showTexcoords   = false;
+					static bool showBoneWeights = false;
+					static float vectorLength   = 0.1f;
+					ImGui::SliderFloat("Vector Length", &vectorLength, 0.0f, 1.0f);
+					ImGui::Checkbox("Wireframe",  &showWireframe);
+					ImGui::Checkbox("Normals", &showNormals);
+					ImGui::Checkbox("Tangents", &showTangents);
+					if (ImGui::Checkbox("Texcoords", &showTexcoords) && showBoneWeights) {
+						showBoneWeights = false;
+					}
+					if (ImGui::Checkbox("Bone Weights",  &showBoneWeights) && showTexcoords) {
+						showTexcoords = false;
+					}
 
-		ctx->setUniform("uWorldMatrix", meshWorld);
-		ctx->setUniform("uViewMatrix", Scene::GetDrawCamera()->m_view);
-		ctx->setUniform("uProjMatrix", Scene::GetDrawCamera()->m_proj);
+					ctx->setFramebufferAndViewport(0);
+					glAssert(glClear(GL_DEPTH_BUFFER_BIT));
 
-		glAssert(glEnable(GL_DEPTH_TEST));
-		glAssert(glEnable(GL_CULL_FACE));
-		ctx->draw();
-		glAssert(glDisable(GL_CULL_FACE));
-		glAssert(glDisable(GL_DEPTH_TEST));
+					static int submesh = 0;
+					ImGui::SliderInt("Submesh", &submesh, 0, m_meshTest.m_mesh->getSubmeshCount() - 1);
+					ctx->setMesh(m_meshTest.m_mesh, submesh);
+					
+					ctx->setShader(m_meshTest.m_shMeshShaded);
+					ctx->setUniform("uWorldMatrix", m_meshTest.m_worldMatrix);
+					ctx->setUniform("uViewMatrix",  Scene::GetDrawCamera()->m_view);
+					ctx->setUniform("uProjMatrix",  Scene::GetDrawCamera()->m_proj);
+					ctx->setUniform("uTexcoords",   (int)showTexcoords);
+					ctx->setUniform("uBoneWeights", (int)showBoneWeights);
+					ctx->bindBuffer(m_meshTest.m_bfSkinning);
+					glAssert(glEnable(GL_DEPTH_TEST));
+					glAssert(glEnable(GL_CULL_FACE));
+					ctx->draw();
+					glAssert(glDisable(GL_CULL_FACE));
+					glAssert(glDisable(GL_DEPTH_TEST));
 
+					ctx->setShader(m_meshTest.m_shMeshLines);
+					ctx->setUniform("uWorldMatrix",  m_meshTest.m_worldMatrix);
+					ctx->setUniform("uViewMatrix",   Scene::GetDrawCamera()->m_view);
+					ctx->setUniform("uProjMatrix",   Scene::GetDrawCamera()->m_proj);
+					ctx->setUniform("uVectorLength", vectorLength);
+					ctx->setUniform("uWireframe",    (int)showWireframe);
+					ctx->setUniform("uNormals",      (int)showNormals);
+					ctx->setUniform("uTangents",     (int)showTangents);
+					glAssert(glEnable(GL_DEPTH_TEST));
+					glAssert(glDepthFunc(GL_LEQUAL));
+					glAssert(glEnable(GL_BLEND));
+					ctx->draw();
+					glAssert(glDisable(GL_BLEND));
+					glAssert(glDepthFunc(GL_LESS));
+					glAssert(glDisable(GL_DEPTH_TEST));
+				}
+			}
+
+			ImGui::TreePop();
+		}
+		
+		
 		AppBase::draw();
 	}
 };
@@ -317,6 +438,10 @@ AppSampleTest s_app;
 
 int main(int _argc, char** _argv)
 {
+	eastl::vector< String<16> > vstr;
+	vstr.push_back(String<16>("Gayness"));
+	
+
 	AppSample* app = AppSample::GetCurrent();
 	if (!app->init(ArgList(_argc, _argv))) {
 		APT_ASSERT(false);

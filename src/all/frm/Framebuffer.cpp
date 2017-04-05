@@ -74,7 +74,6 @@ Framebuffer* Framebuffer::Create(int _count, ...)
 
 void Framebuffer::Destroy(Framebuffer*& _inst_)
 {
-	APT_ASSERT(_inst_);
 	delete _inst_;
 	_inst_ = 0;
 }

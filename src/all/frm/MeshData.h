@@ -4,10 +4,11 @@
 
 #include <frm/def.h>
 #include <frm/geom.h>
+#include <frm/SkeletonAnimation.h>
 
 #include <apt/String.h>
 
-#include <vector>
+#include <EASTL/vector.h>
 
 #define MeshData_ENABLE_TIMER
 #ifdef MeshData_ENABLE_TIMER
@@ -152,6 +153,7 @@ class MeshData: private apt::non_copyable<MeshData>
 {
 	friend class Mesh;
 public:
+
 	struct Submesh
 	{ 
 		uint       m_indexOffset;  // bytes
@@ -210,14 +212,18 @@ public:
 	const void*     getIndexData() const          { return m_indexData; }
 	DataType        getIndexDataType() const      { return m_indexDataType; }
 
+	const Skeleton* getBindPose() const                { return m_bindPose; }
+	void            setBindPose(const Skeleton& _skel);
+
 protected:
 	apt::String<32> m_path; // empty if not from a file
+	Skeleton* m_bindPose;
 	MeshDesc  m_desc;
 	char*     m_vertexData;
 	char*     m_indexData;
 	DataType  m_indexDataType;
 
-	std::vector<Submesh> m_submeshes;
+	eastl::vector<Submesh> m_submeshes;
 
 	// \todo 
 	void beginSubmesh(uint _materialId);
@@ -312,9 +318,9 @@ public:
 
 
 private:
-	std::vector<Vertex>            m_vertices;
-	std::vector<Triangle>          m_triangles;
-	std::vector<MeshData::Submesh> m_submeshes;  // vertex/index offsets are not bytes here
+	eastl::vector<Vertex>            m_vertices;
+	eastl::vector<Triangle>          m_triangles;
+	eastl::vector<MeshData::Submesh> m_submeshes;  // vertex/index offsets are not bytes here
 
 	AlignedBox m_boundingBox;
 	Sphere     m_boundingSphere;

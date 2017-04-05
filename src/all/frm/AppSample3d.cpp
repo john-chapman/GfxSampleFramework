@@ -15,7 +15,6 @@
 
 #include <im3d/im3d.h>
 
-
 using namespace frm;
 using namespace apt;
 

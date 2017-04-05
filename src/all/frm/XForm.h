@@ -11,14 +11,14 @@
 #include <apt/StringHash.h>
 #include <apt/Factory.h>
 
-#include <vector>
+#include <EASTL/vector.h>
 
 namespace frm {
 
 class Node;
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class XForm
+/// XForm
 /// Base class/factory for XForms.
 ////////////////////////////////////////////////////////////////////////////////
 class XForm: public apt::Factory<XForm>
@@ -39,15 +39,15 @@ public:
 	static const Callback* FindCallback(OnComplete* _callback);
 	static bool            SerializeCallback(const char* _name, OnComplete*& _callback, apt::JsonSerializer& _serializer_);
 
-	/// Reset initial state.
+	// Reset initial state.
 	virtual void reset() {}
 	static  void Reset(XForm* _xform_)         { _xform_->reset(); }
 
-	/// Initial state + current state.
+	// Initial state + current state.
 	virtual void relativeReset() {}
 	static  void RelativeReset(XForm* _xform_) { _xform_->relativeReset(); }
 
-	/// Reverse operation.
+	// Reverse operation.
 	virtual void reverse() {}
 	static  void Reverse(XForm* _xform_)       { _xform_->reverse(); }
 
@@ -60,7 +60,7 @@ public:
 	virtual bool serialize(apt::JsonSerializer& _serializer_) = 0;
 
 protected:
-	static std::vector<const Callback*> s_callbackRegistry;
+	static eastl::vector<const Callback*> s_callbackRegistry;
 
 	XForm(): m_node(nullptr)      {}
 
@@ -72,7 +72,7 @@ protected:
 	static XForm::Callback APT_UNIQUE_NAME(XForm_Callback_)(#_callback, _callback);
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class XForm_PositionOrientationScale
+// XForm_PositionOrientationScale
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_PositionOrientationScale: public XForm
 {
@@ -90,19 +90,19 @@ struct XForm_PositionOrientationScale: public XForm
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class XForm_FreeCamera
-/// Apply keyboard/gamepad input.
-/// Mouse/Keyboard:
-///   - W/A/S/D = forward/left/backward/right
-///   - Q/E = down/up
-///   - Left Shift = accelerate
-///   - Mouse + Mouse Right = look
-///
-/// Gamepad:
-///    - Left Stick = move
-///    - Left/Right shoulder buttons = down/up
-///    - Right Trigger = accelerate
-///    - Right Stick = look
+// XForm_FreeCamera
+// Apply keyboard/gamepad input.
+// Mouse/Keyboard:
+//   - W/A/S/D = forward/left/backward/right
+//   - Q/E = down/up
+//   - Left Shift = accelerate
+//   - Mouse + Mouse Right = look
+//
+// Gamepad:
+//    - Left Stick = move
+//    - Left/Right shoulder buttons = down/up
+//    - Right Trigger = accelerate
+//    - Right Stick = look
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_FreeCamera: public XForm
 {
@@ -129,8 +129,8 @@ struct XForm_FreeCamera: public XForm
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class XForm_LookAt
-/// Overrides the world matrix with a 'look at' matrix.
+// XForm_LookAt
+// Overrides the world matrix with a 'look at' matrix.
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_LookAt: public XForm
 {
@@ -147,8 +147,8 @@ struct XForm_LookAt: public XForm
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class XForm_Spin
-/// Constant rotation at m_rate around m_axis.
+// XForm_Spin
+// Constant rotation at m_rate around m_axis.
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_Spin: public XForm
 {
@@ -165,8 +165,8 @@ struct XForm_Spin: public XForm
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class XForm_PositionTarget
-/// Translate between m_start -> m_end over m_duration seconds.
+// XForm_PositionTarget
+// Translate between m_start -> m_end over m_duration seconds.
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_PositionTarget: public XForm
 {
@@ -191,7 +191,7 @@ struct XForm_PositionTarget: public XForm
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \class XForm_SplinePath
+// XForm_SplinePath
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_SplinePath: public XForm
 {

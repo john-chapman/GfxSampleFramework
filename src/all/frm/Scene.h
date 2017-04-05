@@ -8,7 +8,7 @@
 #include <apt/Pool.h>
 #include <apt/String.h>
 
-#include <vector>
+#include <EASTL/vector.h>
 
 #define frm_Scene_ENABLE_EDIT
 
@@ -103,13 +103,13 @@ private:
 	uint64              m_sceneData;   // Scene-defined data.
 
  // spatial
-	mat4                m_localMatrix; // Initial (local) transformation.
-	mat4                m_worldMatrix; // Final transformation with any XForms applied.
-	std::vector<XForm*> m_xforms;      // XForm list (applied in order).
+	mat4                  m_localMatrix; // Initial (local) transformation.
+	mat4                  m_worldMatrix; // Final transformation with any XForms applied.
+	eastl::vector<XForm*> m_xforms;      // XForm list (applied in order).
 
  // hierarchy
-	Node*               m_parent;
-	std::vector<Node*>  m_children;
+	Node*                 m_parent;
+	eastl::vector<Node*>  m_children;
 
 	// Auto name based on type, e.g. Camera_001, Object_123
 	static void AutoName(Node::Type _type, Node::NameStr& out_);
@@ -204,15 +204,15 @@ private:
 	static Scene*           s_currentScene;
 
  // nodes
-	Node::Id                m_nextNodeId;               //< Monotonically increasing id for nodes.
-	Node*                   m_root;                     //< Everything is a child of root.              
-	std::vector<Node*>      m_nodes[Node::Type_Count];  //< Nodes binned by type.
+	Node::Id                m_nextNodeId;               // Monotonically increasing id for nodes.
+	Node*                   m_root;                     // Everything is a child of root.              
+	eastl::vector<Node*>    m_nodes[Node::Type_Count];  // Nodes binned by type.
 	apt::Pool<Node>         m_nodePool;
 
  // cameras
 	Camera*                 m_drawCamera;
 	Camera*                 m_cullCamera;
-	std::vector<Camera*>    m_cameras;
+	eastl::vector<Camera*>  m_cameras;
 	apt::Pool<Camera>       m_cameraPool;
 
 #ifdef frm_Scene_ENABLE_EDIT

@@ -2,11 +2,11 @@
 
 #include <cstring>
 
-#include <vector>
+#include <EASTL/vector.h>
 
 using namespace frm;
 
-static std::vector<Window*> g_instances;
+static eastl::vector<Window*> g_instances;
 
 // PUBLIC
 
