@@ -531,14 +531,8 @@ bool Texture::reload()
 		return true;
 	}
 	
-	File f;
-	if (!FileSystem::Read(f, (const char*)m_path)) {
-		setState(State_Error);
-		return false;
-	}
-
 	Image img;
-	if (!Image::Read(img, f)) {
+	if (!Image::Read(img, m_path)) {
 		setState(State_Error);
 		return false;
 	}

@@ -3,6 +3,7 @@
 #include <apt/hash.h>
 #include <apt/log.h>
 #include <apt/FileSystem.h>
+#include <apt/Time.h>
 
 #include <im3d/im3d.h>
 
@@ -218,6 +219,8 @@ bool SkeletonAnimation::reload()
 	if (m_path.isEmpty()) {
 		return true;
 	}
+
+	APT_AUTOTIMER("SkeletonAnimation::load(%s)", (const char*)m_path);
 
 	File f;
 	if (!FileSystem::Read(f, m_path)) {

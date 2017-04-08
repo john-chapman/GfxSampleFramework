@@ -31,24 +31,43 @@ namespace frm {
 
  // forward declarations
 	class  App;
+	class  AppProperty;
+	class  AppPropertyGroup;
+	class  AppProperties;
 	class  AppSample;
 	class  AppSample3d;
 	class  Buffer;
 	class  Camera;
+	class  Device;
 	class  Framebuffer;
+	class  Gamepad;
 	class  GlContext;
+	class  Keyboard;
+	class  LuaScript;
 	class  Mesh;
 	class  MeshBuilder;
 	class  MeshData;
 	class  MeshDesc;
+	class  Mouse;
 	class  Node;
+	class  ProxyDevice;
+	class  ProxyGamepad;
+	class  ProxyKeyboard;
+	class  ProxyMouse;
 	class  Serializer;
 	class  Scene;
 	class  Shader;
+	class  ShaderDesc;
+	class  Skeleton;
+	class  SkeletonAnimation;
+	class  SkeletonAnimationTrack;
 	class  SplinePath;
 	class  Texture;
 	class  TextureAtlas;
 	struct TextureView;
+	class  ValueCurve;
+	class  ValueCurveEditor;
+	class  VertexAttr;
 	class  Window;
 	class  XForm;
 

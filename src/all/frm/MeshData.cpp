@@ -602,8 +602,7 @@ void MeshBuilder::normalizeBoneWeights()
 }
 
 void MeshBuilder::generateNormals()
-{	MeshData_AUTOTIMER("MeshBuilder::generateNormals");
-
+{
  // zero normals for accumulation
 	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
 		vert->m_normal = vec3(0.0f);
@@ -631,8 +630,7 @@ void MeshBuilder::generateNormals()
 }
 
 void MeshBuilder::generateTangents()
-{	MeshData_AUTOTIMER("MeshBuilder::generateTangents");
-
+{
  // zero tangents for accumulation
 	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
 		vert->m_tangent = vec4(0.0f);
@@ -669,8 +667,7 @@ void MeshBuilder::generateTangents()
 }
 
 void MeshBuilder::updateBounds()
-{	MeshData_AUTOTIMER("MeshBuilder::updateBounds");
-
+{
 	if (m_vertices.empty()) {
 		return;
 	}

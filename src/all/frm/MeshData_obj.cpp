@@ -1,6 +1,6 @@
 #include <frm/MeshData.h>
 
-#include <apt/Time.h>
+#include <apt/log.h>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -14,8 +14,6 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 	using std::map;
 	using std::string;
 	using std::vector;
-
-	MeshData_AUTOTIMER("MeshData::ReadObj");
 	
 	vector<tinyobj::shape_t> shapes;
 	vector<tinyobj::material_t> materials;

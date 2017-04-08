@@ -1,7 +1,6 @@
 #include <frm/SkeletonAnimation.h>
 
 #include <apt/TextParser.h>
-#include <apt/Time.h>
 
 #include <extern/md5mesh.h>
 
@@ -12,9 +11,7 @@ using namespace frm;
 using namespace apt;
 
 bool SkeletonAnimation::ReadMd5(SkeletonAnimation& anim_, const char* _srcData, uint _srcDataSize)
-{
-	SkeletonAnimation_AUTOTIMER("SkeletonAnimation::ReadMd5");
-	
+{	
 	TextParser tp(_srcData);
 
 	long int numJoints = -1;

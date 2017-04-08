@@ -9,11 +9,6 @@
 #include <apt/String.h>
 #include <apt/StringHash.h>
 
-namespace apt {
-	class IniFile;
-	class ArgList;
-}
-
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -206,10 +201,10 @@ public:
 	void setValues(const apt::ArgList& _argList);
 
 	// Set values from an ini file. Ini sections map to groups; ini properties in the default section are ignored.
-	void setValues(const apt::IniFile& _ini);
+	void setValues(const apt::Ini& _ini);
 
 	// Add groups/values to _ini_.
-	void appendToIni(apt::IniFile& _ini_) const;
+	void appendToIni(apt::Ini& _ini_) const;
 
 	void        save() const;
 	void        load();

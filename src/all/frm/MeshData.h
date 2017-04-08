@@ -10,13 +10,6 @@
 
 #include <EASTL/vector.h>
 
-#define MeshData_ENABLE_TIMER
-#ifdef MeshData_ENABLE_TIMER
-	#define MeshData_AUTOTIMER(_name) APT_AUTOTIMER(_name)
-#else
-	#define MeshData_AUTOTIMER(_name)
-#endif
-
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////

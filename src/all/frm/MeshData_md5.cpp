@@ -1,7 +1,6 @@
 #include <frm/MeshData.h>
 
 #include <apt/TextParser.h>
-#include <apt/Time.h>
 
 #include <extern/md5mesh.h>
 
@@ -13,8 +12,6 @@ using namespace apt;
 
 bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 {
-	MeshData_AUTOTIMER("MeshData::ReadMd5");
-	
 	TextParser tp(_srcData);
 
 	long int numJoints = -1;

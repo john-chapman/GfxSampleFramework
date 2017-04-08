@@ -8,6 +8,7 @@
 #include <apt/hash.h>
 #include <apt/File.h>
 #include <apt/FileSystem.h>
+#include <apt/Time.h>
 
 #include <cstring> // memcpy
 
@@ -80,6 +81,9 @@ bool Mesh::reload()
 	 // mesh not from a file, do nothing
 		return true;
 	}
+
+	APT_AUTOTIMER("Mesh::load(%s)", (const char*)m_path);
+
 	MeshData* data = MeshData::Create(m_path);
 	if (!data) {
 		return false;

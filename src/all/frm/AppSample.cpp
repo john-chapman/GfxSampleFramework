@@ -16,7 +16,7 @@
 #include <apt/ArgList.h>
 #include <apt/File.h>
 #include <apt/FileSystem.h>
-#include <apt/IniFile.h>
+#include <apt/Ini.h>
 
 #include <imgui/imgui.h>
 

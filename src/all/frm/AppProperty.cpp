@@ -6,7 +6,7 @@
 #include <apt/memory.h>
 #include <apt/ArgList.h>
 #include <apt/FileSystem.h>
-#include <apt/IniFile.h>
+#include <apt/Ini.h>
 
 #include <imgui/imgui.h>
 
@@ -522,10 +522,10 @@ bool AppProperties::edit(const char* _title)
 
 void AppProperties::save() const
 {
-	IniFile ini;
+	Ini ini;
 	appendToIni(ini);
 	File f;
-	APT_VERIFY(IniFile::Write(ini, f));
+	APT_VERIFY(Ini::Write(ini, f));
 	APT_VERIFY(FileSystem::Write(f, m_iniPath, FileSystem::RootType_Application));
 }
 
@@ -533,8 +533,8 @@ void AppProperties::load()
 {
 	File f;
 	if (FileSystem::ReadIfExists(f, m_iniPath, FileSystem::RootType_Application)) {
-		IniFile ini;
-		APT_VERIFY(IniFile::Read(ini, f));
+		Ini ini;
+		APT_VERIFY(Ini::Read(ini, f));
 		setValues(ini);
 	}
 }
@@ -580,9 +580,9 @@ void AppProperties::setValues(const ArgList& _argList)
 	}
 }
 	
-void AppProperties::setValues(const IniFile& _ini)
+void AppProperties::setValues(const Ini& _ini)
 {
-	IniFile::Property p;
+	Ini::Property p;
 	for (int i = 0, n = getSize(); i < n; ++i) {
 		AppPropertyGroup& group = m_groups[i];
 		for (int j = 0, m = group.getSize(); j < m; ++j) {
@@ -627,7 +627,7 @@ void AppProperties::setValues(const IniFile& _ini)
 	}
 }
 
-void AppProperties::appendToIni(apt::IniFile& _ini_) const
+void AppProperties::appendToIni(apt::Ini& _ini_) const
 {
 	for (int i = 0; i < getSize(); ++i) {
 		const AppPropertyGroup& group = m_groups[i];

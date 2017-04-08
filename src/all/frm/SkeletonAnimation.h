@@ -7,16 +7,8 @@
 #include <frm/Resource.h>
 
 #include <apt/String.h>
-#include <apt/Time.h>
 
 #include <EASTL/vector.h>
-
-#define SkeletonAnimation_ENABLE_TIMER
-#ifdef SkeletonAnimation_ENABLE_TIMER
-	#define SkeletonAnimation_AUTOTIMER(_name) APT_AUTOTIMER(_name)
-#else
-	#define SkeletonAnimation_AUTOTIMER(_name)
-#endif
 
 namespace frm {
 
