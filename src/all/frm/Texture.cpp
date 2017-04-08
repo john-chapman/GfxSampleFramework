@@ -8,6 +8,7 @@
 #include <apt/File.h>
 #include <apt/FileSystem.h>
 #include <apt/Image.h>
+#include <apt/Time.h>
 
 #include <imgui/imgui.h>
 
@@ -208,6 +209,7 @@ struct TextureViewer
 				if (ImGui::Button(ICON_FA_FLOPPY_O " Replace")) {
 					FileSystem::PathStr pth;
 					if (FileSystem::PlatformSelect(pth)) {
+						FileSystem::StripRoot(pth, pth);
 						tx.setPath(pth);
 						tx.reload();
 						txView.reset();
@@ -530,12 +532,21 @@ bool Texture::reload()
 	if (m_path.isEmpty()) {
 		return true;
 	}
+
+	APT_AUTOTIMER("Texture::load(%s)", (const char*)m_path);
 	
-	Image img;
-	if (!Image::Read(img, m_path)) {
+	File f;
+	if (!FileSystem::Read(f, (const char*)m_path)) {
 		setState(State_Error);
 		return false;
 	}
+
+	Image img;
+	if (!Image::Read(img, f)) {
+		setState(State_Error);
+		return false;
+	}
+
 	if (!loadImage(img)) {
 		setState(State_Error);
 		return false;
@@ -996,7 +1007,7 @@ bool Texture::loadImage(const Image& _img)
 	 // \todo implement cubemaps
 		case Image::Type_Cubemap:      APT_ASSERT(false);//m_target = GL_TEXTURE_CUBE_MAP;       upload = Upload2d; break;
 		case Image::Type_CubemapArray: APT_ASSERT(false);//m_target = GL_TEXTURE_CUBE_MAP_ARRAY; upload = Upload3d; break;
-		default:                         APT_ASSERT(false); return false;
+		default:                       APT_ASSERT(false); return false;
 	};
 
  // src format
@@ -1006,7 +1017,7 @@ bool Texture::loadImage(const Image& _img)
 		case Image::Layout_RG:         srcFormat = m_format = GL_RG;   break;
 		case Image::Layout_RGB:        srcFormat = m_format = GL_RGB;  break;
 		case Image::Layout_RGBA:       srcFormat = m_format = GL_RGBA; break;
-		default:                         APT_ASSERT(false); return false;
+		default:                       APT_ASSERT(false); return false;
 	};
 
  // internal format (request only, we read back the actual format the implementation used later)
@@ -1016,7 +1027,7 @@ bool Texture::loadImage(const Image& _img)
 				switch (_img.getLayout()) {
 					case Image::Layout_RGB:  m_format = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;       break;
 					case Image::Layout_RGBA: m_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;      break;
-					default:                   APT_ASSERT(false); return false;
+					default:                 APT_ASSERT(false); return false;
 				};
 				break;
 			case Image::Compression_BC2: m_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;      break;
@@ -1033,7 +1044,7 @@ bool Texture::loadImage(const Image& _img)
 					case DataType::Float32: m_format = GL_R32F; break;
 					case DataType::Float16: m_format = GL_R16F; break;
 					case DataType::Uint16N: m_format = GL_R16;  break;
-					default:                 m_format = GL_R8;   break;
+					default:                m_format = GL_R8;   break;
 				};
 				break;
 			case Image::Layout_RG:
@@ -1041,7 +1052,7 @@ bool Texture::loadImage(const Image& _img)
 					case DataType::Float32: m_format = GL_RG32F; break;
 					case DataType::Float16: m_format = GL_RG16F; break;
 					case DataType::Uint16N: m_format = GL_RG16;  break;
-					default:                 m_format = GL_RG8;   break;
+					default:                m_format = GL_RG8;   break;
 				};
 				break;
 			case Image::Layout_RGB:			
@@ -1049,7 +1060,7 @@ bool Texture::loadImage(const Image& _img)
 					case DataType::Float32: m_format = GL_RGB32F; break;
 					case DataType::Float16: m_format = GL_RGB16F; break;
 					case DataType::Uint16N: m_format = GL_RGB16;  break;
-					default:                 m_format = GL_RGB8;   break;
+					default:                m_format = GL_RGB8;   break;
 				};
 				break;
 			case Image::Layout_RGBA:
@@ -1057,7 +1068,7 @@ bool Texture::loadImage(const Image& _img)
 					case DataType::Float32: m_format = GL_RGBA32F; break;
 					case DataType::Float16: m_format = GL_RGBA16F; break;
 					case DataType::Uint16N: m_format = GL_RGBA16;  break;
-					default:                 m_format = GL_RGBA8;   break;
+					default:                m_format = GL_RGBA8;   break;
 				};
 				break;
 			default: break;
