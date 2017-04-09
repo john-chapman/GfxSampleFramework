@@ -68,7 +68,6 @@ private:
 	uint64             m_frameIndex;
 
 	const Framebuffer* m_fbDefault; // Where to draw overlays, or m_glContext backbuffer if 0.
-	Mesh*              m_msQuad;    // NDC quad.
 
 	int*               m_vsyncMode;
 	bool*              m_showMenu;

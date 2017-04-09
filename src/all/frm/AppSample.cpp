@@ -82,20 +82,6 @@ bool AppSample::init(const apt::ArgList& _args)
 	m_resolution.x = m_resolutionProp->x == -1 ? m_windowSize.x : m_resolutionProp->x;
 	m_resolution.y = m_resolutionProp->y == -1 ? m_windowSize.y : m_resolutionProp->y;
 
-	MeshDesc quadDesc;
-	quadDesc.setPrimitive(MeshDesc::Primitive_TriangleStrip);
-	quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::Float32);
-	//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Float32);
-	float quadVertexData[] = { 
-		-1.0f, -1.0f, //0.0f, 0.0f,
-		 1.0f, -1.0f, //1.0f, 0.0f,
-		-1.0f,  1.0f, //0.0f, 1.0f,
-		 1.0f,  1.0f, //1.0f, 1.0f
-	};
-	MeshData* quadData = MeshData::Create(quadDesc, 4, 0, quadVertexData);
-	m_msQuad = Mesh::Create(*quadData);
-	MeshData::Destroy(quadData);
-	
  // set ImGui callbacks
  // \todo poll input directly = easier to use proxy devices
 	Window::Callbacks cb = m_window->getCallbacks();
@@ -136,8 +122,6 @@ void AppSample::shutdown()
 {	
 	ImGui_Shutdown();
 	
-	Mesh::Release(m_msQuad);
-
 	if (m_glContext) {
 		GlContext::Destroy(m_glContext);
 	}
@@ -322,8 +306,7 @@ void AppSample::draw()
 
 void AppSample::drawNdcQuad()
 {
-	m_glContext->setMesh(m_msQuad);
-	m_glContext->draw();
+	m_glContext->drawNdcQuad();
 }
 
 
@@ -336,7 +319,6 @@ AppSample::AppSample(const char* _name)
 	, m_glContext(0)
 	, m_frameIndex(0)
 	, m_fbDefault(0)
-	, m_msQuad(0)
 	, m_showMenu(0)
 	, m_showLog(0)
 	, m_showPropertyEditor(0)
