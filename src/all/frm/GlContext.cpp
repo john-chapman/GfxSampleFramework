@@ -78,6 +78,30 @@ void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
 	}
 }
 
+void GlContext::drawNdcQuad()
+{
+	if_unlikely (!m_ndcQuadMesh) {
+		MeshDesc quadDesc;
+		quadDesc.setPrimitive(MeshDesc::Primitive_TriangleStrip);
+		quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::Float32);
+		//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Float32);
+		float quadVertexData[] = { 
+			-1.0f, -1.0f, //0.0f, 0.0f,
+			 1.0f, -1.0f, //1.0f, 0.0f,
+			-1.0f,  1.0f, //0.0f, 1.0f,
+			 1.0f,  1.0f, //1.0f, 1.0f
+		};
+		MeshData* quadData = MeshData::Create(quadDesc, 4, 0, quadVertexData);
+		m_ndcQuadMesh = Mesh::Create(*quadData);
+		MeshData::Destroy(quadData);
+	}
+
+	const Mesh* prevMesh = m_currentMesh;
+	setMesh(m_ndcQuadMesh);
+	draw();
+	setMesh(prevMesh);
+}
+
 void GlContext::dispatch(GLuint _groupsX, GLuint _groupsY, GLuint _groupsZ)
 {
 	APT_ASSERT(m_currentShader);
@@ -369,7 +393,11 @@ void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum
 		APT_ASSERT(m_nextImageSlot < kImageSlotCount);
 		glAssert(glUniform1i(loc, m_nextImageSlot));
 		
-		GLboolean layered = _texture->getTarget() == GL_TEXTURE_3D;
+		GLboolean layered = 
+			_texture->getTarget() == GL_TEXTURE_2D_ARRAY ||
+			_texture->getTarget() == GL_TEXTURE_3D ||
+			_texture->getTarget() == GL_TEXTURE_CUBE_MAP
+			;
 		glAssert(glBindImageTexture(m_nextImageSlot, _texture->getHandle(), 0, layered, 0, _access, _texture->getFormat()));
 		m_currentImages[m_nextImageSlot] = _texture;
 		++m_nextImageSlot;
@@ -400,11 +428,13 @@ GlContext::GlContext()
 	, m_currentFramebuffer(nullptr)
 	, m_currentShader(nullptr)
 	, m_currentMesh(nullptr)
+	, m_ndcQuadMesh(nullptr)
 {
 }
 
 GlContext::~GlContext()
 {
+	Mesh::Destroy(m_ndcQuadMesh);
 	APT_ASSERT(m_impl == 0);
 }
 

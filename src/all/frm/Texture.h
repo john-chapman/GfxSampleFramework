@@ -18,17 +18,21 @@ class Texture: public Resource<Texture>
 public:
 	// Load from a file.
 	static Texture* Create(const char* _path);
+	static Texture* CreateCubemap2x3(const char* _path); // faces arranged in a 2x3 grid, +x,-x +y,-y, +z,-z
 	// Create an empty texture (the resource name is unique).
 	static Texture* Create1d(GLsizei _width, GLenum _format, GLint _mipCount = 1);
 	static Texture* Create1dArray(GLsizei _width, GLsizei _arrayCount, GLenum _format, GLint _mipCount = 1);
 	static Texture* Create2d(GLsizei _width, GLsizei _height, GLenum _format, GLint _mipCount = 1);
 	static Texture* Create2dArray(GLsizei _width, GLsizei _height, GLsizei _arrayCount, GLenum _format, GLint _mipCount = 1);
 	static Texture* Create3d(GLsizei _width, GLsizei _height, GLsizei _depth, GLenum _format, GLint _mipCount = 1);
+	static Texture* CreateCubemap(GLsizei _width, GLenum _format, GLint _mipcount);
 	// Create a proxy for an existing texture (i.e. a texture not directly controlled by the application).
 	static Texture* CreateProxy(GLuint _handle, const char* _name);
 	static void     Destroy(Texture*& _inst_);
 	
 	static GLint GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth = 1);
+
+	static bool ConvertEquirectangularToCubemap(Texture& _tx, GLsizei _width);
 
 	static void ShowTextureViewer(bool* _open_);
 

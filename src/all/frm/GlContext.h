@@ -54,14 +54,15 @@ public:
 	// Make an indirect draw call via glDrawArraysIndirect/glDrawElementsIndirect,
 	// with _buffer bound as GL_DRAW_INDIRECT_BUFFER.
 	void drawIndirect(const Buffer* _buffer, const void* _offset = 0);
+	// Draw a quad with vertices in [-1,1].
+	void drawNdcQuad();
 
 	// Dispatch a compute shader with the specified number of work groups.
 	void dispatch(GLuint _groupsX, GLuint _groupsY = 1, GLuint _groupsZ = 1);
-	// Make an indirect compute shader dispatch with _buffer bound as 
-	// GL_DISPATCH_INDIRECT_BUFFER.
+	// Make an indirect compute shader dispatch with _buffer bound as GL_DISPATCH_INDIRECT_BUFFER.
 	void dispatchIndirect(const Buffer* _buffer, const void* _offset = 0);
 
-	/// Present the next image in the swapchain, increment the frame index.
+	// Present the next image in the swapchain, increment the frame index.
 	void present();
 
 
@@ -171,6 +172,8 @@ private:
 	const Texture*      m_currentImages[kImageSlotCount];
 	GLint               m_nextImageSlot;
 	
+	Mesh*               m_ndcQuadMesh;
+
 	struct Impl;
 	Impl* m_impl;
 	

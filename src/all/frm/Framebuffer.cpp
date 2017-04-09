@@ -150,7 +150,7 @@ void Framebuffer::attachImpl(Texture* _texture, GLenum _attachment, GLint _mip, 
 		APT_ASSERT(_texture->getState() == Texture::State_Loaded);
 		APT_ASSERT(_texture->getMipCount() >= _mip);
 		if (_layer >= 0) {
-			APT_ASSERT(_texture->getDepth() >= _layer || _texture->getArrayCount() >= _layer);
+			APT_ASSERT(_texture->getDepth() >= _layer || _texture->getArrayCount() >= _layer || (_texture->getTarget() == GL_TEXTURE_CUBE_MAP && _layer < 6));
 			glAssert(glNamedFramebufferTextureLayer(m_handle, _attachment, _texture->getHandle(), _mip, _layer));
 		} else {
 			glAssert(glNamedFramebufferTexture(m_handle, _attachment, _texture->getHandle(), _mip));
