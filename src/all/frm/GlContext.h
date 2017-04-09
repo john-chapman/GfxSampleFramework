@@ -181,6 +181,9 @@ private:
 	GlContext();
 	~GlContext();
 
+	bool init();
+	void shutdown();
+
 	void queryLimits();
 
 	

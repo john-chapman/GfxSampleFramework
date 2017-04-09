@@ -132,9 +132,6 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 	APT_ASSERT(err == GLEW_OK);
 	glGetError(); // clear any errors caused by glewInit()
 
-	ret->setVsync(ret->getVsync());
-	ret->queryLimits();
-
 	APT_LOG("OpenGL context:\n\tVersion: %s\n\tGLSL Version: %s\n\tVendor: %s\n\tRenderer: %s",
 		internal::GlGetString(GL_VERSION),
 		internal::GlGetString(GL_SHADING_LANGUAGE_VERSION),
@@ -146,6 +143,9 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 		APT_ASSERT(glewIsExtensionSupported("GL_ARB_clip_control"));
 		glAssert(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE));
 	#endif
+	glAssert(glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS));
+
+	APT_VERIFY(ret->init());
 
 	return ret;
 }
@@ -154,6 +154,8 @@ void GlContext::Destroy(GlContext*& _ctx_)
 {
 	APT_ASSERT(_ctx_ != 0);
 	APT_ASSERT(_ctx_->m_impl != 0);
+
+	_ctx_->shutdown();
 
 	APT_PLATFORM_VERIFY(wglMakeCurrent(0, 0));
 	APT_PLATFORM_VERIFY(wglDeleteContext(_ctx_->m_impl->m_hglrc));

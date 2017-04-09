@@ -434,8 +434,18 @@ GlContext::GlContext()
 
 GlContext::~GlContext()
 {
-	Mesh::Destroy(m_ndcQuadMesh);
 	APT_ASSERT(m_impl == 0);
+}
+
+bool GlContext::init()
+{
+	setVsync(m_vsync);
+	queryLimits();
+	return true;
+}
+void GlContext::shutdown()
+{
+	Mesh::Release(m_ndcQuadMesh);
 }
 
 void GlContext::queryLimits()
