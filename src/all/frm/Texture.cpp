@@ -14,6 +14,8 @@
 
 #include <imgui/imgui.h>
 
+#include <EASTL/utility.h>
+
 using namespace frm;
 using namespace apt;
 
@@ -106,6 +108,16 @@ struct TextureViewer
 				return;
 			}
 		}
+	}
+
+	TextureView* findTextureView(Texture* _tx)
+	{
+		for (auto& txView : m_txViews) {
+			if (txView.m_texture = _tx) {
+				return &txView;
+			}
+		}
+		return nullptr;
 	}
 
 	void draw(bool* _open_)
@@ -554,18 +566,18 @@ GLint Texture::GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth)
 	return APT_MAX(log2Width, APT_MAX(log2Height, log2Depth)) + 1; // +1 for level 0
 }
 
-bool Texture::ConvertEquirectangularToCubemap(Texture& _tx, GLsizei _width)
+bool Texture::ConvertSphereToCube(Texture& _sphere, GLsizei _width)
 {
 	static Shader* shConvert;
 	if_unlikely (!shConvert) {
-		shConvert = Shader::CreateCs("shaders/EquirectangularToCubemap_cs.glsl");
+		shConvert = Shader::CreateCs("shaders/ConvertEnvmap_cs.glsl", 1, 1, 1, "SPHERE_TO_CUBE\0");
 		if (!shConvert) {
 			return false;
 		}
 	}
 
  // \hack can't bind RGB textures as images, so convert
-	GLenum format = _tx.m_format;
+	GLenum format = _sphere.m_format;
 	switch (format) {
 		case GL_RGB32F: format = GL_RGBA32F; break;
 		case GL_RGB16F: format = GL_RGBA16F; break;
@@ -574,7 +586,7 @@ bool Texture::ConvertEquirectangularToCubemap(Texture& _tx, GLsizei _width)
 		default: break;
 	};
 
-	Texture* cubemap = CreateCubemap(_width, format, _tx.m_mipCount);
+	Texture* cube = CreateCubemap(_width, format, _sphere.m_mipCount);
 	
 	//static vec4 kFaceColors[6] = {
 	//	vec4(1.0f, 0.0f, 0.0f, 1.0f),
@@ -595,10 +607,58 @@ bool Texture::ConvertEquirectangularToCubemap(Texture& _tx, GLsizei _width)
 
 	GlContext* ctx = GlContext::GetCurrent();
 	ctx->setShader(shConvert);
-	ctx->bindTexture("txEquirectangular", &_tx);
-	ctx->bindImage("txCubemap", cubemap, GL_WRITE_ONLY);
+	ctx->bindTexture("txSphere", &_sphere);
+	ctx->bindImage("txCube", cube, GL_WRITE_ONLY);
 	ctx->dispatch(_width, _width, 6);
 	glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));	
+
+	swap(*cube, _sphere);
+	Texture::Release(cube);
+
+	TextureView* txView = g_textureViewer.findTextureView(&_sphere);
+	if (txView) {
+		txView->reset();
+	}
+
+	return true;
+}
+
+bool Texture::ConvertCubeToSphere(Texture& _cube, GLsizei _width)
+{
+	static Shader* shConvert;
+	if_unlikely (!shConvert) {
+		shConvert = Shader::CreateCs("shaders/ConvertEnvmap_cs.glsl", 1, 1, 1, "CUBE_TO_SPHERE\0");
+		if (!shConvert) {
+			return false;
+		}
+	}
+
+ // \hack can't bind RGB textures as images, so convert
+	GLenum format = _cube.m_format;
+	switch (format) {
+		case GL_RGB32F: format = GL_RGBA32F; break;
+		case GL_RGB16F: format = GL_RGBA16F; break;
+		case GL_RGB16:  format = GL_RGBA16; break;
+		case GL_RGB8:   format = GL_RGBA8; break;
+		default: break;
+	};
+
+	Texture* sphere = Create2d(_width, _width / 2, format, _cube.m_mipCount);
+
+	GlContext* ctx = GlContext::GetCurrent();
+	ctx->setShader(shConvert);
+	ctx->bindTexture("txCube", &_cube);
+	ctx->bindImage("txSphere", sphere, GL_WRITE_ONLY);
+	ctx->dispatch(_width, _width / 2);
+	glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));	
+
+	swap(*sphere, _cube);
+	Texture::Release(sphere);
+
+	TextureView* txView = g_textureViewer.findTextureView(&_cube);
+	if (txView) {
+		txView->reset();
+	}
 
 	return true;
 }
@@ -962,6 +1022,22 @@ bool Texture::isCompressed() const
 bool Texture::isDepth() const
 {
 	return GlIsTexFormatDepth(m_format);
+}
+
+void frm::swap(Texture& _a, Texture& _b)
+{
+	using eastl::swap;
+	swap(_a.m_path, _b.m_path);
+
+	swap(_a.m_handle,     _b.m_handle);
+	swap(_a.m_ownsHandle, _b.m_ownsHandle);
+	swap(_a.m_target,     _b.m_target);
+	swap(_a.m_format,     _b.m_format);
+	swap(_a.m_width,      _b.m_width);
+	swap(_a.m_height,     _b.m_height);
+	swap(_a.m_depth,      _b.m_depth);
+	swap(_a.m_arrayCount, _b.m_arrayCount);
+	swap(_a.m_mipCount,   _b.m_mipCount);
 }
 
 // PRIVATE

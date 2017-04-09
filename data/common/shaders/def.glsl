@@ -90,8 +90,9 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 	return vec4(Gamma_ApplyInverse(_v.x), Gamma_ApplyInverse(_v.y), Gamma_ApplyInverse(_v.z), Gamma_ApplyInverse(_v.w));
 }
 
-#define kPi   (3.14159265359)
-#define k2Pi  (6.28318530718)
+#define kPi     (3.14159265359)
+#define k2Pi    (6.28318530718)
+#define kHalfPi (1.57079632679)
 
 #define saturate(_x) clamp((_x), 0.0, 1.0)
 

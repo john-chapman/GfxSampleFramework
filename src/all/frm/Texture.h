@@ -32,7 +32,9 @@ public:
 	
 	static GLint GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth = 1);
 
-	static bool ConvertEquirectangularToCubemap(Texture& _tx, GLsizei _width);
+	// Convert between environment map projections.
+	static bool ConvertSphereToCube(Texture& _sphere, GLsizei _width);
+	static bool ConvertCubeToSphere(Texture& _cube, GLsizei _width);
 
 	static void ShowTextureViewer(bool* _open_);
 
@@ -102,6 +104,8 @@ public:
 
 	bool        isCompressed() const;
 	bool        isDepth() const;
+
+	friend void swap(Texture& _a, Texture& _b);
 
 protected:
 	Texture(uint64 _id, const char* _name);

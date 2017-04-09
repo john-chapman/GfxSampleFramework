@@ -20,6 +20,9 @@ uniform int   uIsDepth;
 	#define TextureType sampler2DArray
 #elif defined(TEXTURE_3D)
 	#define TextureType sampler3D
+#elif defined(TEXTURE_CUBE_MAP)
+	#define TextureType samplerCube
+	#include "shaders/Envmap.glsl"
 #else
 	//#error TextureVis_fs: No texture type defined.
 #endif
@@ -57,7 +60,12 @@ void main()
 		uvw.xy = texcoord * uScaleUv + uBiasUv;
 		uvw.z  = uLayer / float(textureSize(txTexture, int(uMip)).z);
 		ret = textureLod(txTexture, uvw, uMip);
-
+		
+	#elif defined(TEXTURE_CUBE_MAP)
+		vec2 uv = texcoord * uScaleUv + uBiasUv;
+		vec3 uvw = Envmap_GetCubeFaceUvw(uv, int(uLayer));
+		ret = textureLod(txTexture, uvw, uMip);
+		
 	#else
 		ret = vec4(1.0, 0.0, 0.0, 1.0);
 	#endif
