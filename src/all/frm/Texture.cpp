@@ -101,6 +101,7 @@ struct TextureViewer
 		int i = 0;
 		for (auto it = m_txViews.begin(); it != m_txViews.end(); ++it, ++i) {
 			if (it->m_texture == _tx) {
+				APT_ASSERT(_tx->getHandle() == it->m_texture->getHandle());
 				m_txViews.erase(it);
 				if (m_selected == i) {
 					m_selected = -1;
@@ -113,7 +114,7 @@ struct TextureViewer
 	TextureView* findTextureView(Texture* _tx)
 	{
 		for (auto& txView : m_txViews) {
-			if (txView.m_texture = _tx) {
+			if (txView.m_texture == _tx) {
 				return &txView;
 			}
 		}
