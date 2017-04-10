@@ -176,6 +176,7 @@
     <ClInclude Include="..\..\src\all\extern\md5mesh.h">
       <Filter>extern</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\ValueCurve.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">
@@ -337,5 +338,6 @@
     <ClCompile Include="..\..\src\all\frm\MeshData_blend.cpp" />
     <ClCompile Include="..\..\src\all\frm\SkeletonAnimation.cpp" />
     <ClCompile Include="..\..\src\all\frm\SkeletonAnimation_md5.cpp" />
+    <ClCompile Include="..\..\src\all\frm\ValueCurve.cpp" />
   </ItemGroup>
 </Project>

@@ -103,7 +103,7 @@ struct ProfilerViewer
 	{
 		float frameBeg = timeToWindowX(_frame.m_start);
 		float frameEnd = timeToWindowX(_frameNext.m_start);
-		frameBeg = APT_MAX(frameBeg, m_windowBeg.x);
+		frameBeg = floorf(APT_MAX(frameBeg, m_windowBeg.x));
 		ImDrawList& drawList = *ImGui::GetWindowDrawList();
 		if (isMouseInside(vec2(frameBeg, m_windowBeg.y), vec2(frameEnd, m_windowEnd.y))) {
 			drawList.AddRectFilled(vec2(frameBeg, m_windowBeg.y), vec2(frameEnd, m_windowEnd.y), IM_COLOR_ALPHA(kColors->kFrame, kColors->kFrameHoverAlpha));
@@ -132,8 +132,8 @@ struct ProfilerViewer
 		}
 		
 		vec2 wpos = ImGui::GetWindowPos();
-		ImGui::SetCursorPosX(markerBeg.x - wpos.x);
-		ImGui::SetCursorPosY(markerBeg.y - wpos.y);
+		ImGui::SetCursorPosX(floorf(markerBeg.x - wpos.x));
+		ImGui::SetCursorPosY(floorf(markerBeg.y - wpos.y));
 
 		ImU32 buttonColor = kColors->kMarkerGray;
 		ImU32 textColor = kColors->kMarkerTextGray;
@@ -152,7 +152,7 @@ struct ProfilerViewer
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImColor(buttonColor));
 		ImGui::PushStyleColor(ImGuiCol_Text, ImColor(textColor)); 
 
-		ImGui::Button(_marker.m_name, ImVec2(markerWidth, markerHeight - 1.0f));
+		ImGui::Button(_marker.m_name, ImVec2(floorf(markerWidth), floorf(markerHeight) - 1.0f));
 		
 		ImGui::PopStyleColor(4);
 

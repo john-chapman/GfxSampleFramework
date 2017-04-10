@@ -14,6 +14,7 @@
 #include <frm/SkeletonAnimation.h>
 #include <frm/Spline.h>
 #include <frm/Texture.h>
+#include <frm/ValueCurve.h>
 #include <frm/Window.h>
 #include <frm/XForm.h>
 
@@ -430,6 +431,12 @@ public:
 			ImGui::TreePop();
 		}
 		
+		static ValueCurveEditor curveEdit;
+		ImGui::Begin("Curve", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+			//ImGui::BeginChild("CurveChild", ImVec2(256.0f, 300.0f), true);
+				curveEdit.draw(0.0f);
+			//ImGui::EndChild();
+		ImGui::End();
 		
 		AppBase::draw();
 	}
