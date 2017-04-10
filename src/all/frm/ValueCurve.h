@@ -13,9 +13,9 @@ namespace frm {
 
 ///////////////////////////////////////////////////////////////////////////////
 // ValueBezier
-// 2D Bezier curve. This is exclusively for edit/storage of ValueCurve; the
-// runtime curve is a piecewise linear approximation of the Bezier 
-// representation. ValueBezier needs to be robust, but not necessarily fast.
+// 2D Bezier curve. This is exclusively for edit/storage; the runtime curve 
+// (ValueCurve) is a piecewise linear approximation which is cheaper to evaluate.
+// ValueBezier needs to be robust, but not necessarily fast.
 // 
 // The Bezier representation is flat list of 'endpoints' (EP); each EP contains 
 // 3 components: the 'value point' (VP) through which the curve will pass, plus 
@@ -33,7 +33,6 @@ class ValueBezier
 	friend class ValueCurve;
 	friend class ValueCurveEditor;
 
- // wrap behavior when t is outside the range of the curve
 	enum Wrap
 	{
 		Wrap_Clamp,
@@ -41,7 +40,6 @@ class ValueBezier
 
 		Wrap_Count
 	};
-	Wrap m_wrap;
 
 	enum Component
 	{
@@ -51,6 +49,9 @@ class ValueBezier
 
 		Component_Count
 	};
+
+	Wrap m_wrap;
+
 	struct Endpoint
 	{
 		vec2 m_in;
@@ -59,16 +60,10 @@ class ValueBezier
 
 		vec2& operator[](int _cmp) { return (&m_in)[_cmp]; }
 	};
-	eastl::vector<Endpoint> m_endpoints;
-	vec2 m_min, m_max, m_range; // includes CPs
-
-	ValueBezier();
-
-	//static vec2 Sample(const Endpoint& _a, const Endpoint& _b, float _t); // _t normalized by segment length
+	
+	// Move _cp towards _ep such that _x0 < _cp.x < _x1.
 	static vec2 Constrain(const vec2& _cp, const vec2& _ep, float _x0, float _x1);
 
-
-	//vec2  sample(float _t);
 	int   insert(const vec2& _pos, float _tangentScale); 
 	int   move(int _endpoint, int _component, const vec2& _pos);
 	void  erase(int _i);
@@ -76,9 +71,12 @@ class ValueBezier
 	float wrap(float _t) const;
 	int   findSegmentStart(float _t) const;
 	void  copyValueAndTangent(const Endpoint& _src, Endpoint& dst_);
+	bool  serialize(apt::JsonSerializer& _serializer_);
 
+	ValueBezier();
 
-	void serialize(apt::JsonSerializer& _json_);
+	eastl::vector<Endpoint> m_endpoints;
+	vec2 m_min, m_max, m_range; // includes CPs
 
 }; // class ValueBezier
 
@@ -96,16 +94,8 @@ class ValueBezier
 class ValueCurve
 {
 	friend class ValueCurveEditor;
+
 public:
-		
-	float sample(float _t) const;
-
-private:
-	static const float kDefaultMaxError;
-
-	eastl::vector<vec2> m_endpoints;
-	vec2 m_min, m_max, m_range;
-
 	enum Wrap
 	{
 		Wrap_Clamp  = ValueBezier::Wrap_Clamp,
@@ -113,7 +103,25 @@ private:
 
 		Wrap_Count,
 	};
+		
+	float sample(float _t) const;
+
+	bool serialize(apt::JsonSerializer& _serializer_);
+
+	const vec2& getMin() const     { return m_min;   }
+	const vec2& getMax() const     { return m_max;   }
+	const vec2& getRange() const   { return m_range; }
+
+private:
+	static const float kDefaultMaxError;
+
+	eastl::vector<vec2> m_endpoints;
+	vec2 m_min, m_max, m_range;
 	Wrap m_wrap;
+#ifdef ValueCurve_ENABLE_EDIT
+	ValueBezier m_bezier; // only store the bezier if edit is enabled
+#endif
+	
 
 	float wrap(float _t) const;
 	int findSegmentStart(float _t) const;
@@ -124,11 +132,6 @@ private:
 
 	// Perform up to _limit recursive subdivisions of the Bezier curve p0 -> p1.
 	void subdivide(const ValueBezier::Endpoint& p0, const ValueBezier::Endpoint& p1, float _maxError = kDefaultMaxError, int _limit = 12);
-
-
-#ifdef ValueCurve_ENABLE_EDIT
-	ValueBezier m_bezier;
-#endif
 
 }; // class ValueCurve
 

@@ -24,13 +24,15 @@ ValueBezier::ValueBezier()
 {
 }
 
-void ValueBezier::serialize(JsonSerializer& _json_)
+bool ValueBezier::serialize(JsonSerializer& _serializer_)
 {
+	bool ret = true;
+
 	const char* kWrapModes[] = { "Clamp", "Repeat" };
 	APT_STATIC_ASSERT(APT_ARRAY_COUNT(kWrapModes) == Wrap_Count);
 	String<16> tmp = kWrapModes[m_wrap];
-	_json_.value("Wrap", (StringBase&)tmp);
-	if (_json_.getMode() == JsonSerializer::Mode_Read) {
+	ret &= _serializer_.value("Wrap", (StringBase&)tmp);
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		for (int i = 0; i < Wrap_Count; ++i) {
 			if (tmp == kWrapModes[i]) {
 				m_wrap = (Wrap)i;
@@ -38,22 +40,29 @@ void ValueBezier::serialize(JsonSerializer& _json_)
 			}
 		}
 	}
-	if (_json_.beginArray("Endpoints")) {
-		if (_json_.getMode() == JsonSerializer::Mode_Read) {
-			int endpointCount = _json_.getArrayLength();
+	if (_serializer_.beginArray("Endpoints")) {
+		if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
+			int endpointCount = _serializer_.getArrayLength();
 			m_endpoints.resize(endpointCount);
 		}		
 		for (auto& endpoint : m_endpoints) {
-			if (_json_.beginArray()) {
-				_json_.value(endpoint.m_in);
-				_json_.value(endpoint.m_val);
-				_json_.value(endpoint.m_out);
-				
-				_json_.endArray();
+			if (_serializer_.beginArray()) {
+				ret &= _serializer_.value(endpoint.m_in);
+				ret &= _serializer_.value(endpoint.m_val);
+				ret &= _serializer_.value(endpoint.m_out);
+				_serializer_.endArray();
+			} else {
+				return false;
 			}
 		} 
-		_json_.endArray();
+		_serializer_.endArray();
+	} else {
+		return false;
 	}
+
+	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
+		updateExtents();
+	}	
 }
 
 /*vec2 ValueBezier::sample(float _t)
@@ -153,7 +162,7 @@ int ValueBezier::move(int _endpoint, int _component, const vec2& _pos)
 	Endpoint& ep = m_endpoints[_endpoint];
 
 	int ret = _endpoint;
-	if (_component == Component_Val) {
+	if (_component == 1) {
 	 // move CPs
 		vec2 delta = _pos - ep[Component_Val];
 		ep[Component_In] += delta;
@@ -215,7 +224,7 @@ void ValueBezier::erase(int _i)
 
 vec2 ValueBezier::Constrain(const vec2& _cp, const vec2& _ep, float _x0, float _x1)
 {
- // \todo must be a simple linear algebra solution
+ // \todo simple linear algebra solution? This is a ray-plane intersection
 	vec2 ret = _cp;
 	if (ret.x < _x0) {
 		//vec2 a = vec2(_x0 - _cp.x, 0.0f);
@@ -321,9 +330,21 @@ float ValueCurve::sample(float _t) const
 	return mix(m_endpoints[i].y, m_endpoints[i + 1].y, _t);
 }
 
+bool ValueCurve::serialize(apt::JsonSerializer& _serializer_)
+{
+#ifndef ValueCurve_ENABLE_EDIT
+	ValueBezier m_bezier;
+#endif
+	if (!m_bezier.serialize(_serializer_)) {
+		return false;
+	}
+	fromBezier(m_bezier);
+	return true;
+}
+
 // PRIVATE
 
-const float ValueCurve::kDefaultMaxError = 0.002f;
+const float ValueCurve::kDefaultMaxError = 0.003f;
 
 
 float ValueCurve::wrap(float _t) const
@@ -452,7 +473,7 @@ static const ImU32 kColorZeroAxis        = ImColor(0x5f4fe7ff);
 static const ImU32 kColorValuePoint      = ImColor(0xffffffff);
 static const ImU32 kColorControlPoint    = ImColor(0xffaaaaaa);
 static const ImU32 kColorSampler         = ImColor(0xff00ff00);
-static const float kAlphaCurveRepeat     = 0.3f;
+static const float kAlphaCurveWrap       = 0.3f;
 static const float kSizeValuePoint       = 3.0f;
 static const float kSizeControlPoint     = 2.0f;
 static const float kSizeSelectPoint      = 6.0f;
@@ -529,20 +550,6 @@ void ValueCurveEditor::draw(float _t)
 	
 	ImGui::SetCursorPos(ImGui::GetWindowContentRegionMin());
 	ImGui::AlignFirstTextHeightToWidgets();
-
-if (ImGui::Button("Save")) {
-	Json json;
-	JsonSerializer jsonSerializer(&json, JsonSerializer::Mode_Write);
-	bezier.serialize(jsonSerializer);
-	Json::Write(json, "BezierTest.json");
-}
-ImGui::SameLine();
-if (ImGui::Button("Load")) {
-	Json json("BezierTest.json");
-	JsonSerializer jsonSerializer(&json, JsonSerializer::Mode_Read);
-	bezier.serialize(jsonSerializer);
-}
-ImGui::SameLine();
 
 	float iconButtonSize = ImGui::GetFontSize() + ImGui::GetStyle().ItemInnerSpacing.x * 2.0f;
 	ImGui::Text(ICON_FA_QUESTION_CIRCLE);
@@ -735,13 +742,13 @@ ImGui::SameLine();
 	if (!m_curve.m_endpoints.empty()) {
 	 // \todo cull at window Y boundary
 
-	 // repeat curve
+	 // wrap curve
 		switch (m_curve.m_wrap) {
 			case ValueCurve::Wrap_Clamp: {
 				vec2 p = curveToWindow(m_curve.m_endpoints.front());
-				drawList.AddLine(vec2(m_windowBeg.x, p.y), p, IM_COLOR_ALPHA(curveColor, kAlphaCurveRepeat), 1.0f);
+				drawList.AddLine(vec2(m_windowBeg.x, p.y), p, IM_COLOR_ALPHA(curveColor, kAlphaCurveWrap), 1.0f);
 				p = curveToWindow(m_curve.m_endpoints.back());
-				drawList.AddLine(vec2(m_windowEnd.x, p.y), p, IM_COLOR_ALPHA(curveColor, kAlphaCurveRepeat), 1.0f);
+				drawList.AddLine(vec2(m_windowEnd.x, p.y), p, IM_COLOR_ALPHA(curveColor, kAlphaCurveWrap), 1.0f);
 				break;
 			}
 			case ValueCurve::Wrap_Repeat: {
@@ -766,7 +773,7 @@ ImGui::SameLine();
 					}
 					vec2 p1 = curveToWindow(m_curve.m_endpoints[i]);
 					p1.x -= offset;
-					drawList.AddLine(p0, p1, IM_COLOR_ALPHA(curveColor, kAlphaCurveRepeat), 1.0f);
+					drawList.AddLine(p0, p1, IM_COLOR_ALPHA(curveColor, kAlphaCurveWrap), 1.0f);
 					p0 = p1;
 				}
 				break;
@@ -787,6 +794,7 @@ ImGui::SameLine();
 				continue;
 			}
 			drawList.AddLine(p0, p1, curveColor, 2.0f);
+			//drawList.AddCircleFilled(p0, 2.0f, kColorGridLabel, 6);
 			p0 = p1;
 		}
 	}
@@ -930,10 +938,11 @@ void ValueCurveEditor::drawRuler()
 	ImDrawList& drawList = *ImGui::GetWindowDrawList();	
  
 	const float kSpacing = 80.0f;
+	const float kRulerSize =  ImGui::GetFontSize() + 1.0f;
 	String<sizeof("999.999")> label;
 
  // vertical 
-	drawList.AddRectFilled(m_windowBeg, vec2(m_windowEnd.x, m_windowBeg.y + ImGui::GetFontSize() + 1.0f), kColorCurveBackground);
+	drawList.AddRectFilled(m_windowBeg, vec2(m_windowEnd.x, m_windowBeg.y + kRulerSize), kColorCurveBackground);
 	float spacing = 0.01f;
 	while ((spacing / m_regionSize.x * m_windowSize.x) < kSpacing) {
 		spacing *= 2.0f;
@@ -943,11 +952,12 @@ void ValueCurveEditor::drawRuler()
 		if (line.x > m_windowBeg.x && line.x < m_windowEnd.x) {
 			label.setf((spacing < 1.0f) ? "%.2f" : (spacing < 10.0f) ?  "%1.1f" : "%1.0f", i);
 			drawList.AddText(vec2(line.x + 2.0f, m_windowBeg.y + 1.0f), kColorGridLabel, label);
+			drawList.AddLine(vec2(line.x, m_windowBeg.y), vec2(line.x, m_windowBeg.y + kRulerSize - 1.0f), kColorGridLabel);
 		}
 	}
  // horizontal
  // \todo vertical text here
-	drawList.AddRectFilled(m_windowBeg, vec2(m_windowBeg.x + ImGui::GetFontSize() + 1.0f, m_windowEnd.y), kColorCurveBackground);
+	drawList.AddRectFilled(m_windowBeg, vec2(m_windowBeg.x + kRulerSize, m_windowEnd.y), kColorCurveBackground);
 	spacing = 0.01f;
 	while ((spacing / m_regionSize.y * m_windowSize.y) < kSpacing) {
 		spacing *= 2.0f;
@@ -957,6 +967,7 @@ void ValueCurveEditor::drawRuler()
 		if (line.y > m_windowBeg.y && line.y < m_windowEnd.y) {
 			label.setf((spacing < 1.0f) ? "%.2f" : (spacing < 10.0f) ?  "%1.1f" : "%1.0f", i);
 			drawList.AddText(vec2(m_windowBeg.x + 2.0f, line.y), kColorGridLabel, label);
+			drawList.AddLine(vec2(m_windowBeg.x, line.y), vec2(m_windowBeg.x + kRulerSize - 1.0f, line.y), kColorGridLabel);
 		}
 	}
 }
