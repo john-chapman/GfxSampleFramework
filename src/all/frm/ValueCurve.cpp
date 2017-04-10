@@ -26,9 +26,37 @@ ValueBezier::ValueBezier()
 
 void ValueBezier::serialize(JsonSerializer& _json_)
 {
+	const char* kWrapModes[] = { "Clamp", "Repeat" };
+	APT_STATIC_ASSERT(APT_ARRAY_COUNT(kWrapModes) == Wrap_Count);
+	String<16> tmp = kWrapModes[m_wrap];
+	_json_.value("Wrap", (StringBase&)tmp);
+	if (_json_.getMode() == JsonSerializer::Mode_Read) {
+		for (int i = 0; i < Wrap_Count; ++i) {
+			if (tmp == kWrapModes[i]) {
+				m_wrap = (Wrap)i;
+				break;
+			}
+		}
+	}
+	if (_json_.beginArray("Endpoints")) {
+		if (_json_.getMode() == JsonSerializer::Mode_Read) {
+			int endpointCount = _json_.getArrayLength();
+			m_endpoints.resize(endpointCount);
+		}		
+		for (auto& endpoint : m_endpoints) {
+			if (_json_.beginArray()) {
+				_json_.value(endpoint.m_in);
+				_json_.value(endpoint.m_val);
+				_json_.value(endpoint.m_out);
+				
+				_json_.endArray();
+			}
+		} 
+		_json_.endArray();
+	}
 }
 
-vec2 ValueBezier::sample(float _t)
+/*vec2 ValueBezier::sample(float _t)
 {
  // handle degenerate curve (empty list or <2 points)
 	if (m_endpoints.empty()) {
@@ -74,7 +102,7 @@ vec2 ValueBezier::Sample(const Endpoint& _p0, const Endpoint& _p1, float _t)
 
 	return ret;
 }
-
+*/
 int ValueBezier::insert(const vec2& _pos, float _tangentScale)
 {
  // find insertion point
@@ -501,6 +529,21 @@ void ValueCurveEditor::draw(float _t)
 	
 	ImGui::SetCursorPos(ImGui::GetWindowContentRegionMin());
 	ImGui::AlignFirstTextHeightToWidgets();
+
+if (ImGui::Button("Save")) {
+	Json json;
+	JsonSerializer jsonSerializer(&json, JsonSerializer::Mode_Write);
+	bezier.serialize(jsonSerializer);
+	Json::Write(json, "BezierTest.json");
+}
+ImGui::SameLine();
+if (ImGui::Button("Load")) {
+	Json json("BezierTest.json");
+	JsonSerializer jsonSerializer(&json, JsonSerializer::Mode_Read);
+	bezier.serialize(jsonSerializer);
+}
+ImGui::SameLine();
+
 	float iconButtonSize = ImGui::GetFontSize() + ImGui::GetStyle().ItemInnerSpacing.x * 2.0f;
 	ImGui::Text(ICON_FA_QUESTION_CIRCLE);
 	if (ImGui::IsItemHovered()) {
