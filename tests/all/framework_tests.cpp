@@ -28,12 +28,6 @@
 using namespace frm;
 using namespace apt;
 
-static void asin2f(float _theta, float& out0_, float& out1_)
-{
-	out0_ = asinf(_theta);
-	out1_ = out0_ > 0.0f ? (out0_ + half_pi<float>()) : (out0_ - pi<float>());
-}
-
 class AppSampleTest: public AppSample3d
 {
 public:
