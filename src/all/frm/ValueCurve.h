@@ -13,13 +13,27 @@ namespace frm {
 
 ///////////////////////////////////////////////////////////////////////////////
 // ValueBezier
-// https://pomax.github.io/bezierinfo/
+// 2D Bezier curve. This is exclusively for edit/storage of ValueCurve; the
+// runtime curve is a piecewise linear approximation of the Bezier 
+// representation. ValueBezier needs to be robust, but not necessarily fast.
+// 
+// The Bezier representation is flat list of 'endpoints' (EP); each EP contains 
+// 3 components: the 'value point' (VP) through which the curve will pass, plus 
+// 2 'control points' (CP) which describe the in/out tangent of the curve at
+// the VP.
+//
+// When sampling, CPs are constrained to lie within their containing segment. This 
+// is necessary; we don't want a spatial curve, the X dimension must represent time.
+//
+// \todo Better tangent estimation on insert().
+// \todo Allow decoupled CPs (to create cusps).
 ///////////////////////////////////////////////////////////////////////////////
 class ValueBezier
 {
 	friend class ValueCurve;
 	friend class ValueCurveEditor;
 
+ // wrap behavior when t is outside the range of the curve
 	enum Wrap
 	{
 		Wrap_Clamp,
@@ -27,7 +41,7 @@ class ValueBezier
 
 		Wrap_Count
 	};
-	Wrap m_wrap; // wrap behaviour when t is outside the range of the curve
+	Wrap m_wrap;
 
 	enum Component
 	{
@@ -50,11 +64,11 @@ class ValueBezier
 
 	ValueBezier();
 
-	static vec2 Sample(const Endpoint& _a, const Endpoint& _b, float _t); // _t normalized by segment length
+	//static vec2 Sample(const Endpoint& _a, const Endpoint& _b, float _t); // _t normalized by segment length
 	static vec2 Constrain(const vec2& _cp, const vec2& _ep, float _x0, float _x1);
 
 
-	vec2  sample(float _t);
+	//vec2  sample(float _t);
 	int   insert(const vec2& _pos, float _tangentScale); 
 	int   move(int _endpoint, int _component, const vec2& _pos);
 	void  erase(int _i);
@@ -70,14 +84,20 @@ class ValueBezier
 
 ///////////////////////////////////////////////////////////////////////////////
 // ValueCurve
-// 
+// Runtime animation curve generated from a ValueBezier. This needs to be fast.
+// ValueCurve is a flat list of 'endpoints' (EP); each EP is a simple key/value
+// pair.
+//
+// \todo Better subdivision process - it looks like a straight Bezier is 
+//    generating too many segments (it's an issue with the error heuristic).
+// \todo Linear search faster than binary for a small number of segments? Could
+//   be faster in most cases if you supply an index hint.
 ///////////////////////////////////////////////////////////////////////////////
 class ValueCurve
 {
 	friend class ValueCurveEditor;
 public:
-	
-	
+		
 	float sample(float _t) const;
 
 private:

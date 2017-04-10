@@ -19,8 +19,6 @@
 #include <frm/XForm.h>
 
 #include <apt/ArgList.h>
-#include <apt/IniFile.h>
-#include <apt/Json.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
