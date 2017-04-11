@@ -3,8 +3,6 @@
 #include <apt/String.h>
 #include <apt/Json.h>
 
-#include <frm/icon_fa.h>
-
 using namespace frm;
 using namespace apt;
 
@@ -80,7 +78,7 @@ bool ValueBezier::serialize(JsonSerializer& _serializer_)
 	_t = wrap(_t);
 	int i0 = findSegmentStart(_t);
 	int i1 = i0 + 1;
-	i1 = m_wrap == Wrap_Clamp ? APT_MIN(i1, (int)m_endpoints.size()) : i1 % ((int)m_endpoints.size() - 1);
+	i1 = m_wrap == Wrap_Clamp ? min(i1, (int)m_endpoints.size()) : i1 % ((int)m_endpoints.size() - 1);
 
  // normalize _t over segment range
 	float range = m_endpoints[i1].m_val.x - m_endpoints[i0].m_val.x;
@@ -463,6 +461,7 @@ void ValueCurve::subdivide(const ValueBezier::Endpoint& _p0, const ValueBezier::
 #include <frm/Input.h>
 #include <apt/log.h>
 #include <imgui/imgui.h>
+#include <frm/icon_fa.h>
 
 // PUBLIC
 
@@ -511,7 +510,7 @@ void ValueCurveEditor::draw(float _t)
 			float wy = ImGui::GetWindowContentRegionMax().y;
 			float zoom = (io.MouseWheel * m_regionSize.y * 0.1f);
 			float before = (io.MousePos.y - ImGui::GetWindowPos().y) / wy * m_regionSize.y;
-			m_regionSize.y = APT_MAX(m_regionSize.y - zoom, 0.1f);
+			m_regionSize.y = max(m_regionSize.y - zoom, 0.1f);
 			float after = (io.MousePos.y - ImGui::GetWindowPos().y) / wy * m_regionSize.y;
 			m_regionBeg.y += (before - after);
 			regionBegChanged = fabs(before - after) > FLT_EPSILON;
@@ -521,7 +520,7 @@ void ValueCurveEditor::draw(float _t)
 			float wx = ImGui::GetWindowContentRegionMax().x;
 			float zoom = (io.MouseWheel * m_regionSize.x * 0.1f);
 			float before = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize.x;
-			m_regionSize.x = APT_MAX(m_regionSize.x - zoom, 0.1f);
+			m_regionSize.x = max(m_regionSize.x - zoom, 0.1f);
 			float after = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize.x;
 			m_regionBeg.x += (before - after);
 			regionBegChanged = fabs(before - after) > FLT_EPSILON;
