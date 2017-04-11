@@ -122,16 +122,10 @@ private:
 	ValueBezier m_bezier; // only store the bezier if edit is enabled
 #endif
 	
-
 	float wrap(float _t) const;
-	int findSegmentStart(float _t) const;
-	
-	// Generate runtime curve from Bezier endpoints. _maxError is expressed as a fraction of the total value range of _bezier. 
-	// A low value of _maxError will generate a more accurate fit but will increase the sampling cost.
-	void fromBezier(const ValueBezier& _bezier, float _maxError = kDefaultMaxError);
-
-	// Perform up to _limit recursive subdivisions of the Bezier curve p0 -> p1.
-	void subdivide(const ValueBezier::Endpoint& p0, const ValueBezier::Endpoint& p1, float _maxError = kDefaultMaxError, int _limit = 12);
+	int   findSegmentStart(float _t) const; // call wrap(_t) first
+	void  fromBezier(const ValueBezier& _bezier, float _maxError = kDefaultMaxError);
+	void  subdivide(const ValueBezier::Endpoint& p0, const ValueBezier::Endpoint& p1, float _maxError = kDefaultMaxError, int _limit = 24);
 
 }; // class ValueCurve
 
@@ -161,7 +155,6 @@ private:
 	float m_gridSpacing; // pixels
 	bool  m_showSampler;
 	bool  m_showGrid;
-	bool  m_showZeroAxis;
 	bool  m_showRuler;
 
 	vec2 curveToRegion(const vec2& _pos);
@@ -173,7 +166,6 @@ private:
 	void drawBackground();
 	void drawGrid();
 	void drawRuler();
-	void drawZeroAxis();
 	void drawSampler(float _t);
 };
 

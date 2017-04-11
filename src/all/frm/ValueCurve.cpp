@@ -62,7 +62,9 @@ bool ValueBezier::serialize(JsonSerializer& _serializer_)
 
 	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		updateExtents();
-	}	
+	}
+
+	return ret;
 }
 
 /*vec2 ValueBezier::sample(float _t)
@@ -464,20 +466,20 @@ void ValueCurve::subdivide(const ValueBezier::Endpoint& _p0, const ValueBezier::
 
 // PUBLIC
 
-static const ImU32 kColorBorder          = ImColor(0x5f888888);
-static const ImU32 kColorBackground      = ImColor(0x2f222222);
-static const ImU32 kColorCurveBackground = ImColor(0x2f555555);
-static const ImU32 kColorGridLine        = ImColor(0x2f666666);
-static const ImU32 kColorGridLabel       = ImColor(0x5fffffff);
-static const ImU32 kColorZeroAxis        = ImColor(0x5f4fe7ff);
+static const ImU32 kColorBorder          = ImColor(0xdba0a0a0);
+static const ImU32 kColorBackground      = ImColor(0x55191919);
+static const ImU32 kColorCurveBackground = ImColor(0x11a0a0a0);
+static const ImU32 kColorGridLine        = ImColor(0x11a0a0a0);
+static const ImU32 kColorGridLabel       = ImColor(0xdbd6d6d6);
+static const ImU32 kColorZeroAxis        = ImColor(0x22d6d6d6);
 static const ImU32 kColorValuePoint      = ImColor(0xffffffff);
 static const ImU32 kColorControlPoint    = ImColor(0xffaaaaaa);
-static const ImU32 kColorSampler         = ImColor(0xff00ff00);
+static const ImU32 kColorSampler         = ImColor(0xdb00ff00);
 static const float kAlphaCurveWrap       = 0.3f;
 static const float kSizeValuePoint       = 3.0f;
 static const float kSizeControlPoint     = 2.0f;
 static const float kSizeSelectPoint      = 6.0f;
-static const float kSizeSampler          = 4.0f;
+static const float kSizeSampler          = 3.0f;
 
 ValueCurveEditor::ValueCurveEditor()
 {
@@ -488,7 +490,6 @@ ValueCurveEditor::ValueCurveEditor()
 	m_gridSpacing = 64.0f;
 	m_showSampler = true;
 	m_showGrid = true;
-	m_showZeroAxis = true;
 	m_showRuler = true;
 }
 
@@ -573,7 +574,6 @@ void ValueCurveEditor::draw(float _t)
 		ImGui::SameLine();
 		ImGui::SliderFloat("Spacing", &m_gridSpacing, 8.0f, 64.0f);
 
-		ImGui::Checkbox("Show Zero Axis", &m_showZeroAxis);
 		ImGui::Checkbox("Show Ruler", &m_showRuler);
 		ImGui::Checkbox("Show Sampler", &m_showSampler);
 
@@ -655,17 +655,6 @@ void ValueCurveEditor::draw(float _t)
 		ImGui::SetWindowFocus();
 	}*/
 
-	drawBackground();
-	if (m_showGrid) {
-		drawGrid();
-	}
-	if (m_showZeroAxis) {
-		drawZeroAxis();
-	}
-	if (m_showSampler && !m_curve.m_endpoints.empty()) {
-		drawSampler(_t);
-	}
-
  // manipulate
  // \todo move selection logic inside the draw loop?
  // \todo clicking on a point automatically selects it for dragging - this makes the point 'move' on selection :/
@@ -739,6 +728,15 @@ void ValueCurveEditor::draw(float _t)
  // draw
 	ImU32 curveColor = IM_COL32_MAGENTA;
 	ImGui::PushClipRect(m_windowBeg, m_windowEnd, false);
+	
+	drawBackground();
+	if (m_showGrid) {
+		drawGrid();
+	}
+	if (m_showSampler && !m_curve.m_endpoints.empty()) {
+		drawSampler(_t);
+	}
+
 	if (!m_curve.m_endpoints.empty()) {
 	 // \todo cull at window Y boundary
 
@@ -899,9 +897,10 @@ void ValueCurveEditor::drawBackground()
 
  // curve region bacground
 	if (m_curve.m_endpoints.size() > 1) {
-		float curveMinX = curveToWindow(m_curve.m_min).x;
-		float curveMaxX = curveToWindow(m_curve.m_max).x;
-		drawList.AddRectFilled(vec2(curveMinX, m_windowBeg.y), vec2(curveMaxX, m_windowEnd.y), kColorCurveBackground);
+		vec2 curveMin = curveToWindow(m_curve.m_min);
+		vec2 curveMax = curveToWindow(m_curve.m_max);
+		drawList.AddRectFilled(vec2(curveMin.x, m_windowBeg.y), vec2(curveMax.x, m_windowEnd.y), kColorCurveBackground);
+		drawList.AddRectFilled(vec2(m_windowBeg.x, curveMin.y), vec2(m_windowEnd.x, curveMax.y), kColorCurveBackground);
 	}
 }
 
@@ -930,6 +929,15 @@ void ValueCurveEditor::drawGrid()
 		if (line.y > m_windowBeg.y && line.y < m_windowEnd.y) {
 			drawList.AddLine(vec2(m_windowBeg.x, line.y), vec2(m_windowEnd.x, line.y), kColorGridLine);
 		}
+	}
+
+ // zero axis
+	vec2 zero = floor(curveToWindow(vec2(0.0f)));
+	if (zero.x > m_windowBeg.x && zero.x < m_windowEnd.x) {
+		drawList.AddLine(vec2(zero.x, m_windowBeg.y), vec2(zero.x, m_windowEnd.y), kColorZeroAxis);
+	}
+	if (zero.y > m_windowBeg.y && zero.y < m_windowEnd.y) {
+		drawList.AddLine(vec2(m_windowBeg.x, zero.y), vec2(m_windowEnd.x, zero.y), kColorZeroAxis);
 	}
 }
 
@@ -969,19 +977,6 @@ void ValueCurveEditor::drawRuler()
 			drawList.AddText(vec2(m_windowBeg.x + 2.0f, line.y), kColorGridLabel, label);
 			drawList.AddLine(vec2(m_windowBeg.x, line.y), vec2(m_windowBeg.x + kRulerSize - 1.0f, line.y), kColorGridLabel);
 		}
-	}
-}
-
-void ValueCurveEditor::drawZeroAxis()
-{
-	ImDrawList& drawList = *ImGui::GetWindowDrawList();
-	
-	vec2 zero = floor(curveToWindow(vec2(0.0f)));
-	if (zero.x > m_windowBeg.x && zero.x < m_windowEnd.x) {
-		drawList.AddLine(vec2(zero.x, m_windowBeg.y), vec2(zero.x, m_windowEnd.y), kColorZeroAxis);
-	}
-	if (zero.y > m_windowBeg.y && zero.y < m_windowEnd.y) {
-		drawList.AddLine(vec2(m_windowBeg.x, zero.y), vec2(m_windowEnd.x, zero.y), kColorZeroAxis);
 	}
 }
 
