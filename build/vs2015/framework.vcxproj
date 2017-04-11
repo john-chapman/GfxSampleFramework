@@ -230,7 +230,6 @@
     <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
     <ClCompile Include="..\..\src\all\frm\geom.cpp" />
     <ClCompile Include="..\..\src\all\frm\gl.cpp" />
-    <ClCompile Include="..\..\src\all\frm\math.cpp" />
     <ClCompile Include="..\..\src\all\frm\ui\Log.cpp" />
     <ClCompile Include="..\..\src\win\frm\GlContextImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\InputImpl.cpp" />
