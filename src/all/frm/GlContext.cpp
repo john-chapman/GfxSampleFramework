@@ -3,6 +3,7 @@
 #include <frm/gl.h>
 #include <frm/math.h>
 #include <frm/Buffer.h>
+#include <frm/Camera.h>
 #include <frm/Framebuffer.h>
 #include <frm/Mesh.h>
 #include <frm/MeshData.h>
@@ -78,7 +79,7 @@ void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
 	}
 }
 
-void GlContext::drawNdcQuad()
+void GlContext::drawNdcQuad(const Camera* _cam)
 {
 	if_unlikely (!m_ndcQuadMesh) {
 		MeshDesc quadDesc;
@@ -94,6 +95,12 @@ void GlContext::drawNdcQuad()
 		MeshData* quadData = MeshData::Create(quadDesc, 4, 0, quadVertexData);
 		m_ndcQuadMesh = Mesh::Create(*quadData);
 		MeshData::Destroy(quadData);
+	}
+
+	if (_cam) {
+		setUniform("uCameraTanHalfFov",  _cam->m_up);
+		setUniform("uCameraAspectRatio", _cam->m_aspectRatio);
+		setUniform("uCameraWorldMatrix", _cam->m_world);
 	}
 
 	const Mesh* prevMesh = m_currentMesh;
