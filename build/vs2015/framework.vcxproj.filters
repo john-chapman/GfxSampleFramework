@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="extern">
@@ -138,6 +138,9 @@
     <ClInclude Include="..\..\src\all\extern\lua\lzio.h">
       <Filter>extern\lua</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\extern\md5mesh.h">
+      <Filter>extern</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\all\extern\tiny_obj_loader.h">
       <Filter>extern</Filter>
     </ClInclude>
@@ -154,13 +157,16 @@
     <ClInclude Include="..\..\src\all\frm\Mesh.h" />
     <ClInclude Include="..\..\src\all\frm\MeshData.h" />
     <ClInclude Include="..\..\src\all\frm\Profiler.h" />
+    <ClInclude Include="..\..\src\all\frm\RenderNodes.h" />
     <ClInclude Include="..\..\src\all\frm\Resource.h" />
     <ClInclude Include="..\..\src\all\frm\Scene.h" />
     <ClInclude Include="..\..\src\all\frm\Shader.h" />
     <ClInclude Include="..\..\src\all\frm\ShaderPreprocessor.h" />
+    <ClInclude Include="..\..\src\all\frm\SkeletonAnimation.h" />
     <ClInclude Include="..\..\src\all\frm\Spline.h" />
     <ClInclude Include="..\..\src\all\frm\Texture.h" />
     <ClInclude Include="..\..\src\all\frm\TextureAtlas.h" />
+    <ClInclude Include="..\..\src\all\frm\ValueCurve.h" />
     <ClInclude Include="..\..\src\all\frm\Window.h" />
     <ClInclude Include="..\..\src\all\frm\XForm.h" />
     <ClInclude Include="..\..\src\all\frm\def.h" />
@@ -172,11 +178,6 @@
     <ClInclude Include="..\..\src\all\frm\ui\Log.h">
       <Filter>ui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\SkeletonAnimation.h" />
-    <ClInclude Include="..\..\src\all\extern\md5mesh.h">
-      <Filter>extern</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\ValueCurve.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">
@@ -308,14 +309,21 @@
     <ClCompile Include="..\..\src\all\frm\LuaScript.cpp" />
     <ClCompile Include="..\..\src\all\frm\Mesh.cpp" />
     <ClCompile Include="..\..\src\all\frm\MeshData.cpp" />
+    <ClCompile Include="..\..\src\all\frm\MeshData_blend.cpp" />
+    <ClCompile Include="..\..\src\all\frm\MeshData_md5.cpp" />
+    <ClCompile Include="..\..\src\all\frm\MeshData_obj.cpp" />
     <ClCompile Include="..\..\src\all\frm\Profiler.cpp" />
+    <ClCompile Include="..\..\src\all\frm\RenderNodes.cpp" />
     <ClCompile Include="..\..\src\all\frm\Resource.cpp" />
     <ClCompile Include="..\..\src\all\frm\Scene.cpp" />
     <ClCompile Include="..\..\src\all\frm\Shader.cpp" />
     <ClCompile Include="..\..\src\all\frm\ShaderPreprocessor.cpp" />
+    <ClCompile Include="..\..\src\all\frm\SkeletonAnimation.cpp" />
+    <ClCompile Include="..\..\src\all\frm\SkeletonAnimation_md5.cpp" />
     <ClCompile Include="..\..\src\all\frm\Spline.cpp" />
     <ClCompile Include="..\..\src\all\frm\Texture.cpp" />
     <ClCompile Include="..\..\src\all\frm\TextureAtlas.cpp" />
+    <ClCompile Include="..\..\src\all\frm\ValueCurve.cpp" />
     <ClCompile Include="..\..\src\all\frm\Window.cpp" />
     <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
     <ClCompile Include="..\..\src\all\frm\geom.cpp" />
@@ -332,11 +340,5 @@
     <ClCompile Include="..\..\src\win\frm\WindowImpl.cpp">
       <Filter>win</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\MeshData_md5.cpp" />
-    <ClCompile Include="..\..\src\all\frm\MeshData_obj.cpp" />
-    <ClCompile Include="..\..\src\all\frm\MeshData_blend.cpp" />
-    <ClCompile Include="..\..\src\all\frm\SkeletonAnimation.cpp" />
-    <ClCompile Include="..\..\src\all\frm\SkeletonAnimation_md5.cpp" />
-    <ClCompile Include="..\..\src\all\frm\ValueCurve.cpp" />
   </ItemGroup>
 </Project>

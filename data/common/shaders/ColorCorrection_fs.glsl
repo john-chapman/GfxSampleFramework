@@ -5,10 +5,17 @@ noperspective in vec2 vUv;
 
 uniform sampler2D txInput;
 
-uniform float uExposure;
-uniform vec3  uTint;
-uniform float uSaturation;
-uniform float uContrast;
+struct Data
+{
+	float m_exposure;
+	float m_saturation;
+	float m_contrast;
+	vec3  m_tint;
+};
+layout(std140) uniform _bfData
+{
+	Data bfData;
+};
 
 layout(location=0) out vec3 fResult;
 
@@ -26,7 +33,6 @@ vec3 Tonemap_ACES_Narkowicz(in vec3 _x)
 	vec3 x = _x * 0.6;
 	return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
 }
-
 // https://github.com/selfshadow/aces-dev
 // Closer fit, more even saturation across the range
 vec3 Tonemap_ACES_Hill(in vec3 _x)
@@ -67,26 +73,24 @@ void main()
 	vec3 ret = textureLod(txInput, vUv, 0.0).rgb;
 
  // exposure
-	ret *= uExposure;
-	
+	ret *= bfData.m_exposure;
+
  // tint
-	ret *= uTint;
-	
+	ret *= bfData.m_tint;
+
  // contrast
 	//ret = saturate(vec3(0.5) + (ret - vec3(0.5)) * uContrast); // linear contrast
 	float logMidpoint = 0.18; // log2(linear midpoint)
-	ret.x = LogContrast(ret.x, 1e-7, logMidpoint, uContrast);
-	ret.y = LogContrast(ret.y, 1e-7, logMidpoint, uContrast);
-	ret.z = LogContrast(ret.z, 1e-7, logMidpoint, uContrast);
-		
+	ret.x = LogContrast(ret.x, 1e-7, logMidpoint, bfData.m_contrast);
+	ret.y = LogContrast(ret.y, 1e-7, logMidpoint, bfData.m_contrast);
+	ret.z = LogContrast(ret.z, 1e-7, logMidpoint, bfData.m_contrast);
  // tonemap
-	//ret = Tonemap_ACES_Narcowicz(ret);
 	ret = Tonemap_ACES_Hill(ret);
 
  // saturation
 	vec3 gray = vec3(dot(kLumaWeights, ret));
-	ret = gray + uSaturation * (ret - gray);
-	
+	ret = gray + bfData.m_saturation * (ret - gray);	
+
  // display gamma
 	ret = pow(ret, vec3(1.0/2.2));
 	

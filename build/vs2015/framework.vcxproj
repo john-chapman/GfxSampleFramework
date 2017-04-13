@@ -141,6 +141,7 @@
     <ClInclude Include="..\..\src\all\frm\Mesh.h" />
     <ClInclude Include="..\..\src\all\frm\MeshData.h" />
     <ClInclude Include="..\..\src\all\frm\Profiler.h" />
+    <ClInclude Include="..\..\src\all\frm\RenderNodes.h" />
     <ClInclude Include="..\..\src\all\frm\Resource.h" />
     <ClInclude Include="..\..\src\all\frm\Scene.h" />
     <ClInclude Include="..\..\src\all\frm\Shader.h" />
@@ -216,6 +217,7 @@
     <ClCompile Include="..\..\src\all\frm\MeshData_md5.cpp" />
     <ClCompile Include="..\..\src\all\frm\MeshData_obj.cpp" />
     <ClCompile Include="..\..\src\all\frm\Profiler.cpp" />
+    <ClCompile Include="..\..\src\all\frm\RenderNodes.cpp" />
     <ClCompile Include="..\..\src\all\frm\Resource.cpp" />
     <ClCompile Include="..\..\src\all\frm\Scene.cpp" />
     <ClCompile Include="..\..\src\all\frm\Shader.cpp" />
