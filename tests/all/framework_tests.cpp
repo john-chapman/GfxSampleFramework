@@ -85,7 +85,7 @@ public:
 		}
 
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
-		if (ImGui::TreeNode("Intersection Tests")) {
+		if (ImGui::TreeNode("Intersection")) {
 			Im3d::PushDrawState();
 
 			enum Primitive
@@ -309,13 +309,13 @@ public:
 		GlContext* ctx = GlContext::GetCurrent();
 
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
-		if (ImGui::TreeNode("Mesh/Anim Test")) {
+		if (ImGui::TreeNode("Mesh/Anim")) {
 			if (!m_meshTest.m_mesh) {
 				if (!m_meshTest.m_shMeshShaded) {
-					m_meshTest.m_shMeshShaded = Shader::CreateVsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_fs.glsl", "SHADED\0");
+					m_meshTest.m_shMeshShaded = Shader::CreateVsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_fs.glsl", "SKINNING\0SHADED\0");
 				} 
 				if (!m_meshTest.m_shMeshLines) {
-					m_meshTest.m_shMeshLines = Shader::CreateVsGsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_gs.glsl", "shaders/MeshView_fs.glsl", "LINES\0");
+					m_meshTest.m_shMeshLines = Shader::CreateVsGsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_gs.glsl", "shaders/MeshView_fs.glsl", "SKINNING\0LINES\0");
 				}
 
 				if (m_meshTest.m_meshPath[0] != '\0') {
@@ -422,13 +422,6 @@ public:
 
 			ImGui::TreePop();
 		}
-		
-		static ValueCurveEditor curveEdit;
-		ImGui::Begin("Curve", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-			//ImGui::BeginChild("CurveChild", ImVec2(256.0f, 300.0f), true);
-				curveEdit.draw(0.0f);
-			//ImGui::EndChild();
-		ImGui::End();
 		
 		AppBase::draw();
 	}
