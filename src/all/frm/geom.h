@@ -188,7 +188,21 @@ struct Frustum
 		Plane_Count
 	};
 	Plane m_planes[Plane_Count];
-	vec3  m_vertices[8];
+
+	enum FrustumVertex
+	{
+		Vertex_NearTopLeft,
+		Vertex_NearTopRight,
+		Vertex_NearBottomRight,
+		Vertex_NearBottomLeft,
+		Vertex_FarTopLeft,
+		Vertex_FarTopRight,
+		Vertex_FarBottomRight,
+		Vertex_FarBottomLeft,
+
+		Vertex_Count
+	};
+	vec3  m_vertices[Vertex_Count];
 
 	Frustum() {}
 
