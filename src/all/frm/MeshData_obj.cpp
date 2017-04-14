@@ -21,10 +21,10 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 	
  // \todo use _mesh desc as a conversion target
 	MeshDesc retDesc(MeshDesc::Primitive_Triangles);
-	VertexAttr* positionAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Positions, 3, DataType::Float32);
-	VertexAttr* normalAttr   = retDesc.addVertexAttr(VertexAttr::Semantic_Normals,   3, DataType::Sint8N);
-	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  3, DataType::Sint8N);
-	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Uint16N);
+	VertexAttr* positionAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType::Float32, 3);
+	VertexAttr* normalAttr   = retDesc.addVertexAttr(VertexAttr::Semantic_Normals,   DataType::Sint8N,  3);
+	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  DataType::Sint8N,  3);
+	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType::Uint16N, 2);
 	
 	MeshBuilder tmpMesh; // append vertices/indices here
 

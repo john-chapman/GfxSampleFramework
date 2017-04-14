@@ -19,7 +19,7 @@ namespace frm {
 class VertexAttr
 {
 public:
-	enum Semantic 
+	enum Semantic : uint8
 	{
 		Semantic_Positions,
 		Semantic_Texcoords,
@@ -66,10 +66,10 @@ public:
 	bool operator!=(const VertexAttr& _lhs) const  { return !(*this == _lhs); }
 
 private:
-	uint8 m_semantic;  // Data semantic.
-	uint8 m_dataType;  // Data type per component.
-	uint8 m_count;     // Number of components (1,2,3 or 4).
-	uint8 m_offset;    // Byte offset of the first component.
+	Semantic m_semantic;  // Data semantic.
+	DataType m_dataType;  // Data type per component.
+	uint8    m_count;     // Number of components (1,2,3 or 4).
+	uint8    m_offset;    // Byte offset of the first component.
 
 }; // class VertexAttr
 
@@ -104,10 +104,11 @@ public:
 	// in the vertex data. Ensures 4 byte alignment.
 	VertexAttr* addVertexAttr(
 		VertexAttr::Semantic _semantic, 
-		uint8                _count, 
-		DataType             _dataType
+		DataType             _dataType,
+		uint8                _count
 		);
 
+	// \todo This version doesn't ensure 4 byte alignment - test/warn?
 	VertexAttr* addVertexAttr(VertexAttr& _attr);
 
 	// Return VertexAttr matching _semantic, or nullptr if not present.
@@ -121,9 +122,9 @@ public:
 	bool operator==(const MeshDesc& _rhs) const;
 	bool operator!=(const MeshDesc& _lhs) const  { return !(*this == _lhs); }
 
-	int getVertexAttrCount() const             { return m_vertexAttrCount; }
-	const VertexAttr& operator[](int _i) const { APT_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
-	      VertexAttr& operator[](int _i)       { APT_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
+	int getVertexAttrCount() const               { return m_vertexAttrCount; }
+	const VertexAttr& operator[](int _i) const   { APT_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
+	VertexAttr& operator[](int _i)               { APT_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
 
 private:
 	static const int  kMaxVertexAttrCount = VertexAttr::Semantic_Count + 1;
@@ -179,7 +180,16 @@ public:
 		float           _sizeX, 
 		float           _sizeZ, 
 		int             _segsX, 
-		int             _segsZ
+		int             _segsZ,
+		const mat4&     _transform = mat4(1.0f)
+		);
+
+	static MeshData* CreateSphere(
+		const MeshDesc& _desc,
+		float           _radius, 
+		int             _segsLat, 
+		int             _segsLong,
+		const mat4&     _transform = mat4(1.0f)
 		);
 
 	static void Destroy(MeshData*& _meshData_);

@@ -64,8 +64,8 @@ bool VertexAttr::operator==(const VertexAttr& _rhs) const
 
 VertexAttr* MeshDesc::addVertexAttr(
 	VertexAttr::Semantic _semantic, 
-	uint8                _count, 
-	DataType             _dataType
+	DataType             _dataType,
+	uint8                _count
 	)
 {
 	APT_ASSERT_MSG(findVertexAttr(_semantic) == 0, "MeshDesc: Semantic '%s' already exists", VertexSemanticToStr(_semantic));
@@ -233,17 +233,8 @@ MeshData* MeshData::Create(
 	return ret;
 }
 
-MeshData* MeshData::CreatePlane(
-	const MeshDesc& _desc, 
-	float           _sizeX, 
-	float           _sizeZ, 
-	int             _segsX, 
-	int             _segsZ
-	)
+static void BuildPlane(MeshBuilder& mesh_, float _sizeX, float _sizeZ, int _segsX, int _segsZ)
 {
-	APT_ASSERT(_segsX == _segsZ); // \todo broken if the tesselation factors differ in X and Z
-	MeshBuilder mesh;
-
 	for (int x = 0; x <= _segsX; ++x) {
 		for (int z = 0; z <= _segsZ; ++z) {
 			MeshBuilder::Vertex vert;
@@ -259,34 +250,67 @@ MeshData* MeshData::CreatePlane(
 			vert.m_normal = vec3(0.0f, 1.0f, 0.0f);
 			vert.m_tangent = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
-			mesh.addVertex(vert);
+			mesh_.addVertex(vert);
 		}
 	}
+	int zoff = _segsZ + 1;
+	for (int x = 0; x < _segsX; ++x) {
+		for (int z = 0; z < _segsZ; ++z) {
+			uint32 a, b, c;
+
+			a = z + x * zoff;
+			b = a + zoff + 1;
+			c = a + zoff;
+			mesh_.addTriangle(a, b, c);
+
+			b = a + 1;
+			c = a + zoff + 1;
+			mesh_.addTriangle(a, b, c);
+		}
+	}
+}
+
+MeshData* MeshData::CreatePlane(
+	const MeshDesc& _desc, 
+	float           _sizeX, 
+	float           _sizeZ, 
+	int             _segsX, 
+	int             _segsZ,
+	const mat4&     _transform
+	)
+{
+	MeshBuilder mesh;
+	BuildPlane(mesh, _sizeX, _sizeZ, _segsX, _segsZ);
 	
-	uint32 j = 0;
-	for (uint32 i = 0, n = _segsX * _segsZ * 2; i < n; ++i, ++j) {
-		uint32 a, b, c;
-
-		a = j + 1;
-		b = j + _segsX + 1;
-		c = j;
-		mesh.addTriangle(a, b, c);
-
-		a = j + _segsX + 2;
-		b = j + _segsX + 1;
-		c = j + 1;
-		mesh.addTriangle(a, b, c);
-
-		++i;
-		if ((j + 2) % (_segsX + 1) == 0) {
-			++j;
-		}
-	}
-
+	mesh.transform(_transform);
 	mesh.m_boundingBox.m_min = mesh.m_vertices.front().m_position;
 	mesh.m_boundingBox.m_max = mesh.m_vertices.back().m_position;
 	mesh.m_boundingSphere = Sphere(mesh.m_boundingBox);
 
+	return Create(_desc, mesh);
+}
+MeshData* MeshData::CreateSphere(
+	const MeshDesc& _desc, 
+	float           _radius, 
+	int             _segsLat, 
+	int             _segsLong,
+	const mat4&     _transform
+	)
+{
+	MeshBuilder mesh;
+	BuildPlane(mesh, two_pi<float>(), pi<float>(), _segsLong, _segsLat);
+	for (uint32 i = 0; i < mesh.getVertexCount(); ++i) {
+		MeshBuilder::Vertex& v = mesh.getVertex(i);
+		float x = sinf(v.m_position.x) * sinf(v.m_position.z + half_pi<float>());
+		float y = cosf(v.m_position.x) * sinf(v.m_position.z + half_pi<float>());
+		float z = v.m_position.z;
+		v.m_normal = normalize(vec3(x, -z, y)); // swap yz to align the poles along y
+		v.m_position = v.m_normal * _radius;
+	}
+	if (_desc.findVertexAttr(VertexAttr::Semantic_Tangents)) {
+		mesh.generateTangents();
+	}
+	mesh.updateBounds();
 	return Create(_desc, mesh);
 }
 
@@ -488,7 +512,7 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 			DataType::Convert(DataType::Float32, normalsAttr->getDataType(), &src.m_normal, dst + normalsAttr->getOffset(), APT_MIN(3, (int)normalsAttr->getCount()));
 		}
 		if (tangentsAttr) {
-			DataType::Convert(DataType::Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), APT_MIN(3, (int)tangentsAttr->getCount()));
+			DataType::Convert(DataType::Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), APT_MIN(4, (int)tangentsAttr->getCount()));
 		}
 		if (boneWeightsAttr) {
 			DataType::Convert(DataType::Float32, boneWeightsAttr->getDataType(), &src.m_boneWeights, dst + boneWeightsAttr->getOffset(), APT_MIN(4, (int)boneWeightsAttr->getCount()));
@@ -498,10 +522,7 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 		}
 	}
 
-	m_indexDataType = DataType::Uint16;
-	if (_meshBuilder.getVertexCount() > (uint32)std::numeric_limits<uint16>::max) {
-		m_indexDataType = DataType::Uint32;
-	}
+	m_indexDataType = GetIndexDataType(_meshBuilder.getVertexCount());
 	m_indexData = (char*)malloc(_meshBuilder.getIndexCount() * DataType::GetSizeBytes(m_indexDataType));
 	DataType::Convert(DataType::Uint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
 

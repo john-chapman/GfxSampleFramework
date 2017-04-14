@@ -84,7 +84,7 @@ void GlContext::drawNdcQuad(const Camera* _cam)
 	if_unlikely (!m_ndcQuadMesh) {
 		MeshDesc quadDesc;
 		quadDesc.setPrimitive(MeshDesc::Primitive_TriangleStrip);
-		quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, 2, DataType::Float32);
+		quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType::Float32, 2);
 		//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType::Float32);
 		float quadVertexData[] = { 
 			-1.0f, -1.0f, //0.0f, 0.0f,
