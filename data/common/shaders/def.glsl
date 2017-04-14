@@ -97,6 +97,19 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 #define saturate(_x) clamp((_x), 0.0, 1.0)
 
 
+float length2(in vec2 v) {
+	return v.x * v.x + v.y * v.y;
+}
+float length2(in vec3 v) 
+{
+	return v.x * v.x + v.y * v.y + v.z * v.z;
+}
+float length2(in vec4 v) 
+{
+	return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
+}
+
+
 // Linearizing depth requires applying the inverse of Z part of the projection matrix, which depends on how the matrix was set up.
 // The following variants correspond to ProjFlags_; see frm/Camera.h for more info.
 // \todo revisit the formulae and clean this up
