@@ -118,12 +118,12 @@ bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
  // \todo use _mesh desc as a conversion target
 	if (ret) {
 		MeshDesc retDesc(MeshDesc::Primitive_Triangles);
-		retDesc.addVertexAttr(VertexAttr::Semantic_Positions,   3, DataType::Float32);
-		retDesc.addVertexAttr(VertexAttr::Semantic_Normals,     3, DataType::Sint8N);
-		retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,    3, DataType::Sint8N);
-		retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords,   2, DataType::Uint16N);
-		retDesc.addVertexAttr(VertexAttr::Semantic_BoneWeights, 4, DataType::Uint16N);
-		retDesc.addVertexAttr(VertexAttr::Semantic_BoneIndices, 4, DataType::Uint8);
+		retDesc.addVertexAttr(VertexAttr::Semantic_Positions,   DataType::Float32, 3);
+		retDesc.addVertexAttr(VertexAttr::Semantic_Normals,     DataType::Sint8N,  3);
+		retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,    DataType::Sint8N,  3);
+		retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords,   DataType::Uint16N, 2);
+		retDesc.addVertexAttr(VertexAttr::Semantic_BoneWeights, DataType::Uint16N, 4);
+		retDesc.addVertexAttr(VertexAttr::Semantic_BoneIndices, DataType::Uint8,   4);
 		MeshData retMesh(retDesc, tmpMesh);
 		retMesh.setBindPose(tmpSkeleton);
 		swap(mesh_, retMesh);
