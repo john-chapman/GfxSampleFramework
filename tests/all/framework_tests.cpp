@@ -3,13 +3,13 @@
 #include <frm/interpolation.h>
 #include <frm/gl.h>
 #include <frm/AppSample3d.h>
-#include <frm/AppProperty.h>
 #include <frm/Buffer.h>
 #include <frm/GlContext.h>
 #include <frm/Input.h>
 #include <frm/Mesh.h>
 #include <frm/MeshData.h>
 #include <frm/Profiler.h>
+#include <frm/Property.h>
 #include <frm/Shader.h>
 #include <frm/SkeletonAnimation.h>
 #include <frm/Spline.h>
@@ -34,17 +34,17 @@ public:
 	typedef AppSample3d AppBase;
 
 	struct MeshTest {
-		char*              m_meshPath;
-		Mesh*              m_mesh;
-		char*              m_animPath;
-		SkeletonAnimation* m_anim;
-		float              m_animTime;
-		float              m_animSpeed;
-		eastl::vector<int> m_animHints;
-		Shader*            m_shMeshShaded;
-		Shader*            m_shMeshLines;
-		Buffer*            m_bfSkinning;
-		mat4               m_worldMatrix;
+		FileSystem::PathStr m_meshPath;
+		Mesh*               m_mesh;
+		FileSystem::PathStr m_animPath;
+		SkeletonAnimation*  m_anim;
+		float               m_animTime;
+		float               m_animSpeed;
+		eastl::vector<int>  m_animHints;
+		Shader*             m_shMeshShaded;
+		Shader*             m_shMeshLines;
+		Buffer*             m_bfSkinning;
+		mat4                m_worldMatrix;
 	} m_meshTest;
 
 	AppSampleTest()
@@ -52,10 +52,10 @@ public:
 	{
 		memset(&m_meshTest, 0, sizeof(MeshTest));
 		
-		AppPropertyGroup& props = m_properties.addGroup("MeshTest");
-		//                                      name          display name     default              min    max        hidden
-		m_meshTest.m_meshPath   = props.addPath("MeshPath",   "Mesh Path",     "models/md5/bob_lamp_update.md5mesh",  false);
-		m_meshTest.m_animPath   = props.addPath("AnimPath",   "Anim Path",     "models/md5/bob_lamp_update.md5anim",  false);
+		PropertyGroup& propGroup = m_props.addGroup("MeshTest");
+		//                name                     default                                  min     max     storage
+		propGroup.addPath("Mesh Path",             "models/md5/bob_lamp_update.md5mesh",                    &m_meshTest.m_meshPath);
+		propGroup.addPath("Anim Path",             "models/md5/bob_lamp_update.md5anim",                    &m_meshTest.m_animPath);
 	}
 	
 	virtual bool init(const apt::ArgList& _args) override

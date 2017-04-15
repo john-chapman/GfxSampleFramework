@@ -24,7 +24,7 @@ public:
 	};
 	Data m_data;
 
-	bool init(AppProperties& _props_);
+	bool init(Properties& _props_);
 	void shutdown();
 
 	void draw(GlContext* _ctx_, const Texture* _src, const Framebuffer* _dst);

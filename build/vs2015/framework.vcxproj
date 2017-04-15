@@ -129,7 +129,6 @@
     <ClInclude Include="..\..\src\all\extern\md5mesh.h" />
     <ClInclude Include="..\..\src\all\extern\tiny_obj_loader.h" />
     <ClInclude Include="..\..\src\all\frm\App.h" />
-    <ClInclude Include="..\..\src\all\frm\AppProperty.h" />
     <ClInclude Include="..\..\src\all\frm\AppSample.h" />
     <ClInclude Include="..\..\src\all\frm\AppSample3d.h" />
     <ClInclude Include="..\..\src\all\frm\Buffer.h" />
@@ -141,6 +140,7 @@
     <ClInclude Include="..\..\src\all\frm\Mesh.h" />
     <ClInclude Include="..\..\src\all\frm\MeshData.h" />
     <ClInclude Include="..\..\src\all\frm\Profiler.h" />
+    <ClInclude Include="..\..\src\all\frm\Property.h" />
     <ClInclude Include="..\..\src\all\frm\RenderNodes.h" />
     <ClInclude Include="..\..\src\all\frm\Resource.h" />
     <ClInclude Include="..\..\src\all\frm\Scene.h" />
@@ -202,7 +202,6 @@
     <ClCompile Include="..\..\src\all\extern\lua\lvm.c" />
     <ClCompile Include="..\..\src\all\extern\lua\lzio.c" />
     <ClCompile Include="..\..\src\all\frm\App.cpp" />
-    <ClCompile Include="..\..\src\all\frm\AppProperty.cpp" />
     <ClCompile Include="..\..\src\all\frm\AppSample.cpp" />
     <ClCompile Include="..\..\src\all\frm\AppSample3d.cpp" />
     <ClCompile Include="..\..\src\all\frm\Buffer.cpp" />
@@ -217,6 +216,7 @@
     <ClCompile Include="..\..\src\all\frm\MeshData_md5.cpp" />
     <ClCompile Include="..\..\src\all\frm\MeshData_obj.cpp" />
     <ClCompile Include="..\..\src\all\frm\Profiler.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Property.cpp" />
     <ClCompile Include="..\..\src\all\frm\RenderNodes.cpp" />
     <ClCompile Include="..\..\src\all\frm\Resource.cpp" />
     <ClCompile Include="..\..\src\all\frm\Scene.cpp" />

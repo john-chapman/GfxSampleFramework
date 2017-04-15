@@ -57,7 +57,7 @@ bool AppSample3d::update()
 	Scene& scene = Scene::GetCurrent();
 	scene.update((float)m_deltaTime, Node::State_Active | Node::State_Dynamic);
 	#ifdef frm_Scene_ENABLE_EDIT
-		if (*m_showSceneEditor) {
+		if (m_showSceneEditor) {
 			Scene::GetCurrent().edit();
 		}
 	#endif
@@ -79,10 +79,10 @@ bool AppSample3d::update()
  // keyboard shortcuts
 	Keyboard* keyb = Input::GetKeyboard();
 	if (keyb->wasPressed(Keyboard::Key_F2)) {
-		*m_showHelpers = !*m_showHelpers;
+		m_showHelpers = !m_showHelpers;
 	}
 	if (ImGui::IsKeyPressed(Keyboard::Key_O) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
-		*m_showSceneEditor = !*m_showSceneEditor;
+		m_showSceneEditor = !m_showSceneEditor;
 	}
 	if (ImGui::IsKeyPressed(Keyboard::Key_C) && ImGui::IsKeyDown(Keyboard::Key_LCtrl) && ImGui::IsKeyDown(Keyboard::Key_LShift)) {
 		if (m_dbgCullCamera) {
@@ -99,7 +99,7 @@ bool AppSample3d::update()
 		}
 	}
 
-	if (*m_showHelpers) {
+	if (m_showHelpers) {
 		const int   kGridSize = 20;
 		const float kGridHalf = (float)kGridSize * 0.5f;
 		Im3d::PushDrawState();
@@ -140,24 +140,18 @@ void AppSample3d::drawMainMenuBar()
 {
 	if (ImGui::BeginMenu("Scene")) {
 		if (ImGui::MenuItem("Load...")) {
-			FileSystem::PathStr newPath;
-			if (FileSystem::PlatformSelect(newPath, "*.json")) {
-				FileSystem::MakeRelative(newPath);
-				if (Scene::Load(newPath, Scene::GetCurrent())) {
-					strncpy(m_scenePath, newPath, AppProperty::kMaxStringLength);
-				}
+			if (FileSystem::PlatformSelect(m_scenePath, "*.json")) {
+				FileSystem::MakeRelative(m_scenePath);
+				Scene::Load(m_scenePath, Scene::GetCurrent());
 			}
 		}
 		if (ImGui::MenuItem("Save")) {
 			Scene::Save(m_scenePath, Scene::GetCurrent());
 		}
 		if (ImGui::MenuItem("Save As...")) {
-			FileSystem::PathStr newPath = m_scenePath;
-			if (FileSystem::PlatformSelect(newPath, "*.json")) {
-				FileSystem::MakeRelative(newPath);
-				if (Scene::Save(newPath, Scene::GetCurrent())) {
-					strncpy(m_scenePath, newPath, AppProperty::kMaxStringLength);
-				}
+			if (FileSystem::PlatformSelect(m_scenePath, "*.json")) {
+				FileSystem::MakeRelative(m_scenePath);
+				Scene::Save(m_scenePath, Scene::GetCurrent());
 			}
 		}
 
@@ -277,16 +271,13 @@ void AppSample3d::DrawFrustum(const Frustum& _frustum)
 
 AppSample3d::AppSample3d(const char* _title)
 	: AppSample(_title)
-	, m_showHelpers(0)
-	, m_showSceneEditor(0)
-	, m_dbgCullCamera(0)
 {
 
-	AppPropertyGroup& props = m_properties.addGroup("AppSample3d");
-	//                                name                   display name                   default              min    max    hidden
-	m_showHelpers     = props.addBool("ShowHelpers",         "Helpers",                     true,                              true);
-	m_showSceneEditor = props.addBool("ShowSceneEditor",     "Scene Editor",                false,                             true);
-	m_scenePath       = props.addPath("ScenePath",           "Scene Path",                  "Scene.json",                      false);
+	PropertyGroup& propGroup = m_props.addGroup("AppSample3d");
+	//                name                     default        min     max     storage
+	propGroup.addBool("Show Helpers",        false,                         &m_showHelpers);
+	propGroup.addBool("Show Scene Editor",   false,                         &m_showSceneEditor);
+	propGroup.addPath("Scene Path",          "Scene.json",                  &m_scenePath);
 }
 
 AppSample3d::~AppSample3d()
