@@ -31,9 +31,6 @@ namespace frm {
 
  // forward declarations
 	class  App;
-	class  AppProperty;
-	class  AppPropertyGroup;
-	class  AppProperties;
 	class  AppSample;
 	class  AppSample3d;
 	class  Buffer;
@@ -50,6 +47,9 @@ namespace frm {
 	class  MeshDesc;
 	class  Mouse;
 	class  Node;
+	class  Property;
+	class  PropertyGroup;
+	class  Properties;
 	class  ProxyDevice;
 	class  ProxyGamepad;
 	class  ProxyKeyboard;

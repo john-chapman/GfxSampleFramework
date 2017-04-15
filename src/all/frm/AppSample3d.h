@@ -8,6 +8,8 @@
 #include <frm/Camera.h>
 #include <frm/Scene.h>
 
+#include <apt/FileSystem.h>
+
 #include <im3d/im3d.h>
 
 namespace frm {
@@ -40,9 +42,9 @@ protected:
 
 	Camera* m_dbgCullCamera;
 
-	bool* m_showHelpers;
-	bool* m_showSceneEditor;
-	char* m_scenePath;
+	bool m_showHelpers;
+	bool m_showSceneEditor;
+	apt::FileSystem::PathStr m_scenePath;
 
 	Im3d::Context m_im3dCtx;
 	static bool Im3d_Init();

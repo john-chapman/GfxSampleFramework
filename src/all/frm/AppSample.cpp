@@ -16,7 +16,7 @@
 #include <apt/ArgList.h>
 #include <apt/File.h>
 #include <apt/FileSystem.h>
-#include <apt/Ini.h>
+#include <apt/Json.h>
 
 #include <imgui/imgui.h>
 
@@ -59,18 +59,19 @@ bool AppSample::init(const apt::ArgList& _args)
 	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
 	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
 
- // load settings from ini
-	m_properties.setIniPath(PathStr("%s.ini", (const char*)m_name));
-	m_properties.load();
+ // load settings from json
+	m_propsPath.setf("%s.json", (const char*)m_name);
+	readProps(m_propsPath);
 
  // init the app
-	AppPropertyGroup& props = m_properties["AppSample"];
-	m_window = Window::Create(m_windowSizeProp->x, m_windowSizeProp->y, m_name);
+	PropertyGroup* propGroup;
+	APT_VERIFY(propGroup = m_props.findGroup("AppSample"));
+	m_window = Window::Create(m_windowSizeProp.x, m_windowSizeProp.y, m_name);
 		
-	const ivec2& glVersion = props["GlVersion"].getValue<ivec2>();	
-	bool glCompatibility = props["GlCompatibility"].getValue<bool>();
-	m_glContext = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
-	m_glContext->setVsync((GlContext::Vsync)(*m_vsyncMode - 1));
+	ivec2* glVersion = (ivec2*)propGroup->find("GlVersion")->getData();
+	bool* glCompatibility = (bool*)propGroup->find("GlCompatibility")->getData();
+	m_glContext = GlContext::Create(m_window, glVersion->x, glVersion->y, *glCompatibility);
+	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::RootType_Application);
 	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
 	if (!ImGui_Init()) {
@@ -79,8 +80,8 @@ bool AppSample::init(const apt::ArgList& _args)
 
 	// \hack can't change the props, but need to set m_resolution/m_windowSize to the correct values
 	m_windowSize = ivec2(m_window->getWidth(), m_window->getHeight());
-	m_resolution.x = m_resolutionProp->x == -1 ? m_windowSize.x : m_resolutionProp->x;
-	m_resolution.y = m_resolutionProp->y == -1 ? m_windowSize.y : m_resolutionProp->y;
+	m_resolution.x = m_resolutionProp.x == -1 ? m_windowSize.x : m_resolutionProp.x;
+	m_resolution.y = m_resolutionProp.y == -1 ? m_windowSize.y : m_resolutionProp.y;
 
  // set ImGui callbacks
  // \todo poll input directly = easier to use proxy devices
@@ -129,7 +130,7 @@ void AppSample::shutdown()
 		Window::Destroy(m_window);
 	}
 	
-	m_properties.save();
+	writeProps(m_propsPath);
 
 	App::shutdown();
 }
@@ -160,7 +161,7 @@ bool AppSample::update()
 		return false;
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F1)) {
-		*m_showMenu = !*m_showMenu;
+		m_showMenu = !m_showMenu;
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F8)) {
 		m_glContext->clearTextureBindings();
@@ -172,16 +173,16 @@ bool AppSample::update()
 	}
 
 	if (ImGui::IsKeyPressed(Keyboard::Key_P) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
-		*m_showPropertyEditor = !*m_showPropertyEditor;
+		m_showPropertyEditor = !m_showPropertyEditor;
 	}
 	if (ImGui::IsKeyPressed(Keyboard::Key_1) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
-		*m_showProfilerViewer = !*m_showProfilerViewer;
+		m_showProfilerViewer = !m_showProfilerViewer;
 	}
 	if (ImGui::IsKeyPressed(Keyboard::Key_2) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
-		*m_showTextureViewer = !*m_showTextureViewer;
+		m_showTextureViewer = !m_showTextureViewer;
 	}
 	if (ImGui::IsKeyPressed(Keyboard::Key_3) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
-		*m_showShaderViewer = !*m_showShaderViewer;
+		m_showShaderViewer = !m_showShaderViewer;
 	}
 	
  // AppSample UI
@@ -197,7 +198,7 @@ bool AppSample::update()
 		ImGuiWindowFlags_NoBringToFrontOnFocus
 			;
 	ImGuiIO& io = ImGui::GetIO();
-	if (*m_showMenu) {
+	if (m_showMenu) {
 	 // status bar
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.0f, 2.0f));
@@ -209,7 +210,7 @@ bool AppSample::update()
 			float cpuAvgFrameDuration = (float)Timestamp(Profiler::GetCpuAvgFrameDuration()).asMilliseconds();
 			float gpuAvgFrameDuration = (float)Timestamp(Profiler::GetGpuAvgFrameDuration()).asMilliseconds();
 			ImGui::Text("CPU %-4.2fms GPU %-4.2fms", cpuAvgFrameDuration, gpuAvgFrameDuration);
-			*m_showProfilerViewer = ImGui::IsItemClicked() ? !*m_showProfilerViewer : *m_showProfilerViewer;
+			m_showProfilerViewer = ImGui::IsItemClicked() ? !m_showProfilerViewer : m_showProfilerViewer;
 			
 			ImGui::SameLine();
 			float cursorPosX = ImGui::GetCursorPosX();
@@ -223,7 +224,7 @@ bool AppSample::update()
 			}
 			ImGui::SetCursorPosX(logPosX);
 			ImGui::TextColored(ImColor(logMsg->m_col), logMsg->m_txt);
-			*m_showLog = ImGui::IsItemClicked() ? !*m_showLog : *m_showLog;
+			m_showLog = ImGui::IsItemClicked() ? !m_showLog : m_showLog;
 			
 			ImGui::SameLine();
 			ImGui::SetCursorPosX(cursorPosX);
@@ -234,7 +235,7 @@ bool AppSample::update()
 		ImGui::End();
 		ImGui::PopStyleVar(2);
 
-		if (*m_showLog) {
+		if (m_showLog) {
 			float logPosY = io.DisplaySize.y * 0.7f;
 			ImGui::SetNextWindowPos(ImVec2(logPosX, logPosY));
 			ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x - logPosX, io.DisplaySize.y - logPosY - kStatusBarHeight));
@@ -261,8 +262,8 @@ bool AppSample::update()
 			ImGui::PushItemWidth(vsyncWidth);
 			float cursorX = ImGui::GetCursorPosX();
 			ImGui::SetCursorPosX(ImGui::GetContentRegionAvailWidth() - vsyncWidth);
-			if (ImGui::Combo("VSYNC", m_vsyncMode, "Adaptive\0Off\0On\0On1\0On2\0On3\0")) {
-				getGlContext()->setVsync((GlContext::Vsync)(*m_vsyncMode - 1));
+			if (ImGui::Combo("VSYNC", &m_vsyncMode, "Adaptive\0Off\0On\0On1\0On2\0On3\0")) {
+				getGlContext()->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 			}
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
@@ -275,17 +276,19 @@ bool AppSample::update()
 		}
 	}
 
-	if (*m_showPropertyEditor) {
-		m_properties.edit("Properties");
+	if (m_showPropertyEditor) {
+		ImGui::Begin("Properties");
+			m_props.edit();
+		ImGui::End();
 	}
-	if (*m_showProfilerViewer) {
-		Profiler::ShowProfilerViewer(m_showProfilerViewer);
+	if (m_showProfilerViewer) {
+		Profiler::ShowProfilerViewer(&m_showProfilerViewer);
 	}
-	if (*m_showTextureViewer) {
-		Texture::ShowTextureViewer(m_showTextureViewer);
+	if (m_showTextureViewer) {
+		Texture::ShowTextureViewer(&m_showTextureViewer);
 	}
-	if (*m_showShaderViewer) {
-		Shader::ShowShaderViewer(m_showShaderViewer);
+	if (m_showShaderViewer) {
+		Shader::ShowShaderViewer(&m_showShaderViewer);
 	}
 	
 
@@ -315,34 +318,28 @@ void AppSample::drawNdcQuad()
 AppSample::AppSample(const char* _name)
 	: App()
 	, m_name(_name)
-	, m_window(0)
-	, m_glContext(0)
+	, m_window(nullptr)
+	, m_glContext(nullptr)
 	, m_frameIndex(0)
-	, m_fbDefault(0)
-	, m_showMenu(0)
-	, m_showLog(0)
-	, m_showPropertyEditor(0)
-	, m_showProfilerViewer(0)
-	, m_showTextureViewer(0)
-	, m_showShaderViewer(0)
+	, m_fbDefault(nullptr)
 {
 	APT_ASSERT(g_current == 0); // don't support multiple apps (yet)
 	g_current = this;
 
-	AppPropertyGroup& props = m_properties.addGroup("AppSample");
-	//                                    name                   display name                     default              min    max    hidden
-	m_resolutionProp     = props.addVec2i("Resolution",          "Resolution",                    ivec2(-1, -1),       1,     8192,  false);
-	m_windowSizeProp     = props.addVec2i("WindowSize",          "Window Size",                   ivec2(-1, -1),      -1,     8192,  true);
-	                       props.addVec2i("GlVersion",           "OpenGL Version",                ivec2(4, 5),         1,     5,     true);
-	                       props.addBool ("GlCompatibility",     "OpenGL Compatibility Profile",  false,                             true);
-	m_vsyncMode          = props.addInt  ("VsyncMode",           "Vsync Mode",                    0,                   0,     5,     true);
-	m_showMenu           = props.addBool ("ShowMenu",            "Menu",                          true,                              true);
-	m_showLog            = props.addBool ("ShowLog",             "Log",                           false,                             true);
-	m_showPropertyEditor = props.addBool ("ShowPropertyEditor",  "Property Editor",               false,                             true);
-	m_showProfilerViewer = props.addBool ("ShowProfiler",        "Profiler",                      false,                             true);
-	m_showTextureViewer  = props.addBool ("ShowTextureViewer",   "Texture Viewer",                false,                             true);
-	m_showShaderViewer   = props.addBool ("ShowShaderViewer",    "Shader Viewer",                 false,                             true);
+	PropertyGroup& propGroup = m_props.addGroup("AppSample");
+	//                name                     default        min     max                          storage
+	propGroup.addInt2("Resolution",            ivec2(-1),     1,      8192,                        &m_resolutionProp);
+	propGroup.addInt2("WindowSize",            ivec2(-1),     1,      8192,                        &m_windowSizeProp);
+	propGroup.addInt ("Vsync Mode",            0,             0,      (int)GlContext::Vsync_On3,   &m_vsyncMode);
+	propGroup.addBool("Show Menu",             false,                                              &m_showMenu);
+	propGroup.addBool("Show Log",              false,                                              &m_showLog);
+	propGroup.addBool("Show Property Editor",  false,                                              &m_showPropertyEditor);
+	propGroup.addBool("Show Profiler",         false,                                              &m_showProfilerViewer);
+	propGroup.addBool("Show Texture Viewer",   false,                                              &m_showTextureViewer);
+	propGroup.addBool("Show Shader Viewer",    false,                                              &m_showShaderViewer);
 
+	propGroup.addInt2("GlVersion",             ivec2(4, 5),   1,      5);
+	propGroup.addBool("GlCompatibility",       false);
 }
 
 AppSample::~AppSample()
@@ -350,6 +347,26 @@ AppSample::~AppSample()
 	//shutdown(); \todo it's not safe to call shutdown() twice
 }
 
+
+bool AppSample::readProps(const char* _path, apt::FileSystem::RootType _rootHint)
+{
+	Json json;
+	if (Json::Read(json, _path, _rootHint)) {
+		JsonSerializer serializer(&json, JsonSerializer::Mode_Read);
+		return m_props.serialize(serializer);		
+	}
+	return false;
+}
+
+bool AppSample::writeProps(const char* _path, apt::FileSystem::RootType _rootHint)
+{
+	Json json;
+	JsonSerializer serializer(&json, JsonSerializer::Mode_Write);
+	if (!m_props.serialize(serializer)) {
+		return false;
+	}
+	return Json::Write(json, _path, _rootHint);
+}
 
 // PRIVATE
 

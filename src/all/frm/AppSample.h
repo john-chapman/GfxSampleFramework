@@ -4,7 +4,7 @@
 
 #include <frm/def.h>
 #include <frm/App.h>
-#include <frm/AppProperty.h>
+#include <frm/Property.h>
 
 #include <apt/FileSystem.h>
 
@@ -53,29 +53,33 @@ protected:
 
 	virtual void overrideInput() {}
 
-	AppProperties      m_properties;
+	Properties         m_props;
+	bool readProps(const char* _path, apt::FileSystem::RootType _rootHint = apt::FileSystem::RootType_Application);
+	bool writeProps(const char* _path, apt::FileSystem::RootType _rootHint = apt::FileSystem::RootType_Application);
+
 	ivec2              m_resolution;
 	ivec2              m_windowSize;
 
 private:
 	apt::String<32>    m_name;
 	
-	ivec2*             m_windowSizeProp;
+	ivec2              m_windowSizeProp;
 	Window*            m_window;
-
-	ivec2*             m_resolutionProp;
+	ivec2              m_resolutionProp;
 	GlContext*         m_glContext;
 	uint64             m_frameIndex;
 
 	const Framebuffer* m_fbDefault; // Where to draw overlays, or m_glContext backbuffer if 0.
 
-	int*               m_vsyncMode;
-	bool*              m_showMenu;
-	bool*              m_showLog;
-	bool*              m_showPropertyEditor;
-	bool*              m_showProfilerViewer;
-	bool*              m_showTextureViewer;
-	bool*              m_showShaderViewer;
+	apt::FileSystem::PathStr m_propsPath;
+
+	int                m_vsyncMode;
+	bool               m_showMenu;
+	bool               m_showLog;
+	bool               m_showPropertyEditor;
+	bool               m_showProfilerViewer;
+	bool               m_showTextureViewer;
+	bool               m_showShaderViewer;
 
 	apt::FileSystem::PathStr m_imguiIniPath;
 	static bool ImGui_Init();
