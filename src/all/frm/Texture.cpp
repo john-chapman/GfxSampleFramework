@@ -587,7 +587,7 @@ bool Texture::ConvertSphereToCube(Texture& _sphere, GLsizei _width)
 		default: break;
 	};
 
-	Texture* cube = CreateCubemap(_width, format, _sphere.m_mipCount);
+	Texture* cube = CreateCubemap(_width, format, GetMaxMipCount(_width, _width));
 	
 	//static vec4 kFaceColors[6] = {
 	//	vec4(1.0f, 0.0f, 0.0f, 1.0f),
@@ -644,7 +644,7 @@ bool Texture::ConvertCubeToSphere(Texture& _cube, GLsizei _width)
 		default: break;
 	};
 
-	Texture* sphere = Create2d(_width, _width / 2, format, _cube.m_mipCount);
+	Texture* sphere = Create2d(_width, _width / 2, format, GetMaxMipCount(_width, _width / 2));
 
 	GlContext* ctx = GlContext::GetCurrent();
 	ctx->setShader(shConvert);
@@ -1184,6 +1184,7 @@ bool Texture::loadImage(const Image& _img)
 	 // special-case 3x2 cubemaps
 		m_width /= 2;
 		m_height /= 3;
+		m_mipCount = _img.getMipmapCount() == 1 ? (GLint)GetMaxMipCount(m_width, m_height) : (GLint) _img.getMipmapCount();
 		alloc = AllocCubemap;
 		upload = UploadCubemap3x2;
 	} else {
