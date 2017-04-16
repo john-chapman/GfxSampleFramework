@@ -771,8 +771,12 @@ void Texture::setSubData(
 void Texture::generateMipmap()
 {
 	APT_ASSERT(m_handle);
-	glAssert(glGenerateTextureMipmap(m_handle));
 	m_mipCount = GetMaxMipCount(m_width, m_height, m_depth);
+	setMipRange(0, m_mipCount - 1);
+	setMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+	glAssert(glActiveTexture(GL_TEXTURE0));
+	glAssert(glGenerateTextureMipmap(m_handle));
+	
 }
 
 void Texture::setMipRange(GLint _base, GLint _max)
@@ -1065,27 +1069,27 @@ Texture* Texture::Create(
 
 static void Alloc1d(Texture& _tx, const Image& _img)
 {
-	glAssert(glTextureStorage1D(_tx.getHandle(), (GLsizei)_img.getMipmapCount(), _tx.getFormat(), _tx.getWidth()));
+	glAssert(glTextureStorage1D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth()));
 }
 static void Alloc1dArray(Texture& _tx, const Image& _img)
 {
-	glAssert(glTextureStorage2D(_tx.getHandle(), (GLsizei)_img.getMipmapCount(), _tx.getFormat(), _tx.getWidth(), _tx.getArrayCount()));
+	glAssert(glTextureStorage2D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth(), _tx.getArrayCount()));
 }
 static void Alloc2d(Texture& _tx, const Image& _img)
 {
-	glAssert(glTextureStorage2D(_tx.getHandle(), (GLsizei)_img.getMipmapCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight()));
+	glAssert(glTextureStorage2D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight()));
 }
 static void Alloc2dArray(Texture& _tx, const Image& _img)
 {
-	glAssert(glTextureStorage3D(_tx.getHandle(), (GLsizei)_img.getMipmapCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight(), _tx.getArrayCount()));
+	glAssert(glTextureStorage3D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight(), _tx.getArrayCount()));
 }
 static void Alloc3d(Texture& _tx, const Image& _img)
 {
-	glAssert(glTextureStorage3D(_tx.getHandle(), (GLsizei)_img.getMipmapCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight(), _tx.getDepth()));
+	glAssert(glTextureStorage3D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight(), _tx.getDepth()));
 }
 static void AllocCubemap(Texture& _tx, const Image& _img)
 {
-	glAssert(glTextureStorage2D(_tx.getHandle(), (GLsizei)_img.getMipmapCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight()));
+	glAssert(glTextureStorage2D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight()));
 }
 
 #define Texture_COMPUTE_WHD() \
@@ -1168,7 +1172,9 @@ bool Texture::loadImage(const Image& _img)
 	m_height     = (GLint)_img.getHeight();
 	m_depth      = (GLint)_img.getDepth();
 	m_arrayCount = (GLint)_img.getArrayCount();
-	m_mipCount   = (GLint)_img.getMipmapCount();
+
+	// \hack \todo always allocate a mip chain in case we call generateMipmap() later - make this optional?
+	m_mipCount   = _img.getMipmapCount() == 1 ? (GLint)GetMaxMipCount(m_width, m_height, m_depth) : (GLint) _img.getMipmapCount();
 
  // target, alloc/upload dispatch functions
 	void (*alloc)(Texture& _tx, const Image& _img);
@@ -1270,8 +1276,8 @@ bool Texture::loadImage(const Image& _img)
  // glTexSubImage* to upload each layer/mip separately
 	glAssert(glCreateTextures(m_target, 1, &m_handle));
 	alloc(*this, _img);
-	for (GLint i = 0; i < m_arrayCount; ++i) {		
-		for (GLint j = 0; j < m_mipCount; ++j) {
+	for (GLint i = 0; i < _img.getArrayCount(); ++i) {		
+		for (GLint j = 0; j < _img.getMipmapCount(); ++j) {
 			upload(*this, _img, i, j, srcFormat, srcType);
 		}
 	}
@@ -1279,7 +1285,7 @@ bool Texture::loadImage(const Image& _img)
 
 	setWrap(GL_REPEAT);
 	setMagFilter(GL_LINEAR);
-	setMinFilter(m_mipCount > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+	setMinFilter(_img.getMipmapCount() > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 
 	return true;
 }
