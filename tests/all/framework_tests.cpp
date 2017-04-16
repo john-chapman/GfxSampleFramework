@@ -47,6 +47,8 @@ public:
 		mat4                m_worldMatrix;
 	} m_meshTest;
 
+	frm::Texture* m_txTest;
+
 	AppSampleTest()
 		: AppBase("AppSampleTest") 
 	{
@@ -62,8 +64,11 @@ public:
 	{
 		if (!AppBase::init(_args)) {
 			return false;
-
 		}
+	
+		m_txTest = Texture::Create("textures/lena.png");
+		//m_txTest->generateMipmap();
+
 		return true;
 	}
 
