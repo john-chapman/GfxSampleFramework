@@ -238,7 +238,7 @@ struct TextureViewer
 			ImGui::Columns(2);
 			//float thumbWidth  = ImGui::GetContentRegionAvailWidth();
 			//float thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
-			float thumbHeight = ImGui::GetWindowHeight() * 0.9f;
+			float thumbHeight = ImGui::GetWindowHeight() * 0.75f;
 			float thumbWidth = (float)tx.getWidth() / (float)tx.getHeight() * thumbHeight;
 			vec2  thumbSize(thumbWidth, APT_MAX(thumbHeight, 16.0f));
 		  // need to flip the UVs here to account for the orientation of the quad output by ImGui
