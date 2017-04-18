@@ -842,17 +842,21 @@ Image* Texture::downloadImage()
 	};
 
 	SCOPED_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
-	for (int i = 0; i < m_arrayCount; ++i) {
-		for (int j = 0; j < m_mipCount; ++j) {
+
+ // \todo array/mip support
+	APT_ASSERT(m_arrayCount == 1);
+	//for (int i = 0; i < m_arrayCount; ++i) {
+		//for (int j = 0; j < m_mipCount; ++j) {
+		int i = 0, j = 0;
 			char* raw = ret->getRawImage(i, j);
 			APT_ASSERT(raw);
 			if (ret->isCompressed()) {
-				glAssert(glGetCompressedTextureImage(m_handle, i, (GLsizei)ret->getRawImageSize(j), raw));
+				glAssert(glGetCompressedTextureImage(m_handle, j, (GLsizei)ret->getRawImageSize(j), raw));
 			} else {
-				glAssert(glGetTextureImage(m_handle, i, glFormat, glType, (GLsizei)ret->getRawImageSize(j), raw));
+				glAssert(glGetTextureImage(m_handle, j, glFormat, glType, (GLsizei)ret->getRawImageSize(j), raw));
 			}
-		}
-	}
+		//}
+	//}
 
 	return ret;
 }
