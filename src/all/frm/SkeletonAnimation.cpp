@@ -227,8 +227,7 @@ bool SkeletonAnimation::reload()
 		return false;
 	}
 
-	const char* ext = FileSystem::GetExtension(m_path);
-	if (strcmp(ext, "md5anim") == 0) {
+	if (FileSystem::CompareExtension("md5anim", m_path)) {
 		return ReadMd5(*this, f.getData(), f.getDataSize());
 	} else {
 		APT_ASSERT(false); // unsupported format
