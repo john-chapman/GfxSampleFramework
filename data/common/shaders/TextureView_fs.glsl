@@ -73,6 +73,12 @@ void main()
 	if (bool(uIsDepth)) {
 		ret.rgb = vec3(fract(abs(ret.r) * 1024.0)); // \todo better depth/stencil vis
 	}
+	if (any(isnan(ret))) {
+		ret = vec4(1.0, 0.0, 0.0, 1.0);
+	}
+	if (any(isinf(ret))) {
+		ret = vec4(1.0, 0.0, 1.0, 1.0);
+	}
 	
 	fResult = ret;
 	fResult.a = 1.0;

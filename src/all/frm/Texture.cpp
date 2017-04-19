@@ -238,7 +238,7 @@ struct TextureViewer
 			ImGui::Columns(2);
 			//float thumbWidth  = ImGui::GetContentRegionAvailWidth();
 			//float thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
-			float thumbHeight = ImGui::GetWindowHeight() * 0.9f;
+			float thumbHeight = ImGui::GetWindowHeight() * 0.75f;
 			float thumbWidth = (float)tx.getWidth() / (float)tx.getHeight() * thumbHeight;
 			vec2  thumbSize(thumbWidth, APT_MAX(thumbHeight, 16.0f));
 		  // need to flip the UVs here to account for the orientation of the quad output by ImGui
@@ -587,7 +587,7 @@ bool Texture::ConvertSphereToCube(Texture& _sphere, GLsizei _width)
 		default: break;
 	};
 
-	Texture* cube = CreateCubemap(_width, format, _sphere.m_mipCount);
+	Texture* cube = CreateCubemap(_width, format, GetMaxMipCount(_width, _width));
 	
 	//static vec4 kFaceColors[6] = {
 	//	vec4(1.0f, 0.0f, 0.0f, 1.0f),
@@ -644,7 +644,7 @@ bool Texture::ConvertCubeToSphere(Texture& _cube, GLsizei _width)
 		default: break;
 	};
 
-	Texture* sphere = Create2d(_width, _width / 2, format, _cube.m_mipCount);
+	Texture* sphere = Create2d(_width, _width / 2, format, GetMaxMipCount(_width, _width / 2));
 
 	GlContext* ctx = GlContext::GetCurrent();
 	ctx->setShader(shConvert);
@@ -842,17 +842,21 @@ Image* Texture::downloadImage()
 	};
 
 	SCOPED_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
-	for (int i = 0; i < m_arrayCount; ++i) {
-		for (int j = 0; j < m_mipCount; ++j) {
+
+ // \todo array/mip support
+	APT_ASSERT(m_arrayCount == 1);
+	//for (int i = 0; i < m_arrayCount; ++i) {
+		//for (int j = 0; j < m_mipCount; ++j) {
+		int i = 0, j = 0;
 			char* raw = ret->getRawImage(i, j);
 			APT_ASSERT(raw);
 			if (ret->isCompressed()) {
-				glAssert(glGetCompressedTextureImage(m_handle, i, (GLsizei)ret->getRawImageSize(j), raw));
+				glAssert(glGetCompressedTextureImage(m_handle, j, (GLsizei)ret->getRawImageSize(j), raw));
 			} else {
-				glAssert(glGetTextureImage(m_handle, i, glFormat, glType, (GLsizei)ret->getRawImageSize(j), raw));
+				glAssert(glGetTextureImage(m_handle, j, glFormat, glType, (GLsizei)ret->getRawImageSize(j), raw));
 			}
-		}
-	}
+		//}
+	//}
 
 	return ret;
 }
@@ -1184,6 +1188,7 @@ bool Texture::loadImage(const Image& _img)
 	 // special-case 3x2 cubemaps
 		m_width /= 2;
 		m_height /= 3;
+		m_mipCount = _img.getMipmapCount() == 1 ? (GLint)GetMaxMipCount(m_width, m_height) : (GLint) _img.getMipmapCount();
 		alloc = AllocCubemap;
 		upload = UploadCubemap3x2;
 	} else {
