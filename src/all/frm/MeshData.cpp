@@ -174,13 +174,11 @@ MeshData* MeshData::Create(const char* _path)
 	MeshData* ret = new MeshData();
 	ret->m_path.set(_path);
 
-	const char* ext = FileSystem::GetExtension(_path);
-
-	if (strcmp(ext, "obj") == 0) {
+	if        (FileSystem::CompareExtension("obj", _path)) {
 		if (!ReadObj(*ret, f.getData(), f.getDataSize())) {
 			goto MeshData_Create_error;
 		}
-	} else if (strcmp(ext, "md5mesh") == 0) {
+	} else if (FileSystem::CompareExtension("md5mesh", _path)) {
 		if (!ReadMd5(*ret, f.getData(), f.getDataSize())) {
 			goto MeshData_Create_error;
 		}

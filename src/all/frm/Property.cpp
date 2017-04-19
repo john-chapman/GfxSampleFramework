@@ -278,17 +278,15 @@ static bool EditColor(Property& _prop)
 static bool EditPath(Property& _prop)
 {
 	bool ret = false;
-	StringBase& propData = *((StringBase*)_prop.getData());
+	StringBase& pth = *((StringBase*)_prop.getData());
 	if (ImGui::Button(_prop.getDisplayName())) {
-		FileSystem::PathStr tmp = propData;
-		if (FileSystem::PlatformSelect(tmp)) {
-			FileSystem::MakeRelative(tmp);
-			propData = tmp;
+		if (FileSystem::PlatformSelect(pth)) {
+			FileSystem::MakeRelative(pth);
 			ret = true;
 		}
 	}
 	ImGui::SameLine();
-	ImGui::Text(ICON_FA_FLOPPY_O "  \"%s\"", (const char*)propData);
+	ImGui::Text(ICON_FA_FLOPPY_O "  \"%s\"", (const char*)pth);
 	return ret;
 }
 
