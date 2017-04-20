@@ -31,7 +31,8 @@ TextureView::TextureView(Texture* _texture)
 	, m_mip(0)
 	, m_array(0)
 {
-	m_rgbaMask[0] = m_rgbaMask[1] = m_rgbaMask[2] = m_rgbaMask[3] = true;
+	m_rgbaMask[0] = m_rgbaMask[1] = m_rgbaMask[2] = /*m_rgbaMask[3] = */true;
+	m_rgbaMask[3] = false; // alpha off by default
 	if (m_texture) {
 		m_size = vec2(_texture->getWidth(), _texture->getHeight());
 		//Texture::Use(m_texture);
