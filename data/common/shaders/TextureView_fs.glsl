@@ -31,6 +31,8 @@ uniform int   uIsDepth;
 	uniform TextureType txTexture;
 #endif
 
+uniform sampler2D txRadar;
+
 layout(location=0) out vec4 fResult;
 
 void main() 
@@ -71,13 +73,19 @@ void main()
 	#endif
 
 	if (bool(uIsDepth)) {
-		ret.rgb = vec3(fract(abs(ret.r) * 1024.0)); // \todo better depth/stencil vis
+		ret.rgb = textureLod(txRadar, vec2(fract(ret.r * 1024.0), 0.5), 0.0).rgb;
 	}
 	if (any(isnan(ret))) {
-		ret = vec4(1.0, 0.0, 0.0, 1.0);
+		vec2 nanUv = vec2(gl_FragCoord.xy) / 16.0;
+		nanUv.x = mix(0.5, 1.0, fract(nanUv.x));
+		nanUv.y = 1.0 - nanUv.y;
+		ret = vec4(textureLod(txRadar, nanUv, 0.0).a) + vec4(0.5, 0.0, 0.0, 1.0);
 	}
 	if (any(isinf(ret))) {
-		ret = vec4(1.0, 0.0, 1.0, 1.0);
+		vec2 infUv = vec2(gl_FragCoord.xy) / 16.0;
+		infUv.x = mix(0.0, 0.5, fract(infUv.x));
+		infUv.y = 1.0 - infUv.y;
+		ret = vec4(textureLod(txRadar, infUv, 0.0).a) + vec4(0.5, 0.25, 0.0, 1.0);
 	}
 	
 	fResult = ret;
