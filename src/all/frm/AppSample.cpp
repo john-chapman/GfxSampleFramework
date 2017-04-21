@@ -381,6 +381,7 @@ static Shader*     g_shTextureView[frm::internal::kTextureTargetCount]; // shade
 static Mesh*       g_msImGui;
 static Texture*    g_txImGui;
 static TextureView g_txViewImGui; // default texture view for the ImGui texture
+static Texture*    g_txRadar;
 
 bool AppSample::ImGui_Init()
 {
@@ -413,6 +414,13 @@ bool AppSample::ImGui_Init()
 		APT_VERIFY(g_shTextureView[i] = Shader::Create(desc));
 		g_shTextureView[i]->setNamef("#TextureViewer_%s", internal::GlEnumStr(internal::kTextureTargets[i]) + 3);
 	}
+
+ // radar texture
+	if (g_txRadar) {
+		Texture::Release(g_txRadar);
+	}
+	g_txRadar = Texture::Create("textures/radar.tga");
+	g_txRadar->setName("#TextureViewer_radar");
 
  // fonts texture
 	if (g_txImGui) {
@@ -639,6 +647,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 				ctx->setUniform ("uRgbaMask",   uvec4(txView->m_rgbaMask[0], txView->m_rgbaMask[1], txView->m_rgbaMask[2], txView->m_rgbaMask[3]));
 				ctx->setUniform ("uIsDepth",    (int)(txView->m_texture->isDepth()));
 				ctx->bindTexture("txTexture",   txView->m_texture);
+				ctx->bindTexture("txRadar",     g_txRadar);
 
                 glAssert(glScissor((int)pcmd->ClipRect.x, (int)(fbY - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y)));
 				glAssert(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, GL_UNSIGNED_SHORT, (GLvoid*)indexOffset));

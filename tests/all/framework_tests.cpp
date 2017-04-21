@@ -67,7 +67,7 @@ public:
 		}
 	
 		m_txTest = Texture::Create("textures/lena.png");
-		//m_txTest->generateMipmap();
+		m_txTest->generateMipmap();
 
 		return true;
 	}
