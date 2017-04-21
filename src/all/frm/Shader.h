@@ -136,17 +136,17 @@ public:
 	const ShaderDesc& getDesc() const { return m_desc; }
 
 	// Compute shader only.
-	int getLocalSizeX() const { return m_localSize[0]; }
-	int getLocalSizeY() const { return m_localSize[1]; }
-	int getLocalSizeZ() const { return m_localSize[2]; }
-
+	int  getLocalSizeX() const { return m_localSize[0]; }
+	int  getLocalSizeY() const { return m_localSize[1]; }
+	int  getLocalSizeZ() const { return m_localSize[2]; }
+	void setLocalSize(int _x, int _y = 1, int _z = 1);
 private:
 	GLuint     m_handle;
 
 	ShaderDesc m_desc;
 	GLuint     m_stageHandles[internal::kShaderStageCount];
 
-	int m_localSize[3]; // Compute shader only.
+	int m_localSize[3]; // compute shader only
 
 	// Get/free info log for a shader stage.
 	static const char* GetStageInfoLog(GLuint _handle);
@@ -160,7 +160,7 @@ private:
 	~Shader();	
 
 	// Load the specified stage, return status.
-	bool loadStage(int _i);
+	bool loadStage(int _i, bool _loadSource = true);
 
 	// Set the name automatically based on desc.
 	void setAutoName();

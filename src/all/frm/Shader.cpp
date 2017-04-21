@@ -134,6 +134,16 @@ struct ShaderViewer
 						
 						ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);
 						ImGui::BeginChild("stageInfo", ImVec2(0.0f, 0.0f), true, ImGuiWindowFlags_AlwaysAutoResize);
+						 // compute local size
+							if (desc.hasStage(GL_COMPUTE_SHADER) && ImGui::TreeNode("Local Size")) {
+								ivec3 sz = ivec3(sh->getLocalSizeX(), sh->getLocalSizeY(), sh->getLocalSizeZ());
+								bool reload = false;
+								if (ImGui::InputInt3("Local Size", &sz.x, ImGuiInputTextFlags_EnterReturnsTrue)) {
+									sh->setLocalSize(sz.x, sz.y, sz.z);
+								}
+								
+								ImGui::TreePop();
+							}
 						 // defines
 							if (desc.getDefineCount(m_selectedStage) > 0 && ImGui::TreeNode("Defines")) {
 								for (int i = 0, n = desc.getDefineCount(m_selectedStage); i < n; ++i) {
@@ -273,6 +283,16 @@ template <>
 void ShaderDesc::addDefine<const char*>(GLenum _stage, const char* _name, const char* const & _value)
 {
 	int i = internal::ShaderStageToIndex(_stage);
+
+ // find/modify an existing define
+	for (auto& def : m_stages[i].m_defines) {
+		if (def.find(_name)) {
+			def.setf("%s %s", _name, _value);
+			return;
+		}
+	}
+
+ // not found, push a new one
 	m_stages[i].m_defines.push_back(StageDesc::DefineStr("%s %s", _name, _value));
 }
 
@@ -574,6 +594,19 @@ GLint Shader::getUniformLocation(const char* _name) const
 	return ret;
 }
 
+void Shader::setLocalSize(int _x, int _y, int _z)
+{
+	APT_ASSERT(m_desc.hasStage(GL_COMPUTE_SHADER));
+	m_desc.addDefine(GL_COMPUTE_SHADER, "LOCAL_SIZE_X", _x);
+	m_desc.addDefine(GL_COMPUTE_SHADER, "LOCAL_SIZE_Y", _y);
+	m_desc.addDefine(GL_COMPUTE_SHADER, "LOCAL_SIZE_Z", _z);
+	if (loadStage(internal::ShaderStageToIndex(GL_COMPUTE_SHADER), false)) {
+		m_localSize[0] = _x;
+		m_localSize[1] = _y;
+		m_localSize[2] = _z;
+	}
+}
+
 // PRIVATE
 
 const char* Shader::GetStageInfoLog(GLuint _handle)
@@ -642,13 +675,13 @@ static void AppendLine(const char* _str, eastl::vector<char>& _out_)
 	_out_.push_back('\n');
 }
 
-bool Shader::loadStage(int _i)
+bool Shader::loadStage(int _i, bool _loadSource)
 {
 	ShaderDesc::StageDesc& desc = m_desc.m_stages[_i];
 	APT_ASSERT(desc.isEnabled());
 
  // process source file if required
-	if (!desc.m_path.isEmpty()) {
+	if (_loadSource && !desc.m_path.isEmpty()) {
 		ShaderPreprocessor sp;
 		if (!sp.process(desc.m_path)) {
 			return false;
