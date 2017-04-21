@@ -278,7 +278,7 @@ static bool EditColor(Property& _prop)
 static bool EditPath(Property& _prop)
 {
 	bool ret = false;
-	StringBase& pth = *((StringBase*)_prop.getData());
+	FileSystem::PathStr& pth = *((FileSystem::PathStr*)_prop.getData());
 	if (ImGui::Button(_prop.getDisplayName())) {
 		if (FileSystem::PlatformSelect(pth)) {
 			FileSystem::MakeRelative(pth);
