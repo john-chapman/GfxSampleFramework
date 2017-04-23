@@ -113,6 +113,10 @@ float sqrt_safe(in float x)
 {
 	return sqrt(max(x, 0.0));
 }
+float length_safe(in vec2 v)
+{
+	return sqrt_safe(dot(v, v));
+}
 
 // Linearizing depth requires applying the inverse of Z part of the projection matrix, which depends on how the matrix was set up.
 // The following variants correspond to ProjFlags_; see frm/Camera.h for more info.
