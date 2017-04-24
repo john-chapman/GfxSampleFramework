@@ -231,8 +231,7 @@ int Node::moveXForm(int _i, int _dir)
                                    Scene
 
 *******************************************************************************/
-static Scene s_defaultScene;
-Scene* Scene::s_currentScene = &s_defaultScene;
+Scene* Scene::s_currentScene;
 
 void frm::swap(Scene& _a, Scene& _b)
 {
@@ -701,7 +700,7 @@ void Scene::edit()
 				//	Im3d::Vertex(Im3d::Vec3(0.0f), 4.0f, kNodeTypeCol[_node_->getType()]);
 				//Im3d::End();
 				Im3d::SetIdentity();
-				if (_node_->getParent() && _node_->getParent() != Scene::GetCurrent().getRoot()) {
+				if (_node_->getParent() && _node_->getParent() != Scene::GetCurrent()->getRoot()) {
 					Im3d::SetColor(1.0f, 0.0f, 1.0f);
 					Im3d::BeginLines();
 						Im3d::SetAlpha(0.25f);

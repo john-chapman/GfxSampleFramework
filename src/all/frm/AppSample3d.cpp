@@ -29,8 +29,12 @@ bool AppSample3d::init(const apt::ArgList& _args)
 		return false;
 	}
 
-	if (!Scene::Load(m_scenePath, Scene::GetCurrent())) {
- 		Camera* defaultCamera = Scene::GetCurrent().createCamera(Camera());
+	m_scene = new Scene;
+	Scene::SetCurrent(m_scene);
+
+	if (!Scene::Load(m_scenePath, *m_scene)) {
+ 		Camera* defaultCamera = m_scene->createCamera(Camera());
+		defaultCamera->updateGpuBuffer(); // alloc the gpu buffer
 		Node* defaultCameraNode = defaultCamera->m_parent;
 		defaultCameraNode->setStateMask(Node::State_Active | Node::State_Dynamic | Node::State_Selected);
 		XForm* freeCam = XForm::Create("XForm_FreeCamera");
@@ -43,6 +47,9 @@ bool AppSample3d::init(const apt::ArgList& _args)
 
 void AppSample3d::shutdown()
 {
+	Scene::SetCurrent(nullptr);
+	delete m_scene;
+
 	Im3d_Shutdown();
 	AppSample::shutdown();
 }
@@ -54,11 +61,11 @@ bool AppSample3d::update()
 	}
 	Im3d_Update(this);
 
-	Scene& scene = Scene::GetCurrent();
+	Scene& scene = *Scene::GetCurrent();
 	scene.update((float)m_deltaTime, Node::State_Active | Node::State_Dynamic);
 	#ifdef frm_Scene_ENABLE_EDIT
 		if (m_showSceneEditor) {
-			Scene::GetCurrent().edit();
+			Scene::GetCurrent()->edit();
 		}
 	#endif
 
@@ -142,16 +149,16 @@ void AppSample3d::drawMainMenuBar()
 		if (ImGui::MenuItem("Load...")) {
 			if (FileSystem::PlatformSelect(m_scenePath, "*.json")) {
 				FileSystem::MakeRelative(m_scenePath);
-				Scene::Load(m_scenePath, Scene::GetCurrent());
+				Scene::Load(m_scenePath, *m_scene);
 			}
 		}
 		if (ImGui::MenuItem("Save")) {
-			Scene::Save(m_scenePath, Scene::GetCurrent());
+			Scene::Save(m_scenePath, *m_scene);
 		}
 		if (ImGui::MenuItem("Save As...")) {
 			if (FileSystem::PlatformSelect(m_scenePath, "*.json")) {
 				FileSystem::MakeRelative(m_scenePath);
-				Scene::Save(m_scenePath, Scene::GetCurrent());
+				Scene::Save(m_scenePath, *m_scene);
 			}
 		}
 

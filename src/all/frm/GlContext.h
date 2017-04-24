@@ -55,8 +55,8 @@ public:
 	// with _buffer bound as GL_DRAW_INDIRECT_BUFFER.
 	void drawIndirect(const Buffer* _buffer, const void* _offset = nullptr);
 	
-	// Draw a quad with vertices in [-1,1]. If _cam is specified, send uniforms for generating
-	// view rays (see common/shaders/NdcQuad_vs.glsl).
+	// Draw a quad with vertices in [-1,1]. If _cam is specified, bind the camera buffer
+	// (see shaders/Camera.glsl) or send uniforms if no buffer.
 	void drawNdcQuad(const Camera* _cam = nullptr);
 
 	// Dispatch a compute shader with the specified number of work groups.

@@ -48,6 +48,13 @@ public:
 	};
 
 	Camera(Node* _parent = nullptr);
+	~Camera();
+	
+	Camera(const Camera& _rhs);
+	Camera(Camera&& _rhs);
+	Camera& operator=(Camera&& _rhs);
+	friend void swap(Camera& _a_, Camera& _b_);
+
 
 	bool serialize(apt::JsonSerializer& _serializer_);
 	void edit();
@@ -68,11 +75,14 @@ public:
 
 	
 	// Update the derived members (view matrix + world frustum, proj matrix + local frustum if dirty).
+	// Update m_gpuBuffer if != null (else call updateGpuBuffer()).
 	void update();
 	// Update the view matrix + world frustum. Called by update().
 	void updateView();
 	// Update the projection matrix + local frustum. Called by update().
 	void updateProj();
+	// Fill _buffer_ with camera members, else alloc/update m_gpuBuffer.
+	void updateGpuBuffer(Buffer* _buffer_ = nullptr);
 	
 
 	// Proj flag helpers.
@@ -83,7 +93,6 @@ public:
 	vec3 getPosition() const    { return vec3(apt::column(m_world, 3));  }
 	// Extract view direction from world matrix. Projection is along -z, hence the negation.
 	vec3 getViewVector() const  { return -vec3(apt::column(m_world, 2)); }
-
 
 	uint32  m_projFlags;      // Combination of ProjFlag_ enums.
 	bool    m_projDirty;      // Whether to rebuild the projection matrix/local frustum during update().
@@ -100,10 +109,33 @@ public:
 	mat4    m_view;
 	mat4    m_proj;
 	mat4    m_viewProj;
+	mat4    m_inverseProj;
 	float   m_aspectRatio;    // Derived from the projection parameters.
 
 	Frustum m_localFrustum;   // Derived from the projection parameters.
 	Frustum m_worldFrustum;   // World space frustum (use for culling).
+
+	struct GpuBuffer
+	{
+		mat4   m_world;
+		mat4   m_view;
+		mat4   m_proj;
+		mat4   m_viewProj;
+		mat4   m_inverseProj;
+		mat4   m_inverseViewProj;
+		float  m_up;
+		float  m_down;
+		float  m_right;
+		float  m_left;
+		float  m_near;
+		float  m_far;
+		float  m_aspectRatio;
+		uint32 m_projFlags;
+	};
+	Buffer* m_gpuBuffer;
+
+private:
+	void defaultInit();
 
 }; // class Camera
 

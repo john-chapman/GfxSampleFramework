@@ -141,8 +141,8 @@ class Scene
 public:
 	typedef bool (OnVisit)(Node* _node_);
 
-	static Scene&  GetCurrent()                      { return *s_currentScene; }
-	static void    SetCurrent(Scene& _scene)         { s_currentScene = &_scene; }
+	static Scene*  GetCurrent()                      { return s_currentScene; }
+	static void    SetCurrent(Scene* _scene)         { s_currentScene = _scene; }
 
 	static Camera* GetDrawCamera()                   { return s_currentScene->getDrawCamera(); }
 	static Camera* GetCullCamera()                   { return s_currentScene->getCullCamera(); }

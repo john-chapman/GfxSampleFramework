@@ -98,13 +98,17 @@ void GlContext::drawNdcQuad(const Camera* _cam)
 	}
 
 	if (_cam) {
-		setUniform("uCameraNear",        _cam->m_near);
-		setUniform("uCameraFar",         _cam->m_far);
-		setUniform("uCameraTanHalfFov",  _cam->m_up);
-		setUniform("uCameraAspectRatio", _cam->m_aspectRatio);
-		setUniform("uCameraWorldMatrix", _cam->m_world);
+		if (_cam->m_gpuBuffer) {
+			bindBuffer("_bfCamera", _cam->m_gpuBuffer);
+		} else {
+		 // legacy
+			setUniform("uCameraNear",        _cam->m_near);
+			setUniform("uCameraFar",         _cam->m_far);
+			setUniform("uCameraTanHalfFov",  _cam->m_up);
+			setUniform("uCameraAspectRatio", _cam->m_aspectRatio);
+			setUniform("uCameraWorldMatrix", _cam->m_world);
+		}
 	}
-
 	const Mesh* prevMesh = m_currentMesh;
 	setMesh(m_ndcQuadMesh);
 	draw();
