@@ -31,18 +31,28 @@ layout(std140) uniform _bfCamera
 	Camera_GpuBuffer bfCamera;
 };
 
+vec3 Camera_GetPosition()
+{
+	return bfCamera.m_world[3].xyz;
+}
+
+float Camera_GetDepthRange()
+{
+	return bfCamera.m_far - bfCamera.m_near;
+}
+
 // Calls the appropriate LinearizeDepth_* function based on bfCamera.m_projFlags.
 float Camera_LinearizeDepth(in float _depth)
 {
 	uint projFlags = bfCamera.m_projFlags;
-	if        ((projFlags & (Camera_ProjFlag_Infinite | Camera_ProjFlag_Reversed)) != 0) {
+	if        ((projFlags & Camera_ProjFlag_Infinite) != 0 && (projFlags & Camera_ProjFlag_Reversed) != 0) {
 		return LinearizeDepth_InfiniteReversed(_depth, bfCamera.m_near);
 	} else if ((projFlags & Camera_ProjFlag_Infinite) != 0) {
 		return LinearizeDepth_Infinite(_depth, bfCamera.m_near);
 	} else if ((projFlags & Camera_ProjFlag_Reversed) != 0) {
 		return LinearizeDepth_Reversed(_depth, bfCamera.m_near, bfCamera.m_far);
 	} else {
-		return LinearizeDepth_Reversed(_depth, bfCamera.m_near, bfCamera.m_far);
+		return LinearizeDepth(_depth, bfCamera.m_near, bfCamera.m_far);
 	}
 }
 

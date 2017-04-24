@@ -94,6 +94,13 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 #define k2Pi    (6.28318530718)
 #define kHalfPi (1.57079632679)
 
+#define Color_Red      vec3(1.0, 0.0, 0.0)
+#define Color_Green    vec3(0.0, 1.0, 0.0)
+#define Color_Blue     vec3(0.0, 0.0, 1.0)
+#define Color_Magenta  vec3(1.0, 0.0, 1.0)
+#define Color_Yellow   vec3(1.0, 1.0, 0.0)
+#define Color_Cyan     vec3(0.0, 1.0, 1.0)
+
 #define saturate(_x) clamp((_x), 0.0, 1.0)
 
 
