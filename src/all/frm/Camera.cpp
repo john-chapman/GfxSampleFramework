@@ -1,4 +1,5 @@
 #include <frm/Camera.h>
+#include <frm/Buffer.h>
 #include <frm/Scene.h>
 
 #include <apt/Json.h>
@@ -12,19 +13,63 @@ using namespace apt;
 // PUBLIC
 
 Camera::Camera(Node* _parent)
-	: m_projFlags(ProjFlag_Default)
-	, m_projDirty(true)
-	, m_up(1.0f)
-	, m_down(-1.0f)
-	, m_right(1.0f)
-	, m_left(-1.0f)
-	, m_near(1.0f)
-	, m_far(1000.0f)
-	, m_parent(_parent)
-	, m_world(1.0f)
-	, m_proj(0.0f)
-	, m_aspectRatio(1.0f)
 {
+	defaultInit();
+	m_parent = _parent;
+}
+
+Camera::~Camera()
+{
+	if (m_gpuBuffer) {
+		Buffer::Destroy(m_gpuBuffer);
+	}
+}
+
+Camera::Camera(const Camera& _rhs)
+{
+	memcpy(this, &_rhs, sizeof(Camera));
+	if (_rhs.m_gpuBuffer) {
+		m_gpuBuffer = nullptr;
+		updateGpuBuffer();
+	}
+}
+Camera::Camera(Camera&& _rhs)
+{
+	if (this != &_rhs) {
+		memcpy(this, &_rhs, sizeof(Camera));
+		_rhs.defaultInit();
+	}
+}
+Camera& Camera::operator=(Camera&& _rhs)
+{
+	if (&_rhs != this) {
+		swap(*this, _rhs);
+	}
+	return *this;
+}
+
+void frm::swap(Camera& _a_, Camera& _b_)
+{
+	using eastl::swap;
+	
+	swap(_a_.m_projFlags,    _b_.m_projFlags);
+	swap(_a_.m_projDirty,    _b_.m_projDirty);
+	swap(_a_.m_up,           _b_.m_up);
+	swap(_a_.m_down,         _b_.m_down);
+	swap(_a_.m_right,        _b_.m_right);
+	swap(_a_.m_left,         _b_.m_left);
+	swap(_a_.m_near,         _b_.m_near);
+	swap(_a_.m_far,          _b_.m_far);
+	swap(_a_.m_parent,       _b_.m_parent);
+	swap(_a_.m_world,        _b_.m_world);
+	swap(_a_.m_view,         _b_.m_view);
+	swap(_a_.m_proj,         _b_.m_proj);
+	swap(_a_.m_viewProj,     _b_.m_viewProj);
+	swap(_a_.m_inverseProj,  _b_.m_inverseProj);
+	swap(_a_.m_aspectRatio,  _b_.m_aspectRatio);
+	swap(_a_.m_localFrustum, _b_.m_localFrustum);
+	swap(_a_.m_worldFrustum, _b_.m_worldFrustum);
+	swap(_a_.m_gpuBuffer,    _b_.m_gpuBuffer);
 }
 
 bool Camera::serialize(JsonSerializer& _serializer_)
@@ -47,6 +92,9 @@ bool Camera::serialize(JsonSerializer& _serializer_)
 	_serializer_.value("Infinite",     infinite);
 	_serializer_.value("Reversed",     reversed);
 
+	bool hasGpuBuffer = m_gpuBuffer != nullptr;
+	_serializer_.value("HasGpuBuffer", hasGpuBuffer);
+
 	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		setProjFlag(ProjFlag_Orthographic, orthographic);
 		setProjFlag(ProjFlag_Asymmetrical, asymmetrical);
@@ -55,6 +103,10 @@ bool Camera::serialize(JsonSerializer& _serializer_)
 		
 		m_aspectRatio = fabs(m_right - m_left) / fabs(m_up - m_down);
 		m_projDirty = true;
+
+		if (hasGpuBuffer) {
+			updateGpuBuffer();
+		}
 	}
 	return true;
 }
@@ -352,6 +404,9 @@ void Camera::update()
 		updateProj();	
 	}
 	updateView();
+	if (m_gpuBuffer) {
+		updateGpuBuffer();
+	}
 }
 
 void Camera::updateView()
@@ -470,5 +525,52 @@ void Camera::updateProj()
 		}
 	}
 
+	m_inverseProj = inverse(m_proj);
 	m_projDirty = false;
+}
+
+void Camera::updateGpuBuffer(Buffer* _buffer_)
+{
+	Buffer*	buf = m_gpuBuffer;
+	if (_buffer_) {
+		APT_ASSERT(_buffer_->getSize() >= sizeof(GpuBuffer));
+		buf = _buffer_;
+	} else if (!buf) {
+		m_gpuBuffer = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(GpuBuffer), GL_DYNAMIC_STORAGE_BIT);
+		m_gpuBuffer->setName("_bfCamera");
+		buf = m_gpuBuffer;
+	}
+	GpuBuffer data;
+	data.m_world           = m_world;
+	data.m_view            = m_view;
+	data.m_proj            = m_proj;
+	data.m_viewProj        = m_viewProj;
+	data.m_inverseProj     = m_inverseProj;
+	data.m_inverseViewProj = m_world * m_inverseProj;
+	data.m_up              = m_up;
+	data.m_down            = m_down;
+	data.m_right           = m_right;
+	data.m_left            = m_left;
+	data.m_near            = m_near;
+	data.m_far             = m_far;
+	data.m_aspectRatio     = m_aspectRatio;
+	data.m_projFlags       = m_projFlags;
+	buf->setData(sizeof(GpuBuffer), &data);
+}
+
+void Camera::defaultInit()
+{
+	m_projFlags          = ProjFlag_Default;
+	m_projDirty          = true;
+	m_up                 = 1.0f;
+	m_down               = -1.0f;
+	m_right              = 1.0f;
+	m_left               = -1.0f;
+	m_near               = 1.0f;
+	m_far                = 1000.0f;
+	m_parent             = nullptr;
+	m_world              = mat4(1.0f);
+	m_proj               = mat4(1.0f);
+	m_aspectRatio        = 1.0f;
+	m_gpuBuffer          = nullptr;
 }

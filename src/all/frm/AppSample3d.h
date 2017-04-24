@@ -41,6 +41,7 @@ protected:
 	virtual ~AppSample3d();
 
 	Camera* m_dbgCullCamera;
+	Scene* m_scene;
 
 	bool m_showHelpers;
 	bool m_showSceneEditor;

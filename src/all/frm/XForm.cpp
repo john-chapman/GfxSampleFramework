@@ -288,7 +288,7 @@ void XForm_LookAt::apply(float _dt)
 	vec3 posW = GetTranslation(m_node->getWorldMatrix());
 	vec3 targetW = m_offset;
 	if_unlikely (m_targetId != Node::kInvalidId && m_target == nullptr) {
-		m_target = Scene::GetCurrent().findNode(m_targetId);
+		m_target = Scene::GetCurrent()->findNode(m_targetId);
 	}
 	if (m_target) {
 		targetW += GetTranslation(m_target->getWorldMatrix());
@@ -300,7 +300,7 @@ void XForm_LookAt::edit()
 {
 	ImGui::PushID(this);
 	Im3d::PushId(this);
-	Scene& scene = Scene::GetCurrent();
+	Scene& scene = *Scene::GetCurrent();
 	if (ImGui::Button("Target Node")) {
 		scene.beginSelectNode();
 	}
