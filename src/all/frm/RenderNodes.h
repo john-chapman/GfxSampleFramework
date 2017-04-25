@@ -24,12 +24,16 @@ public:
 	};
 	Data m_data;
 
-	bool init(Properties& _props_);
+	void setProps(Properties& _props_);
+	bool init();
 	void shutdown();
 
 	void draw(GlContext* _ctx_, const Texture* _src, const Framebuffer* _dst);
 
+	void edit();
+	bool isEnabled() const { return m_enabled; }
 private:
+	bool    m_enabled;
 	Shader* m_shader;
 	Buffer* m_bfData;
 
