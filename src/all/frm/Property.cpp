@@ -431,9 +431,7 @@ bool PropertyGroup::serialize(JsonSerializer& _serializer_)
 {
 	if (_serializer_.beginObject(m_name)) {
 		for (auto& it : m_props) {
-			if (!it.second->serialize(_serializer_)) {
-				return false;
-			}
+			it.second->serialize(_serializer_);
 		}
 		_serializer_.endObject();
 		return true;
@@ -505,9 +503,7 @@ bool Properties::edit(bool _showHidden)
 bool Properties::serialize(JsonSerializer& _serializer_)
 {
 	for (auto& it : m_groups) {
-		if (!it.second->serialize(_serializer_)) {
-			return false;
-		}
+		it.second->serialize(_serializer_);
 	}
 	return true;
 }
