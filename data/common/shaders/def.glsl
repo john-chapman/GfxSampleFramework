@@ -170,5 +170,9 @@ float Rand(in vec2 _seed)
 {
 	return fract(sin(dot(_seed.xy, vec2(12.9898, 78.233))) * 43758.5453);
 }
+float Rand(in float _seedX, in float _seedY)
+{
+	return Rand(vec2(_seedX, _seedY));
+}
 
 #endif // common_def_glsl
