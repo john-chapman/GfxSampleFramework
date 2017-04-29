@@ -90,10 +90,13 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 	return vec4(Gamma_ApplyInverse(_v.x), Gamma_ApplyInverse(_v.y), Gamma_ApplyInverse(_v.z), Gamma_ApplyInverse(_v.w));
 }
 
+// Constants
 #define kPi     (3.14159265359)
 #define k2Pi    (6.28318530718)
 #define kHalfPi (1.57079632679)
 
+#define Color_Black    vec3(0.0)
+#define Color_White    vec3(1.0)
 #define Color_Red      vec3(1.0, 0.0, 0.0)
 #define Color_Green    vec3(0.0, 1.0, 0.0)
 #define Color_Blue     vec3(0.0, 0.0, 1.0)
@@ -101,29 +104,14 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 #define Color_Yellow   vec3(1.0, 1.0, 0.0)
 #define Color_Cyan     vec3(0.0, 1.0, 1.0)
 
-#define saturate(_x) clamp((_x), 0.0, 1.0)
 
+// Functions
 
-float length2(in vec2 v) {
-	return v.x * v.x + v.y * v.y;
-}
-float length2(in vec3 v) 
-{
-	return v.x * v.x + v.y * v.y + v.z * v.z;
-}
-float length2(in vec4 v) 
-{
-	return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
-}
+#define saturate(_x)    clamp((_x), 0.0, 1.0)
+#define length2(_v)     dot(_v, _v)
+#define sqrt_safe(_x)   sqrt(max(_x, 0.0))
+#define length_safe(_v) sqrt_safe(dot(_v, _v))
 
-float sqrt_safe(in float x)
-{
-	return sqrt(max(x, 0.0));
-}
-float length_safe(in vec2 v)
-{
-	return sqrt_safe(dot(v, v));
-}
 
 // Linearizing depth requires applying the inverse of Z part of the projection matrix, which depends on how the matrix was set up.
 // The following variants correspond to ProjFlags_; see frm/Camera.h for more info.
@@ -163,16 +151,6 @@ float LinearizeDepth_InfiniteReversed(in float _depth, in float _near)
 		float zndc = _depth * 2.0 - 1.0;
 		return 2.0 * _near / (zndc + 1.0);
 	#endif
-}
-
-
-float Rand(in vec2 _seed)
-{
-	return fract(sin(dot(_seed.xy, vec2(12.9898, 78.233))) * 43758.5453);
-}
-float Rand(in float _seedX, in float _seedY)
-{
-	return Rand(vec2(_seedX, _seedY));
 }
 
 #endif // common_def_glsl

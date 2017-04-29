@@ -53,6 +53,7 @@ void ColorCorrection::draw(GlContext* _ctx_, const Texture* _src, const Framebuf
 		AUTO_MARKER("Color Correction");
 		_ctx_->setFramebufferAndViewport(_dst);
 		_ctx_->setShader(m_shader);
+		_ctx_->setUniform("uTime", m_time++);
 		_ctx_->bindTexture("txInput", _src);
 		_ctx_->bindBuffer(m_bfData);
 		_ctx_->drawNdcQuad();

@@ -13,6 +13,7 @@ noperspective in vec3 vFrustumRayW;
 
 layout(location=0) out vec3 fResult;
 
+uniform float churn;
 void main() 
 {
 #if   defined(ENVMAP_CUBE)
@@ -20,5 +21,5 @@ void main()
 #elif defined(ENVMAP_SPHERE)
 	vec3 ret = textureLod(txEnvmap, Envmap_GetSphereUv(normalize(vFrustumRayW)), 0.0).rgb;
 #endif
-	fResult = ret;
+	fResult = ret;	
 }
