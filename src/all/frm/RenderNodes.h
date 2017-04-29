@@ -33,6 +33,7 @@ public:
 	void edit();
 	bool isEnabled() const { return m_enabled; }
 private:
+	uint32  m_time;
 	bool    m_enabled;
 	Shader* m_shader;
 	Buffer* m_bfData;

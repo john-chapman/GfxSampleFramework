@@ -1,9 +1,11 @@
 #include "shaders/def.glsl"
-#include "shaders/Envmap.glsl"
+#include "shaders/Rand.glsl"
 
 noperspective in vec2 vUv;
 
 uniform sampler2D txInput;
+
+uniform uint uTime;
 
 struct Data
 {
@@ -87,10 +89,14 @@ void main()
  // tonemap
 	ret = Tonemap_ACES_Hill(ret);
 
- // saturation
-	vec3 gray = vec3(dot(kLumaWeights, ret));
-	ret = gray + bfData.m_saturation * (ret - gray);	
+ // \todo film grain
+	//float rnd = Rand_FloatMantissa(Rand_Hash(uint(gl_FragCoord.x * 698.0 + gl_FragCoord.y) + Rand_Hash(uTime)));
+	//ret -= vec3(rnd * 0.03);
 
+ // saturation/grain
+	vec3 gray = vec3(dot(kLumaWeights, ret));
+	ret = gray + bfData.m_saturation * (ret - gray);
+	
  // display gamma
 	ret = pow(ret, vec3(1.0/2.2));
 	
