@@ -35,7 +35,8 @@ public:
 private:
 	uint32  m_time;
 	bool    m_enabled;
-	Shader* m_shader;
+	Shader* m_shColorCorrection;
+	Shader* m_shBlit;
 	Buffer* m_bfData;
 
 }; // class ColorCorrection
