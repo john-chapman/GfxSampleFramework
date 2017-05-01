@@ -161,7 +161,7 @@ void GlContext::setFramebufferAndViewport(const Framebuffer* _framebuffer)
 	}
 }
 
-void GlContext::blitFramebuffer(Framebuffer* _src, Framebuffer* _dst, GLbitfield _mask, GLenum _filter)
+void GlContext::blitFramebuffer(const Framebuffer* _src, const Framebuffer* _dst, GLbitfield _mask, GLenum _filter)
 {
 	glAssert(glBlitNamedFramebuffer(
 		_src ? _src->getHandle() : 0,
