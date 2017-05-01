@@ -87,7 +87,7 @@ public:
 	int  getViewportWidth() const                { return m_viewportWidth; }
 	int  getViewportHeight() const               { return m_viewportHeight; }
 
-	void blitFramebuffer(Framebuffer* _src, Framebuffer* _dst, GLbitfield _mask = GL_COLOR_BUFFER_BIT, GLenum _filter = GL_NEAREST);
+	void blitFramebuffer(const Framebuffer* _src, const Framebuffer* _dst, GLbitfield _mask = GL_COLOR_BUFFER_BIT, GLenum _filter = GL_NEAREST);
 	
  // SHADER
 
