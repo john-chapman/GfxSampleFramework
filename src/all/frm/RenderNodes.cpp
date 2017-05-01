@@ -3,6 +3,7 @@
 #include <frm/gl.h>
 #include <frm/Property.h>
 #include <frm/Buffer.h>
+#include <frm/Framebuffer.h>
 #include <frm/GlContext.h>
 #include <frm/Profiler.h>
 #include <frm/Shader.h>
@@ -35,29 +36,34 @@ void ColorCorrection::setProps(Properties& _props_)
 
 bool ColorCorrection::init()
 {
-	m_shader = Shader::CreateVsFs("shaders/Basic_vs.glsl", "shaders/ColorCorrection_fs.glsl");
+	m_shColorCorrection = Shader::CreateVsFs("shaders/Basic_vs.glsl", "shaders/ColorCorrection_fs.glsl");
+	m_shBlit = Shader::CreateVsFs("shaders/Basic_vs.glsl", "shaders/Basic_fs.glsl");
 	m_bfData = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(Data), GL_DYNAMIC_STORAGE_BIT, &m_data);
 	m_bfData->setName("_bfData");
 
-	return m_shader && m_bfData;
+	return m_shColorCorrection && m_shBlit && m_bfData;
 }
 
 void ColorCorrection::shutdown()
 {
-	Shader::Release(m_shader);
+	Shader::Release(m_shColorCorrection);
+	Shader::Release(m_shBlit);
 }
 
 void ColorCorrection::draw(GlContext* _ctx_, const Texture* _src, const Framebuffer* _dst)
 {
+	AUTO_MARKER("Color Correction");
+	_ctx_->setFramebufferAndViewport(_dst);
 	if (m_enabled) {
-		AUTO_MARKER("Color Correction");
-		_ctx_->setFramebufferAndViewport(_dst);
-		_ctx_->setShader(m_shader);
+		_ctx_->setShader(m_shColorCorrection);
 		_ctx_->setUniform("uTime", m_time++);
 		_ctx_->bindTexture("txInput", _src);
 		_ctx_->bindBuffer(m_bfData);
-		_ctx_->drawNdcQuad();
+	} else {
+		_ctx_->setShader(m_shBlit);
+		_ctx_->bindTexture("txTexture2d", _src);
 	}
+	_ctx_->drawNdcQuad();
 }
 
 void ColorCorrection::edit()
