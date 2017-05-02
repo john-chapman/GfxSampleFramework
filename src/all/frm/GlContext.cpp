@@ -397,7 +397,7 @@ void GlContext::clearTextureBindings()
 #endif
 }
 
-void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum _access)
+void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum _access, GLint _level)
 {
 	APT_ASSERT(_location);
 	APT_ASSERT(m_currentShader);
@@ -411,7 +411,7 @@ void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum
 			_texture->getTarget() == GL_TEXTURE_3D ||
 			_texture->getTarget() == GL_TEXTURE_CUBE_MAP
 			;
-		glAssert(glBindImageTexture(m_nextImageSlot, _texture->getHandle(), 0, layered, 0, _access, _texture->getFormat()));
+		glAssert(glBindImageTexture(m_nextImageSlot, _texture->getHandle(), _level, layered, 0, _access, _texture->getFormat()));
 		m_currentImages[m_nextImageSlot] = _texture;
 		++m_nextImageSlot;
 	}

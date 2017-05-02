@@ -144,7 +144,7 @@ public:
 
 	// Bind _texture as an image to a named _location on the current shader. _access
 	// is one of GL_READ_ONLY, GL_WRITE_ONLY or GL_READ_WRITE.
-	void bindImage(const char* _location, const Texture* _texture, GLenum _access);
+	void bindImage(const char* _location, const Texture* _texture, GLenum _access, GLint _level = 0);
 
 	// Clear all image bindings. 
 	void clearImageBindings();
