@@ -4,6 +4,7 @@
 #include <frm/gl.h>
 #include <frm/AppSample3d.h>
 #include <frm/Buffer.h>
+#include <frm/Framebuffer.h>
 #include <frm/GlContext.h>
 #include <frm/Input.h>
 #include <frm/Mesh.h>
@@ -427,7 +428,7 @@ public:
 
 			ImGui::TreePop();
 		}
-		
+
 		AppBase::draw();
 	}
 };
@@ -435,10 +436,6 @@ AppSampleTest s_app;
 
 int main(int _argc, char** _argv)
 {
-	eastl::vector< String<16> > vstr;
-	vstr.push_back(String<16>("Gayness"));
-	
-
 	AppSample* app = AppSample::GetCurrent();
 	if (!app->init(ArgList(_argc, _argv))) {
 		APT_ASSERT(false);
