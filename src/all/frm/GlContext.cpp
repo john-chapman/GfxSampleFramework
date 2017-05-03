@@ -161,7 +161,7 @@ void GlContext::setFramebufferAndViewport(const Framebuffer* _framebuffer)
 	}
 }
 
-void GlContext::blitFramebuffer(Framebuffer* _src, Framebuffer* _dst, GLbitfield _mask, GLenum _filter)
+void GlContext::blitFramebuffer(const Framebuffer* _src, const Framebuffer* _dst, GLbitfield _mask, GLenum _filter)
 {
 	glAssert(glBlitNamedFramebuffer(
 		_src ? _src->getHandle() : 0,
@@ -397,7 +397,7 @@ void GlContext::clearTextureBindings()
 #endif
 }
 
-void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum _access)
+void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum _access, GLint _level)
 {
 	APT_ASSERT(_location);
 	APT_ASSERT(m_currentShader);
@@ -411,7 +411,7 @@ void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum
 			_texture->getTarget() == GL_TEXTURE_3D ||
 			_texture->getTarget() == GL_TEXTURE_CUBE_MAP
 			;
-		glAssert(glBindImageTexture(m_nextImageSlot, _texture->getHandle(), 0, layered, 0, _access, _texture->getFormat()));
+		glAssert(glBindImageTexture(m_nextImageSlot, _texture->getHandle(), _level, layered, 0, _access, _texture->getFormat()));
 		m_currentImages[m_nextImageSlot] = _texture;
 		++m_nextImageSlot;
 	}
