@@ -40,6 +40,7 @@ void main()
 #ifdef SPHERE_TO_CUBE
 	ivec2 iuv = ivec2(uv * vec2(imageSize(txCube)));
 	vec3 uvw = Envmap_GetCubeFaceUvw(uv, int(gl_WorkGroupID.z));
+	uvw.y = -uvw.y;
 	uv = Envmap_GetSphereUv(normalize(uvw));
 	vec4 ret = textureLod(txSphere, uv, 0.0);
 	imageStore(txCube, ivec3(iuv, int(gl_WorkGroupID.z)), ret);

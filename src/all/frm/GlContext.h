@@ -87,7 +87,7 @@ public:
 	int  getViewportWidth() const                { return m_viewportWidth; }
 	int  getViewportHeight() const               { return m_viewportHeight; }
 
-	void blitFramebuffer(Framebuffer* _src, Framebuffer* _dst, GLbitfield _mask = GL_COLOR_BUFFER_BIT, GLenum _filter = GL_NEAREST);
+	void blitFramebuffer(const Framebuffer* _src, const Framebuffer* _dst, GLbitfield _mask = GL_COLOR_BUFFER_BIT, GLenum _filter = GL_NEAREST);
 	
  // SHADER
 
@@ -144,7 +144,7 @@ public:
 
 	// Bind _texture as an image to a named _location on the current shader. _access
 	// is one of GL_READ_ONLY, GL_WRITE_ONLY or GL_READ_WRITE.
-	void bindImage(const char* _location, const Texture* _texture, GLenum _access);
+	void bindImage(const char* _location, const Texture* _texture, GLenum _access, GLint _level = 0);
 
 	// Clear all image bindings. 
 	void clearImageBindings();
