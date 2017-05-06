@@ -228,10 +228,10 @@ bool Property::serialize(JsonSerializer& _serializer_)
 		if (_serializer_.beginArray(m_name)) {
 			for (int i = 0; i < (int)m_count; ++i) {
 				switch (m_type) {
-					case Type_Bool:   ret &= _serializer_.value(*((bool*)m_data)); break;
-					case Type_Int:    ret &= _serializer_.value(*((int*)m_data)); break;
-					case Type_Float:  ret &= _serializer_.value(*((float*)m_data)); break;
-					case Type_String: ret &= _serializer_.value(*((StringBase*)m_data)); break;
+					case Type_Bool:   ret &= _serializer_.value(((bool*)m_data)[i]); break;
+					case Type_Int:    ret &= _serializer_.value(((int*)m_data)[i]); break;
+					case Type_Float:  ret &= _serializer_.value(((float*)m_data)[i]); break;
+					case Type_String: ret &= _serializer_.value(((StringBase*)m_data)[i]); break;
 					default:          ret = false; APT_ASSERT(false);
 				}
 			}
