@@ -73,6 +73,9 @@ public:
 	// Force a symmetrical projection with the specified aspect ratio.
 	void setAspectRatio(float _aspectRatio);
 
+	// Set a world matrix with position = _from and -Z = (_to - _from).
+	void lookAt(const vec3& _from, const vec3& _to, const vec3& _up = vec3(0.0f, 1.0f, 0.0f));
+
 	
 	// Update the derived members (view matrix + world frustum, proj matrix + local frustum if dirty).
 	// Update m_gpuBuffer if != null (else call updateGpuBuffer()).
