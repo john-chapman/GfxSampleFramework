@@ -398,6 +398,12 @@ void Camera::setAspectRatio(float _aspect)
 	m_projDirty = true;
 }
 
+void Camera::lookAt(const vec3& _from, const vec3& _to, const vec3& _up)
+{
+	m_world = AlignZ(normalize(_from - _to), _up); // swap to/from, align -Z
+	m_world[3] = vec4(_from, 1.0f);
+}
+
 void Camera::update()
 {
 	if (m_projDirty) {
