@@ -63,6 +63,9 @@ public:
 	void dispatch(GLuint _groupsX, GLuint _groupsY = 1, GLuint _groupsZ = 1);
 	// Make an indirect compute shader dispatch with _buffer bound as GL_DISPATCH_INDIRECT_BUFFER.
 	void dispatchIndirect(const Buffer* _buffer, const void* _offset = nullptr);
+	// Dispatch at least 1 thread per pixel (e.g. ceil(texture size/group size) groups). Note that
+	// _groupsZ can be overriden e.g. to write to a single level of an array or volume texture.
+	void dispatch(const Texture* _tx, GLuint _groupsZ = 0);
 
 	// Present the next image in the swapchain, increment the frame index.
 	void present();

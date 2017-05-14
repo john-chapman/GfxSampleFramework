@@ -111,7 +111,7 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 #define length2(_v)     dot(_v, _v)
 #define sqrt_safe(_x)   sqrt(max(_x, 0.0))
 #define length_safe(_v) sqrt_safe(dot(_v, _v))
-
+#define log10(x)        (log2(x) / log2(10.0))
 
 // Linearizing depth requires applying the inverse of Z part of the projection matrix, which depends on how the matrix was set up.
 // The following variants correspond to ProjFlags_; see frm/Camera.h for more info.

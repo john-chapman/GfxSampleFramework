@@ -9,9 +9,12 @@ uniform uint uTime;
 
 struct Data
 {
-	float m_exposure;
 	float m_saturation;
 	float m_contrast;
+	float m_exposureCompensation;
+	float m_aperture;
+	float m_shutterSpeed;
+	float m_iso;
 	vec3  m_tint;
 };
 layout(std140) uniform _bfData
@@ -19,9 +22,59 @@ layout(std140) uniform _bfData
 	Data bfData;
 };
 
+#ifdef AUTO_EXPOSURE
+	uniform sampler2D txAvgLogLuminance;
+	#define APERTURE_MIN 1.8
+	#define APERTURE_MAX 22.0
+	#define ISO_MIN      100.0
+	#define ISO_MAX      6400.0
+#endif
+
 layout(location=0) out vec3 fResult;
 
-#define kLumaWeights vec3(0.25, 0.5, 0.25)
+// Given an aperture, shutter speed, and exposure value compute the required ISO value
+float ComputeISO(in float aperture, in float shutterSpeed, in float ev)
+{
+	return (sqrt(aperture) * 100.0) / (shutterSpeed * exp2(ev));
+}
+// Given the camera settings compute the current exposure value
+float ComputeEV(in float aperture, in float shutterSpeed, in float iso)
+{
+	return log2((sqrt(aperture) * 100.0) / (shutterSpeed * iso));
+}
+// Using the light metering equation compute the target exposure value
+float ComputeTargetEV(in float averageLuminance)
+{
+	return log2(averageLuminance * 100.0 / 12.5);
+}
+
+void ApplyShutterPriority(in float targetEV,
+                          out float aperture,
+                          out float shutterSpeed,
+                          out float iso)
+{
+	// Start with the assumption that we want an aperture of 4.0
+	aperture = 4.0;
+ 
+	// Compute the resulting ISO if we left the aperture here
+	iso = clamp(ComputeISO(aperture, shutterSpeed, targetEV), ISO_MIN, ISO_MAX);
+ 
+	// Figure out how far we were from the target exposure value
+	float evDiff = targetEV - ComputeEV(aperture, shutterSpeed, iso);
+ 
+	// Compute the final aperture
+	aperture = clamp(aperture * pow(sqrt(2.0), evDiff), APERTURE_MIN, APERTURE_MAX);
+}
+
+float getStandardOutputBasedExposure(float aperture,
+                                     float shutterSpeed,
+                                     float iso,
+                                     float middleGrey = 0.18)
+{
+    float l_avg = (1000.0 / 65.0) * sqrt(aperture) / (iso * shutterSpeed);
+    return middleGrey / l_avg;
+}
+
 
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 // Cheap, luminance-only fit; over saturates the brights
@@ -75,7 +128,15 @@ void main()
 	vec3 ret = textureLod(txInput, vUv, 0.0).rgb;
 
  // exposure
-	ret *= bfData.m_exposure;
+	#ifdef AUTO_EXPOSURE
+		float avgLogLum = exp(textureLod(txAvgLogLuminance, vUv, 99.0).r);
+		float targetEV = ComputeTargetEV(avgLogLum);
+		float aperture, shutterSpeed, iso;
+		ApplyShutterPriority(targetEV, aperture, shutterSpeed, iso);
+		ret *= getStandardOutputBasedExposure(aperture, shutterSpeed, iso);
+	#else
+		ret *= bfData.m_exposure;
+	#endif
 
  // tint
 	ret *= bfData.m_tint;
@@ -94,7 +155,7 @@ void main()
 	//ret -= vec3(rnd * 0.03);
 
  // saturation/grain
-	vec3 gray = vec3(dot(kLumaWeights, ret));
+	vec3 gray = vec3(dot(ret, vec3(0.25, 0.50, 0.25)));
 	ret = gray + bfData.m_saturation * (ret - gray);
 	
  // display gamma
