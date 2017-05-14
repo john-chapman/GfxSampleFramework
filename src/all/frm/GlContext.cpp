@@ -124,6 +124,28 @@ void GlContext::dispatch(GLuint _groupsX, GLuint _groupsY, GLuint _groupsZ)
 	glAssert(glDispatchCompute(_groupsX, _groupsY, _groupsZ));
 }
 
+void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
+{
+	APT_ASSERT(m_currentShader);
+	if (_groupsZ == 0) {
+		switch (_tx->getTarget()) {
+			case GL_TEXTURE_CUBE_MAP: _groupsZ = 6; break;
+			case GL_TEXTURE_2D_ARRAY: _groupsZ = _tx->getArrayCount(); break;
+			case GL_TEXTURE_3D:       _groupsZ = _tx->getDepth(); break;
+			default:                  _groupsZ = 1; break;
+		};
+		GLuint sizeZ = (GLuint)m_currentShader->getLocalSizeZ();
+		_groupsZ = APT_MAX((_groupsZ + sizeZ - 1) / sizeZ, 1u);
+	}
+	GLuint sizeX = (GLuint)m_currentShader->getLocalSizeX();
+	GLuint sizeY = (GLuint)m_currentShader->getLocalSizeY();
+	dispatch(
+		APT_MAX((_tx->getWidth() + sizeX - 1) / sizeX, 1u),
+		APT_MAX((_tx->getWidth() + sizeY - 1) / sizeY, 1u),
+		_groupsZ
+		);
+}
+
 void GlContext::dispatchIndirect(const Buffer* _buffer, const void* _offset)
 {
 	APT_ASSERT(m_currentShader);
