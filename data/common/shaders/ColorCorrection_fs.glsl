@@ -22,12 +22,13 @@ layout(std140) uniform _bfData
 	Data bfData;
 };
 
+#define APERTURE_MIN 1.8
+#define APERTURE_MAX 22.0
+#define ISO_MIN      100.0
+#define ISO_MAX      6400.0
+
 #ifdef AUTO_EXPOSURE
 	uniform sampler2D txAvgLogLuminance;
-	#define APERTURE_MIN 1.8
-	#define APERTURE_MAX 22.0
-	#define ISO_MIN      100.0
-	#define ISO_MAX      6400.0
 #endif
 
 layout(location=0) out vec3 fResult;
@@ -74,6 +75,18 @@ float getStandardOutputBasedExposure(float aperture,
     float l_avg = (1000.0 / 65.0) * sqrt(aperture) / (iso * shutterSpeed);
     return middleGrey / l_avg;
 }
+float GetExposureFromEV100(float EV100)
+{
+// Compute the maximum luminance possible with H_sbs sensitivity
+// maxLum = 78 / ( S * q ) * N^2 / t
+// = 78 / ( S * q ) * 2^ EV_100
+// = 78 / (100 * 0.65) * 2^ EV_100
+// = 1.2 * 2^ EV
+// Reference : http :// en. wikipedia . org / wiki / Film_speed
+	float maxLuminance = 1.2 * exp2(EV100);
+	return 1.0 / maxLuminance;
+}
+
 
 
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
@@ -131,11 +144,10 @@ void main()
 	#ifdef AUTO_EXPOSURE
 		float avgLogLum = exp(textureLod(txAvgLogLuminance, vUv, 99.0).r);
 		float targetEV = ComputeTargetEV(avgLogLum);
-		float aperture, shutterSpeed, iso;
-		ApplyShutterPriority(targetEV, aperture, shutterSpeed, iso);
-		ret *= getStandardOutputBasedExposure(aperture, shutterSpeed, iso);
+		float EV100 =  ComputeEV(bfData.m_aperture, bfData.m_shutterSpeed, bfData.m_iso);
+		ret *= GetExposureFromEV100(EV100 - targetEV - bfData.m_exposureCompensation);
 	#else
-		ret *= bfData.m_exposure;
+		ret *= bfData.m_exposureCompensation;
 	#endif
 
  // tint
