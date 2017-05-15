@@ -104,9 +104,7 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 #define Color_Yellow   vec3(1.0, 1.0, 0.0)
 #define Color_Cyan     vec3(0.0, 1.0, 1.0)
 
-
 // Functions
-
 #define saturate(_x)    clamp((_x), 0.0, 1.0)
 #define length2(_v)     dot(_v, _v)
 #define sqrt_safe(_x)   sqrt(max(_x, 0.0))
