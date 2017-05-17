@@ -444,6 +444,7 @@ Camera* Scene::createCamera(const Camera& _copyFrom, Node* _parent_)
 	ret->m_parent = node;
 
 	m_cameras.push_back(ret);
+	ret->updateGpuBuffer();
 	if (!m_drawCamera) {
 		m_drawCamera = ret;
 		m_cullCamera = ret;
