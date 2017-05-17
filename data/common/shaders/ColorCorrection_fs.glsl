@@ -141,15 +141,26 @@ void main()
 	vec3 ret = textureLod(txInput, vUv, 0.0).rgb;
 
  // exposure
-	#ifdef AUTO_EXPOSURE
-		float avgLogLum = exp(textureLod(txAvgLogLuminance, vUv, 99.0).r);
-		float targetEV = ComputeTargetEV(avgLogLum);
-		float EV100 =  ComputeEV(bfData.m_aperture, bfData.m_shutterSpeed, bfData.m_iso);
-		ret *= GetExposureFromEV100(EV100 - targetEV - bfData.m_exposureCompensation);
-	#else
-		ret *= bfData.m_exposureCompensation;
-	#endif
+	//#ifdef AUTO_EXPOSURE
+	//	float avgLogLum = exp(textureLod(txAvgLogLuminance, vUv, 99.0).r);
+	//	float targetEV = ComputeTargetEV(avgLogLum);
+	//	float EV100 =  ComputeEV(bfData.m_aperture, bfData.m_shutterSpeed, bfData.m_iso);
+	//	ret *= GetExposureFromEV100(EV100 - targetEV - bfData.m_exposureCompensation);
+	//#else
+	//	ret *= bfData.m_exposureCompensation;
+	//#endif
 
+#ifdef AUTO_EXPOSURE
+ // \todo sort of works, need to check the impl (also see \todo in LuminanceMeter_cs)
+	float avgLum = textureLod(txAvgLogLuminance, vUv, 99.0).r;
+	float EV = log2(avgLum * 100.0 / 12.5);
+	ret *= exp2(-EV) + bfData.m_exposureCompensation;
+#else
+	float EV = log2(bfData.m_aperture * bfData.m_aperture / bfData.m_shutterSpeed) * 100.0 / bfData.m_iso;
+	ret *= exp2(EV) * bfData.m_exposureCompensation;
+#endif
+	
+	
  // tint
 	ret *= bfData.m_tint;
 
