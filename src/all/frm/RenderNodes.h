@@ -24,6 +24,7 @@ public:
 	void setProps(Properties& _props_);
 	bool init(int _txSize = 1024);
 	void shutdown();
+	void reset();
 
 	void draw(GlContext* _ctx_, float _dt, const Texture* _src, const Texture* _depth = nullptr);
 

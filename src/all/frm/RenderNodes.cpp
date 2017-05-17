@@ -61,6 +61,18 @@ void LuminanceMeter::shutdown()
 	Shader::Release(m_shLuminanceMeter);
 }
 
+void LuminanceMeter::reset()
+{
+	Framebuffer* fb = Framebuffer::Create();
+	for (int i = 0; i < kHistorySize; ++i) {
+		fb->attach(m_txLogLum[i], GL_COLOR_ATTACHMENT0);
+		GlContext::GetCurrent()->setFramebufferAndViewport(fb);
+		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+		glAssert(glClear(GL_COLOR_BUFFER_BIT));
+	}
+	Framebuffer::Destroy(fb);
+}
+
 void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, const Texture* _depth)
 {
 	AUTO_MARKER("Luminance Meter");
@@ -109,6 +121,9 @@ void LuminanceMeter::edit()
 		update |= ImGui::SliderFloat("Rate", &m_data.m_rate, 0.0f, 8.0f);
 		if (update) {
 			m_bfData->setData(sizeof(Data), &m_data);
+		}
+		if (ImGui::Button("Reset")) {
+			reset();
 		}
 	}
 }
