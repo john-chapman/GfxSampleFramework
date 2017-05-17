@@ -32,6 +32,7 @@ void main()
 	
 	float ret = 0.0;
 	if (uSrcLevel == -1) {
+ // \todo should take the log luminance here
 		ret = dot(textureLod(txSrc, uv, 0.0).rgb, vec3(0.25, 0.50, 0.25));
 		float prev = textureLod(txSrcPrev, uv, 0.0).r;
 		ret = prev + (ret - prev) * (1.0 - exp(uDeltaTime * -bfData.m_rate));
