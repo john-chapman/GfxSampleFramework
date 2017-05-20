@@ -156,8 +156,9 @@ void main()
 	float EV = log2(avgLum * 100.0 / 12.5);
 	ret *= exp2(-EV) + bfData.m_exposureCompensation;
 #else
-	float EV = log2(bfData.m_aperture * bfData.m_aperture / bfData.m_shutterSpeed) * 100.0 / bfData.m_iso;
-	ret *= exp2(EV) * bfData.m_exposureCompensation;
+	//float EV = log2(bfData.m_aperture * bfData.m_aperture / bfData.m_shutterSpeed) * 100.0 / bfData.m_iso;
+	//ret *= exp2(EV) * bfData.m_exposureCompensation;
+	ret *= bfData.m_exposureCompensation;
 #endif
 	
 	
