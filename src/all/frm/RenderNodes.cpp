@@ -194,6 +194,13 @@ void ColorCorrection::edit()
 {
 	ImGui::Checkbox("Enabled", &m_enabled);
 	if (m_enabled) {
+		if (m_luminanceMeter) {
+			if (ImGui::TreeNode("Luminance Meter")) {
+				m_luminanceMeter->edit();
+				ImGui::TreePop();
+			}
+		}
+
 		bool update = false;
 		float exposure = log2(m_data.m_exposureCompensation);
 		update |= ImGui::SliderFloat("Exposure Compensation", &exposure, -16.0f, 16.0f);
