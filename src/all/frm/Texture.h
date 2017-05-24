@@ -19,6 +19,8 @@ public:
 	// Load from a file.
 	static Texture* Create(const char* _path);
 	static Texture* CreateCubemap2x3(const char* _path); // faces arranged in a 2x3 grid, +x,-x +y,-y, +z,-z
+	// From apt::Image.
+	static Texture* Create(const apt::Image& _img);
 	// Create an empty texture (the resource name is unique).
 	static Texture* Create1d(GLsizei _width, GLenum _format, GLint _mipCount = 1);
 	static Texture* Create1dArray(GLsizei _width, GLsizei _arrayCount, GLenum _format, GLint _mipCount = 1);
