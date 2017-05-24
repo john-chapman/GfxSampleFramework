@@ -847,8 +847,9 @@ Image* Texture::downloadImage()
  // \todo array/mip support
 	APT_ASSERT(m_arrayCount == 1);
 	//for (int i = 0; i < m_arrayCount; ++i) {
+		int i = 0;
 		//for (int j = 0; j < m_mipCount; ++j) {
-		int i = 0, j = 0;
+			int j = 0;
 			char* raw = ret->getRawImage(i, j);
 			APT_ASSERT(raw);
 			if (ret->isCompressed()) {
