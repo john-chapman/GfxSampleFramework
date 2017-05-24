@@ -65,8 +65,9 @@ public:
 protected:
 	static Id       GetUniqueId();
 	static Id       GetHashId(const char* _str);
-
-	apt::String<32> m_name;
+	
+	typedef apt::String<32> NameStr;
+	NameStr m_name;
 
 	Resource(const char* _name);
 	Resource(Id _id, const char* _name);
