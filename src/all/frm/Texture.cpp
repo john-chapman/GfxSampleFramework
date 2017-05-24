@@ -241,7 +241,9 @@ struct TextureViewer
 			//float thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
 			float thumbHeight = ImGui::GetWindowHeight() * 0.75f;
 			float thumbWidth = (float)tx.getWidth() / (float)tx.getHeight() * thumbHeight;
-			vec2  thumbSize(thumbWidth, APT_MAX(thumbHeight, 16.0f));
+			thumbWidth = min(thumbWidth, ImGui::GetWindowSize().x * 2/3);
+			thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
+			vec2 thumbSize(thumbWidth, APT_MAX(thumbHeight, 16.0f));
 		  // need to flip the UVs here to account for the orientation of the quad output by ImGui
 			vec2  uv0 = vec2(0.0f, 1.0f);
 			vec2  uv1 = vec2(1.0f, 0.0f);
@@ -483,6 +485,20 @@ Texture* Texture::CreateCubemap2x3(const char* _path)
 	} else {
 		g_textureViewer.addTextureView(ret);
 	}
+	return ret;
+}
+
+Texture* Texture::Create(const Image& _img)
+{
+	Id id = GetUniqueId();
+	NameStr name("image%llu", id);
+	Texture* ret = new Texture(id, name);
+	if (!ret->loadImage(_img)) {
+		ret->setState(State_Error);
+		return nullptr;
+	}
+	Use(ret);
+	g_textureViewer.addTextureView(ret);
 	return ret;
 }
 
