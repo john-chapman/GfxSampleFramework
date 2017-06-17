@@ -33,9 +33,9 @@ public:
 	};
 
 	// Create an OpenGL context of at least version _vmaj._vmin, optionally
-	// with the comptaibility profile enabled. The context is bound to _window
+	// with the comptibility profile enabled. The context is bound to _window
 	// and is current on the calling thread when this function returns.
-	// Return nullptr if an error occurred.
+	// Return 0 if an error occurred.
 	static GlContext* Create(const Window* _window, int _vmaj, int _vmin, bool _compatibility);
 	
 	// Destroy OpenGL context. This implicitly destroys all associated resources.
@@ -96,8 +96,7 @@ public:
 
 	void setShader(const Shader* _shader);
 	const Shader* getShader()                    { return m_currentShader; }	
-	// Set uniform values on the currently bound shader. If there is no current
-	// shader or if _name is not an active uniform, the call does nothing.
+	// Set uniform values on the currently bound shader. If _name is not an active uniform, do nothing.
 	template <typename tType>
 	void setUniformArray(const char* _name, const tType* _val, GLsizei _count);
 	template <typename tType>

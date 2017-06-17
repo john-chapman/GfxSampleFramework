@@ -29,7 +29,7 @@ using namespace apt;
 
 void GlContext::draw(GLsizei _instances)
 {
-	APT_ASSERT(m_currentShader);
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	APT_ASSERT(m_currentMesh);
 
 #ifdef GlContext_VALIDATE_MESH_SHADER_ON_DRAW
@@ -60,7 +60,7 @@ void GlContext::draw(GLsizei _instances)
 
 void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
 {
-	APT_ASSERT(m_currentShader);
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	APT_ASSERT(m_currentMesh);
 	
 	bindBuffer(_buffer, GL_DRAW_INDIRECT_BUFFER);
@@ -117,16 +117,17 @@ void GlContext::drawNdcQuad(const Camera* _cam)
 
 void GlContext::dispatch(GLuint _groupsX, GLuint _groupsY, GLuint _groupsZ)
 {
-	APT_ASSERT(m_currentShader);
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	APT_ASSERT(_groupsX < (GLuint)kMaxComputeWorkGroups[0]);
 	APT_ASSERT(_groupsY < (GLuint)kMaxComputeWorkGroups[1]);
 	APT_ASSERT(_groupsZ < (GLuint)kMaxComputeWorkGroups[2]);
+	APT_ASSERT((_groupsX * m_currentShader->getLocalSizeX() + _groupsY * m_currentShader->getLocalSizeY() + _groupsZ * m_currentShader->getLocalSizeZ()) < (GLuint)kMaxComputeInvocations);
 	glAssert(glDispatchCompute(_groupsX, _groupsY, _groupsZ));
 }
 
 void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
 {
-	APT_ASSERT(m_currentShader);
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	if (_groupsZ == 0) {
 		switch (_tx->getTarget()) {
 			case GL_TEXTURE_CUBE_MAP: _groupsZ = 6; break;
@@ -148,7 +149,7 @@ void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
 
 void GlContext::dispatchIndirect(const Buffer* _buffer, const void* _offset)
 {
-	APT_ASSERT(m_currentShader);
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	bindBuffer(_buffer, GL_DISPATCH_INDIRECT_BUFFER);
 	glAssert(glDispatchComputeIndirect((GLintptr)_offset));
 }
@@ -206,6 +207,8 @@ void GlContext::setViewport(int _x, int _y, int _width, int _height)
 
 void GlContext::setShader(const Shader* _shader)
 {
+	APT_ASSERT((!_shader) || (_shader->getState() == Shader::State_Loaded));
+
  // must at least clear the slot counters between shaders
 	clearBufferBindings();
 	clearTextureBindings(); 
@@ -225,66 +228,79 @@ void GlContext::setShader(const Shader* _shader)
 template <>
 void GlContext::setUniformArray<int>(const char* _name, const int* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform1iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
 }
 template <>
 void GlContext::setUniformArray<uint32>(const char* _name, const uint32* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform1uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
 }
 template <>
 void GlContext::setUniformArray<float>(const char* _name, const float* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform1fv(m_currentShader->getUniformLocation(_name), _count, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<vec2>(const char* _name, const vec2* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform2fv(m_currentShader->getUniformLocation(_name), _count, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<vec3>(const char* _name, const vec3* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform3fv(m_currentShader->getUniformLocation(_name), _count, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<vec4>(const char* _name, const vec4* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform4fv(m_currentShader->getUniformLocation(_name), _count, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<ivec2>(const char* _name, const ivec2* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform2iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
 }
 template <>
 void GlContext::setUniformArray<ivec3>(const char* _name, const ivec3* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform3iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
 }
 template <>
 void GlContext::setUniformArray<ivec4>(const char* _name, const ivec4* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform4iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
 }
 template <>
 void GlContext::setUniformArray<uvec2>(const char* _name, const uvec2* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform2uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
 }
 template <>
 void GlContext::setUniformArray<uvec3>(const char* _name, const uvec3* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform3uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
 }
 template <>
 void GlContext::setUniformArray<uvec4>(const char* _name, const uvec4* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform4uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
 }
 template <>
 void GlContext::setUniformArray<mat4>(const char* _name, const mat4* _val, GLsizei _count)
 {
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniformMatrix4fv(m_currentShader->getUniformLocation(_name), _count, false, (const GLfloat*)_val));
 }
 
@@ -372,7 +388,7 @@ void GlContext::clearBufferBindings()
 	memset(m_currentBuffers,  0, sizeof(m_currentBuffers)); // not necessary but nice for debugging
 
 #ifdef GlContext_ACTUALLY_CLEAR_BUFFER_BINDINGS
- // for debugging only: actually unbind the textures via GL
+ // for debugging only: actually unbind the buffers via GL
 	for (int slot = 0; slot < kBufferSlotCount; ++slot) {
 		glAssert(glActiveTexture(GL_TEXTURE0 + slot));
 		for (int t = 0; t < kBufferSlotCount; ++t) {
@@ -445,7 +461,7 @@ void GlContext::clearImageBindings()
 	memset(m_currentImages,  0, sizeof(m_currentImages)); // not necessary but nice for debugging
 
 #ifdef GlContext_ACTUALLY_CLEAR_TEXTURE_BINDINGS
- // for debugging only: actually unbind the textures via GL
+ // for debugging only: actually unbind the images via GL
 	for (int slot = 0; slot < kImageSlotCount; ++slot) {
 		glAssert(glBindImageTexture(slot, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8));
 	}

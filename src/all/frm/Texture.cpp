@@ -575,6 +575,103 @@ void Texture::Destroy(Texture*& _inst_)
 	delete _inst_;
 }
 
+Image* Texture::CreateImage(const Texture* _tx)
+{
+	APT_ASSERT(_tx->getState() == State_Loaded);
+
+	Image::Layout layout;
+	Image::DataType dataType;
+	Image::CompressionType compression = Image::Compression_None;
+	GLenum glFormat, glType;
+
+	switch (_tx->m_format) {
+		case GL_R:
+		case GL_R8:      layout = Image::Layout_R; dataType = Image::DataType::Uint8N;  glFormat = GL_RED; glType = GL_UNSIGNED_BYTE;  break;
+		case GL_R16:     layout = Image::Layout_R; dataType = Image::DataType::Uint16N; glFormat = GL_RED; glType = GL_UNSIGNED_SHORT; break;
+		case GL_R16F:    layout = Image::Layout_R; dataType = Image::DataType::Float16; glFormat = GL_RED; glType = GL_HALF_FLOAT;     break;
+		case GL_R32F:    layout = Image::Layout_R; dataType = Image::DataType::Float32; glFormat = GL_RED; glType = GL_FLOAT;          break;
+
+		case GL_RG:
+		case GL_RG8:     layout = Image::Layout_RG; dataType = Image::DataType::Uint8N;  glFormat = GL_RG; glType = GL_UNSIGNED_BYTE;  break;
+		case GL_RG16:    layout = Image::Layout_RG; dataType = Image::DataType::Uint16N; glFormat = GL_RG; glType = GL_UNSIGNED_SHORT; break;
+		case GL_RG16F:   layout = Image::Layout_RG; dataType = Image::DataType::Float16; glFormat = GL_RG; glType = GL_HALF_FLOAT;     break;
+		case GL_RG32F:   layout = Image::Layout_RG; dataType = Image::DataType::Float32; glFormat = GL_RG; glType = GL_FLOAT;          break;
+
+		case GL_RGB:
+		case GL_RGB8:    layout = Image::Layout_RGB; dataType = Image::DataType::Uint8N;  glFormat = GL_RGB; glType = GL_UNSIGNED_BYTE;  break;
+		case GL_RGB16:   layout = Image::Layout_RGB; dataType = Image::DataType::Uint16N; glFormat = GL_RGB; glType = GL_UNSIGNED_SHORT; break;
+		case GL_RGB16F:  layout = Image::Layout_RGB; dataType = Image::DataType::Float16; glFormat = GL_RGB; glType = GL_HALF_FLOAT;     break;
+		case GL_RGB32F:  layout = Image::Layout_RGB; dataType = Image::DataType::Float32; glFormat = GL_RGB; glType = GL_FLOAT;          break;
+			
+		case GL_RGBA:
+		case GL_RGBA8:   layout = Image::Layout_RGBA; dataType = Image::DataType::Uint8N;  glFormat = GL_RGBA; glType = GL_UNSIGNED_BYTE;  break;
+		case GL_RGBA16:  layout = Image::Layout_RGBA; dataType = Image::DataType::Uint16N; glFormat = GL_RGBA; glType = GL_UNSIGNED_SHORT; break;
+		case GL_RGBA16F: layout = Image::Layout_RGBA; dataType = Image::DataType::Float16; glFormat = GL_RGBA; glType = GL_HALF_FLOAT;     break;
+		case GL_RGBA32F: layout = Image::Layout_RGBA; dataType = Image::DataType::Float32; glFormat = GL_RGBA; glType = GL_FLOAT;          break;
+
+		case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:       layout = Image::Layout_RGB;  dataType = Image::DataType::InvalidType; compression = Image::Compression_BC1; break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC1; break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC2; break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC3; break;
+		case GL_COMPRESSED_RED_RGTC1:               layout = Image::Layout_R;    dataType = Image::DataType::InvalidType; compression = Image::Compression_BC4; break;
+		case GL_COMPRESSED_RG_RGTC2:                layout = Image::Layout_R;    dataType = Image::DataType::InvalidType; compression = Image::Compression_BC5; break;
+		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: layout = Image::Layout_RGB;  dataType = Image::DataType::InvalidType; compression = Image::Compression_BC6; break;
+		case GL_COMPRESSED_RGBA_BPTC_UNORM:         layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC7; break;
+	};
+
+	Image* ret = nullptr;
+	switch (_tx->m_target) {
+		case GL_TEXTURE_1D: ret = Image::Create1d(_tx->m_width, layout, dataType, _tx->m_mipCount, compression); break;
+		case GL_TEXTURE_2D: ret = Image::Create2d(_tx->m_width, _tx->m_height, layout, dataType, _tx->m_mipCount, compression); break;
+		case GL_TEXTURE_3D: ret = Image::Create3d(_tx->m_width, _tx->m_height, _tx->m_depth, layout, dataType, _tx->m_mipCount, compression); break;
+
+		case GL_TEXTURE_1D_ARRAY:
+		case GL_TEXTURE_2D_ARRAY:
+		case GL_TEXTURE_CUBE_MAP:
+			case GL_TEXTURE_CUBE_MAP_ARRAY:
+		default: APT_ASSERT_MSG(false, "downloadImage unsupported for '%s'", internal::GlEnumStr(_tx->m_target)); break;
+	};
+
+	if (ret) {
+		SCOPED_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
+
+		int arrayCount = _tx->getArrayCount() * ret->isCubemap() ? 6 : 1;
+		int mipCount = _tx->getMipCount();
+		for (int level = 0; level < arrayCount; ++level) {
+			GLsizei offsetY = 0;
+			GLsizei offsetZ = 0;
+			if (arrayCount > 0) {
+				if (ret->is1d()) { // 1d arrays use offsetY to select the level
+					offsetY = level;
+				} else if (ret->isCubemap() || ret->is2d()) { // cubemaps/2d arrays use offsetZ to select the level
+					offsetZ = level;
+				}
+			}
+			GLsizei w = _tx->m_width;
+			GLsizei h = _tx->m_height;
+			GLsizei d = _tx->m_depth;
+			for (int mip = 0; mip < mipCount; ++mip) {
+				char* dst = ret->getRawImage(level, mip);
+				GLsizei bufSize = (GLsizei)ret->getRawImageSize(mip);
+				if (ret->isCompressed()) {
+					glAssert(glGetCompressedTextureSubImage(_tx->m_handle, mip, 0, offsetY, offsetZ, w, h, d, bufSize, dst));
+				} else {
+					glAssert(glGetTextureSubImage(_tx->m_handle, mip, 0, offsetY, offsetZ, w, h, d, glFormat, glType, bufSize, dst));
+				}
+				w = APT_MAX(w >> 1, 1);
+				h = APT_MAX(h >> 1, 1);
+				d = APT_MAX(d >> 1, 1);
+			}
+		}
+	}
+
+	return ret;
+}
+void Texture::DestroyImage(Image*& _img_)
+{
+	Image::Destroy(_img_);
+}
+
 GLint Texture::GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth)
 {
 	const double rlog2 = 1.0 / log(2.0);
@@ -805,78 +902,7 @@ void Texture::setMipRange(GLint _base, GLint _max)
 
 Image* Texture::downloadImage()
 {
-	APT_ASSERT(m_handle);
-
-	Image::Layout layout;
-	Image::DataType dataType;
-	Image::CompressionType compression = Image::Compression_None;
-	GLenum glFormat, glType;
-
-	switch (m_format) {
-		case GL_R:
-		case GL_R8:   layout = Image::Layout_R; dataType = Image::DataType::Uint8N;  glFormat = GL_RED; glType = GL_UNSIGNED_BYTE;  break;
-		case GL_R16:  layout = Image::Layout_R; dataType = Image::DataType::Uint16N; glFormat = GL_RED; glType = GL_UNSIGNED_SHORT; break;
-		case GL_R16F: layout = Image::Layout_R; dataType = Image::DataType::Float16; glFormat = GL_RED; glType = GL_HALF_FLOAT;     break;
-		case GL_R32F: layout = Image::Layout_R; dataType = Image::DataType::Float32; glFormat = GL_RED; glType = GL_FLOAT;          break;
-
-		case GL_RG:
-		case GL_RG8:   layout = Image::Layout_RG; dataType = Image::DataType::Uint8N;  glFormat = GL_RG; glType = GL_UNSIGNED_BYTE;  break;
-		case GL_RG16:  layout = Image::Layout_RG; dataType = Image::DataType::Uint16N; glFormat = GL_RG; glType = GL_UNSIGNED_SHORT; break;
-		case GL_RG16F: layout = Image::Layout_RG; dataType = Image::DataType::Float16; glFormat = GL_RG; glType = GL_HALF_FLOAT;     break;
-		case GL_RG32F: layout = Image::Layout_RG; dataType = Image::DataType::Float32; glFormat = GL_RG; glType = GL_FLOAT;          break;
-
-		case GL_RGB:
-		case GL_RGB8:   layout = Image::Layout_RGB; dataType = Image::DataType::Uint8N;  glFormat = GL_RGB; glType = GL_UNSIGNED_BYTE;  break;
-		case GL_RGB16:  layout = Image::Layout_RGB; dataType = Image::DataType::Uint16N; glFormat = GL_RGB; glType = GL_UNSIGNED_SHORT; break;
-		case GL_RGB16F: layout = Image::Layout_RGB; dataType = Image::DataType::Float16; glFormat = GL_RGB; glType = GL_HALF_FLOAT;     break;
-		case GL_RGB32F: layout = Image::Layout_RGB; dataType = Image::DataType::Float32; glFormat = GL_RGB; glType = GL_FLOAT;          break;
-			
-		case GL_RGBA:
-		case GL_RGBA8:   layout = Image::Layout_RGBA; dataType = Image::DataType::Uint8N;  glFormat = GL_RGBA; glType = GL_UNSIGNED_BYTE;  break;
-		case GL_RGBA16:  layout = Image::Layout_RGBA; dataType = Image::DataType::Uint16N; glFormat = GL_RGBA; glType = GL_UNSIGNED_SHORT; break;
-		case GL_RGBA16F: layout = Image::Layout_RGBA; dataType = Image::DataType::Float16; glFormat = GL_RGBA; glType = GL_HALF_FLOAT;     break;
-		case GL_RGBA32F: layout = Image::Layout_RGBA; dataType = Image::DataType::Float32; glFormat = GL_RGBA; glType = GL_FLOAT;          break;
-
-		case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:       layout = Image::Layout_RGB;  dataType = Image::DataType::InvalidType; compression = Image::Compression_BC1; break;
-		case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC1; break;
-		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC2; break;
-		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC3; break;
-		case GL_COMPRESSED_RED_RGTC1:               layout = Image::Layout_R;    dataType = Image::DataType::InvalidType; compression = Image::Compression_BC4; break;
-		case GL_COMPRESSED_RG_RGTC2:                layout = Image::Layout_R;    dataType = Image::DataType::InvalidType; compression = Image::Compression_BC5; break;
-		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: layout = Image::Layout_RGB;  dataType = Image::DataType::InvalidType; compression = Image::Compression_BC6; break;
-		case GL_COMPRESSED_RGBA_BPTC_UNORM:         layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC7; break;
-	};
-
-	Image* ret = 0;
-	switch (m_target) {
-		case GL_TEXTURE_1D: ret = Image::Create1d(m_width, layout, dataType, m_mipCount, compression); break;
-		case GL_TEXTURE_2D: ret = Image::Create2d(m_width, m_height, layout, dataType, m_mipCount, compression); break;
-		case GL_TEXTURE_3D: ret = Image::Create3d(m_width, m_height, m_depth, layout, dataType, m_mipCount, compression); break;
-
-		case GL_TEXTURE_1D_ARRAY:
-		case GL_TEXTURE_2D_ARRAY:
-		default: APT_ASSERT_MSG(false, "downloadImage unsupported for '%s'", internal::GlEnumStr(m_target)); break;
-	};
-
-	SCOPED_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
-
- // \todo array/mip support
-	APT_ASSERT(m_arrayCount == 1);
-	//for (int i = 0; i < m_arrayCount; ++i) {
-		int i = 0;
-		//for (int j = 0; j < m_mipCount; ++j) {
-			int j = 0;
-			char* raw = ret->getRawImage(i, j);
-			APT_ASSERT(raw);
-			if (ret->isCompressed()) {
-				glAssert(glGetCompressedTextureImage(m_handle, j, (GLsizei)ret->getRawImageSize(j), raw));
-			} else {
-				glAssert(glGetTextureImage(m_handle, j, glFormat, glType, (GLsizei)ret->getRawImageSize(j), raw));
-			}
-		//}
-	//}
-
-	return ret;
+	return CreateImage(this);
 }
 
 void Texture::setFilter(GLenum _mode)
@@ -1175,8 +1201,8 @@ static void UploadCubemap3x2(Texture& _tx, const Image& _img, GLint _array, GLin
 	for (int y = 0; y < 3; ++y) {
 		for (int x = 0; x < 2; ++x) {
 			char* src = _img.getRawImage(_array, _mip);
-			src += x * w * (GLsizei)_img.getTexelSize();
-			src += y * h * w * 2 * (GLsizei)_img.getTexelSize();
+			src += x * w * (GLsizei)_img.getBytesPerTexel();
+			src += y * h * w * 2 * (GLsizei)_img.getBytesPerTexel();
 			glAssert(glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, _mip, 0, 0, w, h, _srcFormat, _srcType, src));
 			++face;
 		}
