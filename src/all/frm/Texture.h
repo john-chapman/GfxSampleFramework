@@ -31,6 +31,10 @@ public:
 	// Create a proxy for an existing texture (i.e. a texture not directly controlled by the application).
 	static Texture* CreateProxy(GLuint _handle, const char* _name);
 	static void     Destroy(Texture*& _inst_);
+
+	// Create an apt::Image (download the GPU data). This a a synchronous operation via glGetTextureImage() and will stall the gpu.
+	static apt::Image* CreateImage(const Texture* _tx);
+	static void        DestroyImage(apt::Image*& _img_);
 	
 	static GLint GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth = 1);
 
@@ -67,9 +71,7 @@ public:
 	// Set base/max level for mipmap access.
 	void setMipRange(GLint _base, GLint _max);
 
-	// Download the all mips/levels of the texture to image_. This a a synchronous operation 
-	// via glGetTextureImage() and will stall the gpu. The apt::Image* must be released via 
-	// apt::Image::Destroy().
+	// DEPRECATED; use CreateImage().
 	apt::Image* downloadImage();
 
 	// Filter mode.
