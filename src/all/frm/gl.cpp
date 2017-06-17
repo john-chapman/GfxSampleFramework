@@ -413,9 +413,9 @@ apt::AssertBehavior frm::internal::GlAssert(const char* _call, const char* _file
 	GLenum err = glGetError(); 
 	if (err != GL_NO_ERROR) {
 		APT_LOG_ERR("GL_ASSERT (%s, line %d)\n\t'%s' %s", _file, _line, _call ? _call : "", GlEnumStr(err));
-		return apt::AssertBehavior::kBreak;
+		return apt::AssertBehavior_Break;
 	}
-	return apt::AssertBehavior::kContinue;
+	return apt::AssertBehavior_Continue;
 }
 
 const char* frm::internal::GlGetString(GLenum _name)
