@@ -614,28 +614,29 @@ Image* Texture::CreateImage(const Texture* _tx)
 		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC2; break;
 		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:      layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC3; break;
 		case GL_COMPRESSED_RED_RGTC1:               layout = Image::Layout_R;    dataType = Image::DataType::InvalidType; compression = Image::Compression_BC4; break;
-		case GL_COMPRESSED_RG_RGTC2:                layout = Image::Layout_R;    dataType = Image::DataType::InvalidType; compression = Image::Compression_BC5; break;
+		case GL_COMPRESSED_RG_RGTC2:                layout = Image::Layout_RG;   dataType = Image::DataType::InvalidType; compression = Image::Compression_BC5; break;
 		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: layout = Image::Layout_RGB;  dataType = Image::DataType::InvalidType; compression = Image::Compression_BC6; break;
 		case GL_COMPRESSED_RGBA_BPTC_UNORM:         layout = Image::Layout_RGBA; dataType = Image::DataType::InvalidType; compression = Image::Compression_BC7; break;
 	};
 
 	Image* ret = nullptr;
 	switch (_tx->m_target) {
-		case GL_TEXTURE_1D: ret = Image::Create1d(_tx->m_width, layout, dataType, _tx->m_mipCount, compression); break;
-		case GL_TEXTURE_2D: ret = Image::Create2d(_tx->m_width, _tx->m_height, layout, dataType, _tx->m_mipCount, compression); break;
-		case GL_TEXTURE_3D: ret = Image::Create3d(_tx->m_width, _tx->m_height, _tx->m_depth, layout, dataType, _tx->m_mipCount, compression); break;
-
-		case GL_TEXTURE_1D_ARRAY:
-		case GL_TEXTURE_2D_ARRAY:
+		case GL_TEXTURE_1D: 
+		case GL_TEXTURE_1D_ARRAY:       ret = Image::Create1d(_tx->m_width, layout, dataType, _tx->m_mipCount, _tx->m_arrayCount, compression); break;
+		case GL_TEXTURE_2D: 
+		case GL_TEXTURE_2D_ARRAY:       ret = Image::Create2d(_tx->m_width, _tx->m_height, layout, dataType, _tx->m_mipCount, _tx->m_arrayCount, compression); break;
+		case GL_TEXTURE_3D:
+		/*case GL_TEXTURE_3D_ARRAY:*/   ret = Image::Create3d(_tx->m_width, _tx->m_height, _tx->m_depth, layout, dataType, _tx->m_mipCount, 1, compression); break;
 		case GL_TEXTURE_CUBE_MAP:
-			case GL_TEXTURE_CUBE_MAP_ARRAY:
-		default: APT_ASSERT_MSG(false, "downloadImage unsupported for '%s'", internal::GlEnumStr(_tx->m_target)); break;
+		case GL_TEXTURE_CUBE_MAP_ARRAY: ret = Image::CreateCubemap(_tx->m_width, layout, dataType, _tx->m_mipCount, _tx->m_arrayCount, compression); break;
+
+		default:                        APT_ASSERT_MSG(false, "downloadImage unsupported for '%s'", internal::GlEnumStr(_tx->m_target)); break;
 	};
 
 	if (ret) {
 		SCOPED_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
 
-		int arrayCount = _tx->getArrayCount() * ret->isCubemap() ? 6 : 1;
+		int arrayCount = ret->isCubemap() ? _tx->getArrayCount() * 6 : _tx->getArrayCount();
 		int mipCount = _tx->getMipCount();
 		for (int level = 0; level < arrayCount; ++level) {
 			GLsizei offsetY = 0;
@@ -1139,6 +1140,10 @@ static void AllocCubemap(Texture& _tx, const Image& _img)
 {
 	glAssert(glTextureStorage2D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight()));
 }
+static void AllocCubemapArray(Texture& _tx, const Image& _img)
+{
+	glAssert(glTextureStorage3D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight(), _tx.getArrayCount() / 6));
+}
 
 #define Texture_COMPUTE_WHD() \
 	GLsizei div = (GLsizei)pow(2.0, (double)_mip); \
@@ -1191,7 +1196,7 @@ static void Upload3d(Texture& _tx, const Image& _img, GLint _array, GLint _mip, 
 		glAssert(glTextureSubImage3D(_tx.getHandle(), _mip, 0, 0, _array, w, h, d, _srcFormat, _srcType, _img.getRawImage(_array, _mip)));
 	}
 }
-static void UploadCubemap3x2(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
+/*static void UploadCubemap3x2(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
 {
 	Texture_COMPUTE_WHD();
 	SCOPED_PIXELSTOREI(GL_UNPACK_ROW_LENGTH, w * 2);
@@ -1207,7 +1212,7 @@ static void UploadCubemap3x2(Texture& _tx, const Image& _img, GLint _array, GLin
 			++face;
 		}
 	}
-}
+}*/
 
 #undef Texture_COMPUTE_WHD
 
@@ -1228,35 +1233,34 @@ bool Texture::loadImage(const Image& _img)
 	void (*alloc)(Texture& _tx, const Image& _img);
 	void (*upload)(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType);
 
-	if (m_target == GL_TEXTURE_CUBE_MAP) {
+	/*if (m_target == GL_TEXTURE_CUBE_MAP) {
 	 // special-case 3x2 cubemaps
 		m_width /= 2;
 		m_height /= 3;
 		m_mipCount = _img.getMipmapCount() == 1 ? (GLint)GetMaxMipCount(m_width, m_height) : (GLint) _img.getMipmapCount();
 		alloc = AllocCubemap;
 		upload = UploadCubemap3x2;
-	} else {
+	} else {*/
 		switch (_img.getType()) {
-			case Image::Type_1d:           m_target = GL_TEXTURE_1D;        alloc = Alloc1d;      upload = Upload1d; break;
-			case Image::Type_1dArray:      m_target = GL_TEXTURE_1D_ARRAY;  alloc = Alloc1dArray; upload = Upload1dArray; break;
-			case Image::Type_2d:           m_target = GL_TEXTURE_2D;        alloc = Alloc2d;      upload = Upload2d; break;
-			case Image::Type_2dArray:      m_target = GL_TEXTURE_2D_ARRAY;  alloc = Alloc2dArray; upload = Upload2dArray; break;
-			case Image::Type_3d:           m_target = GL_TEXTURE_3D;        alloc = Alloc3d;      upload = Upload3d; break;
-		 // \todo implement cubemaps
-			case Image::Type_Cubemap:      APT_ASSERT(false);//m_target = GL_TEXTURE_CUBE_MAP;       upload = Upload2d; break;
-			case Image::Type_CubemapArray: APT_ASSERT(false);//m_target = GL_TEXTURE_CUBE_MAP_ARRAY; upload = Upload3d; break;
+			case Image::Type_1d:           m_target = GL_TEXTURE_1D;             alloc = Alloc1d;           upload = Upload1d;       break;
+			case Image::Type_1dArray:      m_target = GL_TEXTURE_1D_ARRAY;       alloc = Alloc1dArray;      upload = Upload1dArray;  break;
+			case Image::Type_2d:           m_target = GL_TEXTURE_2D;             alloc = Alloc2d;           upload = Upload2d;       break;
+			case Image::Type_2dArray:      m_target = GL_TEXTURE_2D_ARRAY;       alloc = Alloc2dArray;      upload = Upload2dArray;  break;
+			case Image::Type_3d:           m_target = GL_TEXTURE_3D;             alloc = Alloc3d;           upload = Upload3d;       break;
+			case Image::Type_Cubemap:      m_target = GL_TEXTURE_CUBE_MAP;       alloc = AllocCubemap;      upload = Upload2dArray;  break;
+			case Image::Type_CubemapArray: m_target = GL_TEXTURE_CUBE_MAP_ARRAY; alloc = AllocCubemapArray; upload = Upload2dArray;  break;
 			default:                       APT_ASSERT(false); return false;
 		};
-	}
+	/*}*/
 
  // src format
 	GLenum srcFormat;
 	switch (_img.getLayout()) {
-		case Image::Layout_R:          srcFormat = m_format = GL_RED;  break;
-		case Image::Layout_RG:         srcFormat = m_format = GL_RG;   break;
-		case Image::Layout_RGB:        srcFormat = m_format = GL_RGB;  break;
-		case Image::Layout_RGBA:       srcFormat = m_format = GL_RGBA; break;
-		default:                       APT_ASSERT(false); return false;
+		case Image::Layout_R:    srcFormat = m_format = GL_RED;  break;
+		case Image::Layout_RG:   srcFormat = m_format = GL_RG;   break;
+		case Image::Layout_RGB:  srcFormat = m_format = GL_RGB;  break;
+		case Image::Layout_RGBA: srcFormat = m_format = GL_RGBA; break;
+		default:                 APT_ASSERT(false); return false;
 	};
 
  // internal format (request only, we read back the actual format the implementation used later)
@@ -1321,12 +1325,12 @@ bool Texture::loadImage(const Image& _img)
 		glAssert(glDeleteTextures(1, &m_handle));
 	}
 
- // upload data; apt::Image stores each array layer contiguously with its mip chain, so we need to call
- // glTexSubImage* to upload each layer/mip separately
+ // upload data; apt::Image stores each array layer contiguously with its mip chain, so we need to call glTexSubImage* to upload each layer/mip separately
 	glAssert(glCreateTextures(m_target, 1, &m_handle));
 	alloc(*this, _img);
-	for (GLint i = 0; i < _img.getArrayCount(); ++i) {		
-		for (GLint j = 0; j < _img.getMipmapCount(); ++j) {
+	GLint count = (GLint)(_img.isCubemap() ? _img.getArrayCount() * 6  : _img.getArrayCount());
+	for (GLint i = 0; i < count; ++i) {		
+		for (GLint j = 0; j < (GLint)_img.getMipmapCount(); ++j) {
 			upload(*this, _img, i, j, srcFormat, srcType);
 		}
 	}
