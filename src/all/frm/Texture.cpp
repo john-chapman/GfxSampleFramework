@@ -1041,13 +1041,14 @@ Texture::Texture(
 	glAssert(glCreateTextures(m_target, 1, &m_handle));
 
 	switch (_target) {
-		case GL_TEXTURE_1D:       glAssert(glTextureStorage1D(m_handle, _mipCount, _format, _width)); break;
-		case GL_TEXTURE_1D_ARRAY: glAssert(glTextureStorage2D(m_handle, _mipCount, _format, _width, _arrayCount)); break;
-		case GL_TEXTURE_2D:       glAssert(glTextureStorage2D(m_handle, _mipCount, _format, _width, _height)); break;
-		case GL_TEXTURE_2D_ARRAY: glAssert(glTextureStorage3D(m_handle, _mipCount, _format, _width, _height, _arrayCount)); break;
-		case GL_TEXTURE_3D:       glAssert(glTextureStorage3D(m_handle, _mipCount, _format, _width, _height, _depth)); break;
-		case GL_TEXTURE_CUBE_MAP: glAssert(glTextureStorage2D(m_handle, _mipCount, _format, _width, _height)); break;
-		default:                  APT_ASSERT(false); setState(State_Error); return;
+		case GL_TEXTURE_1D:             glAssert(glTextureStorage1D(m_handle, m_mipCount, m_format, m_width)); break;
+		case GL_TEXTURE_1D_ARRAY:       glAssert(glTextureStorage2D(m_handle, m_mipCount, m_format, m_width, m_arrayCount)); break;
+		case GL_TEXTURE_2D:             glAssert(glTextureStorage2D(m_handle, m_mipCount, m_format, m_width, m_height)); break;
+		case GL_TEXTURE_2D_ARRAY:       glAssert(glTextureStorage3D(m_handle, m_mipCount, m_format, m_width, m_height, m_arrayCount)); break;
+		case GL_TEXTURE_3D:             glAssert(glTextureStorage3D(m_handle, m_mipCount, m_format, m_width, m_height, m_depth)); break;
+		case GL_TEXTURE_CUBE_MAP:       glAssert(glTextureStorage2D(m_handle, m_mipCount, m_format, m_width, m_height)); break;
+		case GL_TEXTURE_CUBE_MAP_ARRAY: glAssert(glTextureStorage3D(m_handle, m_mipCount, m_format, m_width, m_height, m_arrayCount)); break;
+		default:                        APT_ASSERT(false); setState(State_Error); return;
 	};
 	
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MIN_FILTER, (_mipCount > 1) ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR));
@@ -1142,7 +1143,7 @@ static void AllocCubemap(Texture& _tx, const Image& _img)
 }
 static void AllocCubemapArray(Texture& _tx, const Image& _img)
 {
-	glAssert(glTextureStorage3D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight(), _tx.getArrayCount() / 6));
+	glAssert(glTextureStorage3D(_tx.getHandle(), (GLsizei)_tx.getMipCount(), _tx.getFormat(), _tx.getWidth(), _tx.getHeight(), _tx.getArrayCount()));
 }
 
 #define Texture_COMPUTE_WHD() \
