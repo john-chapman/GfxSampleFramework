@@ -142,7 +142,7 @@ void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
 	GLuint sizeY = (GLuint)m_currentShader->getLocalSizeY();
 	dispatch(
 		APT_MAX((_tx->getWidth() + sizeX - 1) / sizeX, 1u),
-		APT_MAX((_tx->getWidth() + sizeY - 1) / sizeY, 1u),
+		APT_MAX((_tx->getHeight() + sizeY - 1) / sizeY, 1u),
 		_groupsZ
 		);
 }
@@ -443,11 +443,11 @@ void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum
 	if (loc != GL_INVALID_INDEX) {
 		APT_ASSERT(m_nextImageSlot < kImageSlotCount);
 		glAssert(glUniform1i(loc, m_nextImageSlot));
-		
 		GLboolean layered = 
 			_texture->getTarget() == GL_TEXTURE_2D_ARRAY ||
 			_texture->getTarget() == GL_TEXTURE_3D ||
-			_texture->getTarget() == GL_TEXTURE_CUBE_MAP
+			_texture->getTarget() == GL_TEXTURE_CUBE_MAP ||
+			_texture->getTarget() == GL_TEXTURE_CUBE_MAP_ARRAY
 			;
 		glAssert(glBindImageTexture(m_nextImageSlot, _texture->getHandle(), _level, layered, 0, _access, _texture->getFormat()));
 		m_currentImages[m_nextImageSlot] = _texture;
@@ -459,13 +459,6 @@ void GlContext::clearImageBindings()
 {
 	m_nextImageSlot = 0;
 	memset(m_currentImages,  0, sizeof(m_currentImages)); // not necessary but nice for debugging
-
-#ifdef GlContext_ACTUALLY_CLEAR_TEXTURE_BINDINGS
- // for debugging only: actually unbind the images via GL
-	for (int slot = 0; slot < kImageSlotCount; ++slot) {
-		glAssert(glBindImageTexture(slot, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8));
-	}
-#endif
 }
 
 
