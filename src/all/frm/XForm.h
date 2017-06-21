@@ -110,14 +110,14 @@ struct XForm_FreeCamera: public XForm
 	vec3  m_velocity;
 	float m_speed;
 	float m_maxSpeed;
-	float m_maxSpeedMul;        //< Multiplies m_speed for speed 'boost'.
-	float m_accelTime;          //< Acceleration ramp length in seconds.
-	float m_accelCount;         //< Current ramp position in [0,m_accelTime].
+	float m_maxSpeedMul;        // Multiplies m_speed for speed 'boost'.
+	float m_accelTime;          // Acceleration ramp length in seconds.
+	float m_accelCount;         // Current ramp position in [0,m_accelTime].
 
 	quat  m_orientation;
-	vec3  m_pitchYawRoll;       //< Angular velocity in rads/sec.
-	float m_rotationInputMul;   //< Scale rotation inputs (should be relative to fov/screen size).
-	float m_rotationDamp;       //< Adhoc damping factor.
+	vec3  m_pitchYawRoll;       // Angular velocity in rads/sec.
+	float m_rotationInputMul;   // Scale rotation inputs (should be relative to fov/screen size).
+	float m_rotationDamp;       // Adhoc damping factor.
 
 	
 	XForm_FreeCamera();
@@ -134,9 +134,9 @@ struct XForm_FreeCamera: public XForm
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_LookAt: public XForm
 {
-	Node*     m_target;   //< Node to look at (can be 0).
-	Node::Id  m_targetId; //< Required for serialization.
-	vec3      m_offset;   //< Offset from target, or world space if target is 0.
+	Node*     m_target;   // Node to look at (can be 0).
+	Node::Id  m_targetId; // Required for serialization.
+	vec3      m_offset;   // Offset from target, or world space if target is 0.
 
 	XForm_LookAt();
 	virtual ~XForm_LookAt() {}
@@ -212,6 +212,31 @@ struct XForm_SplinePath: public XForm
 	virtual void reset() override;
 	virtual void reverse() override;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+// XForm_OrbitalPath
+// Circular path oriented by azimuth/elevation angle.
+////////////////////////////////////////////////////////////////////////////////
+struct XForm_OrbitalPath: public XForm
+{
+	float m_azimuth;
+	float m_elevation;
+	float m_theta;      // distance along path
+	float m_radius;
+	float m_speed;
+	vec3  m_direction;
+	vec3  m_normal;
+
+	XForm_OrbitalPath();
+	virtual ~XForm_OrbitalPath();
+
+	virtual void apply(float _dt) override;
+	virtual void edit() override;
+	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
+
+	virtual void reset() override;
+};
+
 
 } // namespace frm
 

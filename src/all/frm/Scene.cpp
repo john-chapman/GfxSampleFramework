@@ -2,6 +2,7 @@
 
 #include <frm/icon_fa.h>
 #include <frm/Camera.h>
+#include <frm/Light.h>
 #include <frm/Profiler.h>
 #include <frm/XForm.h>
 
@@ -243,6 +244,8 @@ void frm::swap(Scene& _a, Scene& _b)
 	eastl::swap(_a.m_cullCamera, _b.m_cullCamera);
 	eastl::swap(_a.m_cameras,    _b.m_cameras);
 	apt::swap(_a.m_cameraPool, _b.m_cameraPool);
+	eastl::swap(_a.m_lights,    _b.m_lights);
+	apt::swap(_a.m_lightPool, _b.m_lightPool);
 }
 
 
@@ -279,7 +282,8 @@ bool Scene::Save(const char* _path, Scene& _scene)
 Scene::Scene()
 	: m_nextNodeId(0)
 	, m_nodePool(128)
-	, m_cameraPool(16)
+	, m_cameraPool(8)
+	, m_lightPool(16)
 	, m_drawCamera(nullptr)
 	, m_cullCamera(nullptr)
 #ifdef frm_Scene_ENABLE_EDIT
@@ -290,6 +294,7 @@ Scene::Scene()
 	, m_editCamera(nullptr)
 	, m_storedCullCamera(nullptr)
 	, m_storedDrawCamera(nullptr)
+	, m_editLight(nullptr)
 #endif
 {
 	m_root = m_nodePool.alloc(Node(Node::Type_Root, m_nextNodeId++, Node::State_Any, "ROOT"));
@@ -299,6 +304,10 @@ Scene::Scene()
 
 Scene::~Scene()
 {
+	while (!m_lights.empty()) {
+		m_lightPool.free(m_lights.back());
+		m_lights.pop_back();
+	}
 	while (!m_cameras.empty()) {
 		m_cameraPool.free(m_cameras.back());
 		m_cameras.pop_back();
@@ -366,6 +375,17 @@ void Scene::destroyNode(Node*& _node_)
 					m_cameras.erase(it);
 				}
 				m_cameraPool.free(camera);
+			}
+			break;
+		case Node::Type_Light:
+			if (_node_->m_sceneData) {
+				Light* light = _node_->getSceneDataLight();
+				auto it = eastl::find(m_lights.begin(), m_lights.end(), light);
+				if (it != m_lights.end()) {
+					APT_ASSERT(light->m_parent == _node_); // _node_ points to light, but light doesn't point to _node_
+					m_lights.erase(it);
+				}
+				m_lightPool.free(light);
 			}
 			break;
 		default:
@@ -459,13 +479,41 @@ void Scene::destroyCamera(Camera*& _camera_)
 	Node* node = _camera_->m_parent;
 	APT_ASSERT(node);
 	destroyNode(node); // implicitly destroys camera
+	if (m_editCamera == _camera_) {
+		m_editCamera = nullptr;
+	}
 	if (m_drawCamera == _camera_) {
 		m_drawCamera = nullptr;
 	}
 	if (m_cullCamera == _camera_) {
 		m_cullCamera = nullptr;
-	}
+	}	
 	_camera_ = nullptr;
+}
+
+Light* Scene::createLight(Node* _parent_)
+{
+	CPU_AUTO_MARKER("Scene::createLight");
+
+	Light* ret = m_lightPool.alloc();
+	Node* node = createNode(Node::Type_Light, _parent_);
+	node->setSceneDataLight(ret);
+	ret->m_parent = node;
+	m_lights.push_back(ret);
+	return ret;
+}
+
+void Scene::destroyLight(Light*& _light_)
+{
+	CPU_AUTO_MARKER("Scene::destroyLight");
+
+	Node* node = _light_->m_parent;
+	APT_ASSERT(node);
+	destroyNode(node); // implicitly destroys light
+	if (m_editLight == _light_) {
+		m_editLight = nullptr;
+	}
+	m_editLight = nullptr;
 }
 
 bool Scene::serialize(JsonSerializer& _serializer_)
@@ -572,6 +620,17 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 				_node_.setSceneDataCamera(cam);
 				break;
 			}
+			case Node::Type_Light: {
+				Light* light = m_lightPool.alloc();
+				light->m_parent = &_node_;
+				if (!light->serialize(_serializer_)) {
+					m_lightPool.free(light);
+					return false;
+				}
+				m_lights.push_back(light);
+				_node_.setSceneDataLight(light);
+				break;
+			}
 			default:
 				break;
 		};
@@ -613,6 +672,13 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 			case Node::Type_Camera: {
 				Camera* cam = _node_.getSceneDataCamera();
 				if (!cam->serialize(_serializer_)) {
+					return false;
+				}
+				break;
+			}
+			case Node::Type_Light: {
+				Light* light = _node_.getSceneDataLight();
+				if (!light->serialize(_serializer_)) {
 					return false;
 				}
 				break;
@@ -721,6 +787,9 @@ void Scene::edit()
 	
 	ImGui::Spacing();
 	editCameras();
+
+	ImGui::Spacing();
+	editLights();
 
 	ImGui::End(); // Scene
 }
@@ -926,10 +995,14 @@ void Scene::editNodes()
 			if (newEditNode) {
 				newEditNode->setSelected(true);
 			}
-			if (newEditNode->m_type == Node::Type_Camera) {
-				m_editCamera = newEditNode->getSceneDataCamera();
-			}
-
+			switch (newEditNode->m_type) {
+				case Node::Type_Camera:
+					m_editCamera = newEditNode->getSceneDataCamera();
+					break;
+				case Node::Type_Light:
+					m_editLight = newEditNode->getSceneDataLight();
+					break;
+			};
 			m_editNode = newEditNode;
 			m_editXForm = nullptr;
 		}
@@ -1057,6 +1130,60 @@ void Scene::editCameras()
 	}
 }
 
+void Scene::editLights()
+{
+	if (ImGui::CollapsingHeader("Lights")) {
+		ImGui::PushID("SelectLight");
+			if (ImGui::Button(ICON_FA_LIST_UL " Select##Light")) {
+				beginSelectLight();
+			}
+			Light* newEditLight = selectLight(m_editLight);
+		ImGui::PopID();
+
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_FILE_O " Create")) {
+			newEditLight = createLight();
+		}
+
+		if (m_editLight) {
+			bool destroy = false;
+
+			ImGui::SameLine();
+			if (ImGui::Button(ICON_FA_TIMES " Destroy")) {
+				destroy = true;
+			}
+
+			ImGui::Separator();			
+			ImGui::Spacing();
+			
+			static Node::NameStr s_nameBuf;
+			s_nameBuf.set(m_editLight->m_parent->m_name);
+			if (ImGui::InputText("Name", s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
+				m_editLight->m_parent->m_name.set(s_nameBuf);
+			}
+
+			m_editLight->edit();
+
+		 // deferred destroy
+			if (destroy) {
+				if (m_editNode == m_editLight->m_parent) {
+					m_editNode = nullptr;
+				}
+				destroyLight(m_editLight);
+				newEditLight = nullptr;
+			}
+		}
+	 // deferred select
+		if (m_editLight != newEditLight) {
+			if (newEditLight->m_parent) {
+				m_editNode = newEditLight->m_parent;
+			}
+			m_editLight = newEditLight;
+		}
+		
+	}
+}
+
 void Scene::beginSelectNode()
 {
 	ImGui::OpenPopup("Select Node");
@@ -1113,6 +1240,35 @@ Camera* Scene::selectCamera(Camera* _current)
 			if (filter.PassFilter(cam->m_parent->getName())) {
 				if (ImGui::Selectable(cam->m_parent->getName())) {
 					ret = cam;
+					break;
+				}
+			}
+		}
+		
+		ImGui::EndPopup();
+	}
+	return ret;
+}
+
+void Scene::beginSelectLight()
+{
+	ImGui::OpenPopup("Select Light");
+}
+Light* Scene::selectLight(Light* _current)
+{
+	Light* ret = _current;
+	if (ImGui::BeginPopup("Select Light")) {
+		static ImGuiTextFilter filter;
+		filter.Draw("Filter##Light");
+		for (auto it = m_lights.begin(); it != m_lights.end(); ++it) {
+			Light* light = *it;
+			if (light == _current) {
+				continue;
+			}
+			APT_ASSERT(light->m_parent);
+			if (filter.PassFilter(light->m_parent->getName())) {
+				if (ImGui::Selectable(light->m_parent->getName())) {
+					ret = light;
 					break;
 				}
 			}
