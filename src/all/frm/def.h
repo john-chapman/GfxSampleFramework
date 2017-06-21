@@ -40,6 +40,7 @@ namespace frm {
 	class  Gamepad;
 	class  GlContext;
 	class  Keyboard;
+	class  Light;
 	class  LuaScript;
 	class  Mesh;
 	class  MeshBuilder;
