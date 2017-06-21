@@ -91,25 +91,26 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 }
 
 // Constants
-#define kPi     (3.14159265359)
-#define k2Pi    (6.28318530718)
-#define kHalfPi (1.57079632679)
+#define kPi                          (3.14159265359)
+#define k2Pi                         (6.28318530718)
+#define kHalfPi                      (1.57079632679)
 
-#define Color_Black    vec3(0.0)
-#define Color_White    vec3(1.0)
-#define Color_Red      vec3(1.0, 0.0, 0.0)
-#define Color_Green    vec3(0.0, 1.0, 0.0)
-#define Color_Blue     vec3(0.0, 0.0, 1.0)
-#define Color_Magenta  vec3(1.0, 0.0, 1.0)
-#define Color_Yellow   vec3(1.0, 1.0, 0.0)
-#define Color_Cyan     vec3(0.0, 1.0, 1.0)
+#define Color_Black                  vec3(0.0)
+#define Color_White                  vec3(1.0)
+#define Color_Red                    vec3(1.0, 0.0, 0.0)
+#define Color_Green                  vec3(0.0, 1.0, 0.0)
+#define Color_Blue                   vec3(0.0, 0.0, 1.0)
+#define Color_Magenta                vec3(1.0, 0.0, 1.0)
+#define Color_Yellow                 vec3(1.0, 1.0, 0.0)
+#define Color_Cyan                   vec3(0.0, 1.0, 1.0)
 
 // Functions
-#define saturate(_x)    clamp((_x), 0.0, 1.0)
-#define length2(_v)     dot(_v, _v)
-#define sqrt_safe(_x)   sqrt(max(_x, 0.0))
-#define length_safe(_v) sqrt_safe(dot(_v, _v))
-#define log10(x)        (log2(x) / log2(10.0))
+#define saturate(_x)                 clamp((_x), 0.0, 1.0)
+#define length2(_v)                  dot(_v, _v)
+#define sqrt_safe(_x)                sqrt(max(_x, 0.0))
+#define length_safe(_v)              sqrt_safe(dot(_v, _v))
+#define log10(x)                     (log2(x) / log2(10.0))
+#define linearstep(_e0, _e1, _x)     saturate((_x) * (1.0 / ((_e1) - (_e0))) + (-(_e0) / ((_e1) - (_e0))))
 
 // Linearizing depth requires applying the inverse of Z part of the projection matrix, which depends on how the matrix was set up.
 // The following variants correspond to ProjFlags_; see frm/Camera.h for more info.
