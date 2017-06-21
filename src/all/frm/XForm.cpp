@@ -578,7 +578,9 @@ void XForm_OrbitalPath::apply(float _dt)
 		));
 	m_direction = amat * bmat * tmat * vec3(1.0f, 0.0f, 0.0f);
 	m_normal = amat * bmat * vec3(0.0f, 1.0f, 0.0f);
-	m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), m_direction * m_radius));
+	if (m_node) {
+		m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), m_direction * m_radius));
+	}
 }
 
 void XForm_OrbitalPath::edit()
