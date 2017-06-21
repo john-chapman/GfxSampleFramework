@@ -1035,7 +1035,7 @@ Texture::Texture(
 	m_format     = _format;
 	m_width      = _width;
 	m_height     = _height;
-	m_height     = _depth;
+	m_depth      = _depth;
 	m_arrayCount = _arrayCount;
 	m_mipCount   = APT_MIN(_mipCount, GetMaxMipCount(_width, _height));
 	glAssert(glCreateTextures(m_target, 1, &m_handle));
