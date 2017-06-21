@@ -72,7 +72,8 @@ public:
 
 	uint64       getSceneData() const                { return m_sceneData; }
 	Camera*      getSceneDataCamera() const          { APT_ASSERT(m_type == Type_Camera); return (Camera*)m_sceneData; }
-	Scene*       getSceneDataScene() const           { APT_ASSERT(m_type == Type_Root); return (Scene*)m_sceneData; }
+	Light*       getSceneDataLight() const           { APT_ASSERT(m_type == Type_Light); return (Light*)m_sceneData;   }
+	Scene*       getSceneDataScene() const           { APT_ASSERT(m_type == Type_Root); return (Scene*)m_sceneData;    }
 
 	const mat4&  getLocalMatrix() const              { return m_localMatrix; }
 	void         setLocalMatrix(const mat4& _mat)    { m_localMatrix = _mat; }
@@ -95,12 +96,12 @@ public:
 
 private:
  // meta
-	Id                  m_id;          // Unique id.
-	NameStr             m_name;        // User-friendly name (not necessarily unique).
-	Type                m_type;
-	uint8               m_state;       // State mask.
-	uint64              m_userData;    // Application-defined node data.
-	uint64              m_sceneData;   // Scene-defined data.
+	Id                    m_id;          // Unique id.
+	NameStr               m_name;        // User-friendly name (not necessarily unique).
+	Type                  m_type;
+	uint8                 m_state;       // State mask.
+	uint64                m_userData;    // Application-defined node data.
+	uint64                m_sceneData;   // Scene-defined data.
 
  // spatial
 	mat4                  m_localMatrix; // Initial (local) transformation.
@@ -128,7 +129,8 @@ private:
 
 
 	void setSceneDataCamera(Camera* _camera) { APT_ASSERT(m_type == Type_Camera); m_sceneData = (uint64)_camera; }
-	void setSceneDataScene(Scene* _scene)    { APT_ASSERT(m_type == Type_Root);   m_sceneData = (uint64)_scene; }
+	void setSceneDataLight(Light* _light)    { APT_ASSERT(m_type == Type_Light);  m_sceneData = (uint64)_light;  }
+	void setSceneDataScene(Scene* _scene)    { APT_ASSERT(m_type == Type_Root);   m_sceneData = (uint64)_scene;  }
 
 }; // class Node
 
@@ -183,6 +185,9 @@ public:
 	Camera* getCullCamera() const                   { return m_cullCamera; }
 	void    setCullCamera(Camera* _camera)          { m_cullCamera = _camera; }
 
+	Light*  createLight(Node* _parent = nullptr);
+	void    destroyLight(Light*& _camera_);
+
 	// Serialize to json.
 	// \note Node names beginning with '#' are ignored during serialization (use
 	//   for any nodes added programmatcially).
@@ -196,6 +201,8 @@ public:
 	Node*     selectNode(Node* _current, Node::Type _type = Node::Type_Count);
 	void      beginSelectCamera();
 	Camera*   selectCamera(Camera* _current);
+	void      beginSelectLight();
+	Light*    selectLight(Light* _current);
 #endif
 	
 	friend void swap(Scene& _a, Scene& _b);
@@ -215,6 +222,10 @@ private:
 	eastl::vector<Camera*>  m_cameras;
 	apt::Pool<Camera>       m_cameraPool;
 
+ // lights
+	eastl::vector<Light*>   m_lights;
+	apt::Pool<Light>        m_lightPool;
+
 #ifdef frm_Scene_ENABLE_EDIT
 	bool      m_showNodeGraph3d;
 	Node*     m_editNode;
@@ -223,9 +234,11 @@ private:
 	Camera*   m_editCamera;
 	Camera*   m_storedCullCamera;
 	Camera*   m_storedDrawCamera;
+	Light*    m_editLight;
 
 	void      editNodes();
 	void      editCameras();
+	void      editLights();
 
 	void      beginCreateNode();
 	Node*     createNode(Node* _current);

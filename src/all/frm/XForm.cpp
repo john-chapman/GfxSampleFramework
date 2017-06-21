@@ -528,6 +528,96 @@ void XForm_SplinePath::reverse()
 	APT_ASSERT(false); // \todo
 }
 
+/*******************************************************************************
+
+                              XForm_OrbitalPath
+
+*******************************************************************************/
+APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_OrbitalPath);
+
+XForm_OrbitalPath::XForm_OrbitalPath()
+	: m_azimuth(0.0f)
+	, m_elevation(radians(90.0f))
+	, m_theta(0.0f)
+	, m_radius(1.0f)
+	, m_speed(0.0f)
+{
+}
+
+XForm_OrbitalPath::~XForm_OrbitalPath()
+{
+}
+
+void XForm_OrbitalPath::apply(float _dt)
+{
+	m_theta = fract(m_theta + m_speed * _dt);
+
+	float a = m_azimuth;
+	float b = -m_elevation;
+	float t = m_theta * two_pi<float>();
+	float ca = cosf(a);
+	float sa = sinf(a);
+	float cb = cosf(b);
+	float sb = sinf(b);
+	float ct = cosf(t);
+	float st = sinf(t);
+	mat3 tmat = transpose(mat3(
+		st,     0.0f,  ct,
+		0.0f,   1.0f,  0.0f,
+		-ct,    0.0f,  st
+		));
+	mat3 amat = transpose(mat3(
+		ca,     0.0f,  sa,
+		0.0f,   1.0f,  0.0f,
+		-sa,    0.0f,  ca
+		));
+	mat3 bmat = transpose(mat3(
+		1.0f,   0.0f,  0.0f,
+		0.0f,   cb,    -sb,
+		0.0f,   sb,     cb
+		));
+	m_direction = amat * bmat * tmat * vec3(1.0f, 0.0f, 0.0f);
+	m_normal = amat * bmat * vec3(0.0f, 1.0f, 0.0f);
+	m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), m_direction * m_radius));
+}
+
+void XForm_OrbitalPath::edit()
+{
+	ImGui::PushID(this);
+	Im3d::PushId(this);
+
+	ImGui::SliderFloat("Theta", &m_theta, 0.0f, 1.0f);
+	ImGui::Spacing();
+		
+	ImGui::SliderAngle("Azimuth",   &m_azimuth,   -180.0f, 180.0f);
+	ImGui::SliderAngle("Elevation", &m_elevation, -180.0f, 180.0f);
+	ImGui::DragFloat  ("Radius",    &m_radius, 0.1f);
+	ImGui::DragFloat  ("Speed",     &m_speed, 0.01f);
+	
+	Im3d::SetAlpha(0.5f);
+	Im3d::SetSize(2.0f);
+	Im3d::SetColor(Im3d::Color_Yellow);
+	Im3d::DrawCircle(vec3(0.0f), m_normal, m_radius);
+	Im3d::DrawPoint(m_direction * m_radius, 8.0f, Im3d::Color_White);
+
+	Im3d::PopId();
+	ImGui::PopID();
+}
+
+bool XForm_OrbitalPath::serialize(JsonSerializer& _serializer_)
+{
+	_serializer_.value("Azimuth",   m_azimuth);
+	_serializer_.value("Elevation", m_elevation);
+	_serializer_.value("Theta",     m_theta);
+	_serializer_.value("Radius",    m_radius);
+	_serializer_.value("Speed",     m_speed);
+	return true;
+}
+
+void XForm_OrbitalPath::reset()
+{
+	m_theta = 0.0f;
+}
 
 /*******************************************************************************
 

@@ -136,6 +136,7 @@
     <ClInclude Include="..\..\src\all\frm\Framebuffer.h" />
     <ClInclude Include="..\..\src\all\frm\GlContext.h" />
     <ClInclude Include="..\..\src\all\frm\Input.h" />
+    <ClInclude Include="..\..\src\all\frm\Light.h" />
     <ClInclude Include="..\..\src\all\frm\LuaScript.h" />
     <ClInclude Include="..\..\src\all\frm\Mesh.h" />
     <ClInclude Include="..\..\src\all\frm\MeshData.h" />
@@ -209,6 +210,7 @@
     <ClCompile Include="..\..\src\all\frm\Framebuffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\GlContext.cpp" />
     <ClCompile Include="..\..\src\all\frm\Input.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Light.cpp" />
     <ClCompile Include="..\..\src\all\frm\LuaScript.cpp" />
     <ClCompile Include="..\..\src\all\frm\Mesh.cpp" />
     <ClCompile Include="..\..\src\all\frm\MeshData.cpp" />
