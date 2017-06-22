@@ -476,7 +476,7 @@ Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _loc
 	APT_ASSERT(_localX <= GlContext::GetCurrent()->kMaxComputeLocalSize[0]);
 	APT_ASSERT(_localY <= GlContext::GetCurrent()->kMaxComputeLocalSize[1]);
 	APT_ASSERT(_localZ <= GlContext::GetCurrent()->kMaxComputeLocalSize[2]);
-	APT_ASSERT((_localX * _localY * _localZ) <= GlContext::GetCurrent()->kMaxComputeInvocations);
+	APT_ASSERT((_localX * _localY * _localZ) <= GlContext::GetCurrent()->kMaxComputeInvocationsPerGroup);
 
 	ShaderDesc desc;
 	desc.addGlobalDefines(_defines);
