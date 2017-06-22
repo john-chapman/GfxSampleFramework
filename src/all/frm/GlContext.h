@@ -19,9 +19,9 @@ class Window;
 class GlContext: private apt::non_copyable<GlContext>
 {
 public:
-	GLint kMaxComputeInvocations;   // Total maximum invocations per work group.
-	GLint kMaxComputeLocalSize[3];  // Maximum local group size.
-	GLint kMaxComputeWorkGroups[3]; // Maximum number of work groups.
+	GLint kMaxComputeInvocationsPerGroup;
+	GLint kMaxComputeLocalSize[3];
+	GLint kMaxComputeWorkGroups[3];
 
 	enum Vsync
 	{

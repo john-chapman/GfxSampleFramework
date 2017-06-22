@@ -121,7 +121,6 @@ void GlContext::dispatch(GLuint _groupsX, GLuint _groupsY, GLuint _groupsZ)
 	APT_ASSERT(_groupsX < (GLuint)kMaxComputeWorkGroups[0]);
 	APT_ASSERT(_groupsY < (GLuint)kMaxComputeWorkGroups[1]);
 	APT_ASSERT(_groupsZ < (GLuint)kMaxComputeWorkGroups[2]);
-	APT_ASSERT((_groupsX * m_currentShader->getLocalSizeX() + _groupsY * m_currentShader->getLocalSizeY() + _groupsZ * m_currentShader->getLocalSizeZ()) < (GLuint)kMaxComputeInvocations);
 	glAssert(glDispatchCompute(_groupsX, _groupsY, _groupsZ));
 }
 
@@ -494,7 +493,7 @@ void GlContext::shutdown()
 
 void GlContext::queryLimits()
 {
-	glAssert(glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &kMaxComputeInvocations));
+	glAssert(glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &kMaxComputeInvocationsPerGroup));
 
 	glAssert(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &kMaxComputeWorkGroups[0]));
 	glAssert(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &kMaxComputeWorkGroups[1]));
