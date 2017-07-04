@@ -464,7 +464,7 @@ Texture* Texture::Create(const char* _path)
 	Use(ret);
 	if (ret->getState() != State_Loaded) {
 	 // \todo replace with default
-	} else {
+	} else if (ret->getRefCount() == 1) {
 		g_textureViewer.addTextureView(ret);
 	}
 	return ret;
