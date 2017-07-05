@@ -676,9 +676,9 @@ void Texture::DestroyImage(Image*& _img_)
 GLint Texture::GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth)
 {
 	const double rlog2 = 1.0 / log(2.0);
-	const GLint log2Width  = (GLint)ceil(log((double)_width)  * rlog2);
-	const GLint log2Height = (GLint)ceil(log((double)_height) * rlog2);
-	const GLint log2Depth  = (GLint)ceil(log((double)_depth)  * rlog2);
+	const GLint log2Width  = (GLint)floor(log((double)_width)  * rlog2);
+	const GLint log2Height = (GLint)floor(log((double)_height) * rlog2);
+	const GLint log2Depth  = (GLint)floor(log((double)_depth)  * rlog2);
 	return APT_MAX(log2Width, APT_MAX(log2Height, log2Depth)) + 1; // +1 for level 0
 }
 
