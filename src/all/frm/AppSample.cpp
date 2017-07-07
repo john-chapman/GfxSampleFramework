@@ -157,7 +157,7 @@ bool AppSample::update()
 
  // keyboard shortcuts
 	Keyboard* keyboard = Input::GetKeyboard();
-	if (keyboard->wasPressed(Keyboard::Key_Escape)) {
+    if (keyboard->wasPressed(Keyboard::Key_Escape) && ImGui::IsKeyDown(Keyboard::Key_LShift)) {
 		return false;
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F1)) {
