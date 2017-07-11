@@ -9,12 +9,10 @@ uniform uint uTime;
 
 struct Data
 {
-	float m_saturation;
+	float m_exposure;
 	float m_contrast;
-	float m_exposureCompensation;
-	float m_aperture;
-	float m_shutterSpeed;
-	float m_iso;
+	float m_saturation;
+	vec4  m_tonemapper; // a,b,c,d (see Tonemap_Lottes below)
 	vec3  m_tint;
 };
 layout(std140) uniform _bfData
@@ -22,72 +20,50 @@ layout(std140) uniform _bfData
 	Data bfData;
 };
 
-#define APERTURE_MIN 1.8
-#define APERTURE_MAX 22.0
-#define ISO_MIN      100.0
-#define ISO_MAX      6400.0
-
 #ifdef AUTO_EXPOSURE
 	uniform sampler2D txAvgLogLuminance;
 #endif
 
 layout(location=0) out vec3 fResult;
 
-// Given an aperture, shutter speed, and exposure value compute the required ISO value
-float ComputeISO(in float aperture, in float shutterSpeed, in float ev)
-{
-	return (sqrt(aperture) * 100.0) / (shutterSpeed * exp2(ev));
-}
-// Given the camera settings compute the current exposure value
-float ComputeEV(in float aperture, in float shutterSpeed, in float iso)
-{
-	return log2((sqrt(aperture) * 100.0) / (shutterSpeed * iso));
-}
 // Using the light metering equation compute the target exposure value
 float ComputeTargetEV(in float averageLuminance)
 {
 	return log2(averageLuminance * 100.0 / 12.5);
 }
 
-void ApplyShutterPriority(in float targetEV,
-                          out float aperture,
-                          out float shutterSpeed,
-                          out float iso)
+
+vec3 Tonemap_Reinhard(in vec3 _x)
 {
-	// Start with the assumption that we want an aperture of 4.0
-	aperture = 4.0;
- 
-	// Compute the resulting ISO if we left the aperture here
-	iso = clamp(ComputeISO(aperture, shutterSpeed, targetEV), ISO_MIN, ISO_MAX);
- 
-	// Figure out how far we were from the target exposure value
-	float evDiff = targetEV - ComputeEV(aperture, shutterSpeed, iso);
- 
-	// Compute the final aperture
-	aperture = clamp(aperture * pow(sqrt(2.0), evDiff), APERTURE_MIN, APERTURE_MAX);
+	#if 0
+	 // RGB separate
+		return _x / (vec3(1.0) + _x);
+	#else
+	 // luminance (preserves hue/saturateion)
+	 	float L = dot(vec3(0.2126, 0.7152, 0.0722), _x);
+		float nL = L / (1.0 + L);
+		return _x * nL / L;
+	#endif
 }
 
-float getStandardOutputBasedExposure(float aperture,
-                                     float shutterSpeed,
-                                     float iso,
-                                     float middleGrey = 0.18)
+// http://32ipi028l5q82yhj72224m8j.wpengine.netdna-cdn.com/wp-content/uploads/2016/03/GdcVdrLottes.pdf
+// Generic 4-parameter curve
+vec3 Tonemap_Lottes(in vec3 _x)
 {
-    float l_avg = (1000.0 / 65.0) * sqrt(aperture) / (iso * shutterSpeed);
-    return middleGrey / l_avg;
-}
-float GetExposureFromEV100(float EV100)
-{
-// Compute the maximum luminance possible with H_sbs sensitivity
-// maxLum = 78 / ( S * q ) * N^2 / t
-// = 78 / ( S * q ) * 2^ EV_100
-// = 78 / (100 * 0.65) * 2^ EV_100
-// = 1.2 * 2^ EV
-// Reference : http :// en. wikipedia . org / wiki / Film_speed
-	float maxLuminance = 1.2 * exp2(EV100);
-	return 1.0 / maxLuminance;
-}
+	#define fnc(v) (pow(v, bfData.m_tonemapper.x) / (pow(v, bfData.m_tonemapper.w) * bfData.m_tonemapper.y + bfData.m_tonemapper.z))
 
+	#if 0
+	 // RGB separate
+		return vec3(fnc(_x.r), fnc(_x.g), fnc(_x.b));
+	#else
+	 // luminance (preserves hue/saturateion)
+		float L = dot(vec3(0.2126, 0.7152, 0.0722), _x);
+		float nL = fnc(L);
+		return _x * nL / L;
+	#endif
 
+	#undef fnc
+}
 
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 // Cheap, luminance-only fit; over saturates the brights
@@ -117,15 +93,17 @@ vec3 Tonemap_ACES_Hill(in vec3 _x)
 		-0.53108,  1.10813, -0.07276,
 		-0.07367, -0.00605,  1.07602
 		);
-		
+
 	vec3 ret = matIn * _x;
 	vec3 a = ret * (ret + 0.0245786) - 0.000090537;
 	vec3 b = ret * (0.983729 * ret + 0.4329510) + 0.238081;
 	ret = a / b;
 	ret = matOut * ret;
-	
+
 	return ret;
 }
+
+#define Tonemap(_x) Tonemap_Lottes(_x)
 
 
 float LogContrast(in float _x, in float _epsilon, in float _midpoint, in float _contrast)
@@ -136,7 +114,7 @@ float LogContrast(in float _x, in float _epsilon, in float _midpoint, in float _
 	return ret;
 }
 
-void main() 
+void main()
 {
 	vec3 ret = textureLod(txInput, vUv, 0.0).rgb;
 
@@ -150,18 +128,15 @@ void main()
 	//	ret *= bfData.m_exposureCompensation;
 	//#endif
 
-#ifdef AUTO_EXPOSURE
- // \todo sort of works, need to check the impl (also see \todo in LuminanceMeter_cs)
-	float avgLum = textureLod(txAvgLogLuminance, vUv, 99.0).r;
-	float EV = log2(avgLum * 100.0 / 12.5);
-	ret *= exp2(-EV) + bfData.m_exposureCompensation;
-#else
-	//float EV = log2(bfData.m_aperture * bfData.m_aperture / bfData.m_shutterSpeed) * 100.0 / bfData.m_iso;
-	//ret *= exp2(EV) * bfData.m_exposureCompensation;
-	ret *= bfData.m_exposureCompensation;
-#endif
-	
-	
+	#ifdef AUTO_EXPOSURE
+	 // \todo sort of works, need to check the impl (also see \todo in LuminanceMeter_cs)
+		/*float avgLum = textureLod(txAvgLogLuminance, vUv, 99.0).r;
+		float EV = log2(avgLum * 100.0 / 12.5);
+		ret *= exp2(-EV) + bfData.m_exposureCompensation;*/
+	#else
+		ret *= bfData.m_exposure;
+	#endif
+
  // tint
 	ret *= bfData.m_tint;
 
@@ -171,19 +146,20 @@ void main()
 	ret.x = LogContrast(ret.x, 1e-7, logMidpoint, bfData.m_contrast);
 	ret.y = LogContrast(ret.y, 1e-7, logMidpoint, bfData.m_contrast);
 	ret.z = LogContrast(ret.z, 1e-7, logMidpoint, bfData.m_contrast);
- // tonemap
-	ret = Tonemap_ACES_Hill(ret);
 
- // \todo film grain
+ // tonemap
+	ret = Tonemap(ret);
+
+ // saturation (apply post tonemap to avoid hue shifts)
+	vec3 gray = vec3(dot(ret, vec3(0.25, 0.50, 0.25)));
+	ret = gray + bfData.m_saturation * (ret - gray);
+
+ // \todo film grain?
 	//float rnd = Rand_FloatMantissa(Rand_Hash(uint(gl_FragCoord.x * 698.0 + gl_FragCoord.y) + Rand_Hash(uTime)));
 	//ret -= vec3(rnd * 0.03);
 
- // saturation/grain
-	vec3 gray = vec3(dot(ret, vec3(0.25, 0.50, 0.25)));
-	ret = gray + bfData.m_saturation * (ret - gray);
-	
  // display gamma
 	ret = pow(ret, vec3(1.0/2.2));
-	
+
 	fResult = ret;
 }
