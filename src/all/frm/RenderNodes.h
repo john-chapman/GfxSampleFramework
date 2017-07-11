@@ -11,7 +11,8 @@ namespace frm {
 //	- Probably make Data private, have edit/serialize methods (or rely on Properties); this way you can know exactly if the data changed and reload the buffer when required
 
 
-// Log luminance history buffer (use for auto-exposure).
+// Luminance meter with history/weighted average.
+// \todo Switchable weight/averaging modes, enable/disable history.
 class LuminanceMeter
 {
 public:
@@ -31,10 +32,10 @@ public:
 	void edit();
 	bool isEnabled() const { return m_enabled; }
 
-	const Texture* getAvgLogLuminanceTexture() { return m_txLogLum[m_current]; }
+	const Texture* getLuminanceTexture() { return m_txLum[m_current]; }
 private:
 	static const int kHistorySize = 2;
-	Texture* m_txLogLum[kHistorySize];
+	Texture* m_txLum[kHistorySize];
 	int      m_current;
 	bool     m_enabled;
 	Shader*  m_shLuminanceMeter;

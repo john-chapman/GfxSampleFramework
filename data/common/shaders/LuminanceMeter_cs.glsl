@@ -1,7 +1,11 @@
 #include "shaders/def.glsl"
 
+#define Average_Arithmetic 0
+#define Average_Geometric  1
+#ifndef AVERAGE_MODE
+	#define AVERAGE_MODE Average_Geometric
+#endif
 #define Weight_Average 0
-
 #ifndef WEIGHT_MODE
 	#define WEIGHT_MODE Weight_Average
 #endif
@@ -29,11 +33,14 @@ void main()
 		return;
 	}
 	vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize) + 0.5 / vec2(txSize);
-	
+
 	float ret = 0.0;
 	if (uSrcLevel == -1) {
- // \todo should take the log luminance here
 		ret = dot(textureLod(txSrc, uv, 0.0).rgb, vec3(0.25, 0.50, 0.25));
+		#if (AVERAGE_MODE == Average_Geometric)
+			ret = log(max(ret, 1e-7)); // use exp(avg) to get the geometric mean when reading the texture
+		#endif
+
 		float prev = textureLod(txSrcPrev, uv, 0.0).r;
 		ret = prev + (ret - prev) * (1.0 - exp(uDeltaTime * -bfData.m_rate));
 	} else {
@@ -42,6 +49,6 @@ void main()
 		#endif
 		ret = textureLod(txSrc, uv, uSrcLevel).r * w;
 	}
-	
+
 	imageStore(txDst, ivec2(gl_GlobalInvocationID.xy), vec4(ret));
 }
