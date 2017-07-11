@@ -139,15 +139,13 @@ void LuminanceMeter::edit()
 void ColorCorrection::setProps(Properties& _props_)
 {
 	PropertyGroup& propGroup = _props_.addGroup("Color Correction");
-	//                 name                        default        min             max          storage
-	propGroup.addBool ("Enabled",                  true,                                       &m_enabled);
-	propGroup.addFloat("Exposure Compensation",    exp2(0.0f),    exp2(-12.0f),   exp2(12.0f), &m_data.m_exposureCompensation);
-	propGroup.addFloat("Aperture",                 4.0f,          1.0f,           24.0f,       &m_data.m_aperture);
-	propGroup.addFloat("Shutter Speed",            1.0f/60.0f,    1.0f/100.0f,    1.0f/0.1f,   &m_data.m_shutterSpeed);
-	propGroup.addFloat("ISO",                      100.0f,        64.0f,          6400.0f,     &m_data.m_iso);
-	propGroup.addFloat("Saturation",               1.0f,          0.0f,           8.0f,        &m_data.m_saturation);
-	propGroup.addFloat("Contrast",                 1.0f,          0.0f,           8.0f,        &m_data.m_contrast);
-	propGroup.addRgb  ("Tint",                     vec3(1.0f),    0.0f,           1.0f,        &m_data.m_tint);
+	//                  name            default                         min             max          storage
+	propGroup.addBool  ("Enabled",      true,                                                        &m_enabled);
+	propGroup.addFloat ("Exposure",     exp2(0.0f),                     exp2(-16.0f),   exp2(16.0f), &m_data.m_exposure);
+	propGroup.addFloat ("Saturation",   1.0f,                           0.0f,           8.0f,        &m_data.m_saturation);
+	propGroup.addFloat ("Contrast",     1.0f,                           0.0f,           8.0f,        &m_data.m_contrast);
+	propGroup.addFloat4("Tonemapper",   vec4(1.0f, 1.0f, 0.125f, 0.3f), 0.0f,           2.0f,        &m_data.m_tonemapper);
+	propGroup.addRgb   ("Tint",         vec3(1.0f),                     0.0f,           1.0f,        &m_data.m_tint);
 }
 
 bool ColorCorrection::init()
@@ -202,21 +200,35 @@ void ColorCorrection::edit()
 		}
 
 		bool update = false;
-		float exposure = log2(m_data.m_exposureCompensation);
-		update |= ImGui::SliderFloat("Exposure Compensation", &exposure, -16.0f, 16.0f);
-		m_data.m_exposureCompensation = exp2(exposure);
-		update |= ImGui::SliderFloat("Aperture", &m_data.m_aperture, 1.0f, 24.0f);
-		float shutterSpeed = 1.0f / m_data.m_shutterSpeed;
-		update |= ImGui::SliderFloat("Shutter Speed", &shutterSpeed, 0.1f, 100.0f);
-		m_data.m_shutterSpeed = 1.0f / shutterSpeed;
-		update |= ImGui::SliderFloat("ISO", &m_data.m_iso, 64.0f, 6400.0f);
 
+		float exposure = log2(m_data.m_exposure);
+		update |= ImGui::SliderFloat("Exposure", &exposure, -16.0f, 16.0f);
+		m_data.m_exposure = exp2(exposure);
+		
 		ImGui::Spacing();
 		update |= ImGui::SliderFloat("Saturation", &m_data.m_saturation, 0.0f, 8.0f);
 		update |= ImGui::SliderFloat("Contrast", &m_data.m_contrast, 0.0f, 8.0f);
 		update |= ImGui::ColorEdit3("Tint", &m_data.m_tint.x);
+		
+		ImGui::Spacing();
+		ImGui::Text("Tonemapper:");
+		update |= ImGui::SliderFloat("Toe",      &m_data.m_tonemapper.x, 0.0f, 4.0f);
+		update |= ImGui::SliderFloat("Shoulder", &m_data.m_tonemapper.w, 0.0f, 1.0f);
+		update |= ImGui::SliderFloat("Peak",     &m_data.m_tonemapper.y, 0.0f, 8.0f);
+		update |= ImGui::SliderFloat("Slope",    &m_data.m_tonemapper.z, 0.0f, 2.0f);
+
+		const int kSampleCount = 256;
+		float plot[kSampleCount];
+		float range = 4.0f;
+		for (int i = 0; i < kSampleCount; ++i) {
+			float x = (float)i / (float)(kSampleCount - 1) * range;
+			plot[i] = powf(x, m_data.m_tonemapper.x) / (powf(x, m_data.m_tonemapper.w) * m_data.m_tonemapper.y + m_data.m_tonemapper.z);
+		}
+		ImGui::PlotLines("Curve", plot, kSampleCount, 0, 0, 0.0f, 1.0f, ImVec2(0.0f, 64.0f));
+
 		if (update) {
 			m_bfData->setData(sizeof(Data), &m_data);
 		}
+
 	}
 }
