@@ -41,20 +41,17 @@ private:
 	Buffer*  m_bfData;
 };
 
-// Final exposure, tonemapping and color correction.
+// Final exposure, tonemapping, color correction.
 class ColorCorrection
 {
 public:
 	struct Data
 	{
-		float m_saturation;
+		float m_exposure;
 		float m_contrast;
-		float m_exposureCompensation;
-		float m_aperture;
-		float m_shutterSpeed;
-		float m_iso;
+		float m_saturation;
 		float pad0;
-		float pad1;
+		vec4  m_tonemapper;
 		vec3  m_tint;
 	};
 	Data m_data;
@@ -68,6 +65,7 @@ public:
 
 	void edit();
 	bool isEnabled() const { return m_enabled; }
+
 private:
 	uint32  m_time;
 	bool    m_enabled;
