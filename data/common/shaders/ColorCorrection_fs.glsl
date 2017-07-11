@@ -20,18 +20,24 @@ layout(std140) uniform _bfData
 	Data bfData;
 };
 
+/*******************************************************************************
+
+                                  Exposure
+
+*******************************************************************************/
+
 #ifdef AUTO_EXPOSURE
-	uniform sampler2D txAvgLogLuminance;
+	uniform sampler2D txLuminance;
 #endif
 
 layout(location=0) out vec3 fResult;
 
-// Using the light metering equation compute the target exposure value
-float ComputeTargetEV(in float averageLuminance)
-{
-	return log2(averageLuminance * 100.0 / 12.5);
-}
 
+/*******************************************************************************
+
+                                  Tonemapping
+
+*******************************************************************************/
 
 vec3 Tonemap_Reinhard(in vec3 _x)
 {
@@ -39,10 +45,11 @@ vec3 Tonemap_Reinhard(in vec3 _x)
 	 // RGB separate
 		return _x / (vec3(1.0) + _x);
 	#else
-	 // luminance (preserves hue/saturateion)
-	 	float L = dot(vec3(0.2126, 0.7152, 0.0722), _x);
-		float nL = L / (1.0 + L);
-		return _x * nL / L;
+	 // max3(RGB) (preserves hue/saturation)
+		float peak = max3(_x.r, _x.g, _x.b);
+		vec3 ratio = _x / peak;
+		peak = peak / (1.0 + peak);
+		return ratio * peak;
 	#endif
 }
 
@@ -56,10 +63,12 @@ vec3 Tonemap_Lottes(in vec3 _x)
 	 // RGB separate
 		return vec3(fnc(_x.r), fnc(_x.g), fnc(_x.b));
 	#else
-	 // luminance (preserves hue/saturateion)
-		float L = dot(vec3(0.2126, 0.7152, 0.0722), _x);
-		float nL = fnc(L);
-		return _x * nL / L;
+	 // max3(RGB) (preserves hue/saturation)
+		float peak = max3(_x.r, _x.g, _x.b);
+		vec3 ratio = _x / peak;
+		peak = fnc(peak);
+		return ratio * peak;
+
 	#endif
 
 	#undef fnc
@@ -106,6 +115,12 @@ vec3 Tonemap_ACES_Hill(in vec3 _x)
 #define Tonemap(_x) Tonemap_Lottes(_x)
 
 
+/*******************************************************************************
+
+                                  Exposure
+
+*******************************************************************************/
+
 float LogContrast(in float _x, in float _epsilon, in float _midpoint, in float _contrast)
 {
 	float logX = log2(_x + _epsilon);
@@ -118,21 +133,13 @@ void main()
 {
 	vec3 ret = textureLod(txInput, vUv, 0.0).rgb;
 
- // exposure
-	//#ifdef AUTO_EXPOSURE
-	//	float avgLogLum = exp(textureLod(txAvgLogLuminance, vUv, 99.0).r);
-	//	float targetEV = ComputeTargetEV(avgLogLum);
-	//	float EV100 =  ComputeEV(bfData.m_aperture, bfData.m_shutterSpeed, bfData.m_iso);
-	//	ret *= GetExposureFromEV100(EV100 - targetEV - bfData.m_exposureCompensation);
-	//#else
-	//	ret *= bfData.m_exposureCompensation;
-	//#endif
-
 	#ifdef AUTO_EXPOSURE
 	 // \todo sort of works, need to check the impl (also see \todo in LuminanceMeter_cs)
-		/*float avgLum = textureLod(txAvgLogLuminance, vUv, 99.0).r;
-		float EV = log2(avgLum * 100.0 / 12.5);
-		ret *= exp2(-EV) + bfData.m_exposureCompensation;*/
+		float avgLum = textureLod(txLuminance, vUv, 99.0).r;
+		avgLum = exp(avgLum);
+		float autoEV = log2(avgLum * 100.0 / 12.5);
+		//autoEV = clamp(autoEV, -2.0, 2.0);
+		ret *= exp2(-autoEV) + bfData.m_exposure;
 	#else
 		ret *= bfData.m_exposure;
 	#endif
