@@ -40,12 +40,12 @@ bool LuminanceMeter::init(int _txSize)
 	m_bfData->setName("_bfData");
 
 	for (int i = 0; i < kHistorySize; ++i) {
-		m_txLogLum[i] = Texture::Create2d(_txSize, _txSize, GL_R16F, Texture::GetMaxMipCount(_txSize, _txSize));
-		if (!m_txLogLum[i]) {
+		m_txLum[i] = Texture::Create2d(_txSize, _txSize, GL_R16F, Texture::GetMaxMipCount(_txSize, _txSize));
+		if (!m_txLum[i]) {
 			return false;
 		}
-		m_txLogLum[i]->setWrap(GL_CLAMP_TO_EDGE);
-		m_txLogLum[i]->setNamef("#txLogLum[%d]", i);
+		m_txLum[i]->setWrap(GL_CLAMP_TO_EDGE);
+		m_txLum[i]->setNamef("#txLogLum[%d]", i);
 	}
 	m_current = 0;
 
@@ -55,7 +55,7 @@ bool LuminanceMeter::init(int _txSize)
 void LuminanceMeter::shutdown()
 {
 	for (int i = 0; i < kHistorySize; ++i) {
-		Texture::Release(m_txLogLum[i]);
+		Texture::Release(m_txLum[i]);
 	}
 	Buffer::Destroy(m_bfData);
 	Shader::Release(m_shLuminanceMeter);
@@ -65,7 +65,7 @@ void LuminanceMeter::reset()
 {
 	Framebuffer* fb = Framebuffer::Create();
 	for (int i = 0; i < kHistorySize; ++i) {
-		fb->attach(m_txLogLum[i], GL_COLOR_ATTACHMENT0);
+		fb->attach(m_txLum[i], GL_COLOR_ATTACHMENT0);
 		GlContext::GetCurrent()->setFramebufferAndViewport(fb);
 		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		glAssert(glClear(GL_COLOR_BUFFER_BIT));
@@ -80,7 +80,7 @@ void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, cons
 	int prev = m_current;
 	m_current = (m_current + 1) % kHistorySize;
 	APT_ASSERT(prev != m_current);
-	Texture* dst = m_txLogLum[m_current];
+	Texture* dst = m_txLum[m_current];
 
 	{	AUTO_MARKER("Luminance/Smooth");
 		_ctx_->setShader  (m_shLuminanceMeter);
@@ -88,7 +88,7 @@ void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, cons
 		_ctx_->setUniform ("uSrcLevel", -1); // indicate first pass
 		_ctx_->bindBuffer (m_bfData);
 		_ctx_->bindTexture("txSrc", _src);
-		_ctx_->bindTexture("txSrcPrev", m_txLogLum[prev]);
+		_ctx_->bindTexture("txSrcPrev", m_txLum[prev]);
 		_ctx_->bindImage  ("txDst", dst, GL_WRITE_ONLY, 0);
 		_ctx_->dispatch   (dst);
 	}
@@ -178,7 +178,7 @@ void ColorCorrection::draw(GlContext* _ctx_, const Texture* _src, const Framebuf
 		_ctx_->setUniform ("uTime", m_time++);
 		_ctx_->bindTexture("txInput", _src);
 		if (m_luminanceMeter) {
-			_ctx_->bindTexture("txAvgLogLuminance", m_luminanceMeter->getAvgLogLuminanceTexture());
+			_ctx_->bindTexture("txLuminance", m_luminanceMeter->getLuminanceTexture());
 		}
 		_ctx_->bindBuffer (m_bfData);
 	} else {
