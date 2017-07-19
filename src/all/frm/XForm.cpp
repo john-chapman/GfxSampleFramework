@@ -66,7 +66,7 @@ bool XForm::SerializeCallback(const char* _name, OnComplete*& _callback, JsonSer
 	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		String<64> tmp;
 		_serializer_.value(_name, (StringBase&)tmp);
-		const Callback* cbk = FindCallback(StringHash(tmp));
+		const Callback* cbk = FindCallback(StringHash((const char*)tmp));
 		if (cbk == nullptr) {
 			APT_LOG_ERR("XForm: Invalid callback '%s'", (const char*)tmp);
 			_callback = nullptr;

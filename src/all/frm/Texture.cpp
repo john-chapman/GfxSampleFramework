@@ -159,8 +159,8 @@ struct TextureViewer
 			if (ImGui::Button(ICON_FA_FLOPPY_O " Load")) {
 				FileSystem::PathStr pth;
 				if (FileSystem::PlatformSelect(pth)) {
-					FileSystem::StripRoot(pth, pth);
-					Texture::Create(pth);
+					FileSystem::StripRoot(pth, (const char*)pth);
+					Texture::Create((const char*)pth);
 				}
 			}
 			
@@ -225,8 +225,8 @@ struct TextureViewer
 				if (ImGui::Button(ICON_FA_FLOPPY_O " Replace")) {
 					FileSystem::PathStr pth;
 					if (FileSystem::PlatformSelect(pth)) {
-						FileSystem::StripRoot(pth, pth);
-						tx.setPath(pth);
+						FileSystem::StripRoot(pth, (const char*)pth);
+						tx.setPath((const char*)pth);
 						tx.reload();
 						txView.reset();
 					}
@@ -492,7 +492,7 @@ Texture* Texture::Create(const Image& _img)
 {
 	Id id = GetUniqueId();
 	NameStr name("image%llu", id);
-	Texture* ret = new Texture(id, name);
+	Texture* ret = new Texture(id, (const char*)name);
 	if (!ret->loadImage(_img)) {
 		ret->setState(State_Error);
 		return nullptr;

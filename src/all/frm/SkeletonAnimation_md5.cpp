@@ -63,7 +63,7 @@ bool SkeletonAnimation::ReadMd5(SkeletonAnimation& anim_, const char* _srcData, 
  // base frame skeleton 
 	Skeleton baseFrame;
 	for (auto& src : joints) {
-		int i = baseFrame.addBone(src.m_name, src.m_parentIndex);
+		int i = baseFrame.addBone((const char*)src.m_name, src.m_parentIndex);
 		Skeleton::Bone& bone = baseFrame.getBone(i);
 		bone.m_scale = vec3(1.0f);
 		bone.m_position = src.m_position;

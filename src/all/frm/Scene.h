@@ -49,7 +49,7 @@ public:
 	};
 
 	Id           getId() const                       { return m_id; }
-	const char*  getName() const                     { return m_name; }
+	const char*  getName() const                     { return (const char*)m_name; }
 	void         setName(const char* _name)          { m_name.set(_name); }
 	void         setNamef(const char* _fmt, ...);
 

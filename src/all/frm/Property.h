@@ -56,8 +56,8 @@ public:
 	void* getData()               { return m_data; }
 	Type getType()                { return m_type; }
 	int  getCount()               { return m_count; }
-	const char* getName()         { return m_name; }
-	const char* getDisplayName()  { return m_displayName; }
+	const char* getName()         { return (const char*)m_name; }
+	const char* getDisplayName()  { return (const char*)m_displayName; }
 
 private:
 	typedef apt::String<32> String;
@@ -109,7 +109,7 @@ public:
 	Property* find(StringHash _nameHash);
 	Property* find(const char* _name) { return find(StringHash(_name)); }
 
-	const char* getName() const { return m_name; }
+	const char* getName() const { return (const char*)m_name; }
 
 	bool edit(bool _showHidden = false);
 	bool serialize(apt::JsonSerializer& _serializer_);

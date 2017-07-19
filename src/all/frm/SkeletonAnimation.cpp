@@ -223,11 +223,11 @@ bool SkeletonAnimation::reload()
 	APT_AUTOTIMER("SkeletonAnimation::load(%s)", (const char*)m_path);
 
 	File f;
-	if (!FileSystem::Read(f, m_path)) {
+	if (!FileSystem::Read(f, (const char*)m_path)) {
 		return false;
 	}
 
-	if (FileSystem::CompareExtension("md5anim", m_path)) {
+	if (FileSystem::CompareExtension("md5anim", (const char*)m_path)) {
 		return ReadMd5(*this, f.getData(), f.getDataSize());
 	} else {
 		APT_ASSERT(false); // unsupported format
