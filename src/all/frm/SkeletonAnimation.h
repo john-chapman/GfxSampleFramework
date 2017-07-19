@@ -45,7 +45,7 @@ public:
 	const Bone&  getBone(int _index) const               { APT_ASSERT(_index < getBoneCount()); return m_bones[_index];     }
 	      Bone&  getBone(int _index)                     { APT_ASSERT(_index < getBoneCount()); return m_bones[_index];     }
 	      BoneId getBoneId(int _index) const             { APT_ASSERT(_index < getBoneCount()); return m_boneIds[_index];   }
-	const char*  getBoneName(int _index) const           { APT_ASSERT(_index < getBoneCount()); return m_boneNames[_index]; }
+	const char*  getBoneName(int _index) const           { APT_ASSERT(_index < getBoneCount()); return (const char*)m_boneNames[_index]; }
 
 	Skeleton();
 

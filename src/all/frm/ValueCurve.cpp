@@ -958,7 +958,7 @@ void ValueCurveEditor::drawRuler()
 		vec2 line = floor(curveToWindow(vec2(i, 0.0f)));
 		if (line.x > m_windowBeg.x && line.x < m_windowEnd.x) {
 			label.setf((spacing < 1.0f) ? "%.2f" : (spacing < 10.0f) ?  "%1.1f" : "%1.0f", i);
-			drawList.AddText(vec2(line.x + 2.0f, m_windowBeg.y + 1.0f), kColorGridLabel, label);
+			drawList.AddText(vec2(line.x + 2.0f, m_windowBeg.y + 1.0f), kColorGridLabel, (const char*)label);
 			drawList.AddLine(vec2(line.x, m_windowBeg.y), vec2(line.x, m_windowBeg.y + kRulerSize - 1.0f), kColorGridLabel);
 		}
 	}
@@ -973,7 +973,7 @@ void ValueCurveEditor::drawRuler()
 		vec2 line = floor(curveToWindow(vec2(0.0f, i)));
 		if (line.y > m_windowBeg.y && line.y < m_windowEnd.y) {
 			label.setf((spacing < 1.0f) ? "%.2f" : (spacing < 10.0f) ?  "%1.1f" : "%1.0f", i);
-			drawList.AddText(vec2(m_windowBeg.x + 2.0f, line.y), kColorGridLabel, label);
+			drawList.AddText(vec2(m_windowBeg.x + 2.0f, line.y), kColorGridLabel, (const char*)label);
 			drawList.AddLine(vec2(m_windowBeg.x, line.y), vec2(m_windowBeg.x + kRulerSize - 1.0f, line.y), kColorGridLabel);
 		}
 	}

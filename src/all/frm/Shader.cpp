@@ -400,7 +400,7 @@ const char* ShaderDesc::getPath(GLenum _stage) const
 {
 	int i = internal::ShaderStageToIndex(_stage);
 	APT_ASSERT(m_stages[i].isEnabled());
-	return m_stages[i].m_path;
+	return (const char*)m_stages[i].m_path;
 }
 
 int ShaderDesc::getDefineCount(GLenum _stage) const
@@ -414,7 +414,7 @@ const char* ShaderDesc::getDefine(GLenum _stage, int _i) const
 	if (_i >= (int)m_stages[stage].m_defines.size()) {
 		return "Invalid stage/index";
 	}
-	return m_stages[stage].m_defines[_i];
+	return (const char*)m_stages[stage].m_defines[_i];
 }
 
 const char* ShaderDesc::getSource(GLenum _stage) const
@@ -683,7 +683,7 @@ bool Shader::loadStage(int _i, bool _loadSource)
  // process source file if required
 	if (_loadSource && !desc.m_path.isEmpty()) {
 		ShaderPreprocessor sp;
-		if (!sp.process(desc.m_path)) {
+		if (!sp.process((const char*)desc.m_path)) {
 			return false;
 		}
 		const char* src = sp.getResult();
@@ -698,10 +698,10 @@ bool Shader::loadStage(int _i, bool _loadSource)
  // build final source
 	eastl::vector<char> src;
 	Append("#version ", src);
-	AppendLine(m_desc.m_version, src);
+	AppendLine((const char*)m_desc.m_version, src);
 	for (auto it = desc.m_defines.begin(); it != desc.m_defines.end(); ++it) {
 		Append("#define ", src);
-		AppendLine(*it, src);
+		AppendLine((const char*)*it, src);
 	}
 	
 	Append("#define ", src);

@@ -598,7 +598,7 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 	String<64> tmp = kNodeTypeStr[_node_.m_type];
 	_serializer_.value("Type", (StringBase&)tmp);
 	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-		_node_.m_type = NodeTypeFromStr(tmp);
+		_node_.m_type = NodeTypeFromStr((const char*)tmp);
 		if (_node_.m_type == Node::Type_Count) {
 			APT_LOG_ERR("Scene: Invalid node type '%s'", (const char*)tmp);
 			return false;
@@ -654,7 +654,7 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 		if (_serializer_.beginArray("XForms")) {
 			while (_serializer_.beginObject()) {
 				_serializer_.value("Class", (StringBase&)tmp);
-				XForm* xform = XForm::Create(StringHash(tmp));
+				XForm* xform = XForm::Create(StringHash((const char*)tmp));
 				if (xform) {
 					xform->serialize(_serializer_);
 					xform->setNode(&_node_);
@@ -829,9 +829,9 @@ void Scene::editNodes()
 			ImGui::Separator();
 			ImGui::Spacing();
 			static Node::NameStr s_nameBuf;
-			s_nameBuf.set(m_editNode->m_name);
-			if (ImGui::InputText("Name", s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
-				m_editNode->m_name.set(s_nameBuf);
+			s_nameBuf.set((const char*)m_editNode->m_name);
+			if (ImGui::InputText("Name", (char*)s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
+				m_editNode->m_name.set((const char*)s_nameBuf);
 			}
 
 			bool active = m_editNode->isActive();
@@ -1087,9 +1087,9 @@ void Scene::editCameras()
 			ImGui::Spacing();
 			
 			static Node::NameStr s_nameBuf;
-			s_nameBuf.set(m_editCamera->m_parent->m_name);
-			if (ImGui::InputText("Name", s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
-				m_editCamera->m_parent->m_name.set(s_nameBuf);
+			s_nameBuf.set((const char*)m_editCamera->m_parent->m_name);
+			if (ImGui::InputText("Name", (char*)s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
+				m_editCamera->m_parent->m_name.set((const char*)s_nameBuf);
 			}
 
 			m_editCamera->edit();
@@ -1157,9 +1157,9 @@ void Scene::editLights()
 			ImGui::Spacing();
 			
 			static Node::NameStr s_nameBuf;
-			s_nameBuf.set(m_editLight->m_parent->m_name);
-			if (ImGui::InputText("Name", s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
-				m_editLight->m_parent->m_name.set(s_nameBuf);
+			s_nameBuf.set((const char*)m_editLight->m_parent->m_name);
+			if (ImGui::InputText("Name", (char*)s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
+				m_editLight->m_parent->m_name.set((const char*)s_nameBuf);
 			}
 
 			m_editLight->edit();
@@ -1204,8 +1204,8 @@ Node* Scene::selectNode(Node* _current, Node::Type _type)
 					continue;
 				}
 				String<32> tmp("%s %s", kNodeTypeIconStr[type], m_nodes[type][node]->getName());
-				if (filter.PassFilter(tmp)) {
-					if (ImGui::Selectable(tmp)) {
+				if (filter.PassFilter((const char*)tmp)) {
+					if (ImGui::Selectable((const char*)tmp)) {
 						ret = m_nodes[type][node];
 						break;
 					}
@@ -1292,12 +1292,12 @@ Node* Scene::createNode(Node* _current)
 		ImGui::Combo("Type", &s_type , kNodeTypeComboStr);
 
 		static Node::NameStr s_name;
-		ImGui::InputText("Name", s_name, s_name.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue);
+		ImGui::InputText("Name", (char*)s_name, s_name.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue);
 		Node::AutoName((Node::Type)s_type, s_name);
 
 		if (ImGui::Button("Create")) {
 			ret = createNode((Node::Type)s_type);
-			ret->setName(s_name);
+			ret->setName((const char*)s_name);
 			ret->setStateMask(Node::State_Active | Node::State_Dynamic | Node::State_Selected);
 			switch (ret->getType()) {
 				case Node::Type_Root:   ret->setSceneDataScene(this); break;
@@ -1342,9 +1342,9 @@ void Scene::drawHierarchy(Node* _node)
 	}
 	ImGui::PushStyleColor(ImGuiCol_Text, col);
 	if (_node->getChildCount() == 0) {
-		ImGui::Text(tmp);
+		ImGui::Text((const char*)tmp);
 	} else {
-		if (ImGui::TreeNode(tmp)) {
+		if (ImGui::TreeNode((const char*)tmp)) {
 			for (int i = 0; i < _node->getChildCount(); ++i) {
 				drawHierarchy(_node->getChild(i));
 			}

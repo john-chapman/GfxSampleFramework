@@ -61,12 +61,12 @@ bool AppSample::init(const apt::ArgList& _args)
 
  // load settings from json
 	m_propsPath.setf("%s.json", (const char*)m_name);
-	readProps(m_propsPath);
+	readProps((const char*)m_propsPath);
 
  // init the app
 	PropertyGroup* propGroup;
 	APT_VERIFY(propGroup = m_props.findGroup("AppSample"));
-	m_window = Window::Create(m_windowSizeProp.x, m_windowSizeProp.y, m_name);
+	m_window = Window::Create(m_windowSizeProp.x, m_windowSizeProp.y, (const char*)m_name);
 		
 	ivec2* glVersion = (ivec2*)propGroup->find("GlVersion")->getData();
 	bool* glCompatibility = (bool*)propGroup->find("GlCompatibility")->getData();
@@ -130,7 +130,7 @@ void AppSample::shutdown()
 		Window::Destroy(m_window);
 	}
 	
-	writeProps(m_propsPath);
+	writeProps((const char*)m_propsPath);
 
 	App::shutdown();
 }

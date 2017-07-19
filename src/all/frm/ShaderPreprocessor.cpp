@@ -120,7 +120,7 @@ bool ShaderPreprocessor::include(const char* _tp, uint _line, uint _file, const 
 		}
 	}
 	
-	bool ret = process(fname);
+	bool ret = process((const char*)fname);
 	m_result.pop_back(); // pop the terminating '\0' added by process()
 
  // resume line/file
@@ -133,7 +133,7 @@ void ShaderPreprocessor::appendLinePragma(uint _line, uint _file)
 {
 	String<sizeof("#line 9999 999\n\0")> line;
 	line.setf("#line %d %d", _line + 1u, _file); // +1 because #line pragma is for the following line
-	append(line, true);
+	append((const char*)line, true);
 }
 
 void ShaderPreprocessor::appendLineComment(const char* _str)

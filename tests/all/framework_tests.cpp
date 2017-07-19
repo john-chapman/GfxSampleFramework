@@ -324,8 +324,8 @@ public:
 					m_meshTest.m_shMeshLines = Shader::CreateVsGsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_gs.glsl", "shaders/MeshView_fs.glsl", "SKINNING\0LINES\0");
 				}
 
-				if (m_meshTest.m_meshPath[0] != '\0') {
-					m_meshTest.m_mesh = Mesh::Create(m_meshTest.m_meshPath);
+				if (!m_meshTest.m_meshPath.isEmpty()) {
+					m_meshTest.m_mesh = Mesh::Create((const char*)m_meshTest.m_meshPath);
 					Buffer::Destroy(m_meshTest.m_bfSkinning);
 					if (m_meshTest.m_mesh && m_meshTest.m_mesh->getBindPose()) {
 						m_meshTest.m_bfSkinning = Buffer::Create(GL_SHADER_STORAGE_BUFFER, sizeof(mat4) * m_meshTest.m_mesh->getBindPose()->getBoneCount(), GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
@@ -339,8 +339,8 @@ public:
 					}
 					m_meshTest.m_worldMatrix = mat4_cast(angleAxis(radians(90.0f), vec3(-1.0f, 0.0f, 0.0f)));
 				}
-				if (m_meshTest.m_animPath[0] != '\0') {
-					m_meshTest.m_anim = SkeletonAnimation::Create(m_meshTest.m_animPath);
+				if (!m_meshTest.m_animPath.isEmpty()) {
+					m_meshTest.m_anim = SkeletonAnimation::Create((const char*)m_meshTest.m_animPath);
 					m_meshTest.m_animTime = 0.0f;
 					m_meshTest.m_animSpeed = 1.0f;
 					m_meshTest.m_animHints.resize(m_meshTest.m_anim->getTrackCount(), 0);

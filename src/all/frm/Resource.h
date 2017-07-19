@@ -54,10 +54,10 @@ public:
 	static int      GetInstanceCount()               { return (int)s_instances.size(); }
 	static Derived* GetInstance(int _i)              { APT_ASSERT(_i < GetInstanceCount()); return s_instances[_i]; }
 
-	Id              getId() const                    { return m_id; }
-	const char*     getName() const                  { return m_name; }
-	State           getState() const                 { return m_state; }
-	sint64          getRefCount() const              { return m_refs; }
+	Id              getId() const                    { return m_id;                }
+	const char*     getName() const                  { return (const char*)m_name; }
+	State           getState() const                 { return m_state;             }
+	sint64          getRefCount() const              { return m_refs;              }
 
 	void            setName(const char* _name)       { setNamef(_name); }
 	void            setNamef(const char* _fmt, ...);
