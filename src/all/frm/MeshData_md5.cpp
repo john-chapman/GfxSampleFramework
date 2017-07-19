@@ -44,7 +44,7 @@ bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 	}
 
 	for (auto& src : joints) {
-		int i = tmpSkeleton.addBone(src.m_name, src.m_parentIndex);
+		int i = tmpSkeleton.addBone((const char*)src.m_name, src.m_parentIndex);
 		Skeleton::Bone& bone = tmpSkeleton.getBone(i);
 		bone.m_scale = vec3(1.0f);
 		bone.m_position = src.m_position;

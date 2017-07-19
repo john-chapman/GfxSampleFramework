@@ -103,8 +103,8 @@ public:
 	GLint       getArrayCount() const           { return m_arrayCount; }
 	GLint       getMipCount() const             { return m_mipCount;   }
 
-	const char* getPath() const                 { return m_path;       }
-	void        setPath(const char* _path)      { m_path.set(_path);   }
+	const char* getPath() const                 { return (const char*)m_path; }
+	void        setPath(const char* _path)      { m_path.set(_path);          }
 
 	bool        isCompressed() const;
 	bool        isDepth() const;

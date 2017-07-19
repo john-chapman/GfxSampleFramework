@@ -74,7 +74,7 @@ struct ProfilerViewer
 				s_buf.setf("%1.0fus", x);
 			}
 		}
-		return s_buf;
+		return (const char*)s_buf;
 	}
 
 	float timeToWindowX(uint64 _time)
@@ -236,7 +236,7 @@ struct ProfilerViewer
 		m_windowEnd      = m_windowBeg + m_windowSize;
 		
 		str.setf("GPU\n%s", timeToStr(Profiler::GetGpuAvgFrameDuration()));
-		drawList.AddText(vec2(infoX, m_windowBeg.y), kColors->kBackground, str);
+		drawList.AddText(vec2(infoX, m_windowBeg.y), kColors->kBackground, (const char*)str);
 		
 		ImGui::PushClipRect(m_windowBeg, m_windowEnd, false);
 		
@@ -280,7 +280,7 @@ struct ProfilerViewer
 		m_windowEnd.y = m_windowBeg.y + m_windowSize.y + 1.0f;
 
 		str.setf("CPU\n%s", timeToStr(Profiler::GetCpuAvgFrameDuration()));
-		drawList.AddText(vec2(infoX, m_windowBeg.y), kColors->kBackground, str);
+		drawList.AddText(vec2(infoX, m_windowBeg.y), kColors->kBackground, (const char*)str);
 
 		ImGui::PushClipRect(m_windowBeg, m_windowEnd, false);
 		for (uint i = 0, n = Profiler::GetGpuFrameCount() - 1; i < n; ++i) {

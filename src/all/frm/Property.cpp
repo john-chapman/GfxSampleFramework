@@ -225,7 +225,7 @@ bool Property::serialize(JsonSerializer& _serializer_)
 {
 	bool ret = true;
 	if (m_count > 1) {
-		if (_serializer_.beginArray(m_name)) {
+		if (_serializer_.beginArray((const char*)m_name)) {
 			for (int i = 0; i < (int)m_count; ++i) {
 				switch (m_type) {
 					case Type_Bool:   ret &= _serializer_.value(((bool*)m_data)[i]); break;
@@ -241,10 +241,10 @@ bool Property::serialize(JsonSerializer& _serializer_)
 		}
 	} else {
 		switch (m_type) {
-			case Type_Bool:   ret &= _serializer_.value(m_name, *((bool*)m_data)); break;
-			case Type_Int:    ret &= _serializer_.value(m_name, *((int*)m_data)); break;
-			case Type_Float:  ret &= _serializer_.value(m_name, *((float*)m_data)); break;
-			case Type_String: ret &= _serializer_.value(m_name, *((StringBase*)m_data)); break;
+			case Type_Bool:   ret &= _serializer_.value((const char*)m_name, *((bool*)m_data)); break;
+			case Type_Int:    ret &= _serializer_.value((const char*)m_name, *((int*)m_data)); break;
+			case Type_Float:  ret &= _serializer_.value((const char*)m_name, *((float*)m_data)); break;
+			case Type_String: ret &= _serializer_.value((const char*)m_name, *((StringBase*)m_data)); break;
 			default:          ret = false; APT_ASSERT(false);
 		}
 	}
@@ -429,7 +429,7 @@ bool PropertyGroup::edit(bool _showHidden)
 
 bool PropertyGroup::serialize(JsonSerializer& _serializer_)
 {
-	if (_serializer_.beginObject(m_name)) {
+	if (_serializer_.beginObject((const char*)m_name)) {
 		for (auto& it : m_props) {
 			it.second->serialize(_serializer_);
 		}

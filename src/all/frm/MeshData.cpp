@@ -438,7 +438,7 @@ void MeshData::endSubmesh()
 uint64 MeshData::getHash() const
 {
 	if (!m_path.isEmpty()) {
-		return HashString<uint64>(m_path);
+		return HashString<uint64>((const char*)m_path);
 	} else {
 		uint64 ret = m_desc.getHash();
 		if (m_vertexData) {

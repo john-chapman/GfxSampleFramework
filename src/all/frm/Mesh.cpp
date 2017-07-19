@@ -84,7 +84,7 @@ bool Mesh::reload()
 
 	APT_AUTOTIMER("Mesh::load(%s)", (const char*)m_path);
 
-	MeshData* data = MeshData::Create(m_path);
+	MeshData* data = MeshData::Create((const char*)m_path);
 	if (!data) {
 		return false;
 	}

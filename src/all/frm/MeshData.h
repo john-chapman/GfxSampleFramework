@@ -207,7 +207,7 @@ public:
 	void setIndexData(DataType _srcType, const void* _src);
 
 	uint64          getHash() const;
-	const char*     getPath() const               { return m_path; }
+	const char*     getPath() const               { return (const char*)m_path; }
 	const MeshDesc& getDesc() const               { return m_desc; }
 	uint            getVertexCount() const        { return m_submeshes[0].m_vertexCount; }
 	const void*     getVertexData() const         { return m_vertexData; }

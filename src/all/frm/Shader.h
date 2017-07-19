@@ -25,7 +25,7 @@ public:
 	// Set the default version string, e.g. "420 compatibility".
 	// _str should not include the "#version" directive itself.
 	static void SetDefaultVersion(const char* _version);
-	static const char* GetDefaultVersion() { return s_defaultVersion; }
+	static const char* GetDefaultVersion() { return (const char*)s_defaultVersion; }
 
 	ShaderDesc(): m_version(GetDefaultVersion()) {};
 
@@ -69,7 +69,7 @@ public:
 	// Hash the version string, shader paths, defines and source (if present).
 	uint64 getHash() const;
 
-	const char* getVersion() const { return m_version; }
+	const char* getVersion() const { return (const char*)m_version; }
 
 	bool        hasStage(GLenum _stage) const;
 	const char* getPath(GLenum _stage) const;

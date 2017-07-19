@@ -32,7 +32,7 @@ bool AppSample3d::init(const apt::ArgList& _args)
 	m_scene = new Scene;
 	Scene::SetCurrent(m_scene);
 
-	if (!Scene::Load(m_scenePath, *m_scene)) {
+	if (!Scene::Load((const char*)m_scenePath, *m_scene)) {
  		Camera* defaultCamera = m_scene->createCamera(Camera());
 		defaultCamera->updateGpuBuffer(); // alloc the gpu buffer
 		Node* defaultCameraNode = defaultCamera->m_parent;
@@ -149,16 +149,16 @@ void AppSample3d::drawMainMenuBar()
 		if (ImGui::MenuItem("Load...")) {
 			if (FileSystem::PlatformSelect(m_scenePath, "*.json")) {
 				FileSystem::MakeRelative(m_scenePath);
-				Scene::Load(m_scenePath, *m_scene);
+				Scene::Load((const char*)m_scenePath, *m_scene);
 			}
 		}
 		if (ImGui::MenuItem("Save")) {
-			Scene::Save(m_scenePath, *m_scene);
+			Scene::Save((const char*)m_scenePath, *m_scene);
 		}
 		if (ImGui::MenuItem("Save As...")) {
 			if (FileSystem::PlatformSelect(m_scenePath, "*.json")) {
 				FileSystem::MakeRelative(m_scenePath);
-				Scene::Save(m_scenePath, *m_scene);
+				Scene::Save((const char*)m_scenePath, *m_scene);
 			}
 		}
 
