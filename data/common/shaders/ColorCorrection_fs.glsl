@@ -112,7 +112,7 @@ vec3 Tonemap_ACES_Hill(in vec3 _x)
 	return ret;
 }
 
-#define Tonemap(_x) Tonemap_Lottes(_x)
+#define Tonemap(_x) Tonemap_ACES_Hill(_x)
 
 
 /*******************************************************************************
