@@ -4,15 +4,15 @@
 #include "shaders/def.glsl"
 
 // Van der Corput sequence.
-float Sampling_RadicalInverseVdC(in uint _seed)
+float Sampling_RadicalInverse(in uint _seed)
 {
 	uint s = _seed;
 	#if 0
-		s = (_seed << 16u) | (s >> 16u);
-		s = ((_seed & 0x55555555u) << 1u) | ((s & 0xaaaaaaaau) >> 1u);
-		s = ((_seed & 0x33333333u) << 2u) | ((s & 0xccccccccu) >> 2u);
-		s = ((_seed & 0x0f0f0f0fu) << 4u) | ((s & 0xf0f0f0f0u) >> 4u);
-		s = ((_seed & 0x00ff00ffu) << 8u) | ((s & 0xff00ff00u) >> 8u);
+		s = (s << 16u) | (s >> 16u);
+		s = ((s & 0x55555555u) << 1u) | ((s & 0xaaaaaaaau) >> 1u);
+		s = ((s & 0x33333333u) << 2u) | ((s & 0xccccccccu) >> 2u);
+		s = ((s & 0x0f0f0f0fu) << 4u) | ((s & 0xf0f0f0f0u) >> 4u);
+		s = ((s & 0x00ff00ffu) << 8u) | ((s & 0xff00ff00u) >> 8u);
 	#else
 		s = bitfieldReverse(s);
 	#endif
@@ -22,7 +22,7 @@ float Sampling_RadicalInverseVdC(in uint _seed)
 // Hammersley sequence at _i given 1/N (N is the number of points in the sequence).
 vec2 Sampling_Hammersley2d(in uint _i, in float _rn)
 {
-	return vec2(float(_i) * _rn, Sampling_RadicalInverseVdC(_i));
+	return vec2(float(_i) * _rn, Sampling_RadicalInverse(_i));
 }
 
 // Return a uniformly-distributed point on the unit hemisphere oriented along +Z given a random _uv (e.g. the result of Sampling_Hammersley2d).
