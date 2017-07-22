@@ -128,6 +128,7 @@ float LinearizeDepth(in float _depth, in float _near, in float _far)
 }
 float LinearizeDepth_Infinite(in float _depth, in float _near)
 {
+	_depth = _depth - 1e-7; // prevent issues at the far plane
 	#if   defined(Camera_ClipD3D)
 		return -_near / (_depth - 1.0);
 	#elif defined(Camera_ClipOGL)
