@@ -2,6 +2,9 @@
 
 #include <apt/log.h>
 
+using namespace frm;
+using namespace apt;
+
 template <size_t kListSize>
 static int FindIndex(const GLenum (&_list)[kListSize], GLenum _find)
 {
@@ -104,20 +107,20 @@ int frm::internal::ShaderStageToIndex(GLenum _stage)
 GLenum frm::internal::GlDataTypeToEnum(DataType _type)
 {
 	switch (_type) {
-		case DataType::Sint8:
-		case DataType::Sint8N:   return GL_BYTE;
-		case DataType::Sint16:
-		case DataType::Sint16N:  return GL_SHORT;
-		case DataType::Sint32:
-		case DataType::Sint32N:  return GL_INT;
-		case DataType::Uint8: 
-		case DataType::Uint8N:   return GL_UNSIGNED_BYTE;
-		case DataType::Uint16:
-		case DataType::Uint16N:  return GL_UNSIGNED_SHORT;
-		case DataType::Uint32:
-		case DataType::Uint32N:  return GL_UNSIGNED_INT;
-		case DataType::Float16:  return GL_HALF_FLOAT;
-		case DataType::Float32:  return GL_FLOAT;
+		case DataType_Sint8:
+		case DataType_Sint8N:   return GL_BYTE;
+		case DataType_Sint16:
+		case DataType_Sint16N:  return GL_SHORT;
+		case DataType_Sint32:
+		case DataType_Sint32N:  return GL_INT;
+		case DataType_Uint8: 
+		case DataType_Uint8N:   return GL_UNSIGNED_BYTE;
+		case DataType_Uint16:
+		case DataType_Uint16N:  return GL_UNSIGNED_SHORT;
+		case DataType_Uint32:
+		case DataType_Uint32N:  return GL_UNSIGNED_INT;
+		case DataType_Float16:  return GL_HALF_FLOAT;
+		case DataType_Float32:  return GL_FLOAT;
 		default:                 APT_ASSERT(false); return GL_INVALID_VALUE;
 	};
 }
