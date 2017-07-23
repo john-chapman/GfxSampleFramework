@@ -392,9 +392,9 @@ bool AppSample::ImGui_Init()
 		Mesh::Release(g_msImGui);
 	}	
 	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType::Float32, 2);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType::Float32, 2);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType::Uint8N,  4);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 2);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float32, 2);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint8N,  4);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
 	g_msImGui = Mesh::Create(meshDesc);
 
@@ -624,7 +624,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 	 // upload vertex/index data
 		g_msImGui->setVertexData((GLvoid*)&drawList->VtxBuffer.front(), (GLsizeiptr)drawList->VtxBuffer.size(), GL_STREAM_DRAW);
 		APT_STATIC_ASSERT(sizeof(ImDrawIdx) == sizeof(uint16)); // need to change the index data type if this fails
-		g_msImGui->setIndexData(DataType::Uint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
+		g_msImGui->setIndexData(DataType_Uint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
 	
 	 // dispatch draw commands
 		for (const ImDrawCmd* pcmd = drawList->CmdBuffer.begin(); pcmd != drawList->CmdBuffer.end(); ++pcmd) {

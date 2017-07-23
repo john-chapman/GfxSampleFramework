@@ -35,10 +35,10 @@ static const char* VertexSemanticToStr(VertexAttr::Semantic _semantic)
 
 static inline DataType GetIndexDataType(uint _vertexCount)
 {
-	if (_vertexCount >= UINT16_MAX) {
-		return DataType::Uint32;
+	if (_vertexCount >= APT_DATA_TYPE_MAX(uint16)) {
+		return DataType_Uint32;
 	}
-	return DataType::Uint16;
+	return DataType_Uint16;
 }
 
 /*******************************************************************************
@@ -100,7 +100,7 @@ VertexAttr* MeshDesc::addVertexAttr(
 		m_vertexDesc[m_vertexAttrCount].setOffset(m_vertexSize);
 		m_vertexDesc[m_vertexAttrCount].setSemantic(VertexAttr::Semantic_Padding);
 		m_vertexDesc[m_vertexAttrCount].setCount(kVertexAttrAlignment - (m_vertexSize % kVertexAttrAlignment));
-		m_vertexDesc[m_vertexAttrCount].setDataType(DataType::Uint8);
+		m_vertexDesc[m_vertexAttrCount].setDataType(DataType_Uint8);
 		m_vertexSize += m_vertexDesc[m_vertexAttrCount].getSize();
 	}
 	++m_vertexAttrCount;
@@ -212,7 +212,7 @@ MeshData* MeshData::Create(
 
 	if (_indexCount > 0) {
 		ret->m_indexDataType = GetIndexDataType(_vertexCount);
-		ret->m_indexData = (char*)malloc(DataType::GetSizeBytes(ret->m_indexDataType) * _indexCount);
+		ret->m_indexData = (char*)malloc(DataTypeSizeBytes(ret->m_indexDataType) * _indexCount);
 		ret->m_submeshes[0].m_indexCount = _indexCount;
 		if (_indexData) {
 			ret->setIndexData(_indexData);
@@ -352,16 +352,16 @@ void MeshData::setVertexData(VertexAttr::Semantic _semantic, DataType _srcType, 
 	if (_srcType == attr->getDataType()) {
 	 // type match, copy directly
 		for (auto i = 0; i < getVertexCount(); ++i) {
-			memcpy(dst, src, DataType::GetSizeBytes(_srcType) * attr->getCount());
-			src += DataType::GetSizeBytes(_srcType) * _srcCount;
+			memcpy(dst, src, DataTypeSizeBytes(_srcType) * attr->getCount());
+			src += DataTypeSizeBytes(_srcType) * _srcCount;
 			dst += m_desc.getVertexSize();
 		}
 
 	} else {
 	 // type mismatch, convert
 		for (auto i = 0; i < getVertexCount(); ++i) {
-			DataType::Convert(_srcType, attr->getDataType(), src, dst, attr->getCount());
-			src += DataType::GetSizeBytes(_srcType) * _srcCount;
+			DataTypeConvert(_srcType, attr->getDataType(), src, dst, attr->getCount());
+			src += DataTypeSizeBytes(_srcType) * _srcCount;
 			dst += m_desc.getVertexSize();
 		}
 
@@ -372,7 +372,7 @@ void MeshData::setIndexData(const void* _src)
 {
 	APT_ASSERT(_src);
 	APT_ASSERT(m_indexData);
-	memcpy(m_indexData, _src, DataType::GetSizeBytes(m_indexDataType) * getIndexCount());
+	memcpy(m_indexData, _src, DataTypeSizeBytes(m_indexDataType) * getIndexCount());
 }
 
 void MeshData::setIndexData(DataType _srcType, const void* _src)
@@ -386,9 +386,9 @@ void MeshData::setIndexData(DataType _srcType, const void* _src)
 		const char* src = (char*)_src;
 		char* dst = (char*)m_indexData;
 		for (auto i = 0; i < getIndexCount(); ++i) {
-			DataType::Convert(_srcType,	m_indexDataType, src, dst);
-			src += DataType::GetSizeBytes(_srcType);
-			dst += DataType::GetSizeBytes(m_indexDataType);
+			DataTypeConvert(_srcType,	m_indexDataType, src, dst);
+			src += DataTypeSizeBytes(_srcType);
+			dst += DataTypeSizeBytes(m_indexDataType);
 		}
 
 	}
@@ -400,7 +400,7 @@ void MeshData::beginSubmesh(uint _materialId)
 	submesh.m_materialId = _materialId;
 	if (!m_submeshes.empty()) {
 		const Submesh& prevSubmesh = m_submeshes.back();
-		submesh.m_indexOffset = prevSubmesh.m_indexOffset + prevSubmesh.m_indexCount * DataType::GetSizeBytes(m_indexDataType);
+		submesh.m_indexOffset = prevSubmesh.m_indexOffset + prevSubmesh.m_indexCount * DataTypeSizeBytes(m_indexDataType);
 		submesh.m_vertexOffset = prevSubmesh.m_vertexOffset + prevSubmesh.m_vertexCount * m_desc.getVertexSize();
 	}
 
@@ -422,7 +422,7 @@ void MeshData::addSubmeshIndexData(const void* _src, uint _indexCount)
 {
 	APT_ASSERT(!m_submeshes.empty());
 	APT_ASSERT(_src && _indexCount > 0);
-	uint indexSize = DataType::GetSizeBytes(m_indexDataType);
+	uint indexSize = DataTypeSizeBytes(m_indexDataType);
 	m_submeshes[0].m_indexCount += _indexCount;
 	m_indexData = (char*)realloc(m_indexData, indexSize * m_submeshes[0].m_indexCount);
 	memcpy(m_indexData + m_submeshes.back().m_indexOffset, _src, _indexCount * indexSize);
@@ -445,7 +445,7 @@ uint64 MeshData::getHash() const
 			ret = Hash<uint64>(m_vertexData, m_desc.getVertexSize() * getVertexCount(), ret);
 		}
 		if (m_indexData) {
-			ret = Hash<uint64>(m_indexData, DataType::GetSizeBytes(m_indexDataType) * getIndexCount(), ret);
+			ret = Hash<uint64>(m_indexData, DataTypeSizeBytes(m_indexDataType) * getIndexCount(), ret);
 		}
 		if (m_bindPose) {
 			for (int i = 0; i < m_bindPose->getBoneCount(); ++i) {
@@ -501,28 +501,28 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 		char* dst = m_vertexData + i * m_desc.getVertexSize();
 		const MeshBuilder::Vertex& src = _meshBuilder.getVertex(i);
 		if (positionsAttr) {
-			DataType::Convert(DataType::Float32, positionsAttr->getDataType(), &src.m_position, dst + positionsAttr->getOffset(), APT_MIN(3, (int)positionsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, positionsAttr->getDataType(), &src.m_position, dst + positionsAttr->getOffset(), APT_MIN(3, (int)positionsAttr->getCount()));
 		}
 		if (texcoordsAttr) {
-			DataType::Convert(DataType::Float32, texcoordsAttr->getDataType(), &src.m_texcoord, dst + texcoordsAttr->getOffset(), APT_MIN(2, (int)positionsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, texcoordsAttr->getDataType(), &src.m_texcoord, dst + texcoordsAttr->getOffset(), APT_MIN(2, (int)positionsAttr->getCount()));
 		}
 		if (normalsAttr) {
-			DataType::Convert(DataType::Float32, normalsAttr->getDataType(), &src.m_normal, dst + normalsAttr->getOffset(), APT_MIN(3, (int)normalsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, normalsAttr->getDataType(), &src.m_normal, dst + normalsAttr->getOffset(), APT_MIN(3, (int)normalsAttr->getCount()));
 		}
 		if (tangentsAttr) {
-			DataType::Convert(DataType::Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), APT_MIN(4, (int)tangentsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), APT_MIN(4, (int)tangentsAttr->getCount()));
 		}
 		if (boneWeightsAttr) {
-			DataType::Convert(DataType::Float32, boneWeightsAttr->getDataType(), &src.m_boneWeights, dst + boneWeightsAttr->getOffset(), APT_MIN(4, (int)boneWeightsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, boneWeightsAttr->getDataType(), &src.m_boneWeights, dst + boneWeightsAttr->getOffset(), APT_MIN(4, (int)boneWeightsAttr->getCount()));
 		}
 		if (boneIndicesAttr) {
-			DataType::Convert(DataType::Uint32, boneIndicesAttr->getDataType(), &src.m_boneIndices, dst + boneIndicesAttr->getOffset(), APT_MIN(4, (int)boneIndicesAttr->getCount()));
+			DataTypeConvert(DataType_Uint32, boneIndicesAttr->getDataType(), &src.m_boneIndices, dst + boneIndicesAttr->getOffset(), APT_MIN(4, (int)boneIndicesAttr->getCount()));
 		}
 	}
 
 	m_indexDataType = GetIndexDataType(_meshBuilder.getVertexCount());
-	m_indexData = (char*)malloc(_meshBuilder.getIndexCount() * DataType::GetSizeBytes(m_indexDataType));
-	DataType::Convert(DataType::Uint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
+	m_indexData = (char*)malloc(_meshBuilder.getIndexCount() * DataTypeSizeBytes(m_indexDataType));
+	DataTypeConvert(DataType_Uint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
 
  // submesh 0 represents the whole mesh
 	m_submeshes.push_back(Submesh());
@@ -536,7 +536,7 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 
 	 // convert MeshBuilder offsets to bytes
 		m_submeshes.back().m_vertexOffset *= _desc.getVertexSize();
-		m_submeshes.back().m_indexOffset  *= DataType::GetSizeBytes(m_indexDataType);
+		m_submeshes.back().m_indexOffset  *= DataTypeSizeBytes(m_indexDataType);
 	}
 }
 
@@ -560,10 +560,10 @@ void MeshData::updateSubmeshBounds(Submesh& _submesh)
 	for (auto i = 0; i < _submesh.m_vertexCount; ++i) {
 		vec3 v;
 		for (auto j = 0; j < APT_MIN(posAttr->getCount(), (uint8)3); ++j) {
-			DataType::Convert(
+			DataTypeConvert(
 				posAttr->getDataType(),
-				DataType::Float32,
-				data + j * DataType::GetSizeBytes(posAttr->getDataType()) * j,
+				DataType_Float32,
+				data + j * DataTypeSizeBytes(posAttr->getDataType()) * j,
 				&v[j]
 				);
 		}
@@ -730,31 +730,31 @@ void MeshBuilder::addVertexData(const MeshDesc& _desc, const void* _data, uint32
 			switch (srcAttr.getSemantic()) {
 				case VertexAttr::Semantic_Positions: 
 					APT_ASSERT(srcAttr.getCount() <= 3);
-					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_position.x, srcAttr.getCount());
+					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_position.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Texcoords:
 					APT_ASSERT(srcAttr.getCount() <= 2);
-					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_texcoord.x, srcAttr.getCount());
+					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_texcoord.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Normals:
 					APT_ASSERT(srcAttr.getCount() <= 3);
-					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_normal.x, srcAttr.getCount());
+					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_normal.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Tangents:
 					APT_ASSERT(srcAttr.getCount() <= 4);
-					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_tangent.x, srcAttr.getCount());
+					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_tangent.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Colors:
 					APT_ASSERT(srcAttr.getCount() <= 4);
-					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_color.x, srcAttr.getCount());
+					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_color.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_BoneWeights:
 					APT_ASSERT(srcAttr.getCount() <= 4);
-					DataType::Convert(srcAttr.getDataType(), DataType::Float32, src + srcAttr.getOffset(), &v.m_boneWeights.x, srcAttr.getCount());
+					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_boneWeights.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_BoneIndices:
 					APT_ASSERT(srcAttr.getCount() <= 4);
-					DataType::Convert(srcAttr.getDataType(), DataType::Uint32, src + srcAttr.getOffset(), &v.m_boneIndices.x, srcAttr.getCount());
+					DataTypeConvert(srcAttr.getDataType(), DataType_Uint32, src + srcAttr.getOffset(), &v.m_boneIndices.x, srcAttr.getCount());
 					break;
 				default:
 					break;
@@ -769,7 +769,7 @@ void MeshBuilder::addIndexData(DataType _type, const void* _data, uint32 _count)
 {
  // \todo avoid conversion in case where _type == uint32
 	uint32* tmp = new uint32[_count];
-	DataType::Convert(_type, DataType::Uint32, _data, tmp, _count);
+	DataTypeConvert(_type, DataType_Uint32, _data, tmp, _count);
 	for (uint32 i = 0; i < _count; i += 3) {
 		m_triangles.push_back(Triangle(tmp[i], tmp[i + 1], tmp[i + 2]));
 	}
