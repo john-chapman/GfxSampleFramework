@@ -35,7 +35,7 @@ public:
 	
 	VertexAttr()
 		: m_semantic(Semantic_Count)
-		, m_dataType((uint8)DataType::InvalidType)
+		, m_dataType(apt::DataType_Invalid)
 		, m_count(0)
 		, m_offset(0)
 	{
@@ -43,7 +43,7 @@ public:
 
 	VertexAttr(Semantic _semantic, DataType _dataType, uint8 _count)
 		: m_semantic(_semantic)
-		, m_dataType((uint8)_dataType)
+		, m_dataType(_dataType)
 		, m_count(_count)
 		, m_offset(0)
 	{
@@ -55,12 +55,12 @@ public:
 	DataType getDataType() const                { return (DataType)m_dataType; }
 	uint8    getCount() const                   { return m_count;              }
 	uint8    getOffset() const                  { return m_offset;             }
-	uint8    getSize() const                    { return m_count * (uint8)DataType::GetSizeBytes(getDataType()); }
+	uint8    getSize() const                    { return m_count * (uint8)DataTypeSizeBytes(getDataType()); }
 
-	void     setSemantic(Semantic _semantic)    { m_semantic   = _semantic;        }
-	void     setDataType(DataType _dataType)    { m_dataType   = (uint8)_dataType; }
-	void     setCount(uint8 _count)             { m_count      = _count;           }
-	void     setOffset(uint8 _offset)           { m_offset     = _offset;          }
+	void     setSemantic(Semantic _semantic)    { m_semantic   = _semantic;    }
+	void     setDataType(DataType _dataType)    { m_dataType   = _dataType;    }
+	void     setCount(uint8 _count)             { m_count      = _count;       }
+	void     setOffset(uint8 _offset)           { m_offset     = _offset;      }
 
 	bool operator==(const VertexAttr& _lhs) const;
 	bool operator!=(const VertexAttr& _lhs) const  { return !(*this == _lhs); }
