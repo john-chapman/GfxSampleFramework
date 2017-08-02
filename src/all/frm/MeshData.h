@@ -41,7 +41,7 @@ public:
 	{
 	}
 
-	VertexAttr(Semantic _semantic, DataType _dataType, uint8 _count)
+	VertexAttr(Semantic _semantic, apt::DataType _dataType, uint8 _count)
 		: m_semantic(_semantic)
 		, m_dataType(_dataType)
 		, m_count(_count)
@@ -50,26 +50,26 @@ public:
 	}
 
 	// Null semantics may be used to indicate the end of a vertex declaration.
-	bool     isNull() const                     { return m_count == 0;         }
-	Semantic getSemantic() const                { return (Semantic)m_semantic; }
-	DataType getDataType() const                { return (DataType)m_dataType; }
-	uint8    getCount() const                   { return m_count;              }
-	uint8    getOffset() const                  { return m_offset;             }
-	uint8    getSize() const                    { return m_count * (uint8)DataTypeSizeBytes(getDataType()); }
+	bool          isNull() const                        { return m_count == 0;         }
+	Semantic      getSemantic() const                   { return (Semantic)m_semantic; }
+	apt::DataType getDataType() const                   { return (apt::DataType)m_dataType; }
+	uint8         getCount() const                      { return m_count;              }
+	uint8         getOffset() const                     { return m_offset;             }
+	uint8         getSize() const                       { return m_count * (uint8)apt::DataTypeSizeBytes(getDataType()); }
 
-	void     setSemantic(Semantic _semantic)    { m_semantic   = _semantic;    }
-	void     setDataType(DataType _dataType)    { m_dataType   = _dataType;    }
-	void     setCount(uint8 _count)             { m_count      = _count;       }
-	void     setOffset(uint8 _offset)           { m_offset     = _offset;      }
+	void          setSemantic(Semantic _semantic)       { m_semantic   = _semantic;    }
+	void          setDataType(apt::DataType _dataType)  { m_dataType   = _dataType;    }
+	void          setCount(uint8 _count)                { m_count      = _count;       }
+	void          setOffset(uint8 _offset)              { m_offset     = _offset;      }
 
 	bool operator==(const VertexAttr& _lhs) const;
 	bool operator!=(const VertexAttr& _lhs) const  { return !(*this == _lhs); }
 
 private:
-	Semantic m_semantic;  // Data semantic.
-	DataType m_dataType;  // Data type per component.
-	uint8    m_count;     // Number of components (1,2,3 or 4).
-	uint8    m_offset;    // Byte offset of the first component.
+	Semantic      m_semantic;  // Data semantic.
+	apt::DataType m_dataType;  // Data type per component.
+	uint8         m_count;     // Number of components (1,2,3 or 4).
+	uint8         m_offset;    // Byte offset of the first component.
 
 }; // class VertexAttr
 
@@ -104,7 +104,7 @@ public:
 	// in the vertex data. Ensures 4 byte alignment.
 	VertexAttr* addVertexAttr(
 		VertexAttr::Semantic _semantic, 
-		DataType             _dataType,
+		apt::DataType        _dataType,
 		uint8                _count
 		);
 
@@ -199,12 +199,12 @@ public:
 	// Copy vertex data directly from _src. The layout of _src must match the MeshDesc.
 	void setVertexData(const void* _src);
 	// Copy semantic data from _src, converting from _srcType.
-	void setVertexData(VertexAttr::Semantic _semantic, DataType _srcType, uint _srcCount, const void* _src);
+	void setVertexData(VertexAttr::Semantic _semantic, apt::DataType _srcType, uint _srcCount, const void* _src);
 	
 	// Copy index data from _src. The layout of _src must match the index data type/count.
 	void setIndexData(const void* _src);
 	// Copy index data from _src, converting from _srcType.
-	void setIndexData(DataType _srcType, const void* _src);
+	void setIndexData(apt::DataType _srcType, const void* _src);
 
 	uint64          getHash() const;
 	const char*     getPath() const               { return (const char*)m_path; }
@@ -213,18 +213,18 @@ public:
 	const void*     getVertexData() const         { return m_vertexData; }
 	uint            getIndexCount() const         { return m_submeshes[0].m_indexCount; }
 	const void*     getIndexData() const          { return m_indexData; }
-	DataType        getIndexDataType() const      { return m_indexDataType; }
+	apt::DataType   getIndexDataType() const      { return m_indexDataType; }
 
 	const Skeleton* getBindPose() const                { return m_bindPose; }
 	void            setBindPose(const Skeleton& _skel);
 
 protected:
 	apt::String<32> m_path; // empty if not from a file
-	Skeleton* m_bindPose;
-	MeshDesc  m_desc;
-	char*     m_vertexData;
-	char*     m_indexData;
-	DataType  m_indexDataType;
+	Skeleton*       m_bindPose;
+	MeshDesc        m_desc;
+	char*           m_vertexData;
+	char*           m_indexData;
+	apt::DataType   m_indexDataType;
 
 	eastl::vector<Submesh> m_submeshes;
 
@@ -299,7 +299,7 @@ public:
 	uint32             addVertex(const Vertex& _vertex);
 	
 	void               addVertexData(const MeshDesc& _desc, const void* _data, uint32 _count);
-	void               addIndexData(DataType _type, const void* _data, uint32 _count);
+	void               addIndexData(apt::DataType _type, const void* _data, uint32 _count);
 	
 	void               setVertexCount(uint32 _count);
 	void               setTriangleCount(uint32 _count);
