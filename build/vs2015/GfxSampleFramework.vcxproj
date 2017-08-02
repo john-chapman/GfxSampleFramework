@@ -69,8 +69,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>rmdir "$(ProjectDir)..\..\bin\common"
-mklink /j "$(ProjectDir)..\..\bin\common" "$(ProjectDir)..\..\data\common"</Command>
+      <Command>rmdir "$(ProjectDir)../../bin/common"
+mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Win64|x64'">
@@ -97,8 +97,8 @@ mklink /j "$(ProjectDir)..\..\bin\common" "$(ProjectDir)..\..\data\common"</Comm
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent>
-      <Command>rmdir "$(ProjectDir)..\..\bin\common"
-mklink /j "$(ProjectDir)..\..\bin\common" "$(ProjectDir)..\..\data\common"</Command>
+      <Command>rmdir "$(ProjectDir)../../bin/common"
+mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
