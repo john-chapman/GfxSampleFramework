@@ -31,7 +31,7 @@ public:
 	bool reload();
 
 	void setVertexData(const void* _data, uint _vertexCount, GLenum _usage = GL_STREAM_DRAW);
-	void setIndexData(DataType _dataType, const void* _data, uint _indexCount, GLenum _usage = GL_STREAM_DRAW);
+	void setIndexData(apt::DataType _dataType, const void* _data, uint _indexCount, GLenum _usage = GL_STREAM_DRAW);
 
 	uint getVertexCount() const                          { return getSubmesh(0).m_vertexCount; }
 	uint getIndexCount() const                           { return getSubmesh(0).m_indexCount;  }

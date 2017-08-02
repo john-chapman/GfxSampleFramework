@@ -1,215 +1,112 @@
-include "GfxSampleFramework_config.lua"
-
-local EXTERN_DIR      = "../extern/"
-local APT_DIR         = EXTERN_DIR .. "ApplicationTools/"
-local SRC_DIR         = "../src/"
+local FRM_UUID        = "33827CC1-9FEC-3038-E82A-E2DD54D40E8D"
+local SRC_DIR         = "/src/"
 local ALL_SRC_DIR     = SRC_DIR .. "all/"
 local ALL_EXTERN_DIR  = ALL_SRC_DIR .. "extern/"
 local WIN_SRC_DIR     = SRC_DIR .. "win/"
-local VR_ALL_SRC_DIR  = SRC_DIR .. "vr/all/"
-local TESTS_DIR       = "../tests/"
-local ALL_TESTS_DIR   = TESTS_DIR .. "all/"
-local VR_TESTS_DIR    = TESTS_DIR .. "vr/"
+local WIN_EXTERN_DIR  = WIN_SRC_DIR .. "extern/"
 
-filter { "configurations:debug" }
-	defines { "APT_DEBUG", "FRM_DEBUG" }
-	targetsuffix "_debug"
-	symbols "On"
-	optimize "Off"
-	
-filter { "configurations:release" }
-	symbols "Off"
-	optimize "Full"
+local function GfxSampleFramework_Common(_root)
+	SRC_DIR         = _root .. SRC_DIR
+	ALL_SRC_DIR     = _root .. ALL_SRC_DIR
+	ALL_EXTERN_DIR  = _root .. ALL_EXTERN_DIR
+	WIN_SRC_DIR     = _root .. WIN_SRC_DIR
+	WIN_EXTERN_DIR  = _root .. WIN_EXTERN_DIR
 
-filter { "action:vs*" }
-	defines { "_CRT_SECURE_NO_WARNINGS", "_SCL_SECURE_NO_WARNINGS" }
-	characterset "MBCS" -- force Win32 API to use *A variants (i.e. can pass char* for strings)
-
-workspace "GfxSampleFramework"
-	location(_ACTION)
-	configurations { "Debug", "Release" }
-	platforms { "Win64" }
-	flags { "C++11", "StaticRuntime" }
-	filter { "platforms:Win64" }
-		system "windows"
-		architecture "x86_64"
+	project "*"
 	
 	defines { "GLEW_STATIC" }
-	includedirs({ 
-		ALL_SRC_DIR, 
-		ALL_EXTERN_DIR, 
-		APT_DIR .. "src/all/",
-		APT_DIR .. "src/all/extern/",
+	rtti "Off"
+	exceptionhandling "Off"
+	
+	includedirs({
+		ALL_SRC_DIR,
+		ALL_EXTERN_DIR,
 		})
 	filter { "platforms:Win*" }
-		includedirs({ 
-			WIN_SRC_DIR, 
-			APT_DIR .. "src/win/",
-			APT_DIR .. "src/win/extern/",
+		includedirs({
+			WIN_SRC_DIR,
+			WIN_EXTERN_DIR,
 			})
+	filter {}
+end
 
-	group "libs"
-		externalproject "ApplicationTools"
-			location(APT_DIR .. "build/" .. _ACTION)
-			uuid "6ADD11F4-56D6-3046-7F08-16CB6B601052" -- ApplicationTools_premake.lua
-			kind "StaticLib"
-			language "C++"
-		
-		project "framework"
-			kind "StaticLib"
-			language "C++"
-			targetdir "../lib"
-			uuid "33827CC1-9FEC-3038-E82A-E2DD54D40E8D"
-			
-			vpaths({
-				["*"]      = ALL_SRC_DIR .. "frm/**",
-				["extern/*"] = ALL_EXTERN_DIR .. "**", 
-				["win"]    = WIN_SRC_DIR .. "frm/**",
-				})
-			
-			files({ 
-				ALL_SRC_DIR    .. "**.h", 
-				ALL_SRC_DIR    .. "**.hpp", 
-				ALL_SRC_DIR    .. "**.c", 
-				ALL_SRC_DIR    .. "**.cpp", 
-				ALL_EXTERN_DIR .. "**.c", 
-				ALL_EXTERN_DIR .. "**.cpp", 
-				})
-			removefiles({
-				ALL_EXTERN_DIR .. "lua/lua.c", -- standalone lua interpreter
-				ALL_EXTERN_DIR .. "lua/luac.c",
-				})
-			filter { "platforms:Win*" }
-				files({ 
-					WIN_SRC_DIR .. "**.h",
-					WIN_SRC_DIR .. "**.hpp",
-					WIN_SRC_DIR .. "**.c",
-					WIN_SRC_DIR .. "**.cpp",
-				})
-	group ""
-		
-	project "framework_tests"
-		kind "ConsoleApp"
+function GfxSampleFramework_Project(_root, _targetDir)
+	_root = _root or ""
+	_targetDir = _targetDir or "../lib"
+	
+	GfxSampleFramework_Common(_root)
+	
+	project "GfxSampleFramework"
+		kind "StaticLib"
 		language "C++"
-		targetdir "../bin"
-		uuid "85A5363D-F130-A401-FA41-27F6664C0002"
-		
-		vpaths({
-			["*"] = ALL_TESTS_DIR .. "**",
-			})
-		
-		includedirs({ 
-			TESTS_DIR, 
-			TESTS_EXTERN_DIR,
-			})
-		files({ 
-			ALL_TESTS_DIR .. "**.h", 
-			ALL_TESTS_DIR .. "**.hpp", 
-			ALL_TESTS_DIR .. "**.c", 
-			ALL_TESTS_DIR .. "**.cpp",
-			})
-					
-		links { "ApplicationTools", "framework" }
-		filter { "platforms:Win*" }
-			links { "shlwapi", "hid", "opengl32" }
+		targetdir(_targetDir)
+		uuid(FRM_UUID)
+			
+		filter { "configurations:debug" }
+			targetsuffix "_debug"
+			symbols "On"
+			optimize "Off"
+		filter {}
 
+		filter { "configurations:release" }
+			symbols "Off"
+			optimize "Full"
+		filter {}
+			
+		vpaths({
+			["*"]        = ALL_SRC_DIR .. "frm/**",
+			["extern/*"] = ALL_EXTERN_DIR .. "**", 
+			["win"]      = WIN_SRC_DIR .. "frm/**",
+			})
+			
+		files({ 
+			ALL_SRC_DIR    .. "**.h", 
+			ALL_SRC_DIR    .. "**.hpp", 
+			ALL_SRC_DIR    .. "**.c", 
+			ALL_SRC_DIR    .. "**.cpp", 
+			ALL_EXTERN_DIR .. "**.c", 
+			ALL_EXTERN_DIR .. "**.cpp", 
+			})
+		removefiles({
+			ALL_EXTERN_DIR .. "lua/lua.c", -- standalone lua interpreter
+			ALL_EXTERN_DIR .. "lua/luac.c",
+			})
+		filter { "platforms:Win*" }
+			files({ 
+				WIN_SRC_DIR .. "**.h",
+				WIN_SRC_DIR .. "**.hpp",
+				WIN_SRC_DIR .. "**.c",
+				WIN_SRC_DIR .. "**.cpp",
+			})
+		filter {}
+			
 		filter { "action:vs*" }
 			postbuildcommands({
 				"rmdir \"$(ProjectDir)..\\..\\bin\\common\"",
 				"mklink /j \"$(ProjectDir)..\\..\\bin\\common\" " .. "\"$(ProjectDir)..\\..\\data\\common\"",
 				})
-
-if (OCULUS_SDK_ROOT) then
-	VR_SDK_ROOT     = OCULUS_SDK_ROOT
-	VR_LIB_DIR      = VR_SDK_ROOT .. "/LibOVR/Lib/Windows/x64/%{cfg.buildcfg}/" .. tostring(_ACTION) .. "/" -- \todo cleaner way to do this?
-	VR_INCLUDE_DIR  = VR_SDK_ROOT .. "/LibOVR/Include/"
-	VR_LINKS        = "LibOVR"
+		filter {}
+		
+	project "*"
 end
 
-if (VR_SDK_ROOT ~= nil) then
-	workspace "GfxSampleFrameworkVr"
-		location(_ACTION)
-		configurations { "Debug", "Release" }
-		platforms { "Win64" }
-		flags { "C++11", "StaticRuntime" }
-		filter { "platforms:Win64" }
-			system "windows"
-			architecture "x86_64"
-			
-		defines { "GLEW_STATIC" }
-		includedirs({ 
-			ALL_SRC_DIR, 
-			ALL_EXTERN_DIR, 
-			APT_DIR .. "src/all/",
-			APT_DIR .. "src/all/extern",
-			})		
-		filter { "platforms:Win*" }
-			includedirs({ 
-				WIN_SRC_DIR, 
-				APT_DIR .. "src/win/",
-				APT_DIR .. "src/win/extern/",
-				})
-		libdirs({ VR_LIB_DIR }) -- \todo VR_LIB_DIRS varies per platform, need to filter
-				
-		group "libs"
-			externalproject "ApplicationTools"
-				location(APT_DIR .. "build/" .. _ACTION)
-				uuid "6ADD11F4-56D6-3046-7F08-16CB6B601052" -- uuid from ApplicationTools_premake.lua
-				kind "StaticLib"
-				language "C++"
-				
-			externalproject "framework"
-				uuid "33827CC1-9FEC-3038-E82A-E2DD54D40E8D"
-				kind "StaticLib"
-				language "C++"
-				
-			project "frameworkvr"
-				kind "StaticLib"
-				language "C++"
-				targetdir "../lib"
-				uuid "9BEAA512-07A0-1E08-9094-18DFFC48150C"
-				
-				vpaths({
-					["*"] = VR_ALL_SRC_DIR .. "frm/**",
-					})
-				
-				includedirs({ VR_ALL_SRC_DIR, VR_INCLUDE_DIR })
-				files({ 
-					VR_ALL_SRC_DIR    .. "**.h", 
-					VR_ALL_SRC_DIR    .. "**.hpp", 
-					VR_ALL_SRC_DIR    .. "**.c", 
-					VR_ALL_SRC_DIR    .. "**.cpp",
-					})
-		group ""
+function GfxSampleFramework_ProjectExternal(_root)
+	_root = _root or ""
+
+	GfxSampleFramework_Common(_root)
+
+	externalproject "GfxSampleFramework"
+		location(_root .. "build/" .. _ACTION)
+		uuid(APT_UUID)
+		kind "StaticLib"
+		language "C++"
 		
-		project "frameworkvr_tests"
-			kind "ConsoleApp"
-			language "C++"
-			targetdir "../bin"
-			uuid "EDBB76F7-59D2-748D-A249-00AF0E9F4515"
-			
-			vpaths({
-				["*"] = ALL_TESTS_DIR .. "**",
-				})
-			
-			includedirs({ 
-				TESTS_DIR,
-				VR_ALL_SRC_DIR,
-				})
-			files({ 
-				VR_TESTS_DIR .. "**.h", 
-				VR_TESTS_DIR .. "**.hpp", 
-				VR_TESTS_DIR .. "**.c", 
-				VR_TESTS_DIR .. "**.cpp",
-				})
-						
-			links({ "ApplicationTools", "framework", "frameworkvr", VR_LINKS })
-			filter { "platforms:Win*" }
-				links({ "shlwapi", "hid", "opengl32" })
-				
-			filter { "action:vs*" }
-				postbuildcommands({
-					"rmdir \"$(ProjectDir)..\\..\\bin\\common\"",
-					"mklink /j \"$(ProjectDir)..\\..\\bin\\common\" " .. "\"$(ProjectDir)..\\..\\data\\common\"",
-					})
+	project "*"
+end
+
+function GfxSampleFramework_Link()
+	links { "GfxSampleFramework" }
+
+	filter { "platforms:Win*" }
+		links { "hid", "opengl32" }
 end

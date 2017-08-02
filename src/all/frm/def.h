@@ -2,7 +2,7 @@
 #ifndef frm_def_h
 #define frm_def_h
 
-#include <apt/def.h>
+#include <apt/apt.h>
 #include <apt/types.h>
 
 namespace frm {
@@ -25,9 +25,8 @@ namespace frm {
 	using apt::sint;
 	using apt::uint;
 	using apt::float32;
+	using apt::float16;
 	using apt::float64;
-
-	using apt::DataType;
 
  // forward declarations
 	class  App;
