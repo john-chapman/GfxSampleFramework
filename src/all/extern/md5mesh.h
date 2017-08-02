@@ -2,7 +2,7 @@
 #ifndef md5mesh_h
 #define md5mesh_h
 
-#include <apt/def.h>
+#include <apt/apt.h>
 #include <apt/log.h>
 #include <apt/math.h>
 #include <apt/String.h>
