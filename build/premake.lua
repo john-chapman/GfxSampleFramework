@@ -10,20 +10,23 @@ workspace "GfxSampleFramework"
 		system "windows"
 		architecture "x86_64"
 	filter {}
-	
+
 	group "libs"
 		ApplicationTools_ProjectExternal("../extern/ApplicationTools")
+	group ""
+	group "libs"
 		GfxSampleFramework_Project(
-			"../",    -- root
-			"../lib"  -- targetdir
+			"../",     -- root
+			"../lib",  -- libDir
+			"../bin"   -- binDir
 			)
 	group ""
-		
+
 	project "GfxSampleFramework_Tests"
 		kind "ConsoleApp"
 		language "C++"
 		targetdir "../bin"
-		
+
 		filter { "configurations:debug" }
 			targetsuffix "_debug"
 			symbols "On"
@@ -34,9 +37,9 @@ workspace "GfxSampleFramework"
 			symbols "Off"
 			optimize "Full"
 		filter {}
-			
+
 		local ALL_TESTS_DIR = "../tests/all/"
-		
+
 		includedirs { ALL_TESTS_DIR }
 		files({
 			ALL_TESTS_DIR .. "**.h",
@@ -44,7 +47,7 @@ workspace "GfxSampleFramework"
 			ALL_TESTS_DIR .. "**.c",
 			ALL_TESTS_DIR .. "**.cpp",
 			})
-			
+
 		ApplicationTools_Link()
 		GfxSampleFramework_Link()
-		
+
