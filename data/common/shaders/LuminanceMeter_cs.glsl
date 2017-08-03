@@ -34,21 +34,21 @@ void main()
 	}
 	vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize) + 0.5 / vec2(txSize);
 
-	float ret = 0.0;
+	vec2 ret = vec2(0.0);
 	if (uSrcLevel == -1) {
-		ret = dot(textureLod(txSrc, uv, 0.0).rgb, vec3(0.25, 0.50, 0.25));
+		ret.y = dot(textureLod(txSrc, uv, 0.0).rgb, vec3(0.25, 0.50, 0.25));
 		#if (AVERAGE_MODE == Average_Geometric)
-			ret = log(max(ret, 1e-7)); // use exp(avg) to get the geometric mean when reading the texture
+			ret.y = log(max(ret.y, 1e-7)); // use exp(avg) to get the geometric mean when reading the texture
 		#endif
 
-		float prev = textureLod(txSrcPrev, uv, 0.0).r;
-		ret = prev + (ret - prev) * (1.0 - exp(uDeltaTime * -bfData.m_rate));
+		float prev = textureLod(txSrcPrev, uv, 0.0).x;
+		ret.x = prev + (ret.y - prev) * (1.0 - exp(uDeltaTime * -bfData.m_rate));
 	} else {
 		#if (WEIGHT_MODE == Weight_Average)
 			float w = 1.0;
 		#endif
-		ret = textureLod(txSrc, uv, uSrcLevel).r * w;
+		ret.xy = textureLod(txSrc, uv, uSrcLevel).xy * w;
 	}
 
-	imageStore(txDst, ivec2(gl_GlobalInvocationID.xy), vec4(ret));
+	imageStore(txDst, ivec2(gl_GlobalInvocationID.xy), vec4(ret.xyxy));
 }
