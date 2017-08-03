@@ -49,9 +49,12 @@ public:
 	struct Data
 	{
 		float m_exposure;
+		float m_autoExposureClamp;
 		float m_contrast;
 		float m_saturation;
-		float pad0;
+		float m_shadows;
+		float m_highlights;
+		float _pad[2];
 		vec4  m_tonemapper;
 		vec3  m_tint;
 	};
