@@ -1,9 +1,18 @@
-// dear imgui, v1.50 WIP
+// dear imgui, v1.51 WIP
 // (demo code)
 
-// Don't remove this file from your project! It is useful reference code that you can execute.
-// You can call ImGui::ShowTestWindow() in your code to learn about various features of ImGui.
+// Message to the person tempted to delete this file when integrating ImGui into their code base:
+// Don't do it! Do NOT remove this file from your project! It is useful reference code that you and other users will want to refer to.
 // Everything in this file will be stripped out by the linker if you don't call ImGui::ShowTestWindow().
+// During development, you can call ImGui::ShowTestWindow() in your code to learn about various features of ImGui. Have it wired in a debug menu!
+// Removing this file from your project is hindering access to documentation for everyone in your team, likely leading you to poorer usage of the library.
+
+// Note that you can #define IMGUI_DISABLE_TEST_WINDOWS in imconfig.h for the same effect.
+// If you want to link core ImGui in your public builds but not those test windows, #define IMGUI_DISABLE_TEST_WINDOWS in imconfig.h and those functions will be empty.
+// For any other case, if you have ImGui available you probably want this to be available for reference and execution.
+
+// Thank you,
+// -Your beloved friend, imgui_demo.cpp (that you won't delete)
 
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
@@ -13,7 +22,7 @@
 #include <ctype.h>          // toupper, isprint
 #include <math.h>           // sqrtf, powf, cosf, sinf, floorf, ceilf
 #include <stdio.h>          // vsnprintf, sscanf, printf
-#include <stdlib.h>         // NULL, malloc, free, qsort, atoi
+#include <stdlib.h>         // NULL, malloc, free, atoi
 #if defined(_MSC_VER) && _MSC_VER <= 1500 // MSVC 2008 or earlier
 #include <stddef.h>         // intptr_t
 #else
@@ -636,7 +645,7 @@ void ImGui::ShowTestWindow(bool* p_open)
         static float col1[3] = { 1.0f,0.0f,0.2f };
         static float col2[4] = { 0.4f,0.7f,0.0f,0.5f };
         ImGui::ColorEdit3("color 1", col1);
-        ImGui::SameLine(); ShowHelpMarker("Click on the colored square to change edit mode.\nCTRL+click on individual component to input value.\n");
+        ImGui::SameLine(); ShowHelpMarker("Click on the colored square to open a color picker.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
 
         ImGui::ColorEdit4("color 2", col2);
 
@@ -648,6 +657,116 @@ void ImGui::ShowTestWindow(bool* p_open)
         //ImGui::PushItemWidth(-1);
         //ImGui::ListBox("##listbox2", &listbox_item_current2, listbox_items, IM_ARRAYSIZE(listbox_items), 4);
         //ImGui::PopItemWidth();
+
+        if (ImGui::TreeNode("Color/Picker Widgets"))
+        {
+            static ImVec4 color = ImColor(114, 144, 154, 200);
+
+            static bool hdr = false;
+            static bool alpha_preview = true;
+            static bool alpha_half_preview = false;
+            ImGui::Checkbox("With HDR", &hdr); ImGui::SameLine(); ShowHelpMarker("Currently all this does is to lift the 0..1 limits on dragging widgets.");
+            ImGui::Checkbox("With Alpha Preview", &alpha_preview);
+            ImGui::Checkbox("With Half Alpha Preview", &alpha_half_preview);
+            int misc_flags = (hdr ? ImGuiColorEditFlags_HDR : 0) | (alpha_half_preview ? ImGuiColorEditFlags_AlphaPreviewHalf : (alpha_preview ? ImGuiColorEditFlags_AlphaPreview : 0));
+
+            ImGui::Text("Color widget:");
+            ImGui::SameLine(); ShowHelpMarker("Click on the colored square to open a color picker.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
+            ImGui::ColorEdit3("MyColor##1", (float*)&color, ImGuiColorEditFlags_HSV);
+
+            ImGui::Text("Color widget with Alpha:");
+            ImGui::ColorEdit4("MyColor##2", (float*)&color, misc_flags);
+
+            ImGui::Text("Color widget with Float Display:");
+            ImGui::ColorEdit4("MyColor##2f", (float*)&color, ImGuiColorEditFlags_Float | misc_flags);
+
+            ImGui::Text("Color button with Picker:");
+            ImGui::SameLine(); ShowHelpMarker("With the ImGuiColorEditFlags_NoInputs flag you can hide all the slider/text inputs.\nWith the ImGuiColorEditFlags_NoLabel flag you can pass a non-empty label which will only be used for the tooltip and picker popup.");
+            ImGui::ColorEdit4("MyColor##3", (float*)&color, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | misc_flags);
+
+            ImGui::Text("Color button with Custom Picker Popup:");
+            static bool saved_palette_inited = false;
+            static ImVec4 saved_palette[32];
+            static ImVec4 backup_color;
+            if (!saved_palette_inited)
+                for (int n = 0; n < IM_ARRAYSIZE(saved_palette); n++)
+                    ImGui::ColorConvertHSVtoRGB(n / 31.0f, 0.8f, 0.8f, saved_palette[n].x, saved_palette[n].y, saved_palette[n].z);
+            bool open_popup = ImGui::ColorButton("MyColor##3b", color, misc_flags);
+            ImGui::SameLine();
+            open_popup |= ImGui::Button("Palette");
+            if (open_popup)
+            {
+                ImGui::OpenPopup("mypicker");
+                backup_color = color;
+            }
+            if (ImGui::BeginPopup("mypicker"))
+            {
+                // FIXME: Adding a drag and drop example here would be perfect!
+                ImGui::Text("MY CUSTOM COLOR PICKER WITH AN AMAZING PALETTE!");
+                ImGui::Separator();
+                ImGui::ColorPicker4("##picker", (float*)&color, misc_flags | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
+                ImGui::SameLine();
+                ImGui::BeginGroup();
+                ImGui::Text("Current");
+                ImGui::ColorButton("##current", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_AlphaPreviewHalf, ImVec2(60,40));
+                ImGui::Text("Previous");
+                if (ImGui::ColorButton("##previous", backup_color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_AlphaPreviewHalf, ImVec2(60,40)))
+                    color = backup_color;
+                ImGui::Separator();
+                ImGui::Text("Palette");
+                for (int n = 0; n < IM_ARRAYSIZE(saved_palette); n++)
+                {
+                    ImGui::PushID(n);
+                    if ((n % 8) != 0)
+                        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemSpacing.y);
+                    if (ImGui::ColorButton("##palette", saved_palette[n], ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoTooltip, ImVec2(20,20)))
+                        color = ImVec4(saved_palette[n].x, saved_palette[n].y, saved_palette[n].z, color.w); // Preserve alpha!
+                    ImGui::PopID();
+                }
+                ImGui::EndGroup();
+                ImGui::EndPopup();
+            }
+
+            ImGui::Text("Color button only:");
+            ImGui::ColorButton("MyColor##3b", *(ImVec4*)&color, misc_flags, ImVec2(80,80));
+
+            ImGui::Text("Color picker:");
+            static bool alpha = true;
+            static bool alpha_bar = true;
+            static bool side_preview = true;
+            static bool ref_color = false;
+            static ImVec4 ref_color_v(1.0f,0.0f,1.0f,0.5f);
+            static int inputs_mode = 2;
+            static int picker_mode = 0;
+            ImGui::Checkbox("With Alpha", &alpha);
+            ImGui::Checkbox("With Alpha Bar", &alpha_bar);
+            ImGui::Checkbox("With Side Preview", &side_preview);
+            if (side_preview)
+            {
+                ImGui::Checkbox("With Ref Color", &ref_color);
+                if (ref_color)
+                {
+                    ImGui::SameLine();
+                    ImGui::ColorEdit4("##RefColor", &ref_color_v.x, ImGuiColorEditFlags_NoInputs | misc_flags);
+                }
+            }
+            ImGui::Combo("Inputs Mode", &inputs_mode, "All Inputs\0No Inputs\0RGB Input\0HSV Input\0HEX Input\0");
+            ImGui::Combo("Picker Mode", &picker_mode, "Hue bar + SV rect\0Hue wheel + SV triangle\0");
+            ImGui::SameLine(); ShowHelpMarker("User can right-click the inputs and override edit mode.");
+            ImGuiColorEditFlags flags = misc_flags;
+            if (!alpha) flags |= ImGuiColorEditFlags_NoAlpha; // This is by default if you call ColorPicker3() instead of ColorPicker4()
+            if (alpha_bar) flags |= ImGuiColorEditFlags_AlphaBar;
+            if (!side_preview) flags |= ImGuiColorEditFlags_NoSidePreview;
+            if (picker_mode == 0) flags |= ImGuiColorEditFlags_PickerHueBar;
+            if (picker_mode == 1) flags |= ImGuiColorEditFlags_PickerHueWheel;
+            if (inputs_mode == 1) flags |= ImGuiColorEditFlags_NoInputs;
+            if (inputs_mode == 2) flags |= ImGuiColorEditFlags_RGB;
+            if (inputs_mode == 3) flags |= ImGuiColorEditFlags_HSV;
+            if (inputs_mode == 4) flags |= ImGuiColorEditFlags_HEX;
+            ImGui::ColorPicker4("MyColor##4", (float*)&color, flags, ref_color ? &ref_color_v.x : NULL);
+
+            ImGui::TreePop();
+        }
 
         if (ImGui::TreeNode("Range Widgets"))
         {
@@ -1267,15 +1386,17 @@ void ImGui::ShowTestWindow(bool* p_open)
             {
                 if (ImGui::Selectable("Set to zero")) value = 0.0f;
                 if (ImGui::Selectable("Set to PI")) value = 3.1415f;
+                ImGui::DragFloat("Value", &value, 0.1f, 0.0f, 0.0f);
                 ImGui::EndPopup();
             }
 
-            static ImVec4 color = ImColor(0.8f, 0.5f, 1.0f, 1.0f);
-            ImGui::ColorButton(color);
-            if (ImGui::BeginPopupContextItem("color context menu"))
+            static char name[32] = "Label1";
+            char buf[64]; sprintf(buf, "Button: %s###Button", name); // ### operator override ID ignoring the preceeding label
+            ImGui::Button(buf);
+            if (ImGui::BeginPopupContextItem("rename context menu"))
             {
-                ImGui::Text("Edit color");
-                ImGui::ColorEdit3("##edit", (float*)&color);
+                ImGui::Text("Edit name:");
+                ImGui::InputText("##edit", name, IM_ARRAYSIZE(name));
                 if (ImGui::Button("Close"))
                     ImGui::CloseCurrentPopup();
                 ImGui::EndPopup();
@@ -1691,27 +1812,25 @@ void ImGui::ShowStyleEditor(ImGuiStyle* ref)
         ImGui::SameLine(); ImGui::PushItemWidth(120); ImGui::Combo("##output_type", &output_dest, "To Clipboard\0To TTY\0"); ImGui::PopItemWidth();
         ImGui::SameLine(); ImGui::Checkbox("Only Modified Fields", &output_only_modified);
 
-        static ImGuiColorEditMode edit_mode = ImGuiColorEditMode_RGB;
-        ImGui::RadioButton("RGB", &edit_mode, ImGuiColorEditMode_RGB);
-        ImGui::SameLine();
-        ImGui::RadioButton("HSV", &edit_mode, ImGuiColorEditMode_HSV);
-        ImGui::SameLine();
-        ImGui::RadioButton("HEX", &edit_mode, ImGuiColorEditMode_HEX);
-        //ImGui::Text("Tip: Click on colored square to change edit mode.");
+        ImGui::Text("Tip: Left-click on colored square to open color picker,\nRight-click to open edit options menu.");
 
         static ImGuiTextFilter filter;
         filter.Draw("Filter colors", 200);
 
+        static ImGuiColorEditFlags alpha_flags = 0;
+        ImGui::RadioButton("Opaque", &alpha_flags, 0); ImGui::SameLine(); 
+        ImGui::RadioButton("Alpha", &alpha_flags, ImGuiColorEditFlags_AlphaPreview); ImGui::SameLine(); 
+        ImGui::RadioButton("Both", &alpha_flags, ImGuiColorEditFlags_AlphaPreviewHalf);
+
         ImGui::BeginChild("#colors", ImVec2(0, 300), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
         ImGui::PushItemWidth(-160);
-        ImGui::ColorEditMode(edit_mode);
         for (int i = 0; i < ImGuiCol_COUNT; i++)
         {
             const char* name = ImGui::GetStyleColName(i);
             if (!filter.PassFilter(name))
                 continue;
             ImGui::PushID(i);
-            ImGui::ColorEdit4(name, (float*)&style.Colors[i], true);
+            ImGui::ColorEdit4(name, (float*)&style.Colors[i], ImGuiColorEditFlags_AlphaBar | alpha_flags);
             if (memcmp(&style.Colors[i], (ref ? &ref->Colors[i] : &default_style.Colors[i]), sizeof(ImVec4)) != 0)
             {
                 ImGui::SameLine(); if (ImGui::Button("Revert")) style.Colors[i] = ref ? ref->Colors[i] : default_style.Colors[i];
@@ -1750,10 +1869,11 @@ void ImGui::ShowStyleEditor(ImGuiStyle* ref)
                 ImGui::SameLine(); ShowHelpMarker("Note than the default embedded font is NOT meant to be scaled.\n\nFont are currently rendered into bitmaps at a given size at the time of building the atlas. You may oversample them to get some flexibility with scaling. You can also render at multiple sizes and select which one to use at runtime.\n\n(Glimmer of hope: the atlas system should hopefully be rewritten in the future to make scaling more natural and automatic.)");
                 ImGui::Text("Ascent: %f, Descent: %f, Height: %f", font->Ascent, font->Descent, font->Ascent - font->Descent);
                 ImGui::Text("Fallback character: '%c' (%d)", font->FallbackChar, font->FallbackChar);
+                ImGui::Text("Texture surface: %d pixels (approx) ~ %dx%d", font->MetricsTotalSurface, (int)sqrtf((float)font->MetricsTotalSurface), (int)sqrtf((float)font->MetricsTotalSurface));
                 for (int config_i = 0; config_i < font->ConfigDataCount; config_i++)
                 {
                     ImFontConfig* cfg = &font->ConfigData[config_i];
-                    ImGui::BulletText("Input %d: \'%s\'\nOversample: (%d,%d), PixelSnapH: %d", config_i, cfg->Name, cfg->OversampleH, cfg->OversampleV, cfg->PixelSnapH);
+                    ImGui::BulletText("Input %d: \'%s\', Oversample: (%d,%d), PixelSnapH: %d", config_i, cfg->Name, cfg->OversampleH, cfg->OversampleV, cfg->PixelSnapH);
                 }
                 if (ImGui::TreeNode("Glyphs", "Glyphs (%d)", font->Glyphs.Size))
                 {
