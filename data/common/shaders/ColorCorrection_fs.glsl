@@ -23,11 +23,6 @@ layout(std140) uniform _bfData
 	Data bfData;
 };
 
-float Luminance(in vec3 _x)
-{
-	return dot(_x, vec3(0.25, 0.50, 0.25));
-}
-
 
 /*******************************************************************************
 
@@ -40,6 +35,27 @@ float Luminance(in vec3 _x)
 #endif
 
 layout(location=0) out vec3 fResult;
+
+
+float Luminance(in vec3 _x)
+{
+	return dot(_x, vec3(0.25, 0.50, 0.25));
+}
+
+float LuminanceToEV100(in float _lum)
+{
+	return log2(_lum * 100.0 / 12.5);
+}
+
+float EV100ToExposure(in float _ev100)
+{
+	float maxLum = (1.2 * exp2(_ev100));
+	return 1.0 / maxLum;
+}
+
+//vec3 ShadowsHighlights(in vec3 _x, in float _lumMid)
+//{
+//}
 
 
 /*******************************************************************************
@@ -78,7 +94,7 @@ vec3 Tonemap_Reinhard(in vec3 _x)
 		vec3 ret = ratio * peak;
 	#endif
 
-	return Gamma(pow(ret, vec3(1.0/2.2)));
+	return Gamma(ret);
 }
 
 // http://32ipi028l5q82yhj72224m8j.wpengine.netdna-cdn.com/wp-content/uploads/2016/03/GdcVdrLottes.pdf
@@ -99,7 +115,7 @@ vec3 Tonemap_Lottes(in vec3 _x)
 
 	#endif
 
-	return Gamma(pow(ret, vec3(1.0/2.2)));
+	return Gamma(ret);
 
 	#undef fnc
 }
@@ -125,7 +141,7 @@ vec3 Tonemap_ACES_Narkowicz(in vec3 _x)
 		vec3 ret = ratio * peak;
 	#endif
 
- 	return Gamma(pow(ret, vec3(1.0/2.2)));
+ 	return Gamma(ret);
 
 	#undef fnc
 }
@@ -153,7 +169,7 @@ vec3 Tonemap_ACES_Narkowicz(in vec3 _x)
 //	ret = a / b;
 //	ret = matOut * ret;
 //
-//	return Gamma(pow(ret, vec3(1.0/2.2)));
+//	return Gamma(ret);
 //}
 
 #define Tonemap(_x) Tonemap_ACES_Narkowicz(_x)
@@ -194,25 +210,24 @@ void main()
 	 // auto exposure based on average luminance: in this case, bfData.m_exposure is an offset (in EV) from the automatically chosen value
 		float avgLum = textureLod(txLuminance, vUv, 99.0).x;
 		avgLum = exp(avgLum); // if geometric
-		float autoEV = log2(avgLum * 100.0 / 12.5); // luminance -> EV100
-		autoEV = clamp(autoEV, -bfData.m_autoExposureClamp, bfData.m_autoExposureClamp); // clamp in EV
+		float autoEV = LuminanceToEV100(avgLum);
+		autoEV = clamp(autoEV, -bfData.m_autoExposureClamp, bfData.m_autoExposureClamp);
 
 		#if 1
 	 	 // localized exposure (shadows/highlights)
-			float lum = exp(textureLod(txLuminance, vUv, 0.0).y);
+			float lum = Luminance(ret);
 			float mask = lum / (1.0 + lum); // tonemap the luminance as a base for the shadows/highlights mask
-			lum = log2(lum * 100.0 / 12.5); // luminance -> EV100
-
-			// \note could adjust the min of these functions independently
-			float highlightsMask = smoothstep(0.0, 1.0, mask) * bfData.m_highlights;
-			float shadowsMask = smoothstep(1.0, 0.0, mask) * bfData.m_shadows;
+			lum = LuminanceToEV100(lum);
+			avgLum = avgLum / (1.0 + avgLum);
+			float highlightsMask = smoothstep(avgLum, 1.0, mask) * bfData.m_highlights;
+			float shadowsMask = smoothstep(avgLum, 0.0, mask) * bfData.m_shadows;
 			autoEV += lum * shadowsMask + lum * highlightsMask;
 		#endif
 
 		float ev = autoEV - bfData.m_exposure;
-		ret *= 1.0 / (1.2 * exp2(ev)); // combine auto/manual EV, convert EV100 -> exposure
+		ret *= EV100ToExposure(ev);
 	#else
-		ret *= exp2(bfData.m_exposure);
+		ret *= EV100ToExposure(bfData.m_exposure);
 	#endif
 
  	ret = Saturation(ret);
@@ -223,7 +238,6 @@ void main()
  // \todo film grain?
 	//float rnd = Rand_FloatMantissa(Rand_Hash(uint(gl_FragCoord.x * 698.0 + gl_FragCoord.y) + Rand_Hash(uTime)));
 	//ret -= vec3(rnd * 0.08);
-
 
 	fResult = ret;
 }
