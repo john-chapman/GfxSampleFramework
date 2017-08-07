@@ -40,7 +40,7 @@ bool LuminanceMeter::init(int _txSize)
 	m_bfData->setName("_bfData");
 
 	for (int i = 0; i < kHistorySize; ++i) {
-		m_txLum[i] = Texture::Create2d(_txSize, _txSize, GL_RG16F, Texture::GetMaxMipCount(_txSize, _txSize));
+		m_txLum[i] = Texture::Create2d(_txSize, _txSize, GL_R16F, Texture::GetMaxMipCount(_txSize, _txSize));
 		if (!m_txLum[i]) {
 			return false;
 		}
@@ -207,9 +207,9 @@ void ColorCorrection::edit()
 		update |= ImGui::SliderFloat("Exposure", &m_data.m_exposure, -16.0f, 16.0f);
 		if (m_luminanceMeter) {
 			update |= ImGui::SliderFloat("Auto Exposure Clamp", &m_data.m_autoExposureClamp, 0.0f, 16.0f);
-			update |= ImGui::SliderFloat("Shadows",    &m_data.m_shadows,      0.0f,  1.0f);
-			update |= ImGui::SliderFloat("Highlights", &m_data.m_highlights,   0.0f,  1.0f);
 		}
+		update |= ImGui::SliderFloat("Shadows",    &m_data.m_shadows,      0.0f,  1.0f);
+		update |= ImGui::SliderFloat("Highlights", &m_data.m_highlights,   0.0f,  1.0f);
 		
 		ImGui::Spacing();
 		update |= ImGui::SliderFloat("Saturation", &m_data.m_saturation,   0.0f,  8.0f);
