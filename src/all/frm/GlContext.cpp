@@ -127,6 +127,7 @@ void GlContext::dispatch(GLuint _groupsX, GLuint _groupsY, GLuint _groupsZ)
 void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
 {
 	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	ivec3 localSize = m_currentShader->getLocalSize();
 	if (_groupsZ == 0) {
 		switch (_tx->getTarget()) {
 			case GL_TEXTURE_CUBE_MAP: _groupsZ = 6; break;
@@ -134,11 +135,11 @@ void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
 			case GL_TEXTURE_3D:       _groupsZ = _tx->getDepth(); break;
 			default:                  _groupsZ = 1; break;
 		};
-		GLuint sizeZ = (GLuint)m_currentShader->getLocalSizeZ();
+		GLuint sizeZ = (GLuint)localSize.z;
 		_groupsZ = APT_MAX((_groupsZ + sizeZ - 1) / sizeZ, 1u);
 	}
-	GLuint sizeX = (GLuint)m_currentShader->getLocalSizeX();
-	GLuint sizeY = (GLuint)m_currentShader->getLocalSizeY();
+	GLuint sizeX = (GLuint)localSize.x;
+	GLuint sizeY = (GLuint)localSize.y;
 	dispatch(
 		APT_MAX((_tx->getWidth() + sizeX - 1) / sizeX, 1u),
 		APT_MAX((_tx->getHeight() + sizeY - 1) / sizeY, 1u),
