@@ -97,14 +97,15 @@ void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, cons
 		int wh = dst->getWidth() / 2;
 		dst->setMinFilter(GL_LINEAR_MIPMAP_NEAREST); // no filtering between mips
 		int lvl = 0;
+		ivec3 localSize = m_shLuminanceMeter->getLocalSize();
 		while (wh >= 1) {
 			_ctx_->setShader  (m_shLuminanceMeter); // force reset bindings
 			_ctx_->setUniform ("uSrcLevel", lvl);
 			_ctx_->bindTexture("txSrc", dst);
 			_ctx_->bindImage  ("txDst", dst, GL_WRITE_ONLY, ++lvl);
 			_ctx_->dispatch(
-				max((wh + m_shLuminanceMeter->getLocalSizeX() - 1) / m_shLuminanceMeter->getLocalSizeX(), 1),
-				max((wh + m_shLuminanceMeter->getLocalSizeY() - 1) / m_shLuminanceMeter->getLocalSizeY(), 1)
+				max((wh + localSize.x - 1) / localSize.x, 1),
+				max((wh + localSize.y - 1) / localSize.y, 1)
 				);
 			glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 			wh = wh >> 1;

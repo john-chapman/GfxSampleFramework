@@ -160,7 +160,6 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClInclude Include="..\..\src\all\frm\Resource.h" />
     <ClInclude Include="..\..\src\all\frm\Scene.h" />
     <ClInclude Include="..\..\src\all\frm\Shader.h" />
-    <ClInclude Include="..\..\src\all\frm\ShaderPreprocessor.h" />
     <ClInclude Include="..\..\src\all\frm\SkeletonAnimation.h" />
     <ClInclude Include="..\..\src\all\frm\Spline.h" />
     <ClInclude Include="..\..\src\all\frm\Texture.h" />
@@ -237,7 +236,6 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClCompile Include="..\..\src\all\frm\Resource.cpp" />
     <ClCompile Include="..\..\src\all\frm\Scene.cpp" />
     <ClCompile Include="..\..\src\all\frm\Shader.cpp" />
-    <ClCompile Include="..\..\src\all\frm\ShaderPreprocessor.cpp" />
     <ClCompile Include="..\..\src\all\frm\SkeletonAnimation.cpp" />
     <ClCompile Include="..\..\src\all\frm\SkeletonAnimation_md5.cpp" />
     <ClCompile Include="..\..\src\all\frm\Spline.cpp" />
