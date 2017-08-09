@@ -4,42 +4,55 @@
 
 #include <frm/def.h>
 #include <frm/gl.h>
+#include <frm/math.h>
 #include <frm/Resource.h>
 
 #include <apt/String.h>
-
 #include <EASTL/vector.h>
+#include <EASTL/vector_map.h>
 
-namespace frm
-{
-	class GlContext;
+namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // ShaderDesc
-// Describes a shader program (per-stage path/defines/source code).
+// \note Virtual includes are processed during StageDesc::loadSource to make
+//   management of line pragmas easier.
 ////////////////////////////////////////////////////////////////////////////////
 class ShaderDesc
 {
 	friend class Shader;
 public:
-	// Set the default version string, e.g. "420 compatibility".
-	// _str should not include the "#version" directive itself.
-	static void SetDefaultVersion(const char* _version);
+	// Set the default version string, e.g. "420 compatibility" (excluding the "#version" directive).
+	static void        SetDefaultVersion(const char* _version);
 	static const char* GetDefaultVersion() { return (const char*)s_defaultVersion; }
 
-	ShaderDesc(): m_version(GetDefaultVersion()) {};
+	ShaderDesc();
 
-	// Set the version string, e.g. "420 compatibility".
-	// _str should not include the "#version" directive itself.
-	void setVersion(const char* _version);
+	// Set the version string, e.g. "420 compatibility" (excluding the "#version" directive).
+	void        setVersion(const char* _version);
+	const char* getVersion() const { return (const char*)m_version; }
 	
-	// Add a define to the shader source for _stage. Supported types are int,
-	// uint, float, vec2, vec3, vec4.
+	// Set source code path for _stage.
+	void        setPath(GLenum _stage, const char* _path);
+	const char* getPath(GLenum _stage) const;
+
+	// Set source code for _stage (replace existing source code).
+	void        setSource(GLenum _stage, const char* _src);
+	const char* getSource(GLenum _stage) const;
+
+	// Access source code dependencies.
+	int         getDependencyCount(GLenum _stage) const;
+	const char* getDependency(GLenum _stage, int _i) const;
+
+	// Set the local size (compute only).
+	void         setLocalSize(int _x, int _y = 1, int _z = 1);
+	const ivec3& getLocalSize() const { return m_localSize; }
+
+	// Add a define to _stage. Supported types are int, uint, float, vec2, vec3, vec4, const char*.
 	template <typename T>
 	void addDefine(GLenum _stage, const char* _name, const T& _value);
 	void addDefine(GLenum _stage, const char* _name);
-
-	/// Add a define to all stages.
+	// Add a define to all stages.
 	template <typename T>
 	void addGlobalDefine(const char* _name, const T& _value)
 	{
@@ -53,50 +66,51 @@ public:
 			addDefine(internal::kShaderStages[i], _name);
 		}
 	}
+	// Process a null-separated list of define strings, e.g. "define0 val\0define1 val\0".
+	void        addGlobalDefines(const char* _defines);
+	void        clearDefines();
+	void        clearDefines(GLenum _stage);
+	int         getDefineCount(GLenum _stage) const;
+	const char* getDefineName(GLenum _stage, int _i) const;
+	const char* getDefineValue(GLenum _stage, int _i) const;
 
-	// Process a null-separated list of define strings.
-	void addGlobalDefines(const char* _defines);
 
-	// Clear defines for all stages.
-	void clearDefines();
+	// Add a virtual include. These replace instances of "#include _name" in the source code.
+	// Virtual includes may not contain any additional #include directives (virtual or otherwise).
+	void        addVirtualInclude(const char* _name, const char* _value);
+	void        clearVirtualIncludes();	
+	const char* findVirtualInclude(const char* _name) const;
+	
 
-	// Set source code path for _stage.
-	void setPath(GLenum _stage, const char* _path);
-
-	// Set source code for _stage. This overrides existing source code.
-	void setSource(GLenum _stage, const char* _src);
-
-	// Hash the version string, shader paths, defines and source (if present).
+	// Hash the version string, shader paths, defines, virtual includes and source (if present).
 	uint64 getHash() const;
 
-	const char* getVersion() const { return (const char*)m_version; }
-
-	bool        hasStage(GLenum _stage) const;
-	const char* getPath(GLenum _stage) const;
-
-	int         getDefineCount(GLenum _stage) const;
-	const char* getDefine(GLenum _stage, int _i) const;
-	const char* getSource(GLenum _stage) const;
+	// Return whether _stage is valid.
+	bool hasStage(GLenum _stage) const;
 
 private:
 	typedef apt::String<sizeof("9999 compatibility\0")> VersionStr;
-	static VersionStr s_defaultVersion;
-	VersionStr m_version;
+	typedef apt::String<64> Str;
 
 	struct StageDesc
 	{
-		typedef apt::String<48> DefineStr;
-		typedef apt::String<32> PathStr;
-	
-		PathStr                   m_path;      // Source file path (if from a file).
-		eastl::vector<DefineStr>  m_defines;   // Name + value.       
-		eastl::vector<char>       m_source;    // Source (not including defines).
+		GLenum                      m_stage;
+		Str                         m_path;         // Only if from a file.
+		apt::String<0>              m_source;       // Excluding defines or virtual includes.
+		eastl::vector_map<Str, Str> m_defines;      // Name, value.	
+		eastl::vector<Str>          m_dependencies;
 
 		bool isEnabled() const;
-
-	}; // struct StageDesc
-
-	StageDesc m_stages[internal::kShaderStageCount];
+		bool hasDependency(const char* _path) const;
+		bool loadSource(const ShaderDesc& _shaderDesc, const char* _path = nullptr);
+		void logInfo() const;
+	};
+	
+	static VersionStr           s_defaultVersion;
+	VersionStr                  m_version;
+	eastl::vector_map<Str, Str> m_vincludes; 
+	StageDesc                   m_stages[internal::kShaderStageCount];
+	ivec3                       m_localSize; // Compute only.
 
 }; // class ShaderDesc
 
@@ -120,9 +134,8 @@ public:
 	bool load() { return reload(); }
 
 	// Attempt to reload/compile all stages and link the shader program.
-	// Return false if any stage fails to compile, or if link failed. If a
-	//   previous attempt to load the shader was successful the shader remains
-	//   valid even if reload() fails.
+	// Return false if any stage fails to compile, or if link failed. If a previous attempt to load the shader was successful the 
+	// shader remains valid even if reload() fails.
 	bool reload();
 	
 	// Retrieve the index of a program resource via glGetProgramResourceIndex.
@@ -131,22 +144,20 @@ public:
 	// Retrieve teh location of a named uniform via glGetUniformLocation;
 	GLint getUniformLocation(const char* _name) const;
 	
+
 	GLuint getHandle() const { return m_handle; }
 	
 	const ShaderDesc& getDesc() const { return m_desc; }
 
-	// Compute shader only.
-	int  getLocalSizeX() const { return m_localSize[0]; }
-	int  getLocalSizeY() const { return m_localSize[1]; }
-	int  getLocalSizeZ() const { return m_localSize[2]; }
-	void setLocalSize(int _x, int _y = 1, int _z = 1);
+	// Set the local size (compute only) and reload.
+	bool   setLocalSize(int _x, int _y, int _z);
+	ivec3  getLocalSize() const { return m_desc.getLocalSize(); }
+
 private:
 	GLuint     m_handle;
 
 	ShaderDesc m_desc;
 	GLuint     m_stageHandles[internal::kShaderStageCount];
-
-	int m_localSize[3]; // compute shader only
 
 	// Get/free info log for a shader stage.
 	static const char* GetStageInfoLog(GLuint _handle);
@@ -156,7 +167,7 @@ private:
 	static const char* GetProgramInfoLog(GLuint _handle);
 	static void FreeProgramInfoLog(const char*& _log_);
 
-	Shader(uint64 _id, const char* _name);
+	Shader(Id _id, const char* _name);
 	~Shader();	
 
 	// Load the specified stage, return status.
