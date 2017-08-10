@@ -702,9 +702,9 @@ Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _loc
 	APT_ASSERT((_localX * _localY * _localZ) <= GlContext::GetCurrent()->kMaxComputeInvocationsPerGroup);
 
 	ShaderDesc desc;
+	desc.setPath(GL_COMPUTE_SHADER, _csPath);
 	desc.addGlobalDefines(_defines);
 	desc.setLocalSize(_localX, _localY, _localZ);
-	desc.setPath(GL_COMPUTE_SHADER, _csPath);
 	Shader* ret = Create(desc);
 	return ret;
 }
