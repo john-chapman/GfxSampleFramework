@@ -871,6 +871,7 @@ bool Shader::loadStage(int _i, bool _loadSource)
 
  // process source file if required
 	if (_loadSource && !stageDesc.m_path.isEmpty()) {
+		stageDesc.m_source.clear();
 		if (!stageDesc.loadSource(m_desc)) {
 			return false;
 		}
@@ -913,7 +914,7 @@ bool Shader::loadStage(int _i, bool _loadSource)
 	
  // print info log on fail
 	if (ret == GL_FALSE) {		
-		//APT_LOG_DBG("\tsrc: \n\n%s", (const char*)src.data());
+		APT_LOG_DBG("\tsrc: \n\n%s", (const char*)src);
 		
 		APT_LOG_ERR("'%s' compile failed", apt::internal::StripPath((const char*)stageDesc.m_path));
 		stageDesc.logInfo();
