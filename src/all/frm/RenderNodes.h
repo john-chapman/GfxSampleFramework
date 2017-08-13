@@ -49,13 +49,11 @@ public:
 	struct Data
 	{
 		float m_exposure;
-		float m_autoExposureClamp;
+		float m_localExposureMax;
+		float m_localExposureLod;
 		float m_contrast;
 		float m_saturation;
-		float m_shadows;
-		float m_highlights;
-		float _pad[2];
-		vec4  m_tonemapper;
+		float _pad[3];
 		vec3  m_tint;
 	};
 	Data m_data;
