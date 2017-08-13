@@ -34,6 +34,7 @@ bool AppSample3d::init(const apt::ArgList& _args)
 
 	if (!Scene::Load((const char*)m_scenePath, *m_scene)) {
  		Camera* defaultCamera = m_scene->createCamera(Camera());
+		defaultCamera->setPerspective(radians(45.0f), 1.0f, 0.1f, 1.0f, Camera::ProjFlag_Infinite);
 		defaultCamera->updateGpuBuffer(); // alloc the gpu buffer
 		Node* defaultCameraNode = defaultCamera->m_parent;
 		defaultCameraNode->setStateMask(Node::State_Active | Node::State_Dynamic | Node::State_Selected);
