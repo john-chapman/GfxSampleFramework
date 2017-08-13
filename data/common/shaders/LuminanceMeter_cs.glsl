@@ -25,6 +25,7 @@ uniform sampler2D txSrcPrev;
 uniform image2D writeonly txDst;
 
 uniform int uSrcLevel;
+uniform int uMaxLevel;
 
 void main()
 {
@@ -34,21 +35,36 @@ void main()
 	}
 	vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize) + 0.5 / vec2(txSize);
 
-	float ret = 0.0;
+	vec2 ret = vec2(0.0);
 	if (uSrcLevel == -1) {
-		ret = dot(textureLod(txSrc, uv, 0.0).rgb, vec3(0.25, 0.50, 0.25));
+		ret.x = dot(textureLod(txSrc, uv, 0.0).rgb, vec3(0.25, 0.50, 0.25));
 		#if (AVERAGE_MODE == Average_Geometric)
 			ret = log(max(ret, 1e-7)); // use exp(avg) to get the geometric mean when reading the texture
 		#endif
-
-		float prev = textureLod(txSrcPrev, uv, 0.0).x;
-		ret = prev + (ret - prev) * (1.0 - exp(uDeltaTime * -bfData.m_rate));
+		ret.y = ret.x;
+		
 	} else {
 		#if (WEIGHT_MODE == Weight_Average)
 			float w = 1.0;
 		#endif
-		ret = textureLod(txSrc, uv, uSrcLevel).x * w;
+		
+	 // average
+		ret.x = textureLod(txSrc, uv, uSrcLevel).x * w;
+		
+	 // max
+		vec2 offset = 0.25 / vec2(txSize);
+		vec4 s;
+		s.x = textureLod(txSrc, uv + vec2(-offset.x, -offset.y), uSrcLevel).x;
+		s.y = textureLod(txSrc, uv + vec2( offset.x, -offset.y), uSrcLevel).x;
+		s.z = textureLod(txSrc, uv + vec2( offset.x,  offset.y), uSrcLevel).x;
+		s.w = textureLod(txSrc, uv + vec2(-offset.x,  offset.y), uSrcLevel).x;
+		ret.y = max(s.x, max(s.y, max(s.z, s.w)));
+		
+		if (uSrcLevel == uMaxLevel - 1) {
+			vec2 prev = textureLod(txSrcPrev, uv, 99.0).xy;
+			ret = prev + (ret - prev) * (1.0 - exp(uDeltaTime * -bfData.m_rate));
+		}
 	}
 
-	imageStore(txDst, ivec2(gl_GlobalInvocationID.xy), vec4(ret));
+	imageStore(txDst, ivec2(gl_GlobalInvocationID.xy), vec4(ret.xyxy));
 }

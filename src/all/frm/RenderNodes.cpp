@@ -40,7 +40,7 @@ bool LuminanceMeter::init(int _txSize)
 	m_bfData->setName("_bfData");
 
 	for (int i = 0; i < kHistorySize; ++i) {
-		m_txLum[i] = Texture::Create2d(_txSize, _txSize, GL_R16F, Texture::GetMaxMipCount(_txSize, _txSize));
+		m_txLum[i] = Texture::Create2d(_txSize, _txSize, GL_RG16F, Texture::GetMaxMipCount(_txSize, _txSize));
 		if (!m_txLum[i]) {
 			return false;
 		}
@@ -48,6 +48,7 @@ bool LuminanceMeter::init(int _txSize)
 		m_txLum[i]->setNamef("#txLum[%d]", i);
 	}
 	m_current = 0;
+	reset();
 
 	return m_shLuminanceMeter && m_bfData;
 }
@@ -63,11 +64,16 @@ void LuminanceMeter::shutdown()
 
 void LuminanceMeter::reset()
 {
+	glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 	Framebuffer* fb = Framebuffer::Create();
 	for (int i = 0; i < kHistorySize; ++i) {
-		fb->attach(m_txLum[i], GL_COLOR_ATTACHMENT0);
+	 // clear the base level
+		fb->attach(m_txLum[i], GL_COLOR_ATTACHMENT0, 0);
 		GlContext::GetCurrent()->setFramebufferAndViewport(fb);
-		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+		glAssert(glClear(GL_COLOR_BUFFER_BIT));
+	 // clear the max level
+		fb->attach(m_txLum[i], GL_COLOR_ATTACHMENT0, m_txLum[i]->getMipCount() - 1);
+		GlContext::GetCurrent()->setFramebufferAndViewport(fb);
 		glAssert(glClear(GL_COLOR_BUFFER_BIT));
 	}
 	Framebuffer::Destroy(fb);
@@ -82,13 +88,11 @@ void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, cons
 	APT_ASSERT(prev != m_current);
 	Texture* dst = m_txLum[m_current];
 
-	{	AUTO_MARKER("Luminance/Smooth");
+	{	AUTO_MARKER("Luminance");
 		_ctx_->setShader  (m_shLuminanceMeter);
-		_ctx_->setUniform ("uDeltaTime", _dt);
 		_ctx_->setUniform ("uSrcLevel", -1); // indicate first pass
 		_ctx_->bindBuffer (m_bfData);
 		_ctx_->bindTexture("txSrc", _src);
-		_ctx_->bindTexture("txSrcPrev", m_txLum[prev]);
 		_ctx_->bindImage  ("txDst", dst, GL_WRITE_ONLY, 0);
 		_ctx_->dispatch   (dst);
 	}
@@ -100,8 +104,12 @@ void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, cons
 		ivec3 localSize = m_shLuminanceMeter->getLocalSize();
 		while (wh >= 1) {
 			_ctx_->setShader  (m_shLuminanceMeter); // force reset bindings
+			_ctx_->setUniform ("uDeltaTime", _dt);
 			_ctx_->setUniform ("uSrcLevel", lvl);
+			_ctx_->setUniform ("uMaxLevel", m_txLum[0]->getMipCount() - 1);
+			_ctx_->bindBuffer (m_bfData);
 			_ctx_->bindTexture("txSrc", dst);
+			_ctx_->bindTexture("txSrcPrev", m_txLum[prev]);
 			_ctx_->bindImage  ("txDst", dst, GL_WRITE_ONLY, ++lvl);
 			_ctx_->dispatch(
 				max((wh + localSize.x - 1) / localSize.x, 1),
@@ -140,16 +148,14 @@ void LuminanceMeter::edit()
 void ColorCorrection::setProps(Properties& _props_)
 {
 	PropertyGroup& propGroup = _props_.addGroup("Color Correction");
-	//                  name                    default                         min             max          storage
-	propGroup.addBool  ("Enabled",              true,                                                        &m_enabled);
-	propGroup.addFloat ("Exposure",             0.0f,                          -16.0f,          16.0f,       &m_data.m_exposure);
-	propGroup.addFloat ("Auto Exposure Clamp",  16.0f,                          0.0f,           16.0f,       &m_data.m_autoExposureClamp);
-	propGroup.addFloat ("Saturation",           1.0f,                           0.0f,           8.0f,        &m_data.m_saturation);
-	propGroup.addFloat ("Contrast",             1.0f,                           0.0f,           8.0f,        &m_data.m_contrast);
-	propGroup.addFloat ("Shadows",              0.0f,                           0.0f,           1.0f,        &m_data.m_shadows);
-	propGroup.addFloat ("Highlights",           0.0f,                           0.0f,           1.0f,        &m_data.m_highlights);
-	propGroup.addFloat4("Tonemapper",           vec4(1.0f, 1.0f, 0.125f, 0.3f), 0.0f,           2.0f,        &m_data.m_tonemapper);
-	propGroup.addRgb   ("Tint",                 vec3(1.0f),                     0.0f,           1.0f,        &m_data.m_tint);
+	//                  name                     default                         min             max           storage
+	propGroup.addBool  ("Enabled",               true,                                                         &m_enabled);
+	propGroup.addFloat ("Exposure",              0.0f,                          -16.0f,          16.0f,        &m_data.m_exposure);
+	propGroup.addFloat ("Local Exposure Max",    0.25f,                          0.0f,           1.0f,         &m_data.m_localExposureMax);
+	propGroup.addFloat ("Local Exposure Lod",    log2(4.0f),                     log2(1.0f),     log2(512.0f), &m_data.m_localExposureLod);
+	propGroup.addFloat ("Saturation",            1.0f,                           0.0f,           8.0f,         &m_data.m_saturation);
+	propGroup.addFloat ("Contrast",              1.0f,                           0.0f,           8.0f,         &m_data.m_contrast);
+	propGroup.addRgb   ("Tint",                  vec3(1.0f),                     0.0f,           1.0f,         &m_data.m_tint);
 }
 
 bool ColorCorrection::init()
@@ -207,10 +213,12 @@ void ColorCorrection::edit()
 
 		update |= ImGui::SliderFloat("Exposure", &m_data.m_exposure, -16.0f, 16.0f);
 		if (m_luminanceMeter) {
-			update |= ImGui::SliderFloat("Auto Exposure Clamp", &m_data.m_autoExposureClamp, 0.0f, 16.0f);
+			update |= ImGui::SliderFloat("Local Exposure Max",  &m_data.m_localExposureMax, 0.0f, 1.0f);
+
+			float pixels = exp2(m_data.m_localExposureLod);
+			update |= ImGui::SliderFloat("Local Exposure Radius", &pixels, 1.0f, 512.0f);
+			m_data.m_localExposureLod = log2(pixels);
 		}
-		update |= ImGui::SliderFloat("Shadows",    &m_data.m_shadows,      0.0f,  1.0f);
-		update |= ImGui::SliderFloat("Highlights", &m_data.m_highlights,   0.0f,  1.0f);
 		
 		ImGui::Spacing();
 		update |= ImGui::SliderFloat("Saturation", &m_data.m_saturation,   0.0f,  8.0f);
@@ -222,22 +230,6 @@ void ColorCorrection::edit()
 			update = true;
 		}
 
-			/*ImGui::Spacing();
-		ImGui::Text("Tonemapper:");
-		update |= ImGui::SliderFloat("Toe",        &m_data.m_tonemapper.x, 0.0f,  4.0f);
-		update |= ImGui::SliderFloat("Shoulder",   &m_data.m_tonemapper.w, 0.0f,  1.0f);
-		update |= ImGui::SliderFloat("Peak",       &m_data.m_tonemapper.y, 0.0f,  8.0f);
-		update |= ImGui::SliderFloat("Slope",      &m_data.m_tonemapper.z, 0.0f,  2.0f);
-
-		const int kSampleCount = 256;
-		float plot[kSampleCount];
-		float range = 4.0f;
-		for (int i = 0; i < kSampleCount; ++i) {
-			float x = (float)i / (float)(kSampleCount - 1) * range;
-			plot[i] = powf(x, m_data.m_tonemapper.x) / (powf(x, m_data.m_tonemapper.w) * m_data.m_tonemapper.y + m_data.m_tonemapper.z);
-		}
-		ImGui::PlotLines("Curve", plot, kSampleCount, 0, 0, 0.0f, 1.0f, ImVec2(0.0f, 64.0f));
-		*/
 		if (update) {
 			m_bfData->setData(sizeof(Data), &m_data);
 		}
