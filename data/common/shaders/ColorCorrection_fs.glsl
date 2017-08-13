@@ -10,12 +10,10 @@ uniform uint uTime;
 struct Data
 {
 	float m_exposure;
-	float m_autoExposureClamp;
+	float m_localExposureMax;
+	float m_localExposureLod;
 	float m_contrast;
 	float m_saturation;
-	float m_shadows;
-	float m_highlights;
-	vec4  m_tonemapper; // a,b,c,d (see Tonemap_Lottes below)
 	vec3  m_tint;
 };
 layout(std140) uniform _bfData
@@ -99,7 +97,7 @@ vec3 Tonemap_Reinhard(in vec3 _x)
 
 // http://32ipi028l5q82yhj72224m8j.wpengine.netdna-cdn.com/wp-content/uploads/2016/03/GdcVdrLottes.pdf
 // Generic 4-parameter curve
-vec3 Tonemap_Lottes(in vec3 _x)
+/*vec3 Tonemap_Lottes(in vec3 _x)
 {
 	#define fnc(v) (pow(v, bfData.m_tonemapper.x) / (pow(v, bfData.m_tonemapper.w) * bfData.m_tonemapper.y + bfData.m_tonemapper.z))
 
@@ -118,7 +116,7 @@ vec3 Tonemap_Lottes(in vec3 _x)
 	return Gamma(ret);
 
 	#undef fnc
-}
+}*/
 
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 // Cheap, luminance-only fit; over saturates the brights
@@ -207,32 +205,21 @@ void main()
 	vec3 ret = textureLod(txInput, vUv, 0.0).rgb;
 
 	#ifdef AUTO_EXPOSURE
-	 // auto exposure based on average luminance: in this case, bfData.m_exposure is an offset (in EV) from the automatically chosen value
-		float avgLum = textureLod(txLuminance, vUv, 99.0).x;
-		avgLum = exp(avgLum); // if geometric
-		float autoEV = LuminanceToEV100(avgLum);
-		autoEV = clamp(autoEV, -bfData.m_autoExposureClamp, bfData.m_autoExposureClamp);
-
-		#if 1
-	 	 // localized exposure (shadows/highlights)
-			float lum = Luminance(ret);
-			float mask = lum / (1.0 + lum); // tonemap the luminance as a base for the shadows/highlights mask
-			lum = LuminanceToEV100(lum);
-			avgLum = avgLum / (1.0 + avgLum);
-			float highlightsMask = smoothstep(avgLum, 1.0, mask) * bfData.m_highlights;
-			float shadowsMask = smoothstep(avgLum, 0.0, mask) * bfData.m_shadows;
-			autoEV += lum * shadowsMask + lum * highlightsMask;
-		#endif
-
-		float ev = autoEV - bfData.m_exposure;
-		ret *= EV100ToExposure(ev);
+		float Llocal  = exp(textureLod(txLuminance, vUv, bfData.m_localExposureLod).x);
+		float Lglobal = exp(textureLod(txLuminance, vUv, 99.0).x);
+		float Lmax    = exp(textureLod(txLuminance, vUv, 99.0).y);
+		float Lratio  = min(saturate(abs(Lmax - Lglobal) / Lmax), bfData.m_localExposureMax);
+		float L       = mix(Lglobal, Llocal, Lratio);
+		float ev100   = LuminanceToEV100(L) - bfData.m_exposure;
+		ret *= EV100ToExposure(ev100);
 	#else
-		ret *= EV100ToExposure(bfData.m_exposure);
+		ret *= exp2(bfData.m_exposure);
 	#endif
 
- 	ret = Saturation(ret);
- 	ret = Contrast(ret);
  	ret = Tonemap(ret);
+ 	
+	ret = Saturation(ret);
+ 	ret = Contrast(ret);
  	ret *= bfData.m_tint;
 
  // \todo film grain?
