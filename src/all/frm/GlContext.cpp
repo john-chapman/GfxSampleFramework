@@ -298,6 +298,12 @@ void GlContext::setUniformArray<uvec4>(const char* _name, const uvec4* _val, GLs
 	glAssert(glUniform4uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
 }
 template <>
+void GlContext::setUniformArray<mat3>(const char* _name, const mat3* _val, GLsizei _count)
+{
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	glAssert(glUniformMatrix3fv(m_currentShader->getUniformLocation(_name), _count, false, (const GLfloat*)_val));
+}
+template <>
 void GlContext::setUniformArray<mat4>(const char* _name, const mat4* _val, GLsizei _count)
 {
 	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
