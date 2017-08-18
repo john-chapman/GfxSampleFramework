@@ -67,9 +67,12 @@ public:
 	// _groupsZ can be overriden e.g. to write to a single level of an array or volume texture.
 	void dispatch(const Texture* _tx, GLuint _groupsZ = 0);
 
-	// Present the next image in the swapchain, increment the frame index.
+	// Present the next image in the swapchain, increment the frame index, clear draw call counters.
 	void present();
 
+	// Get draw/dispatch counters (call before present()).
+	uint32 getDrawCallCount() const { return m_drawCount; }
+	uint32 getDispatchCount() const { return m_dispatchCount; }
 
 	void      setVsync(Vsync _mode);
 	Vsync     getVsync() const                   { return m_vsync;      }
@@ -155,6 +158,8 @@ private:
 	const Window*       m_window;
 	Vsync               m_vsync;
 	uint64              m_frameIndex;
+	uint32              m_drawCount;
+	uint32              m_dispatchCount;
 
 	int                 m_viewportX, m_viewportY, m_viewportWidth, m_viewportHeight;
 
