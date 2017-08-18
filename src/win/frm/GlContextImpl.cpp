@@ -190,6 +190,7 @@ void GlContext::present()
 	APT_PLATFORM_VERIFY(SwapBuffers(m_impl->m_hdc));
 	APT_PLATFORM_VERIFY(ValidateRect(m_impl->m_hwnd, 0)); // suppress WM_PAINT
 	++m_frameIndex;
+	m_dispatchCount = m_drawCount = 0;
 }
 
 void GlContext::setVsync(Vsync _mode)
