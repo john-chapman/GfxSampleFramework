@@ -216,11 +216,10 @@ void main()
 		ret *= exp2(bfData.m_exposure);
 	#endif
 
- 	ret = Tonemap(ret);
- 	
-	ret = Saturation(ret);
- 	ret = Contrast(ret);
  	ret *= bfData.m_tint;
+ 	ret = Contrast(ret);
+ 	ret = Tonemap(ret);
+	ret = Saturation(ret); // post-tonemap to prevent hue shifts
 
  // \todo film grain?
 	//float rnd = Rand_FloatMantissa(Rand_Hash(uint(gl_FragCoord.x * 698.0 + gl_FragCoord.y) + Rand_Hash(uTime)));
