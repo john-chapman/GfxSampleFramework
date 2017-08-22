@@ -56,6 +56,8 @@ void GlContext::draw(GLsizei _instances)
 			_instances
 			));
 	}
+
+	++m_drawCount;
 }
 
 void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
@@ -77,6 +79,8 @@ void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
 	} else {
 		glAssert(glDrawArraysIndirect(m_currentMesh->getPrimitive(), _offset));
 	}
+
+	++m_drawCount; // count an indirect draw as a single draw call
 }
 
 void GlContext::drawNdcQuad(const Camera* _cam)
@@ -122,6 +126,7 @@ void GlContext::dispatch(GLuint _groupsX, GLuint _groupsY, GLuint _groupsZ)
 	APT_ASSERT(_groupsY < (GLuint)kMaxComputeWorkGroups[1]);
 	APT_ASSERT(_groupsZ < (GLuint)kMaxComputeWorkGroups[2]);
 	glAssert(glDispatchCompute(_groupsX, _groupsY, _groupsZ));
+	++m_dispatchCount;
 }
 
 void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
@@ -152,6 +157,7 @@ void GlContext::dispatchIndirect(const Buffer* _buffer, const void* _offset)
 	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	bindBuffer(_buffer, GL_DISPATCH_INDIRECT_BUFFER);
 	glAssert(glDispatchComputeIndirect((GLintptr)_offset));
+	++m_dispatchCount; // count indirect dispatch as a single dispatch
 }
 
 void GlContext::setFramebuffer(const Framebuffer* _framebuffer)
@@ -296,6 +302,12 @@ void GlContext::setUniformArray<uvec4>(const char* _name, const uvec4* _val, GLs
 {
 	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform4uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
+}
+template <>
+void GlContext::setUniformArray<mat3>(const char* _name, const mat3* _val, GLsizei _count)
+{
+	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	glAssert(glUniformMatrix3fv(m_currentShader->getUniformLocation(_name), _count, false, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<mat4>(const char* _name, const mat4* _val, GLsizei _count)
