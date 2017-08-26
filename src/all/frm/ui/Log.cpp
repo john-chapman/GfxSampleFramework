@@ -134,7 +134,7 @@ void Log::draw()
 	const Message* msg = m_msgBufHead;
 	const Message* msgEnd = m_msgBuf + m_msgBufCapacity;
 	while (msg != m_msgBufNext) {
-		ImGui::PushStyleColor(ImGuiCol_Text, ImColor(msg->m_col));
+		ImGui::PushStyleColor(ImGuiCol_Text, msg->m_col);
 		ImGui::TextWrapped(msg->m_txt);
 		ImGui::PopStyleColor();
 		++msg;

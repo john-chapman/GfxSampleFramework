@@ -4,6 +4,8 @@
 // You may use this file to debug, understand or extend ImGui features but we don't provide any guarantee of forward compatibility!
 // Implement maths operators for ImVec2 (disabled by default to not collide with using IM_VEC2_CLASS_EXTRA along with your own math types+operators)
 //   #define IMGUI_DEFINE_MATH_OPERATORS
+// Define IM_PLACEMENT_NEW() macro helper.
+//   #define IMGUI_DEFINE_PLACEMENT_NEW
 
 #pragma once
 
@@ -181,6 +183,15 @@ enum ImGuiSliderFlags_
     ImGuiSliderFlags_Vertical               = 1 << 0
 };
 
+enum ImGuiColumnsFlags_
+{
+    // Default: 0
+    ImGuiColumnsFlags_NoBorder              = 1 << 0,   // Disable column dividers
+    ImGuiColumnsFlags_NoResize              = 1 << 1,   // Disable resizing columns when clicking on the dividers
+    ImGuiColumnsFlags_NoPreserveWidths      = 1 << 2,   // Disable column width preservation when adjusting columns
+    ImGuiColumnsFlags_NoForceWithinWindow   = 1 << 3    // Disable forcing columns to fit within window
+};
+
 enum ImGuiSelectableFlagsPrivate_
 {
     // NB: need to be in sync with last value of ImGuiSelectableFlags_
@@ -304,7 +315,8 @@ struct ImGuiGroupData
 // Per column data for Columns()
 struct ImGuiColumnData
 {
-    float       OffsetNorm;     // Column start offset, normalized 0.0 (far left) -> 1.0 (far right)
+    float       OffsetNorm; // Column start offset, normalized 0.0 (far left) -> 1.0 (far right)
+    ImRect      ClipRect;
     //float     IndentX;
 };
 
@@ -425,17 +437,17 @@ struct ImGuiContext
     ImVec2                  SetNextWindowSizeVal;
     ImVec2                  SetNextWindowContentSizeVal;
     bool                    SetNextWindowCollapsedVal;
-    ImGuiSetCond            SetNextWindowPosCond;
-    ImGuiSetCond            SetNextWindowSizeCond;
-    ImGuiSetCond            SetNextWindowContentSizeCond;
-    ImGuiSetCond            SetNextWindowCollapsedCond;
+    ImGuiCond               SetNextWindowPosCond;
+    ImGuiCond               SetNextWindowSizeCond;
+    ImGuiCond               SetNextWindowContentSizeCond;
+    ImGuiCond               SetNextWindowCollapsedCond;
     ImRect                  SetNextWindowSizeConstraintRect;           // Valid if 'SetNextWindowSizeConstraint' is true
     ImGuiSizeConstraintCallback SetNextWindowSizeConstraintCallback;
-    void*                       SetNextWindowSizeConstraintCallbackUserData;
+    void*                   SetNextWindowSizeConstraintCallbackUserData;
     bool                    SetNextWindowSizeConstraint;
     bool                    SetNextWindowFocus;
     bool                    SetNextTreeNodeOpenVal;
-    ImGuiSetCond            SetNextTreeNodeOpenCond;
+    ImGuiCond               SetNextTreeNodeOpenCond;
 
     // Render
     ImDrawData              RenderDrawData;                     // Main ImDrawData instance to pass render information to the user
@@ -449,7 +461,7 @@ struct ImGuiContext
     ImGuiTextEditState      InputTextState;
     ImFont                  InputTextPasswordFont;
     ImGuiID                 ScalarAsInputTextId;                // Temporary text input when CTRL+clicking on a slider, etc.
-    ImGuiStorage            ColorEditModeStorage;               // Store user selection of color edit mode
+    ImGuiColorEditFlags     ColorEditOptions;                   // Store user options for color edit widgets
     ImVec4                  ColorPickerRef;
     float                   DragCurrentValue;                   // Currently dragged value, always float, not rounded by end-user precision settings
     ImVec2                  DragLastMouseDelta;
@@ -520,6 +532,7 @@ struct ImGuiContext
         SetNextTreeNodeOpenCond = 0;
 
         ScalarAsInputTextId = 0;
+        ColorEditOptions = ImGuiColorEditFlags__OptionsDefault;
         DragCurrentValue = 0.0f;
         DragLastMouseDelta = ImVec2(0.0f, 0.0f);
         DragSpeedDefaultRatio = 1.0f / 100.0f;
@@ -593,9 +606,10 @@ struct IMGUI_API ImGuiDrawContext
     float                   ColumnsMinX;
     float                   ColumnsMaxX;
     float                   ColumnsStartPosY;
+    float                   ColumnsStartMaxPosX;   // Backup of CursorMaxPos
     float                   ColumnsCellMinY;
     float                   ColumnsCellMaxY;
-    bool                    ColumnsShowBorders;
+    ImGuiColumnsFlags       ColumnsFlags;
     ImGuiID                 ColumnsSetId;
     ImVector<ImGuiColumnData> ColumnsData;
 
@@ -626,8 +640,9 @@ struct IMGUI_API ImGuiDrawContext
         ColumnsCount = 1;
         ColumnsMinX = ColumnsMaxX = 0.0f;
         ColumnsStartPosY = 0.0f;
+        ColumnsStartMaxPosX = 0.0f;
         ColumnsCellMinY = ColumnsCellMaxY = 0.0f;
-        ColumnsShowBorders = true;
+        ColumnsFlags = 0;
         ColumnsSetId = 0;
     }
 };
@@ -665,9 +680,9 @@ struct IMGUI_API ImGuiWindow
     bool                    AutoFitOnlyGrows;
     int                     AutoPosLastDirection;
     int                     HiddenFrames;
-    int                     SetWindowPosAllowFlags;             // bit ImGuiSetCond_*** specify if SetWindowPos() call will succeed with this particular flag.
-    int                     SetWindowSizeAllowFlags;            // bit ImGuiSetCond_*** specify if SetWindowSize() call will succeed with this particular flag.
-    int                     SetWindowCollapsedAllowFlags;       // bit ImGuiSetCond_*** specify if SetWindowCollapsed() call will succeed with this particular flag.
+    ImGuiCond               SetWindowPosAllowFlags;             // store condition flags for next SetWindowPos() call.
+    ImGuiCond               SetWindowSizeAllowFlags;            // store condition flags for next SetWindowSize() call.
+    ImGuiCond               SetWindowCollapsedAllowFlags;       // store condition flags for next SetWindowCollapsed() call.
     bool                    SetWindowPosCenterWanted;
 
     ImGuiDrawContext        DC;                                 // Temporary per-window data, reset at the beginning of the frame
@@ -728,7 +743,7 @@ namespace ImGui
     IMGUI_API void          EndFrame();                 // Ends the ImGui frame. Automatically called by Render()! you most likely don't need to ever call that yourself directly. If you don't need to render you can call EndFrame() but you'll have wasted CPU already. If you don't need to render, don't create any windows instead!
 
     IMGUI_API void          SetActiveID(ImGuiID id, ImGuiWindow* window);
-	IMGUI_API void          ClearActiveID();
+    IMGUI_API void          ClearActiveID();
     IMGUI_API void          SetHoveredID(ImGuiID id);
     IMGUI_API void          KeepAliveID(ImGuiID id);
 
@@ -742,7 +757,13 @@ namespace ImGui
     IMGUI_API ImVec2        CalcItemSize(ImVec2 size, float default_x, float default_y);
     IMGUI_API float         CalcWrapWidthForPos(const ImVec2& pos, float wrap_pos_x);
 
-    IMGUI_API void          OpenPopupEx(const char* str_id, bool reopen_existing);
+    IMGUI_API void          OpenPopupEx(ImGuiID id, bool reopen_existing);
+    IMGUI_API bool          IsPopupOpen(ImGuiID id);
+
+    // New Columns API
+    IMGUI_API void          BeginColumns(const char* id, int count, ImGuiColumnsFlags flags = 0); // setup number of columns. use an identifier to distinguish multiple column sets. close with EndColumns().
+    IMGUI_API void          EndColumns();                                                         // close columns
+    IMGUI_API void          PushColumnClipRect(int column_index = -1);
 
     // NB: All position are in absolute pixels coordinates (never using window coordinates internally)
     // AVOID USING OUTSIDE OF IMGUI.CPP! NOT FOR PUBLIC CONSUMPTION. THOSE FUNCTIONS ARE A MESS. THEIR SIGNATURE AND BEHAVIOR WILL CHANGE, THEY NEED TO BE REFACTORED INTO SOMETHING DECENT.
@@ -787,6 +808,13 @@ namespace ImGui
     IMGUI_API float         RoundScalar(float value, int decimal_precision);
 
 } // namespace ImGui
+
+// ImFontAtlas internals
+IMGUI_API bool              ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas);
+IMGUI_API void              ImFontAtlasBuildRegisterDefaultCustomRects(ImFontAtlas* atlas);
+IMGUI_API void              ImFontAtlasBuildSetupFont(ImFontAtlas* atlas, ImFont* font, ImFontConfig* font_config, float ascent, float descent); 
+IMGUI_API void              ImFontAtlasBuildPackCustomRects(ImFontAtlas* atlas, void* spc);
+IMGUI_API void              ImFontAtlasBuildRenderDefaultTexData(ImFontAtlas* atlas);
 
 #ifdef __clang__
 #pragma clang diagnostic pop

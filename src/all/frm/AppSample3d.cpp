@@ -342,7 +342,7 @@ void AppSample3d::Im3d_Shutdown()
 
 void AppSample3d::Im3d_Update(AppSample3d* _app)
 {
-	CPU_AUTO_MARKER("Im3d_Update");
+	PROFILER_MARKER_CPU("#Im3d_Update");
 
 	Im3d::AppData& ad = Im3d::GetAppData();
 
@@ -372,7 +372,7 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 
 void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 {
-	AUTO_MARKER("Im3d_Draw");
+	PROFILER_MARKER("#Im3d_Draw");
 
 	Im3d::AppData& ad = Im3d::GetAppData();
 

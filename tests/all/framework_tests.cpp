@@ -354,7 +354,7 @@ public:
 					ImGui::SliderFloat("Anim Speed", &m_meshTest.m_animSpeed, 0.0f, 2.0f);
 					m_meshTest.m_animTime = fract(m_meshTest.m_animTime + (float)m_deltaTime * m_meshTest.m_animSpeed);
 					Skeleton framePose = m_meshTest.m_anim->getBaseFrame();
-					{	CPU_AUTO_MARKER("Skinning");
+					{	PROFILER_MARKER_CPU("Skinning");
 						m_meshTest.m_anim->sample(m_meshTest.m_animTime, framePose, m_meshTest.m_animHints.data());
 						framePose.resolve();
 						mat4* bf = (mat4*)m_meshTest.m_bfSkinning->map(GL_WRITE_ONLY);
