@@ -81,14 +81,14 @@ void LuminanceMeter::reset()
 
 void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, const Texture* _depth)
 {
-	AUTO_MARKER("Luminance Meter");
+	PROFILER_MARKER("Luminance Meter");
 
 	int prev = m_current;
 	m_current = (m_current + 1) % kHistorySize;
 	APT_ASSERT(prev != m_current);
 	Texture* dst = m_txLum[m_current];
 
-	{	AUTO_MARKER("Luminance");
+	{	PROFILER_MARKER("Luminance/Smooth");
 		_ctx_->setShader  (m_shLuminanceMeter);
 		_ctx_->setUniform ("uSrcLevel", -1); // indicate first pass
 		_ctx_->bindBuffer (m_bfData);
@@ -97,7 +97,7 @@ void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, cons
 		_ctx_->dispatch   (dst);
 	}
  
-	{	AUTO_MARKER("Downsample");
+	{	PROFILER_MARKER("Downsample");
 		int wh = dst->getWidth() / 2;
 		dst->setMinFilter(GL_LINEAR_MIPMAP_NEAREST); // no filtering between mips
 		int lvl = 0;
@@ -181,7 +181,7 @@ void ColorCorrection::shutdown()
 
 void ColorCorrection::draw(GlContext* _ctx_, const Texture* _src, const Framebuffer* _dst)
 {
-	AUTO_MARKER("Color Correction");
+	PROFILER_MARKER("Color Correction");
 	_ctx_->setFramebufferAndViewport(_dst);
 	if (m_enabled) {
 		_ctx_->setShader  (m_shColorCorrection);

@@ -43,7 +43,7 @@ public:
 	const Framebuffer*  getDefaultFramebuffer() const                 { return m_fbDefault; }
 	void                setDefaultFramebuffer(const Framebuffer* _fb) { m_fbDefault = _fb; }
 
-	uint                getFrameIndex() const         { return m_frameIndex; }
+	uint64              getFrameIndex() const         { return m_frameIndex; }
 
 protected:		
 	typedef apt::FileSystem::PathStr PathStr;

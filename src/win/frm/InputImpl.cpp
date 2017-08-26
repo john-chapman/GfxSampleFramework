@@ -694,7 +694,7 @@ void Input::Shutdown()
 
 void Input::PollAllDevices() 
 {
-	CPU_AUTO_MARKER("Input::PollAllDevices");
+	PROFILER_MARKER_CPU("#Input::PollAllDevices");
 
 	KeyboardImpl::PollBegin();
 	MouseImpl::PollBegin();

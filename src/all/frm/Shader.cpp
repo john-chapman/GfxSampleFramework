@@ -50,8 +50,8 @@ struct ShaderViewer
 			vec4(0.7f, 0.3f, 0.1f, 1.0f) //GL_FRAGMENT_SHADER
 		};
 		
-		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiSetCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiCond_FirstUseEver);
 		if (!ImGui::Begin("Shader Viewer", _open_)) {
 			ImGui::End();
 			return; // window collapsed, early-out
