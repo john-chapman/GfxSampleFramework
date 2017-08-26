@@ -66,9 +66,6 @@ public:
 		if (!AppBase::init(_args)) {
 			return false;
 		}
-	
-		m_txTest = Texture::Create("textures/lena.png");
-		m_txTest->generateMipmap();
 
 		return true;
 	}
