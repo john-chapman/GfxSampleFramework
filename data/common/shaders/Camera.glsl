@@ -67,5 +67,21 @@ vec3 Camera_GetFrustumRay(in vec2 _ndc)
 		return vec3(_ndc.x * bfCamera.m_up * bfCamera.m_aspectRatio, _ndc.y * bfCamera.m_up, -1.0);
 	}
 }
+// World space frustum ray.
+vec3 Camera_GetFrustumRayW(in vec2 _ndc) 
+{
+	return TransformDirection(bfCamera.m_world, Camera_GetFrustumRay(_ndc));
+}
+
+// View ray is a normalized frustum ray.
+vec3 Camera_GetViewRay(in vec2 _ndc)
+{
+	return normalize(Camera_GetFrustumRay(_ndc));
+}
+// World space view ray.
+vec3 Camera_GetViewRayW(in vec2 _ndc)
+{
+	return normalize(Camera_GetFrustumRayW(_ndc));
+}
 
 #endif // Camera_glsl
