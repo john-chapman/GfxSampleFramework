@@ -155,4 +155,21 @@ float LinearizeDepth_InfiniteReversed(in float _depth, in float _near)
 	#endif
 }
 
+vec3 TransformPosition(in mat4 _m, in vec3 _v)
+{
+	return (_m * vec4(_v, 1.0)).xyz;
+}
+vec2 TransformPosition(in mat3 _m, in vec2 _v)
+{
+	return (_m * vec3(_v, 1.0)).xy;
+}
+vec3 TransformDirection(in mat4 _m, in vec3 _v)
+{
+	return (_m * vec4(_v, 0.0)).xyz;
+}
+vec2 TransformDirection(in mat3 _m, in vec2 _v)
+{
+	return (_m * vec3(_v, 0.0)).xy;
+}
+
 #endif // common_def_glsl
