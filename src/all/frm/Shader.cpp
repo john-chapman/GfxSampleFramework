@@ -599,9 +599,8 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 						return false;
 					}
 				 // line pragma to resume
-					++lineCount;
 					m_source.appendf("\n// -------- %s\n", _path);
-					m_source.appendf("#line %d %d\n", lineCount, depCount);
+					m_source.appendf("#line %d %d\n", lineCount + 1, depCount);
 				
 				} else {
 				 // no quotes = virtual include
