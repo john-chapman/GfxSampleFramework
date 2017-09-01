@@ -87,13 +87,13 @@ public:
 			return false;
 		}
 
-		static float rot = 0.0f;
-		mat4 rm = Rotation(vec3(0.0f, 1.0f, 0.0f), rot);
+		static vec3 euler = vec3(0.0f, 0.0f, 0.0f);
+		mat4 rm = mat4(FromEulerXYZ(euler));
 		if (Im3d::Gizmo("RotationTest", (float*)&rm)) {
-			rot = ToEulerXYZ(mat3(rm)).y;
+			euler = ToEulerXYZ(mat3(rm));
 		}
-		//rm = mat4(FromEulerXYZ(vec3(0.0f, rot, 0.0f)));
-		ImGui::Text("Rotation: %d", degrees(rot));
+		rm = mat4(FromEulerXYZ(euler));
+		ImGui::Text("Euler: %1.0f, %1.0f, %1.0f", degrees(euler.x), degrees(euler.y), degrees(euler.z));
 		Im3d::PushMatrix(rm);
 			Im3d::DrawAlignedBox(vec3(-2.0f), vec3(2.0f));
 		Im3d::PopMatrix();

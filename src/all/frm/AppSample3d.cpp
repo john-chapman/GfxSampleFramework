@@ -367,6 +367,10 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	ad.m_keyDown[Im3d::Key_R/*Action_GizmoRotation*/]    = ctrlDown && keyb->wasPressed(Keyboard::Key_R);
 	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::Key_S);
 
+	ad.m_snapTranslation = ctrlDown ? 0.1f : 0.0f;
+	ad.m_snapRotation    = ctrlDown ? radians(15.0f) : 0.0f;
+	ad.m_snapScale       = ctrlDown ? 0.5f : 0.0f;
+
 	Im3d::NewFrame();
 }
 
