@@ -139,7 +139,7 @@ bool AppSample::update()
 {
 	App::update();
 
-	CPU_AUTO_MARKER("AppSample::update");
+	PROFILER_MARKER_CPU("#AppSample::update");
 
 	if (!m_window->pollEvents()) { // dispatches callbacks to ImGui
 		return false;
@@ -168,12 +168,8 @@ bool AppSample::update()
 		Texture::ReloadAll();
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F9)) {
-		m_glContext->setShader(0);
+		m_glContext->setShader(nullptr);
 		Shader::ReloadAll();
-	}
-
-	if (ImGui::IsKeyPressed(Keyboard::Key_P) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
-		m_showPropertyEditor = !m_showPropertyEditor;
 	}
 	if (ImGui::IsKeyPressed(Keyboard::Key_1) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
 		m_showProfilerViewer = !m_showProfilerViewer;
@@ -300,7 +296,7 @@ void AppSample::draw()
 	m_glContext->setFramebufferAndViewport(m_fbDefault);
 	ImGui::GetIO().UserData = m_glContext;
 	ImGui::Render();
-	{	AUTO_MARKER("#GlContext::present");
+	{	PROFILER_MARKER("#GlContext::present");
 		m_glContext->setFramebufferAndViewport(0); // this is required if you want to use e.g. fraps
 		m_glContext->present();
 	}
@@ -527,6 +523,12 @@ void AppSample::ImGui_InitStyle()
     style.Colors[ImGuiCol_PlotHistogramHovered]     = ImColor(0xff0485fd);
     //style.Colors[ImGuiCol_TextSelectedBg]
     //style.Colors[ImGuiCol_ModalWindowDarkening]
+
+	ImGui::SetColorEditOptions(
+		ImGuiColorEditFlags_NoOptions |
+		ImGuiColorEditFlags_AlphaPreview |
+		ImGuiColorEditFlags_AlphaBar
+		);
 }
 
 void AppSample::ImGui_Shutdown()
@@ -585,7 +587,7 @@ void AppSample::ImGui_Update(AppSample* _app)
 
 void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 {
-	AUTO_MARKER("ImGui::Render");
+	PROFILER_MARKER_CPU("#ImGui::Render");
 
 	ImGuiIO& io = ImGui::GetIO();
 	GlContext* ctx = (GlContext*)io.UserData;
