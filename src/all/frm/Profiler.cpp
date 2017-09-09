@@ -1,6 +1,7 @@
 #include <frm/Profiler.h>
 
 #include <frm/gl.h>
+#include <frm/AppSample.h>
 #include <frm/Input.h>
 
 #include <apt/log.h>
@@ -9,8 +10,7 @@
 #include <apt/Time.h>
 
 #include <imgui/imgui.h>
-
-#include <cstring>
+#include <EASTL/vector.h>
 
 using namespace frm;
 using namespace apt;
@@ -22,10 +22,19 @@ using namespace apt;
 ******************************************************************************/
 struct ProfilerViewer
 {
+	enum View
+	{
+		View_Markers,
+		View_Values,
+		View_Count
+	};
+	int m_view;
+
 	struct Colors
 	{
 		ImU32 kBackground;
 		ImU32 kFrame;
+		ImU32 kFrameSystem; // markers starting with '#'
 		float kFrameHoverAlpha;
 		ImU32 kMarkerText;
 		ImU32 kMarkerTextGray;
@@ -36,17 +45,32 @@ struct ProfilerViewer
 	static Colors* kColors;
 
 	bool            m_isMarkerHovered;
+	uint64          m_hoverFrameId;
 	String<64>      m_hoverName;
-	ImGuiTextFilter m_markerFilter;
+	ImGuiTextFilter m_filter;
+	bool            m_showHidden;
 
 	uint64 m_timeBeg; // all markers draw relative to this time
 	uint64 m_timeEnd; // start of the last marker
 	float  m_regionBeg, m_regionSize; // viewing region start/size in ms relative to m_timeBeg
+	bool   m_regionChanged; // prevent update from scrollbar e.g. when zooming
 	vec2   m_windowBeg, m_windowEnd, m_windowSize;
+		
+	struct Tracker
+	{
+		uint64      m_durations[100];
+		uint64      m_avgDuration;
+		uint64      m_minDuration;
+		uint64      m_maxDuration;
+		int         m_markerCount;
+		const char* m_name;
+	};
 	
 	ProfilerViewer()
-		: m_regionBeg(0.0f)
+		: m_view(View_Markers)
+		, m_regionBeg(0.0f)
 		, m_regionSize(100.0f)
+		, m_showHidden(true)
 	{
 		kColorsGpu.kBackground      = kColorsCpu.kBackground = ImColor(0xff8e8e8e);
 		kColorsGpu.kFrameHoverAlpha = kColorsCpu.kFrameHoverAlpha = 0.1f;
@@ -55,7 +79,9 @@ struct ProfilerViewer
 		kColorsGpu.kMarkerGray      = kColorsCpu.kMarkerGray = ImColor(0xff383838);
 
 		kColorsGpu.kFrame           = ImColor(0xffb55f29);
+		kColorsGpu.kFrameSystem     = ImColor(0xff91694f);
 		kColorsCpu.kFrame           = ImColor(0xff0087db);
+		kColorsCpu.kFrameSystem     = ImColor(0xff428dbc);
 	}
 
 	const char* timeToStr(uint64 _time)
@@ -76,12 +102,25 @@ struct ProfilerViewer
 		}
 		return (const char*)s_buf;
 	}
+	const char* idToStr(uint64 _id)
+	{
+		static String<sizeof("#9999999")> s_buf;
+		s_buf.setf("#%07llu", _id);
+		return (const char*)s_buf;
+	}
 
 	float timeToWindowX(uint64 _time)
 	{
 		float ms = (float)Timestamp(_time - m_timeBeg).asMilliseconds();
 		ms = (ms - m_regionBeg) / m_regionSize;
 		return m_windowBeg.x + ms * m_windowSize.x;
+	}
+
+	void setRegion(uint64 _beg, uint64 _end)
+	{
+		m_regionBeg = (float)Timestamp(_beg - m_timeBeg).asMilliseconds();
+		m_regionSize = (float)Timestamp(_end - _beg).asMilliseconds();
+		m_regionChanged = true;
 	}
 
 	bool isMouseInside(const vec2& _rectMin, const vec2& _rectMax)
@@ -94,20 +133,25 @@ struct ProfilerViewer
 
 	bool cullFrame(const Profiler::Frame& _frame, const Profiler::Frame& _frameNext)
 	{
-		float frameBeg = timeToWindowX(_frame.m_start);
-		float frameEnd = timeToWindowX(_frameNext.m_start);
+		float frameBeg = timeToWindowX(_frame.m_startTime);
+		float frameEnd = timeToWindowX(_frameNext.m_startTime);
 		return frameBeg > m_windowEnd.x || frameEnd < m_windowBeg.x;
 	}
 	
 	void drawFrameBounds(const Profiler::Frame& _frame, const Profiler::Frame& _frameNext)
 	{
-		float frameBeg = timeToWindowX(_frame.m_start);
-		float frameEnd = timeToWindowX(_frameNext.m_start);
+		float frameBeg = timeToWindowX(_frame.m_startTime);
+		float frameEnd = timeToWindowX(_frameNext.m_startTime);
 		frameBeg = floorf(APT_MAX(frameBeg, m_windowBeg.x));
 		ImDrawList& drawList = *ImGui::GetWindowDrawList();
-		if (isMouseInside(vec2(frameBeg, m_windowBeg.y), vec2(frameEnd, m_windowEnd.y))) {
+		if (ImGui::IsWindowFocused() && (m_hoverFrameId == _frame.m_id || isMouseInside(vec2(frameBeg, m_windowBeg.y), vec2(frameEnd, m_windowEnd.y)))) {
 			drawList.AddRectFilled(vec2(frameBeg, m_windowBeg.y), vec2(frameEnd, m_windowEnd.y), IM_COLOR_ALPHA(kColors->kFrame, kColors->kFrameHoverAlpha));
-			drawList.AddText(vec2(frameBeg + 4.0f, m_windowBeg.y + 2.0f), kColors->kFrame, timeToStr(_frameNext.m_start - _frame.m_start));
+			drawList.AddText(vec2(frameBeg + 4.0f, m_windowBeg.y + 2.0f), kColors->kFrame, timeToStr(_frameNext.m_startTime - _frame.m_startTime));
+			m_hoverFrameId = _frame.m_id;
+		}
+		float fontSize = ImGui::GetFontSize();
+		if ((frameEnd - frameBeg) > fontSize * 7.0f) {
+			drawList.AddText(vec2(frameBeg + 4.0f, m_windowEnd.y - fontSize - 2.0f), kColors->kMarkerTextGray, idToStr(_frame.m_id));
 		}
 		drawList.AddLine(vec2(frameBeg, m_windowBeg.y), vec2(frameBeg, m_windowEnd.y), kColors->kFrame);
 	}
@@ -116,8 +160,8 @@ struct ProfilerViewer
 	bool drawFrameMarker(const Profiler::Marker& _marker, float _frameEndX)
 	{
 		float markerHeight = ImGui::GetItemsLineHeightWithSpacing();
-		vec2 markerBeg = vec2(timeToWindowX(_marker.m_start), m_windowBeg.y + markerHeight * (float)_marker.m_depth);
-		vec2 markerEnd = vec2(timeToWindowX(_marker.m_end) - 1.0f, markerBeg.y + markerHeight);
+		vec2 markerBeg = vec2(timeToWindowX(_marker.m_startTime), m_windowBeg.y + markerHeight * (float)_marker.m_markerDepth);
+		vec2 markerEnd = vec2(timeToWindowX(_marker.m_endTime) - 1.0f, markerBeg.y + markerHeight);
 		if (markerBeg.x > m_windowEnd.x || markerEnd.x < m_windowBeg.x) {
 			return false;
 		}
@@ -140,44 +184,84 @@ struct ProfilerViewer
 		
 	 // if the marker is hovered and no filter is set, highlight the marker
 		bool hoverMatch = true;
-		if (!m_markerFilter.IsActive() && !m_hoverName.isEmpty()) {
+		if (!m_filter.IsActive() && !m_hoverName.isEmpty()) {
 			hoverMatch = m_hoverName == _marker.m_name;
 		}
-		if (hoverMatch && m_markerFilter.PassFilter(_marker.m_name)) {
-			buttonColor =  kColors->kFrame;
+		if (hoverMatch && m_filter.PassFilter(_marker.m_name)) {
 			textColor = kColors->kMarkerText;
+			buttonColor = kColors->kFrame;
+			if (_marker.m_name[0] == '#') {
+				buttonColor = kColors->kFrameSystem;
+			}
 		}
-		ImGui::PushStyleColor(ImGuiCol_Button, ImColor(buttonColor));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor(buttonColor));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImColor(buttonColor));
-		ImGui::PushStyleColor(ImGuiCol_Text, ImColor(textColor)); 
+		ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonColor);
+		ImGui::PushStyleColor(ImGuiCol_Text, textColor); 
 
 		ImGui::Button(_marker.m_name, ImVec2(floorf(markerWidth), floorf(markerHeight) - 1.0f));
 		
 		ImGui::PopStyleColor(4);
 
-		if (isMouseInside(markerBeg, markerEnd)) {
+		ImGui::PushID(&_marker);
+		if (ImGui::BeginPopup("marker context")) {
+			if (_marker.m_isCpuMarker) {
+				if (Profiler::IsCpuMarkerTracked(_marker.m_name)) {
+					if (ImGui::MenuItem("Untrack")) {
+						Profiler::UntrackCpuMarker(_marker.m_name);
+					}
+				} else if (ImGui::MenuItem("Track")) {
+					Profiler::TrackCpuMarker(_marker.m_name);
+				}
+			} else {
+				if (Profiler::IsGpuMarkerTracked(_marker.m_name)) {
+					if (ImGui::MenuItem("Untrack")) {
+						Profiler::UntrackGpuMarker(_marker.m_name);
+					}
+				} else if (ImGui::MenuItem("Track")) {
+					Profiler::TrackGpuMarker(_marker.m_name);
+				}
+			}
+			ImGui::EndPopup();
+			ImGui::PopID();
+			return false; // prevent tooltip
+		}
+		ImGui::PopID();
+
+		if (ImGui::IsWindowFocused() && isMouseInside(markerBeg, markerEnd)) {
 			m_hoverName.set(_marker.m_name);
 			m_isMarkerHovered = true;
+
+			ImGuiIO& io = ImGui::GetIO();
+
+		 // double-click to zoom on a marker
+			if (io.MouseDoubleClicked[0]) {
+				setRegion(_marker.m_startTime, _marker.m_endTime);
+			}
+
+		 // right-click = menu
+			if (Profiler::s_pause && io.MouseClicked[1]) {
+				ImGui::PushID(&_marker);
+					ImGui::OpenPopup("marker context");
+				ImGui::PopID();
+			}
+			
 			return true;
 		}
 		return false;
 	}
 
-	void draw(bool* _open_)
+	void drawMarkers()
 	{
 		String<sizeof("999.999ms\0")> str;
 
 		m_isMarkerHovered = false;
 
-		m_timeBeg = APT_MIN(Profiler::GetCpuFrame(0).m_start, Profiler::GetGpuFrame(0).m_start);
-		m_timeEnd = APT_MAX(Profiler::GetCpuFrame(Profiler::GetCpuFrameCount() - 1).m_start, Profiler::GetGpuFrame(Profiler::GetGpuFrameCount() - 1).m_start);
+		m_timeBeg = APT_MIN(Profiler::GetCpuFrame(0).m_startTime, Profiler::GetGpuFrame(0).m_startTime);
+		m_timeEnd = APT_MAX(Profiler::GetCpuFrame(Profiler::GetCpuFrameCount() - 1).m_startTime, Profiler::GetGpuFrame(Profiler::GetGpuFrameCount() - 1).m_startTime);
 		float timeRange = (float)Timestamp(m_timeEnd - m_timeBeg).asMilliseconds();
 
 		ImGuiIO& io = ImGui::GetIO();
-		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiSetCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y / 4), ImGuiSetCond_FirstUseEver);
-		ImGui::Begin("Profiler", _open_, ImGuiWindowFlags_MenuBar);
 
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("Options")) {
@@ -186,22 +270,9 @@ struct ProfilerViewer
 				}
 				ImGui::EndMenu();
 			}
-			if (ImGui::SmallButton(Profiler::s_pause ? "Resume" : "Pause")) {
-				Profiler::s_pause = !Profiler::s_pause;
-			}
-			ImGui::SameLine();
-			if (ImGui::SmallButton("Fit")) {
-				float spacing = timeRange * 0.01f;
-				m_regionSize = timeRange + spacing * 2.0f;
-				m_regionBeg = - spacing;
-			}
-			ImGui::SameLine();
-			m_markerFilter.Draw("Filter", 160.0f);
-
 			ImGui::EndMenuBar();
 		}
 		
-		bool regionBegChanged = false; // don't set from scrollbar when dragging the region view
 		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered()) {
 			float wx = ImGui::GetWindowContentRegionMax().x;
 		 // zoom
@@ -210,24 +281,22 @@ struct ProfilerViewer
 			m_regionSize = APT_MAX(m_regionSize - zoom, 0.1f);
 			float after = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize;
 			m_regionBeg += (before - after);
-			regionBegChanged = fabs(before - after) > FLT_EPSILON;
+			m_regionChanged = fabs(before - after) > FLT_EPSILON;
 
 		 // pan
 			if (io.MouseDown[2]) {
-				regionBegChanged = true;
+				m_regionChanged = true;
 				m_regionBeg -= io.MouseDelta.x / wx * m_regionSize;
 			}
-
-		 // shortcuts
-			if (Input::GetKeyboard()->wasPressed(Keyboard::Key_P)) {
-				Profiler::s_pause = !Profiler::s_pause;
-			}
+		} else {
+			m_hoverFrameId = 0;
 		}
 
 		ImDrawList& drawList = *ImGui::GetWindowDrawList();
 		// GPU ---
 		kColors          = &kColorsGpu;
 		m_windowBeg      = vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowContentRegionMin());
+		m_windowBeg.y   += ImGui::GetItemsLineHeightWithSpacing();
 		float infoX      = m_windowBeg.x; // where to draw the CPU/GPU global info
 		m_windowBeg.x   += ImGui::GetFontSize() * 4.0f;
 		m_windowSize     = vec2(ImGui::GetContentRegionMax()) - (m_windowBeg - vec2(ImGui::GetWindowPos()));
@@ -235,6 +304,13 @@ struct ProfilerViewer
 		m_windowSize.y   = m_windowSize.y * 0.5f;
 		m_windowEnd      = m_windowBeg + m_windowSize;
 		
+		ImGui::SetCursorPosX(m_windowBeg.x);
+		if (ImGui::SmallButton("Fit")) {
+			float spacing = timeRange * 0.01f;
+			m_regionSize = timeRange + spacing * 2.0f;
+			m_regionBeg = - spacing;
+		}
+
 		str.setf("GPU\n%s", timeToStr(Profiler::GetGpuAvgFrameDuration()));
 		drawList.AddText(vec2(infoX, m_windowBeg.y), kColors->kBackground, (const char*)str);
 		
@@ -251,18 +327,21 @@ struct ProfilerViewer
 		 // markers
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 			m_windowBeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
-			float fend = timeToWindowX(frameNext.m_start);
-			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
+			float fend = timeToWindowX(frameNext.m_startTime);
+			for (uint j = frame.m_firstMarker, m = frame.m_firstMarker + frame.m_markerCount; j < m; ++j) {
 				const Profiler::GpuMarker& marker = Profiler::GetGpuMarker(j);
+				if (!m_showHidden && marker.m_name[0] == '#') {
+					continue;
+				}
 				if (drawFrameMarker(marker, fend)) {
-					vec2 lbeg = vec2(timeToWindowX(marker.m_start), m_windowBeg.y + ImGui::GetItemsLineHeightWithSpacing() * (float)marker.m_depth);
+					vec2 lbeg = vec2(timeToWindowX(marker.m_startTime), m_windowBeg.y + ImGui::GetItemsLineHeightWithSpacing() * (float)marker.m_markerDepth);
 					lbeg.y += ImGui::GetItemsLineHeightWithSpacing() * 0.5f;
 					vec2 lend = vec2(timeToWindowX(marker.m_cpuStart), m_windowBeg.y + m_windowSize.y);
 					drawList.AddLine(lbeg, lend, kColors->kFrame, 2.0f);
 					ImGui::BeginTooltip();
 						ImGui::TextColored(ImColor(kColors->kFrame), marker.m_name);
-						ImGui::Text("Duration: %s", timeToStr(marker.m_end - marker.m_start));
-						ImGui::Text("Latency:  %s", timeToStr(marker.m_start - marker.m_cpuStart));
+						ImGui::Text("Duration: %s", timeToStr(marker.m_endTime - marker.m_startTime));
+						ImGui::Text("Latency:  %s", timeToStr(marker.m_startTime - marker.m_cpuStart));
 					ImGui::EndTooltip();
 				}
 			}
@@ -293,13 +372,16 @@ struct ProfilerViewer
 		 // markers
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 			m_windowBeg.y += ImGui::GetFontSize() + 2.0f; // space for the frame time
-			float fend = timeToWindowX(frameNext.m_start);
-			for (uint j = frame.m_first, m = frame.m_first + frame.m_count; j < m; ++j) {
+			float fend = timeToWindowX(frameNext.m_startTime);
+			for (uint j = frame.m_firstMarker, m = frame.m_firstMarker + frame.m_markerCount; j < m; ++j) {
 				const Profiler::CpuMarker& marker = Profiler::GetCpuMarker(j);
+				if (!m_showHidden && marker.m_name[0] == '#') {
+					continue;
+				}
 				if (drawFrameMarker(marker, fend)) {
 					ImGui::BeginTooltip();
 						ImGui::TextColored(ImColor(kColors->kFrame), marker.m_name);
-						ImGui::Text("Duration: %s", timeToStr(marker.m_end - marker.m_start));
+						ImGui::Text("Duration: %s", timeToStr(marker.m_endTime - marker.m_startTime));
 					ImGui::EndTooltip();
 				}
 			}
@@ -315,11 +397,12 @@ struct ProfilerViewer
 		ImGui::SetNextWindowContentSize(ImVec2(regionSizePx, 0.0f));
 		ImGui::SetCursorPosX(m_windowBeg.x - ImGui::GetWindowPos().x);
 		ImGui::SetCursorPosY(m_windowEnd.y - ImGui::GetWindowPos().y);
-		ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, ImColor(IM_COL32_BLACK_TRANS));
+		ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, IM_COL32_BLACK_TRANS);
 		bool refocusMainWindow = ImGui::IsWindowFocused();
 		ImGui::BeginChild("hscroll", ImVec2(m_windowSize.x, ImGui::GetStyle().ScrollbarSize), true, ImGuiWindowFlags_HorizontalScrollbar);
-			if (regionBegChanged) {
+			if (m_regionChanged) {
 				ImGui::SetScrollX(m_regionBeg / timeRange * regionSizePx);
+				m_regionChanged = false;
 			} else {
 				m_regionBeg = ImGui::GetScrollX() / regionSizePx * timeRange;
 			}
@@ -330,10 +413,108 @@ struct ProfilerViewer
 			ImGui::SetWindowFocus();
 		}
 
-		ImGui::End();
-
 		if (!m_isMarkerHovered) {
 			m_hoverName.clear();
+		}
+	}
+
+	void drawValues()
+	{
+		vec2 graphSize = vec2(150.0f, 64.0f);
+		vec2 windowSize = ImGui::GetWindowSize();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,  ImVec2(0.0f, 0.0f));
+		ImGui::PushStyleColor(ImGuiCol_Border,  ImVec4(1.0f, 0.0f, 1.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.3f));
+
+	 // CPU values
+		ImGui::PushStyleColor(ImGuiCol_PlotLines, kColorsCpu.kFrame);
+		ImGui::PushStyleColor(ImGuiCol_Text, kColorsCpu.kMarkerText);
+		for (uint i = 0, n = Profiler::GetCpuValueCount(); i < n; ++i) {
+			const Profiler::Value& val = Profiler::GetCpuValue(i);
+			if (!m_showHidden && val.m_name[0] == '#') {
+				continue;
+			}
+			if (!m_filter.PassFilter(val.m_name)) {
+				continue;
+			}
+			int off = (int)(&val.m_history->front() - val.m_history->data());
+			ImGui::PlotLines("", val.m_history->data(), (int)val.m_history->size(), off, val.m_name, FLT_MAX, FLT_MAX, graphSize);
+			
+			ImGui::SameLine();
+		}
+		ImGui::NewLine();
+		ImGui::PopStyleColor(2);
+
+	 // GPU values
+		ImGui::PushStyleColor(ImGuiCol_PlotLines, kColorsGpu.kFrame);
+		ImGui::PushStyleColor(ImGuiCol_Text, kColorsGpu.kMarkerText);
+		for (uint i = 0, n = Profiler::GetGpuValueCount(); i < n; ++i) {
+			const Profiler::Value& val = Profiler::GetGpuValue(i);
+			if (!m_showHidden && val.m_name[0] == '#') {
+				continue;
+			}
+			if (!m_filter.PassFilter(val.m_name)) {
+				continue;
+			}
+			int off = (int)(&val.m_history->front() - val.m_history->data());
+			ImGui::PlotLines("", val.m_history->data(), (int)val.m_history->size(), off, val.m_name, FLT_MAX, FLT_MAX, graphSize);
+			
+			ImGui::SameLine();
+		}
+		ImGui::NewLine();
+		ImGui::PopStyleColor(2);
+
+		ImGui::PopStyleColor(2);
+		ImGui::PopStyleVar(2);
+	}
+
+	void draw(bool *_isOpen_)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y / 4), ImGuiCond_FirstUseEver);
+		ImGui::Begin("Profiler", _isOpen_, ImGuiWindowFlags_MenuBar);
+			if (ImGui::BeginMenuBar()) {
+				if (ImGui::BeginMenu("View")) {
+					if (ImGui::MenuItem("Markers")) {
+						m_view = View_Markers;
+					}
+					if (ImGui::MenuItem("Values")) {
+						m_view = View_Values;
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
+			}
+		
+			switch (m_view) {
+				case View_Values:
+					drawValues();
+					break;
+				case View_Markers:
+				default:
+					drawMarkers();
+					break;
+			};
+
+			if (ImGui::BeginMenuBar()) {			
+				m_filter.Draw("Filter", 160.0f);
+				ImGui::SameLine();
+				ImGui::Checkbox("Show Hidden", &m_showHidden);
+				ImGui::SameLine();
+				if (ImGui::SmallButton(Profiler::s_pause ? "Resume" : "Pause")) {
+					Profiler::s_pause = !Profiler::s_pause;
+				}
+				ImGui::EndMenuBar();
+			}
+		ImGui::End();
+
+	 // shortcuts
+		Keyboard* keyb = Input::GetKeyboard();
+		if (keyb->isDown(Keyboard::Key_LCtrl) && keyb->isDown(Keyboard::Key_LShift) && keyb->wasPressed(Keyboard::Key_P)) {
+			Profiler::s_pause = !Profiler::s_pause;
 		}
 	}
 };
@@ -392,24 +573,25 @@ struct ProfilerData
 		
 	 // get avg frame duration
 		m_avgFrameDuration = 0;
-		uint64 prevStart = m_frames[0].m_start; 
+		uint64 prevStart = m_frames[0].m_startTime; 
 		uint i = 1;
 		for ( ; i < m_frames.size(); ++i) {
 			tFrame& frame = m_frames[i];
-			if (frame.m_start == 0) { // means the frame was invalid (i.e. gpu query was unavailable)
+			if (frame.m_startTime == 0) { // means the frame was invalid (i.e. gpu query was unavailable)
 				break;
 			}
-			uint64 thisStart = m_frames[i].m_start;
+			uint64 thisStart = m_frames[i].m_startTime;
 			m_avgFrameDuration += thisStart - prevStart;
 			prevStart = thisStart;
 		}
 		m_avgFrameDuration /= i;
 
 	 // advance to next frame
-		uint first = m_frames.back().m_first + m_frames.back().m_count;
-		m_frames.push_back(tFrame()); 
-		m_frames.back().m_first = first;
-		m_frames.back().m_count = 0;
+		uint first = m_frames.back().m_firstMarker + m_frames.back().m_markerCount;
+		m_frames.push_back(tFrame());
+		m_frames.back().m_id = AppSample::GetCurrent()->getFrameIndex();
+		m_frames.back().m_firstMarker = first;
+		m_frames.back().m_markerCount = 0;
 		return m_frames.back(); 
 	}
 
@@ -419,8 +601,9 @@ struct ProfilerData
 		m_markers.push_back(tMarker()); 
 		m_markerStack[m_markerStackTop++] = getCurrentMarkerIndex();
 		m_markers.back().m_name = _name;
-		m_markers.back().m_depth = (uint8)m_markerStackTop - 1;
-		m_frames.back().m_count++;
+		m_markers.back().m_markerDepth = (uint8)m_markerStackTop - 1;
+		m_markers.back().m_isCpuMarker = false;
+		m_frames.back().m_markerCount++;
 		return m_markers.back(); 
 	}
 
@@ -435,14 +618,18 @@ struct ProfilerData
 static ProfilerData<Profiler::CpuFrame, Profiler::CpuMarker> s_cpu(Profiler::kMaxFrameCount, Profiler::kMaxTotalCpuMarkersPerFrame);
 static ProfilerData<Profiler::GpuFrame, Profiler::GpuMarker> s_gpu(Profiler::kMaxFrameCount, Profiler::kMaxTotalGpuMarkersPerFrame);
 
+static eastl::vector<const char*> s_cpuTrackedMarkers;
+static eastl::vector<const char*> s_gpuTrackedMarkers;
 
+static eastl::vector<Profiler::Value> s_cpuValues;
+static eastl::vector<Profiler::Value> s_gpuValues;
 
-static uint64 g_gpuTickOffset; // convert gpu time -> cpu time; note that this value can be arbitrarily large as the clocks aren't necessarily relative to the same moment
-static uint   g_gpuFrameQueryRetrieved;
-static bool   g_gpuInit = true;
-static GLuint g_gpuFrameStartQueries[Profiler::kMaxFrameCount] = {};
-static GLuint g_gpuMarkerStartQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame] = {};
-static GLuint g_gpuMarkerEndQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame]   = {};
+static uint64 s_gpuTickOffset; // convert gpu time -> cpu time; note that this value can be arbitrarily large as the clocks aren't necessarily relative to the same moment
+static uint   s_gpuFrameQueryRetrieved;
+static bool   s_gpuInit = true;
+static GLuint s_gpuFrameStartQueries[Profiler::kMaxFrameCount] = {};
+static GLuint s_gpuMarkerStartQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame] = {};
+static GLuint s_gpuMarkerEndQueries[Profiler::kMaxFrameCount * Profiler::kMaxTotalGpuMarkersPerFrame]   = {};
 
 
 static uint64 GpuToSystemTicks(GLuint64 _gpuTime)
@@ -452,7 +639,7 @@ static uint64 GpuToSystemTicks(GLuint64 _gpuTime)
 static uint64 GpuToTimestamp(GLuint64 _gpuTime)
 {
 	uint64 ret = GpuToSystemTicks(_gpuTime);
-	return ret + g_gpuTickOffset;
+	return ret + s_gpuTickOffset;
 }
 
 
@@ -462,11 +649,11 @@ APT_DEFINE_STATIC_INIT(Profiler);
 
 void Profiler::NextFrame()
 {
-	if_unlikely (g_gpuInit) {
-		glAssert(glGenQueries(kMaxFrameCount, g_gpuFrameStartQueries));
-		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, g_gpuMarkerStartQueries));
-		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, g_gpuMarkerEndQueries));
-		g_gpuInit = false;
+	if_unlikely (s_gpuInit) {
+		glAssert(glGenQueries(kMaxFrameCount, s_gpuFrameStartQueries));
+		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, s_gpuMarkerStartQueries));
+		glAssert(glGenQueries(kMaxFrameCount * kMaxTotalGpuMarkersPerFrame, s_gpuMarkerEndQueries));
+		s_gpuInit = false;
 
 		ResetGpuOffset();
 	}
@@ -475,44 +662,86 @@ void Profiler::NextFrame()
 		return;
 	}
 
+ // track markers
+	for (auto& trackedName : s_cpuTrackedMarkers) {
+		uint i = s_cpu.m_frames.back().m_firstMarker;
+		uint n = i + s_cpu.m_frames.back().m_markerCount;
+		for (; i < n; ++i) {
+			uint j = i % s_cpu.m_markers.capacity();
+			CpuMarker& marker = s_cpu.m_markers.data()[j];
+			if (strcmp(trackedName, marker.m_name) == 0) {
+				CpuValue(trackedName, (float)Timestamp(marker.m_endTime - marker.m_startTime).asMilliseconds());
+				break;
+			}
+		}
+	}
+	
+ // reset value counters
+	for (auto& cpuValue : s_cpuValues) {
+		cpuValue.m_avg = cpuValue.m_accum / (float)cpuValue.m_count;
+		cpuValue.m_history->push_back(cpuValue.m_avg);
+		cpuValue.m_count = 0;
+		cpuValue.m_accum = 0.0f;
+	}
+	for (auto& gpuValue : s_gpuValues) {
+		gpuValue.m_avg = gpuValue.m_accum / (float)gpuValue.m_count;
+		gpuValue.m_history->push_back(gpuValue.m_avg);
+		gpuValue.m_count = 0;
+		gpuValue.m_accum = 0.0f;
+	}
+
  // CPU: advance frame, get start time/first marker index
-	s_cpu.nextFrame().m_start = (uint64)Time::GetTimestamp().getRaw();
+	s_cpu.nextFrame().m_startTime = (uint64)Time::GetTimestamp().getRaw();
 
  // GPU: retrieve all queries **up to** the last available frame (i.e. when we implicitly know they are available)
 	GLint frameAvailable = GL_FALSE;
-	uint gpuFrameQueryAvail	= g_gpuFrameQueryRetrieved;
-	while (g_gpuFrameQueryRetrieved != s_gpu.getCurrentFrameIndex()) {
-		glAssert(glGetQueryObjectiv(g_gpuFrameStartQueries[g_gpuFrameQueryRetrieved], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
+	uint gpuFrameQueryAvail	= s_gpuFrameQueryRetrieved;
+	while (s_gpuFrameQueryRetrieved != s_gpu.getCurrentFrameIndex()) {
+		glAssert(glGetQueryObjectiv(s_gpuFrameStartQueries[s_gpuFrameQueryRetrieved], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
 		if (frameAvailable == GL_FALSE) {
 			break;
 		}
-		g_gpuFrameQueryRetrieved = (g_gpuFrameQueryRetrieved + 1) % kMaxFrameCount;
+		s_gpuFrameQueryRetrieved = (s_gpuFrameQueryRetrieved + 1) % kMaxFrameCount;
 	}
 
-	for (; gpuFrameQueryAvail != g_gpuFrameQueryRetrieved; gpuFrameQueryAvail = (gpuFrameQueryAvail + 1) % kMaxFrameCount) {
+	for (; gpuFrameQueryAvail != s_gpuFrameQueryRetrieved; gpuFrameQueryAvail = (gpuFrameQueryAvail + 1) % kMaxFrameCount) {
 		GpuFrame& frame = s_gpu.m_frames.data()[gpuFrameQueryAvail];
 		GLuint64 gpuTime;
-		glAssert(glGetQueryObjectui64v(g_gpuFrameStartQueries[gpuFrameQueryAvail], GL_QUERY_RESULT, &gpuTime));
-		frame.m_start = GpuToTimestamp(gpuTime);
+		glAssert(glGetQueryObjectui64v(s_gpuFrameStartQueries[gpuFrameQueryAvail], GL_QUERY_RESULT, &gpuTime));
+		frame.m_startTime = GpuToTimestamp(gpuTime);
 
-		for (uint i = frame.m_first, n = frame.m_first + frame.m_count; i < n; ++i) {
+		for (uint i = frame.m_firstMarker, n = frame.m_firstMarker + frame.m_markerCount; i < n; ++i) {
 			uint j = i % s_gpu.m_markers.capacity();
 			GpuMarker& marker = s_gpu.m_markers.data()[j];
 
-	//glAssert(glGetQueryObjectiv(g_gpuMarkerStartQueries[j], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
+	//glAssert(glGetQueryObjectiv(s_gpuMarkerStartQueries[j], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
 	//APT_ASSERT(frameAvailable == GL_TRUE);
-			glAssert(glGetQueryObjectui64v(g_gpuMarkerStartQueries[j], GL_QUERY_RESULT, &gpuTime));
-			marker.m_start = GpuToTimestamp(gpuTime);
+			glAssert(glGetQueryObjectui64v(s_gpuMarkerStartQueries[j], GL_QUERY_RESULT, &gpuTime));
+			marker.m_startTime = GpuToTimestamp(gpuTime);
 			
-	//glAssert(glGetQueryObjectiv(g_gpuMarkerEndQueries[j], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
+	//glAssert(glGetQueryObjectiv(s_gpuMarkerEndQueries[j], GL_QUERY_RESULT_AVAILABLE, &frameAvailable));
 	//APT_ASSERT(frameAvailable == GL_TRUE);
-			glAssert(glGetQueryObjectui64v(g_gpuMarkerEndQueries[j], GL_QUERY_RESULT, &gpuTime));
-			marker.m_end = GpuToTimestamp(gpuTime);
+			glAssert(glGetQueryObjectui64v(s_gpuMarkerEndQueries[j], GL_QUERY_RESULT, &gpuTime));
+			marker.m_endTime = GpuToTimestamp(gpuTime);
+		}
+
+	 // track markers
+		for (auto& trackedName : s_gpuTrackedMarkers) {
+			uint i = frame.m_firstMarker;
+			uint n = i + frame.m_markerCount;
+			for (; i < n; ++i) {
+				uint j = i % s_gpu.m_markers.capacity();
+				GpuMarker& marker = s_gpu.m_markers.data()[j];
+				if (strcmp(trackedName, marker.m_name) == 0) {
+					GpuValue(trackedName, (float)Timestamp(marker.m_endTime - marker.m_startTime).asMilliseconds());
+					break;
+				}
+			}
 		}
 	}
 
-	s_gpu.nextFrame().m_start = 0;
-	glAssert(glQueryCounter(g_gpuFrameStartQueries[s_gpu.getCurrentFrameIndex()], GL_TIMESTAMP));
+	s_gpu.nextFrame().m_startTime = 0;
+	glAssert(glQueryCounter(s_gpuFrameStartQueries[s_gpu.getCurrentFrameIndex()], GL_TIMESTAMP));
 }
 
 void Profiler::PushCpuMarker(const char* _name)
@@ -520,7 +749,9 @@ void Profiler::PushCpuMarker(const char* _name)
 	if (s_pause) {
 		return;
 	}
-	s_cpu.pushMarker(_name).m_start = (uint64)Time::GetTimestamp().getRaw();
+	CpuMarker& marker = s_cpu.pushMarker(_name);
+	marker.m_startTime = (uint64)Time::GetTimestamp().getRaw();
+	marker.m_isCpuMarker = true;
 }
 
 void Profiler::PopCpuMarker(const char* _name)
@@ -528,7 +759,7 @@ void Profiler::PopCpuMarker(const char* _name)
 	if (s_pause) {
 		return;
 	}
-	s_cpu.popMarker(_name).m_end = (uint64)Time::GetTimestamp().getRaw();
+	s_cpu.popMarker(_name).m_endTime = (uint64)Time::GetTimestamp().getRaw();
 }
 
 const Profiler::CpuFrame& Profiler::GetCpuFrame(uint _i)
@@ -556,13 +787,75 @@ const Profiler::CpuMarker& Profiler::GetCpuMarker(uint _i)
 	return s_cpu.m_markers.data()[_i % s_cpu.m_markers.capacity()];
 }
 
+void Profiler::TrackCpuMarker(const char* _name)
+{
+	for (auto& trackedName : s_cpuTrackedMarkers) {
+		if (strcmp(trackedName, _name) == 0) {
+			return;
+		}
+	}
+	s_cpuTrackedMarkers.push_back(_name);
+}
+
+void Profiler::UntrackCpuMarker(const char* _name)
+{
+	for (auto& trackedName : s_cpuTrackedMarkers) {
+		if (strcmp(trackedName, _name) == 0) {
+			eastl::swap(trackedName, s_cpuTrackedMarkers.back());
+			s_cpuTrackedMarkers.pop_back();
+			return;
+		}
+	}
+}
+
+bool Profiler::IsCpuMarkerTracked(const char* _name)
+{
+	for (auto& trackedName : s_cpuTrackedMarkers) {
+		if (strcmp(trackedName, _name) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void Profiler::CpuValue(const char* _name, float _value, uint _historySize)
+{
+	for (auto& v : s_cpuValues) {
+		if (strcmp(_name, v.m_name) == 0) {
+			++v.m_count;
+			v.m_accum += _value;
+			v.m_max = APT_MAX(v.m_max, _value);
+			v.m_min = APT_MIN(v.m_min, _value);
+			return;
+		}
+	}
+	s_cpuValues.push_back();
+	s_cpuValues.back().m_name  = _name;
+	s_cpuValues.back().m_count = 1;
+	s_cpuValues.back().m_accum = _value;
+	s_cpuValues.back().m_min   = _value;
+	s_cpuValues.back().m_max   = _value;
+	s_cpuValues.back().m_history = new RingBuffer<float>(_historySize);
+}
+
+uint Profiler::GetCpuValueCount()
+{
+	return s_cpuValues.size();
+}
+
+const Profiler::Value& Profiler::GetCpuValue(uint _i)
+{
+	return s_cpuValues[_i];
+}
+
+
 void Profiler::PushGpuMarker(const char* _name)
 {
 	if (s_pause) {
 		return;
 	}
 	s_gpu.pushMarker(_name).m_cpuStart = Time::GetTimestamp().getRaw();
-	glAssert(glQueryCounter(g_gpuMarkerStartQueries[s_gpu.getCurrentMarkerIndex()], GL_TIMESTAMP));
+	glAssert(glQueryCounter(s_gpuMarkerStartQueries[s_gpu.getCurrentMarkerIndex()], GL_TIMESTAMP));
 }
 
 void Profiler::PopGpuMarker(const char* _name)
@@ -571,7 +864,7 @@ void Profiler::PopGpuMarker(const char* _name)
 		return;
 	}
 	GpuMarker& marker = s_gpu.popMarker(_name);
-	glAssert(glQueryCounter(g_gpuMarkerEndQueries[s_gpu.getMarkerIndex(marker)], GL_TIMESTAMP));
+	glAssert(glQueryCounter(s_gpuMarkerEndQueries[s_gpu.getMarkerIndex(marker)], GL_TIMESTAMP));
 }
 
 const Profiler::GpuFrame& Profiler::GetGpuFrame(uint _i)
@@ -599,6 +892,67 @@ const Profiler::GpuMarker& Profiler::GetGpuMarker(uint _i)
 	return s_gpu.m_markers.data()[_i % s_gpu.m_markers.capacity()];
 }
 
+void Profiler::TrackGpuMarker(const char* _name)
+{
+	for (auto& trackedName : s_gpuTrackedMarkers) {
+		if (strcmp(trackedName, _name) == 0) {
+			return;
+		}
+	}
+	s_gpuTrackedMarkers.push_back(_name);
+}
+
+void Profiler::UntrackGpuMarker(const char* _name)
+{
+	for (auto& trackedName : s_gpuTrackedMarkers) {
+		if (strcmp(trackedName, _name) == 0) {
+			eastl::swap(trackedName, s_gpuTrackedMarkers.back());
+			s_gpuTrackedMarkers.pop_back();
+			return;
+		}
+	}
+}
+
+bool Profiler::IsGpuMarkerTracked(const char* _name)
+{
+	for (auto& trackedName : s_gpuTrackedMarkers) {
+		if (strcmp(trackedName, _name) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void Profiler::GpuValue(const char* _name, float _value, uint _historySize)
+{
+	for (auto& v : s_gpuValues) {
+		if (strcmp(_name, v.m_name) == 0) {
+			++v.m_count;
+			v.m_accum += _value;
+			v.m_max = APT_MAX(v.m_max, _value);
+			v.m_min = APT_MIN(v.m_min, _value);
+			return;
+		}
+	}
+	s_gpuValues.push_back();
+	s_gpuValues.back().m_name  = _name;
+	s_gpuValues.back().m_count = 1;
+	s_gpuValues.back().m_accum = _value;
+	s_gpuValues.back().m_min   = _value;
+	s_gpuValues.back().m_max   = _value;
+	s_gpuValues.back().m_history = new RingBuffer<float>(_historySize);
+}
+
+uint Profiler::GetGpuValueCount()
+{
+	return s_gpuValues.size();
+}
+
+const Profiler::Value& Profiler::GetGpuValue(uint _i)
+{
+	return s_gpuValues[_i];
+}
+
 void Profiler::ResetGpuOffset()
 {
 	GLint64 gpuTime;
@@ -606,22 +960,22 @@ void Profiler::ResetGpuOffset()
 	uint64 cpuTicks = Time::GetTimestamp().getRaw();
 	uint64 gpuTicks = GpuToSystemTicks(gpuTime);
 	APT_ASSERT(gpuTicks < cpuTicks);
-	g_gpuTickOffset = cpuTicks - gpuTicks; // \todo is it possible that gpuTicks > cpuTicks?
+	s_gpuTickOffset = cpuTicks - gpuTicks; // \todo is it possible that gpuTicks > cpuTicks?
 }
 
 // PROTECTED
 
 void Profiler::Init()
 {
-	s_pause      = false;
+	s_pause = false;
 }
 
 void Profiler::Shutdown()
 {
- // \todo static initialization means we can't delete the queries
-	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, g_gpuFrameStartQueries)); 
-	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, g_gpuMarkerStartQueries)); 
-	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, g_gpuMarkerEndQueries)); 
+ // \todo static initialization means we can't delete the queries!
+	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, s_gpuFrameStartQueries)); 
+	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, s_gpuMarkerStartQueries)); 
+	//glAssert(glDeleteQueries(kMaxTotalGpuMarkersPerFrame, s_gpuMarkerEndQueries)); 
 }
 
 // PRIVATE

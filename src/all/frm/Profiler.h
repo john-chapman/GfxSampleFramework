@@ -8,13 +8,29 @@
 
 //#define frm_Profiler_DISABLE
 #ifdef frm_Profiler_DISABLE
-	#define CPU_AUTO_MARKER(_name) APT_UNUSED(_name)
-	#define GPU_AUTO_MARKER(_name) APT_UNUSED(_name)
-	#define AUTO_MARKER(_name)     APT_UNUSED(_name)
+	#define PROFILER_MARKER_CPU(_name)         APT_UNUSED(_name)
+	#define PROFILER_MARKER_GPU(_name)         APT_UNUSED(_name)
+	#define PROFILER_MARKER(_name)             APT_UNUSED(_name)
+
+	#define PROFILER_VALUE_CPU(_name, _value)  APT_UNUSED(_name)
+	#define PROFILER_VALUE(_name, _value)      APT_UNUSED(_name)
+
+	// \deprecated
+		#define CPU_AUTO_MARKER(_name) APT_UNUSED(_name)
+		#define GPU_AUTO_MARKER(_name) APT_UNUSED(_name)
+		#define AUTO_MARKER(_name)     APT_UNUSED(_name)
 #else
-	#define CPU_AUTO_MARKER(_name) volatile frm::Profiler::CpuAutoMarker APT_UNIQUE_NAME(_cpuAutoMarker_)(_name)
-	#define GPU_AUTO_MARKER(_name) volatile frm::Profiler::GpuAutoMarker APT_UNIQUE_NAME(_gpuAutoMarker_)(_name)
-	#define AUTO_MARKER(_name)     CPU_AUTO_MARKER(_name); GPU_AUTO_MARKER(_name)
+	#define PROFILER_MARKER_CPU(_name)         volatile frm::Profiler::CpuAutoMarker APT_UNIQUE_NAME(_cpuAutoMarker_)(_name)
+	#define PROFILER_MARKER_GPU(_name)         volatile frm::Profiler::GpuAutoMarker APT_UNIQUE_NAME(_gpuAutoMarker_)(_name)
+	#define PROFILER_MARKER(_name)             PROFILER_MARKER_CPU(_name); PROFILER_MARKER_GPU(_name)
+
+	#define PROFILER_VALUE_CPU(_name, _value)  Profiler::CpuValue(_name, (float)_value)
+	#define PROFILER_VALUE(_name, _value)      PROFILER_VALUE_CPU(_name, _value)
+
+	// \deprecated
+		#define CPU_AUTO_MARKER(_name) PROFILER_MARKER_CPU(_name)
+		#define GPU_AUTO_MARKER(_name) PROFILER_MARKER_GPU(_name)
+		#define AUTO_MARKER(_name)     PROFILER_MARKER(_name)
 #endif
 
 namespace frm {
@@ -25,13 +41,14 @@ namespace frm {
 // - Marker data = name, depth, start time, end time.
 // - Marker depth indicates where the marker is relative to the previous marker
 //   in the buffer (if this depth > prev depth, this is a child of prev).
+// \todo Unify Cpu/Gpu markers (reduce duplicate code, clean interface).
 // \todo Reduce the size of Marker for better coherency; store start/end as 
 //   frame-relative times.
 ////////////////////////////////////////////////////////////////////////////////
 class Profiler: private apt::non_copyable<Profiler>
 {
 public:
-	static const int kMaxFrameCount              = 64; // must be at least 2 (keep 1 frame to write to while visualizing the others)
+	static const int kMaxFrameCount              = 32; // must be at least 2 (keep 1 frame to write to while visualizing the others)
 	static const int kMaxDepth                   = 255;
 	static const int kMaxTotalCpuMarkersPerFrame = 32;
 	static const int kMaxTotalGpuMarkersPerFrame = 32;
@@ -39,9 +56,10 @@ public:
 	struct Marker
 	{
 		const char*  m_name;
-		uint64       m_start;
-		uint64       m_end;
-		uint8        m_depth;
+		uint64       m_startTime;
+		uint64       m_endTime;
+		uint8        m_markerDepth;
+		bool         m_isCpuMarker; // \todo \hack unify Cpu/Gpu markers
 	};
 	struct CpuMarker: public Marker
 	{
@@ -51,11 +69,24 @@ public:
 		uint64 m_cpuStart; // when PushGpuMarker() was called
 	};
 
+	struct Value
+	{
+		const char*             m_name;
+		float                   m_min;
+		float                   m_max;
+		float                   m_avg;
+		float                   m_accum;
+		uint64                  m_count;
+		apt::RingBuffer<float>* m_history;
+	};
+
+
 	struct Frame
 	{
-		uint64 m_start;
-		uint   m_first;
-		uint   m_count;
+		uint64 m_id;
+		uint64 m_startTime;
+		uint   m_firstMarker;
+		uint   m_markerCount;
 	};
 	struct CpuFrame: public Frame
 	{
@@ -76,21 +107,36 @@ public:
 	static uint             GetCpuFrameIndex(const CpuFrame& _frame);
 	// Access to marker data. Unlike access to frame data, the index accesses the internal ring buffer directly.
 	static const CpuMarker& GetCpuMarker(uint _i);
-
+	// Track a named marker duration.
+	static void             TrackCpuMarker(const char* _name);
+	static void             UntrackCpuMarker(const char* _name);
+	static bool             IsCpuMarkerTracked(const char* _name);
+	// Sample a value.
+	static void             CpuValue(const char* _name, float _value, uint _historySize = 128);
+	static uint             GetCpuValueCount();
+	static const Value&     GetCpuValue(uint _i);
 
 	// Push/pop a named Gpu marker.
 	static void             PushGpuMarker(const char* _name);
 	static void             PopGpuMarker(const char* _name);
-	static uint             GetGpuFrameIndex(const GpuFrame& _frame);
 	// Access to profiler frames. 0 is the oldest frame in the history buffer.
 	static const GpuFrame&  GetGpuFrame(uint _i);
 	static uint             GetGpuFrameCount();
 	static uint64           GetGpuAvgFrameDuration();
+	static uint             GetGpuFrameIndex(const GpuFrame& _frame);
 	// Access to marker data. Unlike access to frame data, the index accesses the internal ring buffer directly.
 	static const GpuMarker& GetGpuMarker(uint _i);
+	// Track a named marker duration.
+	static void             TrackGpuMarker(const char* _name);
+	static void             UntrackGpuMarker(const char* _name);
+	static bool             IsGpuMarkerTracked(const char* _name);
+	// Sample a value.
+	static void             GpuValue(const char* _name, float _value, uint _historySize = 128);
+	static uint             GetGpuValueCount();
+	static const Value&     GetGpuValue(uint _i);
 
 	// Reset Cpu->Gpu offset (call if the graphics context changes).
-	static void   ResetGpuOffset();
+	static void ResetGpuOffset();
 
 	class CpuAutoMarker
 	{
@@ -99,7 +145,6 @@ public:
 		CpuAutoMarker(const char* _name): m_name(_name)   { Profiler::PushCpuMarker(m_name); }
 		~CpuAutoMarker()                                  { Profiler::PopCpuMarker(m_name); }
 	};
-
 	class GpuAutoMarker
 	{
 		const char* m_name;
@@ -108,7 +153,7 @@ public:
 		~GpuAutoMarker()                                  { Profiler::PopGpuMarker(m_name); }
 	};
 
-	static bool       s_pause;
+	static bool s_pause;
 
 	static void Init();
 	static void Shutdown();

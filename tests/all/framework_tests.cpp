@@ -66,9 +66,6 @@ public:
 		if (!AppBase::init(_args)) {
 			return false;
 		}
-	
-		m_txTest = Texture::Create("textures/lena.png");
-		m_txTest->generateMipmap();
 
 		return true;
 	}
@@ -89,6 +86,17 @@ public:
 		if (!AppBase::update()) {
 			return false;
 		}
+
+		static vec3 euler = vec3(0.0f, 0.0f, 0.0f);
+		mat4 rm = mat4(FromEulerXYZ(euler));
+		if (Im3d::Gizmo("RotationTest", (float*)&rm)) {
+			euler = ToEulerXYZ(mat3(rm));
+		}
+		rm = mat4(FromEulerXYZ(euler));
+		ImGui::Text("Euler: %1.0f, %1.0f, %1.0f", degrees(euler.x), degrees(euler.y), degrees(euler.z));
+		Im3d::PushMatrix(rm);
+			Im3d::DrawAlignedBox(vec3(-2.0f), vec3(2.0f));
+		Im3d::PopMatrix();
 
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
 		if (ImGui::TreeNode("Intersection")) {
@@ -354,7 +362,7 @@ public:
 					ImGui::SliderFloat("Anim Speed", &m_meshTest.m_animSpeed, 0.0f, 2.0f);
 					m_meshTest.m_animTime = fract(m_meshTest.m_animTime + (float)m_deltaTime * m_meshTest.m_animSpeed);
 					Skeleton framePose = m_meshTest.m_anim->getBaseFrame();
-					{	CPU_AUTO_MARKER("Skinning");
+					{	PROFILER_MARKER_CPU("Skinning");
 						m_meshTest.m_anim->sample(m_meshTest.m_animTime, framePose, m_meshTest.m_animHints.data());
 						framePose.resolve();
 						mat4* bf = (mat4*)m_meshTest.m_bfSkinning->map(GL_WRITE_ONLY);
