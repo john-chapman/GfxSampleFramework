@@ -342,7 +342,7 @@ void AppSample3d::Im3d_Shutdown()
 
 void AppSample3d::Im3d_Update(AppSample3d* _app)
 {
-	CPU_AUTO_MARKER("Im3d_Update");
+	PROFILER_MARKER_CPU("#Im3d_Update");
 
 	Im3d::AppData& ad = Im3d::GetAppData();
 
@@ -367,12 +367,16 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	ad.m_keyDown[Im3d::Key_R/*Action_GizmoRotation*/]    = ctrlDown && keyb->wasPressed(Keyboard::Key_R);
 	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::Key_S);
 
+	ad.m_snapTranslation = ctrlDown ? 0.1f : 0.0f;
+	ad.m_snapRotation    = ctrlDown ? radians(15.0f) : 0.0f;
+	ad.m_snapScale       = ctrlDown ? 0.5f : 0.0f;
+
 	Im3d::NewFrame();
 }
 
 void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 {
-	AUTO_MARKER("Im3d_Draw");
+	PROFILER_MARKER("#Im3d_Draw");
 
 	Im3d::AppData& ad = Im3d::GetAppData();
 

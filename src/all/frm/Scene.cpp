@@ -322,14 +322,14 @@ Scene::~Scene()
 
 void Scene::update(float _dt, uint8 _stateMask)
 {
-	CPU_AUTO_MARKER("Scene::update");
+	PROFILER_MARKER_CPU("#Scene::update");
 	
 	Node::Update(m_root, _dt, _stateMask);
 }
 
 bool Scene::traverse(Node* _root_, uint8 _stateMask, OnVisit* _callback)
 {
-	CPU_AUTO_MARKER("Scene::traverse");
+	PROFILER_MARKER_CPU("#Scene::traverse");
 
 	if (_root_->getStateMask() & _stateMask) {
 		if (!_callback(_root_)) {
@@ -346,7 +346,7 @@ bool Scene::traverse(Node* _root_, uint8 _stateMask, OnVisit* _callback)
 
 Node* Scene::createNode(Node::Type _type, Node* _parent)
 {
-	CPU_AUTO_MARKER("Scene::createNode");
+	PROFILER_MARKER_CPU("#Scene::createNode");
 
 	Node* ret = m_nodePool.alloc(Node(_type, m_nextNodeId++, Node::State_Active));
 	if (_type == Node::Type_Camera || _type == Node::Type_Root) {
@@ -360,7 +360,7 @@ Node* Scene::createNode(Node::Type _type, Node* _parent)
 
 void Scene::destroyNode(Node*& _node_)
 {
-	CPU_AUTO_MARKER("Scene::destroyNode");
+	PROFILER_MARKER_CPU("#Scene::destroyNode");
 
 	APT_ASSERT(_node_ != m_root); // can't destroy the root
 	
@@ -402,7 +402,7 @@ void Scene::destroyNode(Node*& _node_)
 
 Node* Scene::findNode(Node::Id _id, Node::Type _typeHint)
 {
-	CPU_AUTO_MARKER("Scene::findNode");
+	PROFILER_MARKER_CPU("#Scene::findNode");
 
 	Node* ret = nullptr;
 	if (_typeHint != Node::Type_Count) {
@@ -429,7 +429,7 @@ Node* Scene::findNode(Node::Id _id, Node::Type _typeHint)
 
 Node* Scene::findNode(const char* _name, Node::Type _typeHint)
 {
-	CPU_AUTO_MARKER("Scene::findNode");
+	PROFILER_MARKER_CPU("#Scene::findNode");
 
 	Node* ret = nullptr;
 	if (_typeHint != Node::Type_Count) {
@@ -456,7 +456,7 @@ Node* Scene::findNode(const char* _name, Node::Type _typeHint)
 
 Camera* Scene::createCamera(const Camera& _copyFrom, Node* _parent_)
 {
-	CPU_AUTO_MARKER("Scene::createCamera");
+	PROFILER_MARKER_CPU("#Scene::createCamera");
 
 	Camera* ret = m_cameraPool.alloc(_copyFrom);
 	Node* node = createNode(Node::Type_Camera, _parent_);
@@ -474,7 +474,7 @@ Camera* Scene::createCamera(const Camera& _copyFrom, Node* _parent_)
 
 void Scene::destroyCamera(Camera*& _camera_)
 {
-	CPU_AUTO_MARKER("Scene::destroyCamera");
+	PROFILER_MARKER_CPU("#Scene::destroyCamera");
 
 	Node* node = _camera_->m_parent;
 	APT_ASSERT(node);
@@ -493,7 +493,7 @@ void Scene::destroyCamera(Camera*& _camera_)
 
 Light* Scene::createLight(Node* _parent_)
 {
-	CPU_AUTO_MARKER("Scene::createLight");
+	PROFILER_MARKER_CPU("#Scene::createLight");
 
 	Light* ret = m_lightPool.alloc();
 	Node* node = createNode(Node::Type_Light, _parent_);
@@ -505,7 +505,7 @@ Light* Scene::createLight(Node* _parent_)
 
 void Scene::destroyLight(Light*& _light_)
 {
-	CPU_AUTO_MARKER("Scene::destroyLight");
+	PROFILER_MARKER_CPU("#Scene::destroyLight");
 
 	Node* node = _light_->m_parent;
 	APT_ASSERT(node);
@@ -520,7 +520,7 @@ bool Scene::serialize(JsonSerializer& _serializer_)
 {
 	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
 		if (!serialize(_serializer_, *m_root)) {
-			APT_LOG_ERR("Scene::serialize: Read error");
+			APT_LOG_ERR("#Scene::serialize: Read error");
 			return false;
 		}
 
@@ -1038,7 +1038,7 @@ void Scene::editCameras()
 
 			ImGui::Separator();
 
-			ImGui::PushStyleColor(ImGuiCol_Text, m_drawCamera == m_editCamera ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
+			ImGui::PushStyleColor(ImGuiCol_Text, m_drawCamera == m_editCamera ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_VIDEO_CAMERA " Set Draw Camera")) {
 				if (m_drawCamera == m_editCamera && m_storedDrawCamera != nullptr) {
 					m_drawCamera = m_storedDrawCamera;
@@ -1050,7 +1050,7 @@ void Scene::editCameras()
 			ImGui::PopStyleColor();
 			
 			ImGui::SameLine();
-			ImGui::PushStyleColor(ImGuiCol_Text, m_cullCamera == m_editCamera ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
+			ImGui::PushStyleColor(ImGuiCol_Text, m_cullCamera == m_editCamera ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_CUBES " Set Cull Camera")) {
 				if (m_cullCamera == m_editCamera && m_storedCullCamera != nullptr) {
 					m_cullCamera = m_storedCullCamera;
@@ -1062,7 +1062,7 @@ void Scene::editCameras()
 			ImGui::PopStyleColor();
 
 			ImGui::SameLine();
-			ImGui::PushStyleColor(ImGuiCol_Text, m_editCamera->m_parent->isSelected() ? ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
+			ImGui::PushStyleColor(ImGuiCol_Text, m_editCamera->m_parent->isSelected() ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 			if (ImGui::Button(ICON_FA_GAMEPAD " Set Current Node")) {
 			 	Node* editCameraNode = m_editCamera->m_parent;
 				if (editCameraNode->isSelected() && m_storedNode != nullptr) {

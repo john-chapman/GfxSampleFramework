@@ -2,6 +2,7 @@
 
 #include <frm/def.h>
 #include <frm/Camera.h> // set clip control based on Camera_Clip* define
+#include <frm/Profiler.h>
 #include <frm/Window.h>
 
 #include <apt/log.h>
@@ -190,6 +191,8 @@ void GlContext::present()
 	APT_PLATFORM_VERIFY(SwapBuffers(m_impl->m_hdc));
 	APT_PLATFORM_VERIFY(ValidateRect(m_impl->m_hwnd, 0)); // suppress WM_PAINT
 	++m_frameIndex;
+	PROFILER_VALUE_CPU("#Draw Calls", m_drawCount);
+	PROFILER_VALUE_CPU("#Dispatch", m_dispatchCount);
 	m_dispatchCount = m_drawCount = 0;
 }
 
