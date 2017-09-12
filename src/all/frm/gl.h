@@ -14,7 +14,7 @@
 	#define glAssert(call) \
 		do { \
 			(call); \
-			if (frm::internal::GlAssert(#call, apt::internal::StripPath(__FILE__), __LINE__) == apt::AssertBehavior_Break) \
+			if (frm::internal::GlAssert(#call, __FILE__, __LINE__) == apt::AssertBehavior_Break) \
 				{ APT_BREAK(); } \
 			} \
 		while (0)
