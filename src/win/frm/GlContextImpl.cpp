@@ -13,6 +13,11 @@
 
 using namespace frm;
 
+// force Nvidia/AMD drivers to use the discrete GPU
+extern "C" {
+	__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
 
 static APT_THREAD_LOCAL GlContext* g_currentCtx = 0;
 static APT_THREAD_LOCAL PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormat = 0;
