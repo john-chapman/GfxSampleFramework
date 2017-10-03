@@ -221,31 +221,33 @@ bool Property::edit()
 	return ret;
 }
 
-bool Property::serialize(JsonSerializer& _serializer_)
+bool frm::Serialize(SerializerJson& _serializer_, Property& _prop_)
 {
 	bool ret = true;
-	if (m_count > 1) {
-		if (_serializer_.beginArray((const char*)m_name)) {
-			for (int i = 0; i < (int)m_count; ++i) {
-				switch (m_type) {
-					case Type_Bool:   ret &= _serializer_.value(((bool*)m_data)[i]); break;
-					case Type_Int:    ret &= _serializer_.value(((int*)m_data)[i]); break;
-					case Type_Float:  ret &= _serializer_.value(((float*)m_data)[i]); break;
-					case Type_String: ret &= _serializer_.value(((StringBase*)m_data)[i]); break;
-					default:          ret = false; APT_ASSERT(false);
+	uint count = _prop_.m_count;
+	if (count > 1) {
+		if (_serializer_.beginArray(count, (const char*)_prop_.m_name)) {
+			for (uint i = 0; i < count; ++i) {
+				switch (_prop_.m_type) {
+					case Property::Type_Bool:   ret &= Serialize(_serializer_, ((bool*)_prop_.m_data)[i]); break;
+					case Property::Type_Int:    ret &= Serialize(_serializer_, ((int*)_prop_.m_data)[i]); break;
+					case Property::Type_Float:  ret &= Serialize(_serializer_, ((float*)_prop_.m_data)[i]); break;
+					case Property::Type_String: ret &= Serialize(_serializer_, ((StringBase*)_prop_.m_data)[i]); break;
+					default:                    ret = false; APT_ASSERT(false);
 				}
 			}
+			_prop_.m_count = (uint8)count;
 			_serializer_.endArray();
 		} else {
 			ret = false;
 		}
 	} else {
-		switch (m_type) {
-			case Type_Bool:   ret &= _serializer_.value((const char*)m_name, *((bool*)m_data)); break;
-			case Type_Int:    ret &= _serializer_.value((const char*)m_name, *((int*)m_data)); break;
-			case Type_Float:  ret &= _serializer_.value((const char*)m_name, *((float*)m_data)); break;
-			case Type_String: ret &= _serializer_.value((const char*)m_name, *((StringBase*)m_data)); break;
-			default:          ret = false; APT_ASSERT(false);
+		switch (_prop_.m_type) {
+			case Property::Type_Bool:   ret &= Serialize(_serializer_, *((bool*)_prop_.m_data),       (const char*)_prop_.m_name); break;
+			case Property::Type_Int:    ret &= Serialize(_serializer_, *((int*)_prop_.m_data),        (const char*)_prop_.m_name); break;
+			case Property::Type_Float:  ret &= Serialize(_serializer_, *((float*)_prop_.m_data),      (const char*)_prop_.m_name); break;
+			case Property::Type_String: ret &= Serialize(_serializer_, *((StringBase*)_prop_.m_data), (const char*)_prop_.m_name); break;
+			default:                    ret = false; APT_ASSERT(false);
 		}
 	}
 	return ret;
@@ -406,7 +408,7 @@ StringBase* PropertyGroup::addPath(const char* _name, const char* _default, Stri
 	return (StringBase*)ret->getData();
 }
 
-Property* PropertyGroup::find(apt::StringHash _nameHash)
+Property* PropertyGroup::find(StringHash _nameHash)
 {
 	auto ret = m_props.find(_nameHash);
 	if (ret != m_props.end()) {
@@ -427,14 +429,15 @@ bool PropertyGroup::edit(bool _showHidden)
 	return ret;
 }
 
-bool PropertyGroup::serialize(JsonSerializer& _serializer_)
+bool frm::Serialize(SerializerJson& _serializer_, PropertyGroup& _propGroup_)
 {
-	if (_serializer_.beginObject((const char*)m_name)) {
-		for (auto& it : m_props) {
-			it.second->serialize(_serializer_);
+	if (_serializer_.beginObject((const char*)_propGroup_.m_name)) {
+		bool ret = true;
+		for (auto& it : _propGroup_.m_props) {
+			ret &= Serialize(_serializer_, *it.second);
 		}
 		_serializer_.endObject();
-		return true;
+		return ret;
 	}
 	return false;
 }
@@ -467,7 +470,7 @@ PropertyGroup& Properties::addGroup(const char* _name)
 	return *ret;
 }
 
-Property* Properties::findProperty(apt::StringHash _nameHash)
+Property* Properties::findProperty(StringHash _nameHash)
 {
 	for (auto& group : m_groups) {
 		Property* prop = group.second->find(_nameHash);
@@ -478,7 +481,7 @@ Property* Properties::findProperty(apt::StringHash _nameHash)
 	return nullptr;
 }
 
-PropertyGroup* Properties::findGroup(apt::StringHash _nameHash)
+PropertyGroup* Properties::findGroup(StringHash _nameHash)
 {
 	auto ret = m_groups.find(_nameHash);
 	if (ret != m_groups.end()) {
@@ -500,10 +503,11 @@ bool Properties::edit(bool _showHidden)
 	return ret;
 }
 
-bool Properties::serialize(JsonSerializer& _serializer_)
+bool frm::Serialize(SerializerJson& _serializer_, Properties& _props_)
 {
-	for (auto& it : m_groups) {
-		it.second->serialize(_serializer_);
+	bool ret = true;
+	for (auto& it : _props_.m_groups) {
+		ret &= Serialize(_serializer_, *it.second);
 	}
 	return true;
 }

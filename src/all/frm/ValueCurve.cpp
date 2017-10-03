@@ -1,7 +1,7 @@
 #include <frm/ValueCurve.h>
 
+#include <apt/Serializer.h>
 #include <apt/String.h>
-#include <apt/Json.h>
 
 using namespace frm;
 using namespace apt;
@@ -22,32 +22,33 @@ ValueBezier::ValueBezier()
 {
 }
 
-bool ValueBezier::serialize(JsonSerializer& _serializer_)
+bool frm::Serialize(Serializer& _serializer_, ValueBezier& _curve_)
 {
 	bool ret = true;
 
 	const char* kWrapModes[] = { "Clamp", "Repeat" };
-	APT_STATIC_ASSERT(APT_ARRAY_COUNT(kWrapModes) == Wrap_Count);
-	String<16> tmp = kWrapModes[m_wrap];
-	ret &= _serializer_.value("Wrap", (StringBase&)tmp);
-	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-		for (int i = 0; i < Wrap_Count; ++i) {
+	APT_STATIC_ASSERT(APT_ARRAY_COUNT(kWrapModes) == ValueBezier::Wrap_Count);
+	String<16> tmp = kWrapModes[_curve_.m_wrap];
+	ret &= Serialize(_serializer_, tmp, "Wrap");
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
+		for (int i = 0; i < ValueBezier::Wrap_Count; ++i) {
 			if (tmp == kWrapModes[i]) {
-				m_wrap = (Wrap)i;
+				_curve_.m_wrap = (ValueBezier::Wrap)i;
 				break;
 			}
 		}
 	}
-	if (_serializer_.beginArray("Endpoints")) {
-		if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-			int endpointCount = _serializer_.getArrayLength();
-			m_endpoints.resize(endpointCount);
+
+	uint epCount = _curve_.m_endpoints.size();
+	if (_serializer_.beginArray(epCount, "Endpoints")) {
+		if (_serializer_.getMode() == Serializer::Mode_Read) {
+			_curve_.m_endpoints.resize(epCount);
 		}		
-		for (auto& endpoint : m_endpoints) {
+		for (auto& endpoint : _curve_.m_endpoints) {
 			if (_serializer_.beginArray()) {
-				ret &= _serializer_.value(endpoint.m_in);
-				ret &= _serializer_.value(endpoint.m_val);
-				ret &= _serializer_.value(endpoint.m_out);
+				ret &= Serialize(_serializer_, endpoint.m_in);
+				ret &= Serialize(_serializer_, endpoint.m_val);
+				ret &= Serialize(_serializer_, endpoint.m_out);
 				_serializer_.endArray();
 			} else {
 				return false;
@@ -58,8 +59,8 @@ bool ValueBezier::serialize(JsonSerializer& _serializer_)
 		return false;
 	}
 
-	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-		updateExtents();
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
+		_curve_.updateExtents();
 	}
 
 	return ret;
@@ -330,15 +331,15 @@ float ValueCurve::sample(float _t) const
 	return mix(m_endpoints[i].y, m_endpoints[i + 1].y, _t);
 }
 
-bool ValueCurve::serialize(apt::JsonSerializer& _serializer_)
+bool frm::Serialize(Serializer& _serializer_, ValueCurve& _curve_)
 {
 #ifndef ValueCurve_ENABLE_EDIT
 	ValueBezier m_bezier;
 #endif
-	if (!m_bezier.serialize(_serializer_)) {
+	if (!Serialize(_serializer_, _curve_.m_bezier)) {
 		return false;
 	}
-	fromBezier(m_bezier);
+	_curve_.fromBezier(_curve_.m_bezier);
 	return true;
 }
 

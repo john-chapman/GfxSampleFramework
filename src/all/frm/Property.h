@@ -51,7 +51,7 @@ public:
 	friend void swap(Property& _a_, Property& _b_);
 
 	bool edit();
-	bool serialize(apt::JsonSerializer& _serializer_);
+	friend bool Serialize(apt::SerializerJson& _serializer_, Property& _prop_);
 
 	void* getData()               { return m_data; }
 	Type getType()                { return m_type; }
@@ -112,7 +112,7 @@ public:
 	const char* getName() const { return (const char*)m_name; }
 
 	bool edit(bool _showHidden = false);
-	bool serialize(apt::JsonSerializer& _serializer_);
+	friend bool Serialize(apt::SerializerJson& _serializer_, PropertyGroup& _prop_);
 
 private:
 	apt::String<32> m_name;
@@ -140,7 +140,7 @@ public:
 	PropertyGroup* findGroup(const char* _name) { return findGroup(StringHash(_name)); }
 
 	bool edit(bool _showHidden = false);
-	bool serialize(apt::JsonSerializer& _serializer_);
+	friend bool Serialize(apt::SerializerJson& _serializer_, Properties& _props_);
 
 private:
 	eastl::vector_map<apt::StringHash, PropertyGroup*> m_groups;

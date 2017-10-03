@@ -54,7 +54,6 @@ namespace frm {
 	class  ProxyGamepad;
 	class  ProxyKeyboard;
 	class  ProxyMouse;
-	class  Serializer;
 	class  Scene;
 	class  Shader;
 	class  ShaderDesc;

@@ -94,6 +94,8 @@ public:
 	void         addChild(Node* _node);
 	void         removeChild(Node* _node);
 
+	friend bool  Serialize(apt::Serializer& _serializer_, Scene& _scene_, Node& _node_);
+
 private:
  // meta
 	Id                    m_id;          // Unique id.
@@ -188,11 +190,9 @@ public:
 	Light*  createLight(Node* _parent = nullptr);
 	void    destroyLight(Light*& _camera_);
 
-	// Serialize to json.
-	// \note Node names beginning with '#' are ignored during serialization (use
-	//   for any nodes added programmatcially).
-	bool    serialize(apt::JsonSerializer& _serializer_);
-	bool    serialize(apt::JsonSerializer& _serializer_, Node& _node_);
+	// \note Node names beginning with '#' are ignored during serialization (use for any nodes added programmatcially).
+	friend bool Serialize(apt::Serializer& _serializer_, Scene& _scene_);
+	friend bool Serialize(apt::Serializer& _serializer_, Scene& _scene_, Node& _node_);
 #ifdef frm_Scene_ENABLE_EDIT
 	void edit();
 
