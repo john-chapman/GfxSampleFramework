@@ -258,10 +258,10 @@ bool Scene::Load(const char* _path, Scene& scene_)
 	if (!Json::Read(json, _path)) {
 		return false;
 	}
-	JsonSerializer serializer(&json, JsonSerializer::Mode_Read);
+	SerializerJson serializer(&json, SerializerJson::Mode_Read);
 	Scene newScene;
 	
-	if (!newScene.serialize(serializer)) {
+	if (!Serialize(serializer, newScene)) {
 		return false;
 	}
 	swap(newScene, scene_);
@@ -272,8 +272,8 @@ bool Scene::Save(const char* _path, Scene& _scene)
 {
 	APT_LOG("Saving scene to '%s'", _path);
 	Json json;
-	JsonSerializer serializer(&json, JsonSerializer::Mode_Write);
-	if (!_scene.serialize(serializer)) {
+	SerializerJson serializer(&json, SerializerJson::Mode_Write);
+	if (!Serialize(serializer, _scene)) {
 		return false;
 	}
 	return Json::Write(json, _path);
@@ -516,151 +516,151 @@ void Scene::destroyLight(Light*& _light_)
 	m_editLight = nullptr;
 }
 
-bool Scene::serialize(JsonSerializer& _serializer_)
+bool frm::Serialize(Serializer& _serializer_, Scene& _scene_)
 {
-	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-		if (!serialize(_serializer_, *m_root)) {
-			APT_LOG_ERR("#Scene::serialize: Read error");
-			return false;
-		}
+	bool ret = true;
 
-	#ifdef frm_Scene_ENABLE_EDIT
-		m_editNode   = nullptr;
-		m_editXForm  = nullptr;
-		m_editCamera = nullptr;
-	#endif
-
-	} else {
-		if (!serialize(_serializer_, *m_root)) {
-			return false;
-		}
+	ret &= Serialize(_serializer_, _scene_, *_scene_.m_root);
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
+		#ifdef frm_Scene_ENABLE_EDIT
+			_scene_.m_editNode   = nullptr;
+			_scene_.m_editXForm  = nullptr;
+			_scene_.m_editCamera = nullptr;
+		#endif
 	}
-	 
+
 	Node::Id drawCameraId = Node::kInvalidId;
 	Node::Id cullCameraId = Node::kInvalidId;
-	if (_serializer_.getMode() == JsonSerializer::Mode_Write) {
-		if (m_drawCamera && m_drawCamera->m_parent) {
-			drawCameraId = m_drawCamera->m_parent->getId();	
+	if (_serializer_.getMode() == Serializer::Mode_Write) {
+		if (_scene_.m_drawCamera && _scene_.m_drawCamera->m_parent) {
+			drawCameraId = _scene_.m_drawCamera->m_parent->getId();	
 		}
-		if (m_cullCamera && m_cullCamera->m_parent) {
-			cullCameraId = m_cullCamera->m_parent->getId();
+		if (_scene_.m_cullCamera && _scene_.m_cullCamera->m_parent) {
+			cullCameraId = _scene_.m_cullCamera->m_parent->getId();
 		}
 	}
-	_serializer_.value("DrawCameraId", drawCameraId);
-	_serializer_.value("CullCameraId", cullCameraId);
-	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
+	ret &= Serialize(_serializer_, drawCameraId, "DrawCameraId");
+	ret &= Serialize(_serializer_, cullCameraId, "CullCameraId");
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
 		if (drawCameraId != Node::kInvalidId) {
-			Node* n = findNode(drawCameraId, Node::Type_Camera);
+			Node* n = _scene_.findNode(drawCameraId, Node::Type_Camera);
 			if (n != nullptr) {
-				m_drawCamera = n->getSceneDataCamera();
+				_scene_.m_drawCamera = n->getSceneDataCamera();
 			}
 		}
 		if (cullCameraId != Node::kInvalidId) {
-			Node* n = findNode(cullCameraId, Node::Type_Camera);
+			Node* n = _scene_.findNode(cullCameraId, Node::Type_Camera);
 			if (n != nullptr) {
-				m_cullCamera = n->getSceneDataCamera();
+				_scene_.m_cullCamera = n->getSceneDataCamera();
 			}
 		}
 
 		for (int i = 0; i < Node::Type_Count; ++i) {
-			s_typeCounters[i] = APT_MAX((unsigned int)m_nodes[i].size(), s_typeCounters[i]);
+			s_typeCounters[i] = APT_MAX((unsigned int)_scene_.m_nodes[i].size(), s_typeCounters[i]);
 		}
 	}
 
-	APT_ASSERT(m_drawCamera != nullptr);
-	if (m_cullCamera == nullptr) {
-		m_cullCamera = m_drawCamera;
+	APT_ASSERT(_scene_.m_drawCamera != nullptr);
+	if (_scene_.m_cullCamera == nullptr) {
+		_scene_.m_cullCamera = _scene_.m_drawCamera;
 	}
 
-	return true;
+	return ret;
 }
 
-bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
+bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 {
-	_serializer_.value("Id", _node_.m_id);
-	_serializer_.value("Name", (StringBase&)_node_.m_name);
+	bool ret = true;
+
+	ret &= Serialize(_serializer_, _node_.m_id,   "Id");
+	ret &= Serialize(_serializer_, _node_.m_name, "Name");
 	
 	bool active   = _node_.isActive();
 	bool dynamic  = _node_.isDynamic();
 	bool selected = _node_.isSelected();
-	_serializer_.value("Active",   active);
-	_serializer_.value("Dynamic",  dynamic);
-	_serializer_.value("Selected", selected);
-	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
+	ret &= Serialize(_serializer_, active,   "Active");
+	ret &= Serialize(_serializer_, dynamic,  "Dynamic");
+	ret &= Serialize(_serializer_, selected, "Selected");
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
 		_node_.setActive(active);
 		_node_.setDynamic(dynamic);
 		_node_.setSelected(selected);
 	}
 
-	_serializer_.value("UserData",    _node_.m_userData);
-	_serializer_.value("LocalMatrix", _node_.m_localMatrix);
+	ret &= Serialize(_serializer_, _node_.m_userData,    "UserData");
+	ret &= Serialize(_serializer_, _node_.m_localMatrix, "LocalMatrix");
 
-	String<64> tmp = kNodeTypeStr[_node_.m_type];
-	_serializer_.value("Type", (StringBase&)tmp);
-	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-		_node_.m_type = NodeTypeFromStr((const char*)tmp);
+	String<64> typeStr = kNodeTypeStr[_node_.m_type];
+	ret &= Serialize(_serializer_, typeStr, "Type");
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
+		_node_.m_type = NodeTypeFromStr((const char*)typeStr);
 		if (_node_.m_type == Node::Type_Count) {
-			APT_LOG_ERR("Scene: Invalid node type '%s'", (const char*)tmp);
+			APT_LOG_ERR("Scene: Invalid node type '%s'", (const char*)typeStr);
 			return false;
 		}
 
 		switch (_node_.m_type) {
 			case Node::Type_Root: {
-				_node_.setSceneDataScene(this);
+				_node_.setSceneDataScene(&_scene_);
 				break;
 			}
 			case Node::Type_Camera: {
-				Camera* cam = m_cameraPool.alloc();
+				Camera* cam = _scene_.m_cameraPool.alloc();
 				cam->m_parent = &_node_;
-				if (!cam->serialize(_serializer_)) {
-					m_cameraPool.free(cam);
+				if (!Serialize(_serializer_, *cam)) {
+					_scene_.m_cameraPool.free(cam);
 					return false;
 				}
-				m_cameras.push_back(cam);
+				_scene_.m_cameras.push_back(cam);
 				_node_.setSceneDataCamera(cam);
 				break;
 			}
 			case Node::Type_Light: {
-				Light* light = m_lightPool.alloc();
+				Light* light = _scene_.m_lightPool.alloc();
 				light->m_parent = &_node_;
-				if (!light->serialize(_serializer_)) {
-					m_lightPool.free(light);
+				if (!Serialize(_serializer_, *light)) {
+					_scene_.m_lightPool.free(light);
 					return false;
 				}
-				m_lights.push_back(light);
+				_scene_.m_lights.push_back(light);
 				_node_.setSceneDataLight(light);
 				break;
 			}
 			default:
 				break;
 		};
-		m_nextNodeId = APT_MAX(m_nextNodeId, _node_.m_id + 1);
+		_scene_.m_nextNodeId = APT_MAX(_scene_.m_nextNodeId, _node_.m_id + 1);
 
-		if (_serializer_.beginArray("Children")) {
+		uint childCount = (uint)_node_.getChildCount();
+		if (_serializer_.beginArray(childCount, "Children")) {
 			while (_serializer_.beginObject()) {
-				Node* child = m_nodePool.alloc(Node());
-				if (!serialize(_serializer_, *child)) {
-					m_nodePool.free(child);
+				Node* child = _scene_.m_nodePool.alloc(Node());
+				if (!Serialize(_serializer_, _scene_, *child)) {
+					_scene_.m_nodePool.free(child);
 					return false;
 				}
 				child->m_parent = &_node_;
 				_node_.m_children.push_back(child);
-				m_nodes[child->m_type].push_back(child);
+				_scene_.m_nodes[child->m_type].push_back(child);
 				_serializer_.endObject();
 			}
 			_serializer_.endArray();
 		}
 
-		if (_serializer_.beginArray("XForms")) {
+		uint xformCount = (uint)_node_.getXFormCount();
+		if (_serializer_.beginArray(xformCount, "XForms")) {
 			while (_serializer_.beginObject()) {
-				_serializer_.value("Class", (StringBase&)tmp);
-				XForm* xform = XForm::Create(StringHash((const char*)tmp));
+				String<64> className;
+				if (!Serialize(_serializer_, className, "Class")) {
+					return false;
+				}
+				XForm* xform = XForm::Create(StringHash((const char*)className));
 				if (xform) {
 					xform->serialize(_serializer_);
 					xform->setNode(&_node_);
 					_node_.m_xforms.push_back(xform);
 				} else {
-					APT_LOG_ERR("Scene: Invalid xform '%s'", (const char*)tmp);
+					APT_LOG_ERR("Scene: Invalid xform '%s'", (const char*)className);
 				}
 				_serializer_.endObject();
 			}
@@ -671,14 +671,14 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 		switch (_node_.m_type) {
 			case Node::Type_Camera: {
 				Camera* cam = _node_.getSceneDataCamera();
-				if (!cam->serialize(_serializer_)) {
+				if (!Serialize(_serializer_, *cam)) {
 					return false;
 				}
 				break;
 			}
 			case Node::Type_Light: {
 				Light* light = _node_.getSceneDataLight();
-				if (!light->serialize(_serializer_)) {
+				if (!Serialize(_serializer_, *light)) {
 					return false;
 				}
 				break;
@@ -687,25 +687,28 @@ bool Scene::serialize(JsonSerializer& _serializer_, Node& _node_)
 				break;
 		};
 
+	 // \todo childCount is incorrect as '#' nodes aren't serialized
+		uint childCount = (uint)_node_.getChildCount();
 		if (!_node_.m_children.empty()) {
-			_serializer_.beginArray("Children");
+			_serializer_.beginArray(childCount, "Children");
 				for (auto& child : _node_.m_children) {
 					if (child->getName()[0] == '#') {
 						continue;
 					}
 					_serializer_.beginObject();
-						serialize(_serializer_, *child);
+						Serialize(_serializer_, _scene_, *child);
 					_serializer_.endObject();
 				}
 			_serializer_.endArray();
 		}
 
+		uint xformCount = (uint)_node_.getXFormCount();
 		if (!_node_.m_xforms.empty()) {
-			_serializer_.beginArray("XForms");
+			_serializer_.beginArray(xformCount, "XForms");
 				for (auto& xform : _node_.m_xforms) {
 					_serializer_.beginObject();
-						const char* className = xform->getClassRef()->getName();
-						_serializer_.string("Class", const_cast<char*>(className));
+						String<64> className = xform->getClassRef()->getName();
+						Serialize(_serializer_, className, "Class");
 						xform->serialize(_serializer_);
 					_serializer_.endObject();
 				}

@@ -56,7 +56,7 @@ public:
 	friend void swap(Camera& _a_, Camera& _b_);
 
 
-	bool serialize(apt::JsonSerializer& _serializer_);
+	friend bool Serialize(apt::Serializer& _serializer_, Camera& _camera_);
 	void edit();
 	
 	// Set projection params. For a perspective projection _up/_down/_right/_near are ­±radians from the view

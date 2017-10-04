@@ -37,7 +37,7 @@ public:
 	static const Callback* GetCallback(int _i);
 	static const Callback* FindCallback(apt::StringHash _nameHash);
 	static const Callback* FindCallback(OnComplete* _callback);
-	static bool            SerializeCallback(const char* _name, OnComplete*& _callback, apt::JsonSerializer& _serializer_);
+	static bool            SerializeCallback(apt::Serializer& _serializer_, OnComplete*& _callback, const char* _name);
 
 	// Reset initial state.
 	virtual void reset() {}
@@ -57,7 +57,11 @@ public:
 
 	virtual void apply(float _dt) = 0;	
 	virtual void edit() = 0;
-	virtual bool serialize(apt::JsonSerializer& _serializer_) = 0;
+	virtual bool serialize(apt::Serializer& _serializer_) = 0;
+	friend bool Serialize(apt::Serializer& _serializer_, XForm& _xform_)
+	{
+		return _xform_.serialize(_serializer_);
+	}
 
 protected:
 	static eastl::vector<const Callback*> s_callbackRegistry;
@@ -85,7 +89,7 @@ struct XForm_PositionOrientationScale: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
-	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
+	virtual bool serialize(apt::Serializer& _serializer_) override;
 	
 };
 
@@ -125,7 +129,7 @@ struct XForm_FreeCamera: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
-	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
+	virtual bool serialize(apt::Serializer& _serializer_) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -143,7 +147,7 @@ struct XForm_LookAt: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
-	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
+	virtual bool serialize(apt::Serializer& _serializer_) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -161,7 +165,7 @@ struct XForm_Spin: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
-	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
+	virtual bool serialize(apt::Serializer& _serializer_) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -183,7 +187,7 @@ struct XForm_PositionTarget: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
-	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
+	virtual bool serialize(apt::Serializer& _serializer_) override;
 
 	virtual void reset() override;
 	virtual void relativeReset() override;
@@ -207,7 +211,7 @@ struct XForm_SplinePath: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
-	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
+	virtual bool serialize(apt::Serializer& _serializer_) override;
 
 	virtual void reset() override;
 	virtual void reverse() override;
@@ -232,7 +236,7 @@ struct XForm_OrbitalPath: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
-	virtual bool serialize(apt::JsonSerializer& _serializer_) override;
+	virtual bool serialize(apt::Serializer& _serializer_) override;
 
 	virtual void reset() override;
 };
