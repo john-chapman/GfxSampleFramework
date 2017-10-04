@@ -2,7 +2,7 @@
 #include <frm/Buffer.h>
 #include <frm/Scene.h>
 
-#include <apt/Json.h>
+#include <apt/Serializer.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
@@ -72,40 +72,40 @@ void frm::swap(Camera& _a_, Camera& _b_)
 	swap(_a_.m_gpuBuffer,    _b_.m_gpuBuffer);
 }
 
-bool Camera::serialize(JsonSerializer& _serializer_)
+bool frm::Serialize(apt::Serializer& _serializer_, Camera& _camera_)
 {
  // note that the parent node doesn't get written here - the scene serializes the camera params *within* a node so it's not required
-	_serializer_.value("Up",          m_up);
-	_serializer_.value("Down",        m_down);
-	_serializer_.value("Right",       m_right);
-	_serializer_.value("Left",        m_left);
-	_serializer_.value("Near",        m_near);
-	_serializer_.value("Far",         m_far);
-	_serializer_.value("WorldMatrix", m_world);
+	_serializer_.value(_camera_.m_up,    "Up");
+	_serializer_.value(_camera_.m_down,  "Down");
+	_serializer_.value(_camera_.m_right, "Right");
+	_serializer_.value(_camera_.m_left,  "Left");
+	_serializer_.value(_camera_.m_near,  "Near");
+	_serializer_.value(_camera_.m_far,   "Far");
+	_serializer_.value(_camera_.m_world, "WorldMatrix");
 
-	bool orthographic = getProjFlag(ProjFlag_Orthographic);
-	bool asymmetrical = getProjFlag(ProjFlag_Asymmetrical);
-	bool infinite     = getProjFlag(ProjFlag_Infinite);
-	bool reversed     = getProjFlag(ProjFlag_Reversed);
-	_serializer_.value("Orthographic", orthographic);
-	_serializer_.value("Asymmetrical", asymmetrical);
-	_serializer_.value("Infinite",     infinite);
-	_serializer_.value("Reversed",     reversed);
+	bool orthographic = _camera_.getProjFlag(Camera::ProjFlag_Orthographic);
+	bool asymmetrical = _camera_.getProjFlag(Camera::ProjFlag_Asymmetrical);
+	bool infinite     = _camera_.getProjFlag(Camera::ProjFlag_Infinite);
+	bool reversed     = _camera_.getProjFlag(Camera::ProjFlag_Reversed);
+	_serializer_.value(orthographic, "Orthographic");
+	_serializer_.value(asymmetrical, "Asymmetrical");
+	_serializer_.value(infinite,     "Infinite");
+	_serializer_.value(reversed,     "Reversed");
 
-	bool hasGpuBuffer = m_gpuBuffer != nullptr;
-	_serializer_.value("HasGpuBuffer", hasGpuBuffer);
+	bool hasGpuBuffer = _camera_.m_gpuBuffer != nullptr;
+	_serializer_.value(hasGpuBuffer, "HasGpuBuffer");
 
-	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-		setProjFlag(ProjFlag_Orthographic, orthographic);
-		setProjFlag(ProjFlag_Asymmetrical, asymmetrical);
-		setProjFlag(ProjFlag_Infinite,     infinite);
-		setProjFlag(ProjFlag_Reversed,     reversed);
+	if (_serializer_.getMode() == apt::Serializer::Mode_Read) {
+		_camera_.setProjFlag(Camera::ProjFlag_Orthographic, orthographic);
+		_camera_.setProjFlag(Camera::ProjFlag_Asymmetrical, asymmetrical);
+		_camera_.setProjFlag(Camera::ProjFlag_Infinite,     infinite);
+		_camera_.setProjFlag(Camera::ProjFlag_Reversed,     reversed);
 		
-		m_aspectRatio = fabs(m_right - m_left) / fabs(m_up - m_down);
-		m_projDirty = true;
+		_camera_.m_aspectRatio = abs(_camera_.m_right - _camera_.m_left) / abs(_camera_.m_up - _camera_.m_down);
+		_camera_.m_projDirty = true;
 
 		if (hasGpuBuffer) {
-			updateGpuBuffer();
+			_camera_.updateGpuBuffer();
 		}
 	}
 	return true;

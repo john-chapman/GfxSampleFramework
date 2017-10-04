@@ -5,7 +5,7 @@
 #include <frm/Spline.h>
 
 #include <apt/log.h>
-#include <apt/Json.h>
+#include <apt/Serializer.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
@@ -61,21 +61,25 @@ const XForm::Callback* XForm::FindCallback(OnComplete* _callback)
 	}
 	return nullptr;
 }
-bool XForm::SerializeCallback(const char* _name, OnComplete*& _callback, JsonSerializer& _serializer_)
+bool XForm::SerializeCallback(Serializer& _serializer_, OnComplete*& _callback, const char* _name)
 {
-	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-		String<64> tmp;
-		_serializer_.value(_name, (StringBase&)tmp);
-		const Callback* cbk = FindCallback(StringHash((const char*)tmp));
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
+		String<64> cbkName;
+		if (!Serialize(_serializer_, cbkName, _name)) {
+			return false;
+		}
+
+		const Callback* cbk = FindCallback(StringHash((const char*)cbkName));
 		if (cbk == nullptr) {
-			APT_LOG_ERR("XForm: Invalid callback '%s'", (const char*)tmp);
+			APT_LOG_ERR("XForm: Invalid callback '%s'", (const char*)cbkName);
 			_callback = nullptr;
 			return false;
 		}
 		_callback = cbk->m_callback;
 		return true;
 	} else {
-		return _serializer_.string(_name, const_cast<char*>(FindCallback(_callback)->m_name)) != 0;
+		String<64> cbkName = FindCallback(_callback)->m_name;
+		return Serialize(_serializer_, cbkName, _name);
 	}
 }
 
@@ -121,12 +125,13 @@ void XForm_PositionOrientationScale::edit()
 	ImGui::PopID();
 }
 
-bool XForm_PositionOrientationScale::serialize(JsonSerializer& _serializer_)
+bool XForm_PositionOrientationScale::serialize(Serializer& _serializer_)
 {
-	_serializer_.value("Position",     m_position);
-	_serializer_.value("Orientation",  (vec4&)m_orientation);
-	_serializer_.value("Scale",        m_scale);
-	return true;
+	bool ret = true;
+	ret &= Serialize(_serializer_, m_position,           "Position");
+	ret &= Serialize(_serializer_, (vec4&)m_orientation, "Orientation");
+	ret &= Serialize(_serializer_, m_scale,              "Scale");
+	return ret;
 }
 
 /*******************************************************************************
@@ -257,16 +262,17 @@ void XForm_FreeCamera::edit()
 	ImGui::PopID();
 }
 
-bool XForm_FreeCamera::serialize(JsonSerializer& _serializer_)
+bool XForm_FreeCamera::serialize(Serializer& _serializer_)
 {
-	_serializer_.value("Position",                m_position);
-	_serializer_.value("Orientation",             (vec4&)m_orientation);
-	_serializer_.value("MaxSpeed",                m_maxSpeed);
-	_serializer_.value("MaxSpeedMultiplier",      m_maxSpeedMul);
-	_serializer_.value("AccelerationTime",        m_accelTime);
-	_serializer_.value("RotationInputMultiplier", m_rotationInputMul);
-	_serializer_.value("RotationDamping",         m_rotationDamp);
-	return true;
+	bool ret = true;
+	ret &= Serialize(_serializer_, m_position,           "Position");
+	ret &= Serialize(_serializer_, (vec4&)m_orientation, "Orientation");
+	ret &= Serialize(_serializer_, m_maxSpeed,           "MaxSpeed");
+	ret &= Serialize(_serializer_, m_maxSpeedMul,        "MaxSpeedMultiplier");
+	ret &= Serialize(_serializer_, m_accelTime,          "AccelerationTime");
+	ret &= Serialize(_serializer_, m_rotationInputMul,   "RotationInputMultiplier");
+	ret &= Serialize(_serializer_, m_rotationDamp,       "RotationDamping");
+	return ret;
 }
 
 /*******************************************************************************
@@ -317,11 +323,12 @@ void XForm_LookAt::edit()
 	ImGui::PopID();
 }
 
-bool XForm_LookAt::serialize(JsonSerializer& _serializer_)
+bool XForm_LookAt::serialize(Serializer& _serializer_)
 {
-	_serializer_.value("Offset",   m_offset);
-	_serializer_.value("TargetId", m_targetId);
-	return true;
+	bool ret = true;
+	ret &= Serialize(_serializer_, m_offset,   "Offset");
+	ret &= Serialize(_serializer_, m_targetId, "TargetId");
+	return ret;
 }
 
 /*******************************************************************************
@@ -368,11 +375,12 @@ void XForm_Spin::edit()
 	Im3d::PopDrawState();
 }
 
-bool XForm_Spin::serialize(JsonSerializer& _serializer_)
+bool XForm_Spin::serialize(Serializer& _serializer_)
 {
-	_serializer_.value("Axis", m_axis);
-	_serializer_.value("Rate", m_rate);
-	return true;
+	bool ret = true;
+	ret &= Serialize(_serializer_, m_axis, "Axis");
+	ret &= Serialize(_serializer_, m_rate, "Rate");
+	return ret;
 }
 
 /*******************************************************************************
@@ -440,12 +448,14 @@ void XForm_PositionTarget::edit()
 	ImGui::PopID();
 }
 
-bool XForm_PositionTarget::serialize(JsonSerializer& _serializer_)
+bool XForm_PositionTarget::serialize(Serializer& _serializer_)
 {
-	_serializer_.value("Start",     m_start);
-	_serializer_.value("End",       m_end);
-	_serializer_.value("Duration",  m_duration);
-	return SerializeCallback("OnComplete", m_onComplete, _serializer_);
+	bool ret = true;
+	ret &= Serialize(_serializer_, m_start,    "Start");
+	ret &= Serialize(_serializer_, m_end,      "End");
+	ret &= Serialize(_serializer_, m_duration, "Duration");
+	ret &= SerializeCallback(_serializer_, m_onComplete, "OnComplete");
+	return ret;
 }
 
 void XForm_PositionTarget::reset()
@@ -511,10 +521,12 @@ void XForm_SplinePath::edit()
 	ImGui::PopID();
 }
 
-bool XForm_SplinePath::serialize(JsonSerializer& _serializer_)
+bool XForm_SplinePath::serialize(Serializer& _serializer_)
 {
-	_serializer_.value("Duration",  m_duration);
-	return SerializeCallback("OnComplete", m_onComplete, _serializer_);
+	bool ret = true;
+	ret &= Serialize(_serializer_, m_duration, "Duration");
+	ret &= SerializeCallback(_serializer_, m_onComplete, "OnComplete");
+	return ret;
 }
 
 void XForm_SplinePath::reset()
@@ -606,14 +618,15 @@ void XForm_OrbitalPath::edit()
 	ImGui::PopID();
 }
 
-bool XForm_OrbitalPath::serialize(JsonSerializer& _serializer_)
+bool XForm_OrbitalPath::serialize(Serializer& _serializer_)
 {
-	_serializer_.value("Azimuth",   m_azimuth);
-	_serializer_.value("Elevation", m_elevation);
-	_serializer_.value("Theta",     m_theta);
-	_serializer_.value("Radius",    m_radius);
-	_serializer_.value("Speed",     m_speed);
-	return true;
+	bool ret = true;
+	ret &= Serialize(_serializer_, m_azimuth,   "Azimuth");
+	ret &= Serialize(_serializer_, m_elevation, "Elevation");
+	ret &= Serialize(_serializer_, m_theta,     "Theta");
+	ret &= Serialize(_serializer_, m_radius,    "Radius");
+	ret &= Serialize(_serializer_, m_speed,     "Speed");
+	return ret;
 }
 
 void XForm_OrbitalPath::reset()
@@ -712,16 +725,17 @@ struct XForm_VRGamepad: public XForm
 	{
 	}
 
-	bool serialize(JsonSerializer& _serializer_)
+	bool serialize(Serializer& _serializer_)
 	{
-		_serializer_.value("Position",                m_position);
-		_serializer_.value("Orientation",             (vec4&)m_orientation);
-		_serializer_.value("MaxSpeed",                m_maxSpeed);
-		_serializer_.value("MaxSpeedMultiplier",      m_maxSpeedMul);
-		_serializer_.value("AccelerationTime",        m_accelTime);
-		_serializer_.value("RotationInputMultiplier", m_rotationInputMul);
-		_serializer_.value("RotationDamping",         m_rotationDamp);
-		return true;
+		bool ret = true;
+		ret &= Serialize(_serializer_, m_position,           "Position");
+		ret &= Serialize(_serializer_, (vec4&)m_orientation, "Orientation");
+		ret &= Serialize(_serializer_, m_maxSpeed,           "MaxSpeed");
+		ret &= Serialize(_serializer_, m_maxSpeedMul,        "MaxSpeedMultiplier");
+		ret &= Serialize(_serializer_, m_accelTime,          "AccelerationTime");
+		ret &= Serialize(_serializer_, m_rotationInputMul,   "RotationInputMultiplier");
+		ret &= Serialize(_serializer_, m_rotationDamp,       "RotationDamping");
+		return ret;
 	}
 
 }; // struct XForm_VRGamepad

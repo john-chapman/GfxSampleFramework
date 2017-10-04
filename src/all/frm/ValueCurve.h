@@ -71,7 +71,8 @@ class ValueBezier
 	float wrap(float _t) const;
 	int   findSegmentStart(float _t) const;
 	void  copyValueAndTangent(const Endpoint& _src, Endpoint& dst_);
-	bool  serialize(apt::JsonSerializer& _serializer_);
+	
+	friend bool Serialize(apt::Serializer& _serializer_, ValueBezier& _curve_);
 
 	ValueBezier();
 
@@ -106,7 +107,7 @@ public:
 		
 	float sample(float _t) const;
 
-	bool serialize(apt::JsonSerializer& _serializer_);
+	friend bool Serialize(apt::Serializer& _serializer_, ValueCurve& _curve_);
 
 	const vec2& getMin() const     { return m_min;   }
 	const vec2& getMax() const     { return m_max;   }

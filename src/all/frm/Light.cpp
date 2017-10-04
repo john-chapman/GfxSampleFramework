@@ -1,6 +1,6 @@
 #include <frm/Light.h>
 
-#include <apt/Json.h>
+#include <apt/Serializer.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
@@ -19,7 +19,7 @@ Light::~Light()
 {
 }
 
-bool Light::serialize(JsonSerializer& _serializer_)
+bool frm::Serialize(Serializer& _serializer_, Light& _light_)
 {
  // note that the parent node doesn't get written here - the scene serializes the Light params *within* a node so it's not required
 	//_serializer_.value("Up",          m_up);

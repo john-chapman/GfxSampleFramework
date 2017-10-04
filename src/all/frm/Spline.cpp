@@ -3,7 +3,7 @@
 #include <frm/interpolation.h>
 #include <frm/math.h>
 
-#include <apt/Json.h>
+#include <apt/Serializer.h>
 #include <apt/Time.h>
 
 #include <imgui/imgui.h>
@@ -110,26 +110,27 @@ void SplinePath::edit()
 	Im3d::PopDrawState();
 }
 
-bool SplinePath::serialize(JsonSerializer& _serializer_)
+bool frm::Serialize(Serializer& _serializer_, SplinePath& _splinePath_)
 {
-	if (_serializer_.beginArray("Raw")) {
-		if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-			m_raw.clear();
-			m_raw.reserve(_serializer_.getArrayLength());
+	uint rawSize = _splinePath_.m_raw.size();
+	if (_serializer_.beginArray(rawSize, "Raw")) {
+		if (_serializer_.getMode() == Serializer::Mode_Read) {
+			_splinePath_.m_raw.clear();
+			_splinePath_.m_raw.reserve(rawSize);
 			vec3 p;
 			while (_serializer_.value(p)) {
-				m_raw.push_back(p);
+				_splinePath_.m_raw.push_back(p);
 			}
 		} else {
-			for (auto& p : m_raw) {
+			for (auto& p : _splinePath_.m_raw) {
 				_serializer_.value(p);
 			}
 		}
 		_serializer_.endArray();
 	}
 
-	if (_serializer_.getMode() == JsonSerializer::Mode_Read) {
-		build();
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
+		_splinePath_.build();
 	}
 	return true;
 }

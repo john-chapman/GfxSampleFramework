@@ -28,7 +28,7 @@ public:
 	Light& operator=(Light&& _rhs);
 	friend void swap(Light& _a_, Light& _b_);*/
 
-	bool serialize(apt::JsonSerializer& _serializer_);
+	friend bool Serialize(apt::Serializer& _serializer_, Light& _light_);
 	void edit();
 	
 	Node*   m_parent;
