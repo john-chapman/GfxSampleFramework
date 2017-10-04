@@ -33,7 +33,7 @@ public:
 	void build();
 
 	void edit();
-	bool serialize(apt::JsonSerializer& _serializer_);
+	friend bool Serialize(apt::Serializer& _serializer_, SplinePath& _splinePath_);
 
 	float getLength() const { return m_length; }
 
