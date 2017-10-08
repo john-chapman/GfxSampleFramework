@@ -258,7 +258,7 @@ bool Scene::Load(const char* _path, Scene& scene_)
 	if (!Json::Read(json, _path)) {
 		return false;
 	}
-	SerializerJson serializer(&json, SerializerJson::Mode_Read);
+	SerializerJson serializer(json, SerializerJson::Mode_Read);
 	Scene newScene;
 	
 	if (!Serialize(serializer, newScene)) {
@@ -272,7 +272,7 @@ bool Scene::Save(const char* _path, Scene& _scene)
 {
 	APT_LOG("Saving scene to '%s'", _path);
 	Json json;
-	SerializerJson serializer(&json, SerializerJson::Mode_Write);
+	SerializerJson serializer(json, SerializerJson::Mode_Write);
 	if (!Serialize(serializer, _scene)) {
 		return false;
 	}

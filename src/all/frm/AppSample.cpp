@@ -348,7 +348,7 @@ bool AppSample::readProps(const char* _path, apt::FileSystem::RootType _rootHint
 {
 	Json json;
 	if (Json::Read(json, _path, _rootHint)) {
-		SerializerJson serializer(&json, SerializerJson::Mode_Read);
+		SerializerJson serializer(json, SerializerJson::Mode_Read);
 		return Serialize(serializer, m_props);
 	}
 	return false;
@@ -357,7 +357,7 @@ bool AppSample::readProps(const char* _path, apt::FileSystem::RootType _rootHint
 bool AppSample::writeProps(const char* _path, apt::FileSystem::RootType _rootHint)
 {
 	Json json;
-	SerializerJson serializer(&json, SerializerJson::Mode_Write);
+	SerializerJson serializer(json, SerializerJson::Mode_Write);
 	if (!Serialize(serializer, m_props)) {
 		return false;
 	}
