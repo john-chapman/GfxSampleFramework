@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="extern">
@@ -149,6 +149,7 @@
     <ClInclude Include="..\..\src\all\frm\AppSample3d.h" />
     <ClInclude Include="..\..\src\all\frm\Buffer.h" />
     <ClInclude Include="..\..\src\all\frm\Camera.h" />
+    <ClInclude Include="..\..\src\all\frm\Curve.h" />
     <ClInclude Include="..\..\src\all\frm\Framebuffer.h" />
     <ClInclude Include="..\..\src\all\frm\GlContext.h" />
     <ClInclude Include="..\..\src\all\frm\Input.h" />
@@ -302,6 +303,7 @@
     <ClCompile Include="..\..\src\all\frm\AppSample3d.cpp" />
     <ClCompile Include="..\..\src\all\frm\Buffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\Camera.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Curve.cpp" />
     <ClCompile Include="..\..\src\all\frm\Framebuffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\GlContext.cpp" />
     <ClCompile Include="..\..\src\all\frm\Input.cpp" />

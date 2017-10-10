@@ -23,13 +23,20 @@ namespace frm {
 // is necessary to ensure a 1:1 maping between the curve input and output (loops
 // are prohibited).
 //
-// \todo Better tangent estimation on insert().
-// \todo Allow decoupled CPs (to create cusps).
+// \todo Allow unlocked CPs (e.g. to create cusps).
 ////////////////////////////////////////////////////////////////////////////////
 class Curve
 {
 public:
-	typedef int EndpointId;
+	typedef int Index;
+
+	enum Wrap
+	{
+		Wrap_Clamp,
+		Wrap_Repeat,
+
+		Wrap_Count
+	};
 
 	enum Component
 	{
@@ -47,20 +54,36 @@ public:
 		vec2 m_out;
 
 		vec2& operator[](Component _component) { return (&m_in)[_component]; }
+		vec2& operator[](int _component)       { return (&m_in)[_component]; }
 	};
 
+	Curve()  {}
+	~Curve() {}
+
 	// Insert a new endpoint with the given value, return its index.
-	EndpointId insert(const vec2& _value);
+	Index insert(const Endpoint& _endpoint);
 
 	// Move the specified component on endpoint by setting its value, return the new index.
-	EndpointId move(EndpointId _endpoint, Component _component, const vec2& _value);
+	Index move(Index _endpoint, Component _component, const vec2& _value);
 
 	// Erase the specified endpoint.
-	void       erase(EndpointId _endpoint);
+	void  erase(Index _endpoint);
+
+	// Apply the wrap mode to _t.
+	float wrap(float _t) const;
+
+	Endpoint&       operator[](Index _i)       { APT_ASSERT(_i < (Index)m_endpoints.size()); return m_endpoints[_i]; }
+	const Endpoint& operator[](Index _i) const { APT_ASSERT(_i < (Index)m_endpoints.size()); return m_endpoints[_i]; }
 
 private:
 	eastl::vector<Endpoint> m_endpoints;
 	vec2 m_endpointMin, m_endpointMax; // endpoint bounding box, including CPs
+	vec2 m_valueMin, m_valueMax;       // endpoint bounding box, excluding CPs
+	Wrap m_wrap;
+
+	Index findSegmentStart(float _t) const;
+	void  updateExtentsAndConstrain(Index _modified); // applies additional constraints, e.g. synchronize endpoints if Wrap_Repeat
+	void  copyValueAndTangent(const Endpoint& _src, Endpoint& dst_);
 
 }; // class Curve
 
