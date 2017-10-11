@@ -4,6 +4,7 @@
 #include <frm/gl.h>
 #include <frm/AppSample3d.h>
 #include <frm/Buffer.h>
+#include <frm/Curve.h>
 #include <frm/Framebuffer.h>
 #include <frm/GlContext.h>
 #include <frm/Input.h>
@@ -87,16 +88,17 @@ public:
 			return false;
 		}
 
-		static vec3 euler = vec3(0.0f, 0.0f, 0.0f);
-		mat4 rm = mat4(FromEulerXYZ(euler));
-		if (Im3d::Gizmo("RotationTest", (float*)&rm)) {
-			euler = ToEulerXYZ(mat3(rm));
-		}
-		rm = mat4(FromEulerXYZ(euler));
-		ImGui::Text("Euler: %1.0f, %1.0f, %1.0f", degrees(euler.x), degrees(euler.y), degrees(euler.z));
-		Im3d::PushMatrix(rm);
-			Im3d::DrawAlignedBox(vec3(-2.0f), vec3(2.0f));
-		Im3d::PopMatrix();
+		static ValueCurveEditor curveEditor;
+		ImGui::Begin("Curve Editor (old)");
+			curveEditor.draw(0.0f);
+		ImGui::End();
+
+		static Curve curve;
+		ImGui::Begin("Curve Editor (new)");
+			static vec2 curveSize = vec2(-1.0f);
+			ImGui::SliderFloat2("Window Size", &curveSize.x, -1.0f, 512.0f);
+			curve.edit(curveSize, 0.0f, Curve::EditFlags_Default);
+		ImGui::End();
 
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
 		if (ImGui::TreeNode("Intersection")) {
