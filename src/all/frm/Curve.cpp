@@ -10,7 +10,7 @@
 using namespace frm;
 using namespace apt;
 
-#define Curve_DEBUG 1
+#define Curve_DEBUG 0
 
 // PUBLIC
 
@@ -225,7 +225,6 @@ bool Curve::edit(const vec2& _sizePixels, float _t, EditFlags _flags)
 		 // zoom X (time)
 			zoom.x += (io.MouseWheel * m_regionSize.x * 0.1f);
 		}
-
 		if (checkEditFlag(EditFlags_ShowRuler)) {
 		 // zoom X/Y via ruler drag
 			if (!m_isDragging && io.MouseDown[2] && isInside(mousePos, m_windowBeg, vec2(m_windowEnd.x, m_windowBeg.y + kSizeRuler))) {
@@ -463,14 +462,28 @@ bool Curve::editCurve()
 		if (io.MouseDown[0] && io.MouseDownDuration[0]) {
 		 // point is being dragged
 			vec2 newPos = windowToCurve(mousePos + m_dragOffset);				
+
+			if (m_dragComponent == Component_Value) {
+			 // dragging component, display X Y value
+				if (io.MouseDownDuration[0] > 0.1f) {
+					ImGui::BeginTooltip();
+						ImGui::Text("X %1.3f, Y %1.3f", m_endpoints[m_selectedEndpoint].m_value.x, m_endpoints[m_selectedEndpoint].m_value.y);
+					ImGui::EndTooltip();
+				}
+			} else {
+			 // dragging endpoint, constrain to X/Y axis if ctrl pressed
+				if (io.KeyCtrl) {
+					vec2 delta = normalize(mousePos - curveToWindow(m_endpoints[m_selectedEndpoint].m_value));
+					if (abs(delta.y) > 0.5f) {
+						newPos.x = m_endpoints[m_selectedEndpoint].m_value.x;
+					} else {
+						newPos.y = m_endpoints[m_selectedEndpoint].m_value.y;
+					}
+				}
+			}
+
 			m_selectedEndpoint = m_dragEndpoint = move(m_dragEndpoint, (Component)m_dragComponent, newPos);
 			ImGui::CaptureMouseFromApp();
-
-			if (m_dragComponent == Component_Value && io.MouseDownDuration[0] > 0.1f) {
-				ImGui::BeginTooltip();
-					ImGui::Text("%1.3f, %1.3f", m_endpoints[m_selectedEndpoint].m_value.x, m_endpoints[m_selectedEndpoint].m_value.y);
-				ImGui::EndTooltip();
-			}
 
 		} else {
 		 // mouse just released

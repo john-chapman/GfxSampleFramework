@@ -97,6 +97,7 @@ public:
 		ImGui::Begin("Curve Editor (new)");
 			static vec2 curveSize = vec2(-1.0f);
 			ImGui::SliderFloat2("Window Size", &curveSize.x, -1.0f, 512.0f);
+			//curve.setValueConstraint(vec2(0.0f), vec2(1.0f));
 			curve.edit(curveSize, 0.0f, Curve::EditFlags_Default);
 		ImGui::End();
 
