@@ -1,5 +1,6 @@
 #include <frm/Curve.h>
 
+#include <frm/icon_fa.h>
 #include <frm/Input.h>
 
 #include <apt/String.h>
@@ -17,10 +18,13 @@ Curve::Curve()
 	: m_regionBeg(0.0f)
 	, m_regionEnd(1.0f)
 	, m_regionSize(1.0f)
+	, m_constrainMin(FLT_MIN)
+	, m_constrainMax(FLT_MAX)
 	, m_selectedEndpoint(kInvalidIndex)
 	, m_dragEndpoint(kInvalidIndex)
 	, m_dragComponent(-1)
 	, m_dragOffset(0.0f)
+	, m_dragRuler(false)
 	, m_editEndpoint(false)
 	, m_isDragging(false)
 	, m_editFlags(EditFlags_Default)
@@ -133,11 +137,20 @@ float Curve::wrap(float _t) const
 	return ret;
 }
 
+void Curve::setValueConstraint(const vec2& _min, const vec2& _max)
+{
+	m_constrainMin = _min; 
+	m_constrainMax = _max;
+
+	m_regionBeg = _min - vec2(0.1f);
+	m_regionSize = (_max - _min) + vec2(0.2f);
+}
+
 static const ImU32 kColorBorder          = ImColor(0xdba0a0a0);
 static const ImU32 kColorBackground      = ImColor(0x55191919);
 static const ImU32 kColorRuler           = ImColor(0x66050505);
 static const ImU32 kColorRulerLabel      = ImColor(0xff555555);
-static const ImU32 kColorCurveBackground = ImColor(0x11a0a0a0);
+static const ImU32 kColorCurveHighlight  = ImColor(0x06a0a0aa);
 static const ImU32 kColorGridLine        = ImColor(0x11a0a0a0);
 static const ImU32 kColorGridLabel       = ImColor(0xdba9a9a9);
 static const ImU32 kColorZeroAxis        = ImColor(0x22d6d6d6);
@@ -182,7 +195,7 @@ bool Curve::edit(const vec2& _sizePixels, float _t, EditFlags _flags)
 		ImGui::SetWindowFocus();
 	}
 
- // manage zoom/pan
+ // zoom/pan
 	if (m_isDragging || (windowActive && mouseInWindow)) {
 		if (io.KeyCtrl) {
 		 // zoom Y (value)
@@ -203,8 +216,42 @@ bool Curve::edit(const vec2& _sizePixels, float _t, EditFlags _flags)
 			m_regionBeg.x += (before - after);
 
 		}
+		
+		vec2 zoom = vec2(0.0f);
+		if (io.KeyCtrl) {
+		 // zoom Y (value)
+			zoom.y += (io.MouseWheel * m_regionSize.y * 0.1f);
+		} else {
+		 // zoom X (time)
+			zoom.x += (io.MouseWheel * m_regionSize.x * 0.1f);
+		}
+
+		if (checkEditFlag(EditFlags_ShowRuler)) {
+		 // zoom X/Y via ruler drag
+			if (!m_isDragging && io.MouseDown[2] && isInside(mousePos, m_windowBeg, vec2(m_windowEnd.x, m_windowBeg.y + kSizeRuler))) {
+				m_dragRuler.x = true;
+			}
+			if (!m_isDragging && io.MouseDown[2] && isInside(mousePos, m_windowBeg, vec2(m_windowBeg.x + kSizeRuler, m_windowEnd.y))) {
+				m_dragRuler.y = true;
+			}
+			if (m_dragRuler.x) {
+				m_dragRuler.x = io.MouseDown[2];
+				zoom.x += io.MouseDelta.x * m_regionSize.x * 0.03f;
+			}
+			if (m_dragRuler.y) {
+				m_dragRuler.y = io.MouseDown[2];
+				zoom.y += io.MouseDelta.y * m_regionSize.y * 0.03f;
+			}
+		}
+
+		vec2 before = (vec2(io.MousePos) - vec2(ImGui::GetWindowPos())) / m_windowSize * m_regionSize;
+		m_regionSize.x = max(m_regionSize.x - zoom.x, 0.1f);
+		m_regionSize.y = max(m_regionSize.y - zoom.y, 0.1f);
+		vec2 after = (vec2(io.MousePos) - vec2(ImGui::GetWindowPos())) / m_windowSize * m_regionSize;
+		m_regionBeg += (before - after);
+
 	 // pan
-		if (io.MouseDown[2]) {
+		if (!any(m_dragRuler) && io.MouseDown[2]) {
 			vec2 delta = vec2(io.MouseDelta) / m_windowSize * m_regionSize;
 			delta.y = -delta.y;
 			m_regionBeg -= delta;
@@ -232,6 +279,18 @@ bool Curve::edit(const vec2& _sizePixels, float _t, EditFlags _flags)
 		}
 	ImGui::PopClipRect();
 
+	if (!m_editEndpoint && mouseInWindow && windowActive && io.MouseClicked[1]) {
+		ImGui::OpenPopup("CurveEditorPopup");
+	}
+	if (ImGui::BeginPopup("CurveEditorPopup")) {
+		if (ImGui::MenuItem("Fit")) {
+			fit(0);
+			fit(1);
+		}
+
+		ImGui::EndPopup();
+	}
+
 	return ret;
 }
 
@@ -256,8 +315,17 @@ void Curve::updateExtentsAndConstrain(Index _endpoint)
 	m_valueMin = m_endpointMin = vec2(FLT_MAX);
 	m_valueMax = m_endpointMax = vec2(-FLT_MAX);
 	for (auto& ep : m_endpoints) {
+	 // constrain value points inside constraint region
+		vec2 inDelta = ep.m_in - ep.m_value;
+		vec2 outDelta = ep.m_out - ep.m_value;
+		ep.m_value = min(max(ep.m_value, m_constrainMin), m_constrainMax);
+		ep.m_in = ep.m_value + inDelta;
+		ep.m_out = ep.m_value + outDelta;
+	 // constrain control points
+		// \todo		
+
 		m_valueMin = min(m_valueMin, ep.m_value);
-		m_valueMax = min(m_valueMax, ep.m_value);
+		m_valueMax = max(m_valueMax, ep.m_value);
 		for (int i = 0; i < Component_Count; ++i) {
 			m_endpointMin = min(m_endpointMin, ep[i]);
 			m_endpointMax = max(m_endpointMax, ep[i]);
@@ -281,9 +349,45 @@ void Curve::copyValueAndTangent(const Endpoint& _src, Endpoint& dst_)
 	dst_.m_out = dst_.m_value + (_src.m_out - _src.m_value);
 }
 
+void Curve::constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1)
+{
+ // \todo simple linear algebra solution? This is a ray-plane intersection
+	vec2 ret = _cp_;
+	if (ret.x < _x0) {
+		vec2 v, n;
+		float vlen, t;
+		v = _cp_ - _vp;
+		vlen = length(v);
+		v = v / vlen;
+		n = vec2(1.0f, 0.0f);
+		t = dot(n, n * _x0 - _vp.x) / dot(n, v);
+		vlen = min(vlen, t > 0.0f ? t : vlen);
+		ret = _vp + v * vlen;
+
+	} else if (ret.x > _x1) {
+		vec2 v, n;
+		float vlen, t;
+		v = _cp_ - _vp;
+		vlen = length(v);
+		v = v / vlen;
+		n = vec2(1.0f, 0.0f);
+		t = dot(n, n * _x1 - _vp.x) / dot(n, v);
+		vlen = min(vlen, t > 0.0f ? t : vlen);
+		ret = _vp + v * vlen;
+
+	}
+	_cp_ = ret;
+}
+
+
 bool Curve::isInside(const vec2& _point, const vec2& _min, const vec2& _max)
 {
 	return _point.x > _min.x && _point.x < _max.x && _point.y > _min.y && _point.y < _max.y;
+}
+
+bool Curve::isInside(const vec2& _point, const vec2& _origin, float _radius)
+{
+	return distance2(_point, _origin) < (_radius * _radius);
 }
 
 vec2 Curve::curveToRegion(const vec2& _pos)
@@ -308,6 +412,12 @@ vec2 Curve::regionToCurve(const vec2& _pos)
 vec2 Curve::windowToCurve(const vec2& _pos)
 {
 	return regionToCurve((_pos - m_windowBeg) / m_windowSize);
+}
+
+void Curve::fit(int _dim)
+{
+	m_regionBeg[_dim] = m_endpointMin[_dim] - 0.1f;
+	m_regionSize[_dim] = (m_endpointMax[_dim] - m_regionBeg[_dim]) + 0.1f;
 }
 
 bool Curve::editCurve()
@@ -335,7 +445,7 @@ bool Curve::editCurve()
 					}
 					continue;
 				}
-				if (length(mousePos - p) < kSizeSelectPoint) {
+				if (isInside(mousePos, p, kSizeSelectPoint)) {
 					m_dragOffset = p - mousePos;
 					m_selectedEndpoint = m_dragEndpoint = i;
 					m_dragComponent = j;
@@ -383,38 +493,52 @@ bool Curve::editCurve()
 	}
 
 	if (m_selectedEndpoint != kInvalidIndex) {
+		bool deleteEndpoint = false;
+
 		if (ImGui::IsKeyPressed(Keyboard::Key_Delete)) {
+			deleteEndpoint = true;
+
+		} else {
+			ImGui::PushID(&m_endpoints[m_selectedEndpoint]);
+				if (!m_editEndpoint && io.MouseClicked[1] && isInside(mousePos, curveToWindow(m_endpoints[m_selectedEndpoint].m_value), kSizeSelectPoint)) {
+					m_editEndpoint = true;
+					m_dragOffset = io.MousePos; // store the mouse pos for window positioning
+				}
+				if (m_editEndpoint) {
+					ImGui::SetNextWindowPos(m_dragOffset);
+					ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetStyleColorVec4(ImGuiCol_PopupBg));
+					ImGui::Begin("EndpointEdit", nullptr,
+						ImGuiWindowFlags_NoTitleBar |
+						ImGuiWindowFlags_AlwaysAutoResize |
+						ImGuiWindowFlags_NoSavedSettings
+						);
+						vec2 p = m_endpoints[m_selectedEndpoint].m_value;
+						ImGui::PushItemWidth(128.0f);
+						ret |= ImGui::DragFloat("X", &p.x, m_regionSize.x * 0.01f);
+						ImGui::SameLine();
+						ret |= ImGui::DragFloat("Y", &p.y, m_regionSize.y * 0.01f);
+						m_selectedEndpoint = move(m_selectedEndpoint, Component_Value, p);
+						ImGui::PopItemWidth();
+						
+						if (ImGui::Button("Delete")) {
+							deleteEndpoint = true;
+							m_editEndpoint = false;
+						}
+
+						if (!ImGui::IsWindowFocused()) {
+							m_editEndpoint = false;
+						}
+					ImGui::End();
+					ImGui::PopStyleColor();
+				}
+			ImGui::PopID();
+		}
+
+		if (deleteEndpoint) {
 			erase(m_selectedEndpoint);
 			m_selectedEndpoint = kInvalidIndex;
 			ret = true;
 		}
-
-		ImGui::PushID(&m_endpoints[m_selectedEndpoint]);
-			if (!m_editEndpoint && io.MouseClicked[1]) {
-				m_editEndpoint = true;
-				m_dragOffset = io.MousePos; // store the mouse pos for window positioning
-			}
-			if (m_editEndpoint) {
-				ImGui::SetNextWindowPos(m_dragOffset);
-				ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetStyleColorVec4(ImGuiCol_PopupBg));
-				ImGui::Begin("EndpointEdit", nullptr,
-					ImGuiWindowFlags_NoTitleBar |
-					ImGuiWindowFlags_AlwaysAutoResize |
-					ImGuiWindowFlags_NoSavedSettings
-					);
-					vec2 p = m_endpoints[m_selectedEndpoint].m_value;
-					ret |= ImGui::DragFloat("X", &p.x, m_regionSize.x * 0.01f);
-					ImGui::SameLine();
-					ret |= ImGui::DragFloat("Y", &p.y, m_regionSize.y * 0.01f);
-					m_selectedEndpoint = move(m_selectedEndpoint, Component_Value, p);
-					
-					if (!ImGui::IsWindowFocused()) {
-						m_editEndpoint = false;
-					}
-				ImGui::End();
-				ImGui::PopStyleColor();
-			}
-		ImGui::PopID();
 	}
 
 	return ret;
@@ -427,14 +551,15 @@ void Curve::drawBackground()
 	drawList.AddRectFilled(m_windowBeg, m_windowEnd, kColorBackground);
 	drawList.AddRect(m_windowBeg, m_windowEnd, kColorBorder);
 
- // curve region bacground
+ // curve region highlight
 	if (checkEditFlag(EditFlags_ShowHighlight)) {
-	/*if (m_curve.m_endpoints.size() > 1) {
-		vec2 curveMin = curveToWindow(m_curve.m_min);
-		vec2 curveMax = curveToWindow(m_curve.m_max);
-		drawList.AddRectFilled(vec2(curveMin.x, m_windowBeg.y), vec2(curveMax.x, m_windowEnd.y), kColorCurveBackground);
-		drawList.AddRectFilled(vec2(m_windowBeg.x, curveMin.y), vec2(m_windowEnd.x, curveMax.y), kColorCurveBackground);
-	}*/
+		if (m_endpoints.size() > 1) {
+			vec2 curveMin = curveToWindow(m_valueMin);
+			vec2 curveMax = curveToWindow(m_valueMax);
+			drawList.AddRectFilled(vec2(curveMin.x, m_windowBeg.y), vec2(curveMax.x, m_windowEnd.y), kColorCurveHighlight);
+			drawList.AddRectFilled(vec2(m_windowBeg.x, curveMin.y), vec2(m_windowEnd.x, curveMax.y), kColorCurveHighlight);
+			drawList.AddRect(curveMin, curveMax, kColorCurveHighlight);
+		}
 	}
 }
 
@@ -469,7 +594,7 @@ void Curve::drawGrid()
 		}
 	}
 
- // zero axis
+ // zero axis/constraint region
 	vec2 zero = floor(curveToWindow(vec2(0.0f)));
 	if (zero.x > m_windowBeg.x && zero.x < m_windowEnd.x) {
 		drawList.AddLine(vec2(zero.x, m_windowBeg.y), vec2(zero.x, m_windowEnd.y), kColorZeroAxis);
@@ -477,6 +602,7 @@ void Curve::drawGrid()
 	if (zero.y > m_windowBeg.y && zero.y < m_windowEnd.y) {
 		drawList.AddLine(vec2(m_windowBeg.x, zero.y), vec2(m_windowEnd.x, zero.y), kColorZeroAxis);
 	}
+	drawList.AddRect(floor(curveToWindow(m_constrainMin)), floor(curveToWindow(m_constrainMax)), kColorZeroAxis);
 }
 
 void Curve::drawCurve()
@@ -536,17 +662,21 @@ ImU32 m_curveColor = IM_COL32_MAGENTA;
 		drawList->AddCircleFilled(pout, kSizeControlPoint, col, 8);
 		drawList->AddLine(pin, pout, col, 1.0f);
 
-	 // visualize CP constraint
-		//if (i > 0) {
-		//	posIn = ValueBezier::Constrain(ep.m_in, ep.m_val, bezier.m_endpoints[i - 1].m_val.x, ep.m_val.x);
-		//	posIn = curveToWindow(posIn);
-		//	drawList.AddCircleFilled(posIn, kSizeControlPoint, IM_COL32_YELLOW, 8);
-		//}
-		//if (i < n - 1) {
-		//	posOut = ValueBezier::Constrain(ep.m_out, ep.m_val, ep.m_val.x, bezier.m_endpoints[i + 1].m_val.x);
-		//	posOut = curveToWindow(posOut);
-		//	drawList.AddCircleFilled(posOut, kSizeControlPoint, IM_COL32_CYAN, 8);
-		//}
+		#if Curve_DEBUG
+		 // visualize CP constraint
+			if (i > 0) {
+				pin = ep.m_in;
+				constrainCp(pin, ep.m_value, m_endpoints[i - 1].m_value.x, ep.m_value.x);
+				pin = curveToWindow(pin);
+				drawList->AddCircleFilled(pin, kSizeControlPoint, IM_COL32_YELLOW, 8);
+			}
+			if (i < n - 1) {
+				pout = ep.m_out;
+				constrainCp(pout, ep.m_value, ep.m_value.x, m_endpoints[i + 1].m_value.x);
+				pout = curveToWindow(pout);
+				drawList->AddCircleFilled(pout, kSizeControlPoint, IM_COL32_CYAN, 8);
+			}
+		#endif
 	}
 }
 
@@ -626,9 +756,9 @@ void Curve::subdivide(const Endpoint& _p0, const Endpoint& _p1, float _maxError,
 	vec2 p2 = _p1.m_in;
 	vec2 p3 = _p1.m_value;
 
- // constrain control points on segment (prevent loops)
-	//p1 = ValueBezier::Constrain(p1, p0, p0.x, p3.x);
-	//p2 = ValueBezier::Constrain(p2, p3, p0.x, p3.x);
+ // constrain control point on segment (prevent loops)
+	constrainCp(p1, p0, p0.x, p3.x);
+	constrainCp(p2, p3, p0.x, p3.x);
 
  // http://antigrain.com/research/adaptive_bezier/ suggests a better error metric: use the height of CPs above the line p1.m_val - p0.m_val
 	vec2 q0 = mix(p0, p1, 0.5f);

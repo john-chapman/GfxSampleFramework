@@ -76,6 +76,7 @@ public:
 	Endpoint&       operator[](Index _i)       { APT_ASSERT(_i < (Index)m_endpoints.size()); return m_endpoints[_i]; }
 	const Endpoint& operator[](Index _i) const { APT_ASSERT(_i < (Index)m_endpoints.size()); return m_endpoints[_i]; }
 
+	void setValueConstraint(const vec2& _min, const vec2& _max);
 
 	enum EditFlags
 	{
@@ -93,13 +94,15 @@ public:
 
 private:
 	eastl::vector<Endpoint> m_endpoints;
-	vec2 m_endpointMin, m_endpointMax; // endpoint bounding box, including CPs
-	vec2 m_valueMin, m_valueMax;       // endpoint bounding box, excluding CPs
+	vec2 m_endpointMin, m_endpointMax;     // endpoint bounding box, including CPs
+	vec2 m_valueMin, m_valueMax;           // endpoint bounding box, excluding CPs
 	Wrap m_wrap;
+	vec2 m_constrainMin, m_constrainMax;   // limit endpoint values
 
 	Index findSegmentStart(float _t) const;
 	void  updateExtentsAndConstrain(Index _modified); // applies additional constraints, e.g. synchronize endpoints if Wrap_Repeat
 	void  copyValueAndTangent(const Endpoint& _src, Endpoint& dst_);
+	void  constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1); // move _cp_ towards _vp such that _x0 <= _cp_.x <= _x1
 
  // editor
 	vec2   m_windowBeg, m_windowEnd, m_windowSize;
@@ -108,16 +111,19 @@ private:
 	Index  m_dragEndpoint;
 	int    m_dragComponent;
 	vec2   m_dragOffset;
+	bvec2  m_dragRuler;
 	bool   m_editEndpoint;
 	bool   m_isDragging;
 	uint32 m_editFlags;
 
 	bool checkEditFlag(EditFlags _flag) { return (m_editFlags & _flag) != 0; }
 	bool isInside(const vec2& _point, const vec2& _min, const vec2& _max);
+	bool isInside(const vec2& _point, const vec2& _origin, float _radius);
 	vec2 curveToRegion(const vec2& _pos);
 	vec2 curveToWindow(const vec2& _pos);
 	vec2 regionToCurve(const vec2& _pos);
 	vec2 windowToCurve(const vec2& _pos);
+	void fit(int _dim);
 	bool editCurve();
 	void drawBackground();
 	void drawGrid();
