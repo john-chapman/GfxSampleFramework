@@ -6,6 +6,7 @@
 #include <apt/platform.h>
 #ifdef APT_PLATFORM_WIN
 	#include <apt/win.h> // SetCurrentDirectory
+	#include <apt/log.h>
 #endif
 #include <apt/ArgList.h>
 
