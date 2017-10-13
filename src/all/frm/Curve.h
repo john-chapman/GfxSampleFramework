@@ -6,6 +6,7 @@
 #include <frm/math.h>
 
 #include <EASTL/vector.h>
+#include <imgui/imgui.h>
 
 namespace frm {
 
@@ -27,6 +28,7 @@ namespace frm {
 ////////////////////////////////////////////////////////////////////////////////
 class Curve
 {
+	friend class CurveEditor;
 public:
 	typedef int Index;
 	static const Index kInvalidIndex = -1;
@@ -78,19 +80,7 @@ public:
 
 	void setValueConstraint(const vec2& _min, const vec2& _max);
 
-	enum EditFlags
-	{
-		EditFlags_None          = 0,
-		EditFlags_ShowGrid      = 1 << 0,  // Show the background grid.
-		EditFlags_ShowRuler     = 1 << 1,  // Show the edge ruler.
-		EditFlags_ShowHighlight = 1 << 2,  // Show curve bounding box highlight.
-		EditFlags_NoPan         = 1 << 3,  // Disable pan (middle click).
-		EditFlags_NoZoom        = 1 << 4,  // Disable zoom (mouse wheel).
-
-		EditFlags_Default = EditFlags_ShowGrid | EditFlags_ShowRuler | EditFlags_ShowHighlight
-	};
-
-	bool edit(const vec2& _sizePixels = vec2(-1.0f), float _t = 0.0f, EditFlags _flags = EditFlags_Default);
+	//bool edit(const vec2& _sizePixels = vec2(-1.0f), float _t = 0.0f, EditFlags _flags = EditFlags_Default);
 
 private:
 	eastl::vector<Endpoint> m_endpoints;
@@ -104,19 +94,48 @@ private:
 	void  copyValueAndTangent(const Endpoint& _src, Endpoint& dst_);
 	void  constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1); // move _cp_ towards _vp such that _x0 <= _cp_.x <= _x1
 
- // editor
-	vec2   m_windowBeg, m_windowEnd, m_windowSize;
-	vec2   m_regionBeg, m_regionEnd, m_regionSize;
-	Index  m_selectedEndpoint;
-	Index  m_dragEndpoint;
-	int    m_dragComponent;
-	vec2   m_dragOffset;
-	bvec2  m_dragRuler;
-	bool   m_editEndpoint;
-	bool   m_isDragging;
-	uint32 m_editFlags;
+}; // class Curve
 
-	bool checkEditFlag(EditFlags _flag) { return (m_editFlags & _flag) != 0; }
+////////////////////////////////////////////////////////////////////////////////
+// CurveEditor
+// Simultaneously edit one or more curves.
+////////////////////////////////////////////////////////////////////////////////
+class CurveEditor
+{
+public:
+	enum Flags
+	{
+		Flags_None          = 0,
+		Flags_ShowGrid      = 1 << 0,  // Show the background grid.
+		Flags_ShowRuler     = 1 << 1,  // Show the edge ruler.
+		Flags_ShowHighlight = 1 << 2,  // Show curve bounding box highlight.
+		Flags_NoPan         = 1 << 3,  // Disable pan (middle click).
+		Flags_NoZoom        = 1 << 4,  // Disable zoom (mouse wheel).
+
+		Flags_Default = Flags_ShowGrid | Flags_ShowRuler | Flags_ShowHighlight
+	};
+
+	CurveEditor();
+
+	void addCurve(Curve* _curve_, const ImColor& _color);
+
+	bool edit(const vec2& _sizePixels, float _t, Flags _flags);
+
+private:
+
+ // editor
+	vec2          m_windowBeg, m_windowEnd, m_windowSize;
+	vec2          m_regionBeg, m_regionEnd, m_regionSize;
+	Curve::Index  m_selectedEndpoint;
+	Curve::Index  m_dragEndpoint;
+	int           m_dragComponent;
+	vec2          m_dragOffset;
+	bvec2         m_dragRuler;
+	bool          m_editEndpoint;
+	bool          m_isDragging;
+	uint32        m_editFlags;
+
+	bool checkEditFlag(Flags _flag) { return (m_editFlags & _flag) != 0; }
 	bool isInside(const vec2& _point, const vec2& _min, const vec2& _max);
 	bool isInside(const vec2& _point, const vec2& _origin, float _radius);
 	vec2 curveToRegion(const vec2& _pos);
@@ -131,13 +150,17 @@ private:
 	void drawSampler(float _t);
 	void drawRuler();
 
- // piecewise linear approx (cached for draw)
-	eastl::vector<vec2> m_cache;
+ // curves, cache
+	typedef eastl::vector<vec2> Cache;
+	eastl::vector<Cache>  m_cache;  // piecewise linear approximations
+	eastl::vector<Curve*> m_curves;
+	eastl::vector<ImU32> m_curveColors;
+	int                   m_selectedCurve;
 
-	void updateCache();
-	void subdivide(const Endpoint& _p0, const Endpoint& _p1, float _maxError = 0.001f, int _limit = 64);
+	void updateCache(int _curveIndex);
+	void subdivide(int _curveIndex, const Curve::Endpoint& _p0, const Curve::Endpoint& _p1, float _maxError = 0.001f, int _limit = 64);
 
-}; // class Curve
+}; // class CurveEditor
 
 } // namespace frm
 
