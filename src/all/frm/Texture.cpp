@@ -495,10 +495,79 @@ Texture* Texture::Create(const Image& _img)
 	Texture* ret = new Texture(id, (const char*)name);
 	if (!ret->loadImage(_img)) {
 		ret->setState(State_Error);
-		return nullptr;
+		return ret;
 	}
 	Use(ret);
 	g_textureViewer.addTextureView(ret);
+	return ret;
+}
+
+Texture* Texture::Create(Texture* _tx, bool _copyData)
+{
+	Texture* ret = Create(_tx->m_target, _tx->m_width, _tx->m_height, _tx->m_depth, _tx->m_arrayCount, _tx->m_mipCount, _tx->m_format);
+	if (!_copyData) {
+		return ret;
+	}
+
+	Use(_tx);
+	APT_ASSERT(_tx->getState() == Texture::State_Loaded);
+	SCOPED_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
+	GLenum attachment = GL_COLOR_ATTACHMENT0;
+	switch (_tx->m_format) {
+		case GL_DEPTH_COMPONENT:
+		case GL_DEPTH_COMPONENT16:
+		case GL_DEPTH_COMPONENT24:
+		case GL_DEPTH_COMPONENT32F:
+			attachment = GL_DEPTH_ATTACHMENT;
+			break;
+		case GL_DEPTH_STENCIL:
+		case GL_DEPTH24_STENCIL8:
+		case GL_DEPTH32F_STENCIL8:
+			attachment = GL_DEPTH_STENCIL_ATTACHMENT;
+			break;
+		default:
+			attachment = GL_COLOR_ATTACHMENT0;
+			break;
+	};
+	APT_ASSERT(_tx->m_target != GL_TEXTURE_CUBE_MAP_ARRAY && _tx->m_target != GL_TEXTURE_CUBE_MAP); // \todo code below doesn't support cubemaps
+	GlContext* ctx = GlContext::GetCurrent();
+	Framebuffer* fbSrc = Framebuffer::Create(1, _tx);
+	const Framebuffer* fbRestore = ctx->getFramebuffer();
+	ctx->setFramebuffer(fbSrc); // required for glNamedFramebufferReadBuffer?
+	glAssert(glNamedFramebufferReadBuffer(fbSrc->getHandle(), attachment));
+	for (GLint mip = 0; mip < _tx->m_mipCount; ++mip) {
+		GLint w = APT_MAX(_tx->m_width  >> mip, 1);
+		GLint h = APT_MAX(_tx->m_height >> mip, 1);
+		GLint d = APT_MAX(_tx->m_depth  >> mip, 1);
+
+		switch (_tx->m_target) {
+			case GL_TEXTURE_3D:
+			case GL_TEXTURE_2D_ARRAY:
+			case GL_TEXTURE_1D_ARRAY:
+				for (GLint layer = 0; layer < APT_MAX(d, _tx->m_arrayCount); ++layer) {
+					fbSrc->attachLayer(_tx, attachment, layer, mip);
+					if (_tx->m_target == GL_TEXTURE_1D_ARRAY) {
+						glAssert(glCopyTextureSubImage2D(ret->getHandle(), mip, 0, layer, 0, 0, w, h));
+					} else {
+						glAssert(glCopyTextureSubImage3D(ret->getHandle(), mip, 0, 0, layer, 0, 0, w, h));
+					}
+				}
+				break;
+			case GL_TEXTURE_2D:
+				fbSrc->attach(_tx, attachment, mip);
+				glAssert(glCopyTextureSubImage2D(ret->getHandle(), mip, 0, 0, 0, 0, w, h));
+				break;
+			case GL_TEXTURE_1D:
+				fbSrc->attach(_tx, attachment, mip);
+				glAssert(glCopyTextureSubImage1D(ret->getHandle(), mip, 0, 0, 0, w));
+				break;
+			default:
+				APT_ASSERT(false);
+		};
+	}
+	ctx->setFramebuffer(fbRestore);
+	Framebuffer::Destroy(fbSrc);
+	Release(_tx);
 	return ret;
 }
 

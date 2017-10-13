@@ -50,21 +50,21 @@ Framebuffer* Framebuffer::Create(int _count, ...)
 	for (int i = 0; i < _count; ++i) {
 		Texture* tx = va_arg(args, Texture*);
 		switch (tx->getFormat()) {
-		case GL_DEPTH_COMPONENT:
-		case GL_DEPTH_COMPONENT16:
-		case GL_DEPTH_COMPONENT24:
-		case GL_DEPTH_COMPONENT32F:
-			ret->attachImpl(tx, GL_DEPTH_ATTACHMENT, 0);
-			break;
-		case GL_DEPTH_STENCIL:
-		case GL_DEPTH24_STENCIL8:
-		case GL_DEPTH32F_STENCIL8:
-			ret->attachImpl(tx, GL_DEPTH_STENCIL_ATTACHMENT, 0);
-			break;
-		default:
-			APT_ASSERT(kAttachmentEnums[colorCount] != GL_DEPTH_ATTACHMENT); // too many color attachments
-			ret->attachImpl(tx, kAttachmentEnums[colorCount++], 0);
-			break;
+			case GL_DEPTH_COMPONENT:
+			case GL_DEPTH_COMPONENT16:
+			case GL_DEPTH_COMPONENT24:
+			case GL_DEPTH_COMPONENT32F:
+				ret->attachImpl(tx, GL_DEPTH_ATTACHMENT, 0);
+				break;
+			case GL_DEPTH_STENCIL:
+			case GL_DEPTH24_STENCIL8:
+			case GL_DEPTH32F_STENCIL8:
+				ret->attachImpl(tx, GL_DEPTH_STENCIL_ATTACHMENT, 0);
+				break;
+			default:
+				APT_ASSERT(kAttachmentEnums[colorCount] != GL_DEPTH_ATTACHMENT); // too many color attachments
+				ret->attachImpl(tx, kAttachmentEnums[colorCount++], 0);
+				break;
 		};
 	}
 	va_end(args);
