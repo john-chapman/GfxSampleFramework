@@ -147,6 +147,7 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClInclude Include="..\..\src\all\frm\AppSample3d.h" />
     <ClInclude Include="..\..\src\all\frm\Buffer.h" />
     <ClInclude Include="..\..\src\all\frm\Camera.h" />
+    <ClInclude Include="..\..\src\all\frm\Curve.h" />
     <ClInclude Include="..\..\src\all\frm\Framebuffer.h" />
     <ClInclude Include="..\..\src\all\frm\GlContext.h" />
     <ClInclude Include="..\..\src\all\frm\Input.h" />
@@ -164,7 +165,6 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClInclude Include="..\..\src\all\frm\Spline.h" />
     <ClInclude Include="..\..\src\all\frm\Texture.h" />
     <ClInclude Include="..\..\src\all\frm\TextureAtlas.h" />
-    <ClInclude Include="..\..\src\all\frm\ValueCurve.h" />
     <ClInclude Include="..\..\src\all\frm\Window.h" />
     <ClInclude Include="..\..\src\all\frm\XForm.h" />
     <ClInclude Include="..\..\src\all\frm\def.h" />
@@ -220,6 +220,7 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClCompile Include="..\..\src\all\frm\AppSample3d.cpp" />
     <ClCompile Include="..\..\src\all\frm\Buffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\Camera.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Curve.cpp" />
     <ClCompile Include="..\..\src\all\frm\Framebuffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\GlContext.cpp" />
     <ClCompile Include="..\..\src\all\frm\Input.cpp" />
@@ -241,7 +242,6 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClCompile Include="..\..\src\all\frm\Spline.cpp" />
     <ClCompile Include="..\..\src\all\frm\Texture.cpp" />
     <ClCompile Include="..\..\src\all\frm\TextureAtlas.cpp" />
-    <ClCompile Include="..\..\src\all\frm\ValueCurve.cpp" />
     <ClCompile Include="..\..\src\all\frm\Window.cpp" />
     <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
     <ClCompile Include="..\..\src\all\frm\geom.cpp" />

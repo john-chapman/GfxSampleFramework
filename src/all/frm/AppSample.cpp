@@ -247,10 +247,10 @@ bool AppSample::update()
 	 // main menu
 		if (ImGui::BeginMainMenuBar()) {
 			if (ImGui::BeginMenu("Tools")) {
-				ImGui::MenuItem("Properties",     "Ctrl+Shift+P", m_showPropertyEditor);
-				ImGui::MenuItem("Profiler",       "Ctrl+1",       m_showProfilerViewer);
-				ImGui::MenuItem("Texture Viewer", "Ctrl+2",       m_showTextureViewer);
-				ImGui::MenuItem("Shader Viewer",  "Ctrl+3",       m_showShaderViewer);
+				if (ImGui::MenuItem("Properties",     nullptr,    m_showPropertyEditor)) m_showPropertyEditor = !m_showPropertyEditor;
+				if (ImGui::MenuItem("Profiler",       "Ctrl+1",   m_showProfilerViewer)) m_showProfilerViewer = !m_showProfilerViewer;
+				if (ImGui::MenuItem("Texture Viewer", "Ctrl+2",   m_showTextureViewer))  m_showTextureViewer  = !m_showTextureViewer;
+				if (ImGui::MenuItem("Shader Viewer",  "Ctrl+3",   m_showShaderViewer))   m_showShaderViewer   = !m_showShaderViewer;
 				
 				ImGui::EndMenu();
 			}
@@ -273,7 +273,7 @@ bool AppSample::update()
 	}
 
 	if (m_showPropertyEditor) {
-		ImGui::Begin("Properties");
+		ImGui::Begin("Properties", &m_showPropertyEditor);
 			m_props.edit();
 		ImGui::End();
 	}

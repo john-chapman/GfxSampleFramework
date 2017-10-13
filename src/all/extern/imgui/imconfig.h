@@ -52,7 +52,7 @@ namespace ImGui
 }
 */
 
-#define IM_COLOR_ALPHA(_rgb8, _af) ((_rgb8 & ~IM_COL32_A_MASK) | ((ImU32)(_af * 255.0f) << IM_COL32_A_SHIFT))
+#define IM_COLOR_ALPHA(_rgb8, _af) (((_rgb8) & ~IM_COL32_A_MASK) | ((ImU32)((_af) * 255.0f) << IM_COL32_A_SHIFT))
 #define IM_COL32_RED      IM_COL32(255, 0,   0,   255)
 #define IM_COL32_GREEN    IM_COL32(0,   255, 0,   255)
 #define IM_COL32_BLUE     IM_COL32(0,   0,   255, 255)
