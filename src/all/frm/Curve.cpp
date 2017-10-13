@@ -23,15 +23,16 @@ using namespace apt;
 Curve::Curve()
 	: m_constrainMin(-FLT_MAX)
 	, m_constrainMax(FLT_MAX)
+	, m_wrap(Wrap_Clamp)
 {
 }
 
-Curve::Index Curve::insert(const Endpoint& _endpoint)
+int Curve::insert(const Endpoint& _endpoint)
 {
-	Index ret = (Index)m_endpoints.size();
+	int ret = (int)m_endpoints.size();
 	if (!m_endpoints.empty() && _endpoint.m_value.x < m_endpoints[ret - 1].m_value.x) {
 	 // can't insert at end, do binary search
-		ret = findSegmentStart(_endpoint.m_value.x);
+		ret = findSegmentStartIndex(_endpoint.m_value.x);
 		ret += (_endpoint.m_value.x >= m_endpoints[ret].m_value.x) ? 1 : 0; // handle case where _pos.x should be inserted at 0, normally we +1 to ret
 	}
 	m_endpoints.insert(m_endpoints.begin() + ret, _endpoint);
@@ -50,11 +51,11 @@ Curve::Index Curve::insert(const Endpoint& _endpoint)
 	return ret;
 }
 
-Curve::Index Curve::move(Index _endpoint, Component _component, const vec2& _value)
+int Curve::move(int _endpoint, Component _component, const vec2& _value)
 {
 	Endpoint& ep = m_endpoints[_endpoint];
 
-	Index ret = _endpoint;
+	int ret = _endpoint;
 	if (_component == Component_Value) {
 	 // move CPs
 		vec2 delta = _value - ep[Component_Value];
@@ -63,7 +64,7 @@ Curve::Index Curve::move(Index _endpoint, Component _component, const vec2& _val
 
 	 // swap with neighbor
 		ep.m_value = _value;
-		if (delta.x > 0.0f && _endpoint < (Index)m_endpoints.size() - 1) {
+		if (delta.x > 0.0f && _endpoint < (int)m_endpoints.size() - 1) {
 			int i = _endpoint + 1;
 			if (_value.x > m_endpoints[i].m_value.x) {
 				eastl::swap(ep, m_endpoints[i]);
@@ -109,11 +110,11 @@ Curve::Index Curve::move(Index _endpoint, Component _component, const vec2& _val
 	return ret;
 }
 
-void Curve::erase(Index _endpoint)
+void Curve::erase(int _endpoint)
 {
-	APT_ASSERT(_endpoint < (Index)m_endpoints.size());
+	APT_ASSERT(_endpoint < (int)m_endpoints.size());
 	m_endpoints.erase(m_endpoints.begin() + _endpoint);
-	updateExtentsAndConstrain(APT_MIN(_endpoint, APT_MAX((Index)m_endpoints.size() - 1, 0)));
+	updateExtentsAndConstrain(APT_MIN(_endpoint, APT_MAX((int)m_endpoints.size() - 1, 0)));
 }
 
 float Curve::wrap(float _t) const
@@ -121,7 +122,8 @@ float Curve::wrap(float _t) const
 	float ret = _t;
 	switch (m_wrap) {
 		case Wrap_Repeat:
-			ret = ret - m_valueMin.x * floor(ret / (m_valueMax.x - m_valueMin.x));
+			ret -= m_valueMin.x;
+			ret = m_valueMin.x + ret - (m_valueMax.x - m_valueMin.x) * floorf(ret / (m_valueMax.x - m_valueMin.x));
 			break;
 		case Wrap_Clamp:
 		default:
@@ -140,9 +142,9 @@ void Curve::setValueConstraint(const vec2& _min, const vec2& _max)
 
 // PRIVATE
 
-Curve::Index Curve::findSegmentStart(float _t) const
+int Curve::findSegmentStartIndex(float _t) const
 {
-	Index lo = 0, hi = (Index)m_endpoints.size() - 1;
+	int lo = 0, hi = (int)m_endpoints.size() - 1;
 	while (hi - lo > 1) {
 		u32 md = (hi + lo) / 2;
 		if (_t > m_endpoints[md].m_value.x) {
@@ -154,7 +156,7 @@ Curve::Index Curve::findSegmentStart(float _t) const
 	return _t > m_endpoints[hi].m_value.x ? hi : lo;
 }
 
-void Curve::updateExtentsAndConstrain(Index _endpoint)
+void Curve::updateExtentsAndConstrain(int _endpoint)
 {
 	m_valueMin = m_endpointMin = vec2(FLT_MAX);
 	m_valueMax = m_endpointMax = vec2(-FLT_MAX);
@@ -259,6 +261,7 @@ CurveEditor::CurveEditor()
 	, m_dragOffset(0.0f)
 	, m_dragRuler(false)
 	, m_editEndpoint(false)
+	, m_showAllCurves(true)
 	, m_isDragging(false)
 	, m_editFlags(Flags_Default)
 	, m_selectedCurve(-1)
@@ -270,23 +273,34 @@ void CurveEditor::addCurve(Curve* _curve_, const ImColor& _color)
 	int curveIndex = (int)m_curves.size();
 	m_curves.push_back(_curve_);
 	m_curveColors.push_back((ImU32)_color);
-	m_cache.push_back(Cache());
+	m_drawCaches.push_back(DrawCache());
 	updateCache(curveIndex);
 	if (m_selectedCurve == -1) {
 		m_selectedCurve = curveIndex;
-		fit(0);
-		fit(1);
+		if (!m_curves[m_selectedCurve]->m_endpoints.empty()) {
+			fit(0);
+			fit(1);
+		}
 	}
 }
 
-bool CurveEditor::edit(const vec2& _sizePixels, float _t, Flags _flags)
+void CurveEditor::selectCurve(const Curve* _curve)
+{
+	for (int i = 0; i < m_curves.size(); ++i) {
+		if (m_curves[i] == _curve) {
+			m_selectedCurve = i;
+		}
+	}
+}
+
+bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, Flags _flags)
 {
 	bool ret = false;
 	m_editFlags = _flags;
 
 	ImGuiIO& io = ImGui::GetIO();
 	ImDrawList& drawList = *ImGui::GetWindowDrawList();
-
+	
  // set the 'window' size to either fill the available space or use the specified size
 	m_windowBeg = (vec2)ImGui::GetCursorPos() + (vec2)ImGui::GetWindowPos();
 	m_windowEnd = (vec2)ImGui::GetContentRegionMax() + (vec2)ImGui::GetWindowPos();
@@ -386,7 +400,17 @@ bool CurveEditor::edit(const vec2& _sizePixels, float _t, Flags _flags)
 		drawGrid();
 	}
 	ImGui::PushClipRect(m_windowBeg + vec2(1.0f), m_windowEnd - vec2(1.0f), true);
-		drawCurve();
+		if (m_showAllCurves) {
+			for (int i = 0; i < (int)m_curves.size(); ++i) {
+				if (i != m_selectedCurve) {
+					drawCurve(i);
+				}
+			}
+		}
+		if (m_selectedCurve != -1) {
+			drawCurve(m_selectedCurve);
+		}
+
 		if (checkEditFlag(Flags_ShowRuler)) {
 			drawRuler();
 		}
@@ -396,9 +420,27 @@ bool CurveEditor::edit(const vec2& _sizePixels, float _t, Flags _flags)
 		ImGui::OpenPopup("CurveEditorPopup");
 	}
 	if (ImGui::BeginPopup("CurveEditorPopup")) {
+		if (m_selectedCurve != -1) {
+			Curve& curve = *m_curves[m_selectedCurve];
+			if (ImGui::BeginMenu("Wrap")) {
+				if (ImGui::MenuItem("Clamp", nullptr, curve.m_wrap == Curve::Wrap_Clamp)) {
+					curve.m_wrap = Curve::Wrap_Clamp;
+				}
+				if (ImGui::MenuItem("Repeat", nullptr, curve.m_wrap == Curve::Wrap_Repeat)) {
+					curve.m_wrap = Curve::Wrap_Repeat;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::Spacing();
+		}
 		if (ImGui::MenuItem("Fit")) {
 			fit(0);
 			fit(1);
+		}
+		if (m_curves.size() > 1) {
+			if (ImGui::MenuItem("Show All", "", m_showAllCurves)) {
+				m_showAllCurves = !m_showAllCurves;
+			}
 		}
 
 		ImGui::EndPopup();
@@ -446,8 +488,9 @@ vec2 CurveEditor::windowToCurve(const vec2& _pos)
 void CurveEditor::fit(int _dim)
 {
 	Curve& curve = *m_curves[m_selectedCurve];
-	m_regionBeg[_dim]  = curve.m_endpointMin[_dim] - 0.1f;
-	m_regionSize[_dim] = (curve.m_endpointMax[_dim] - m_regionBeg[_dim]) + 0.1f;
+	float pad = (curve.m_endpointMax[_dim] - curve.m_endpointMin[_dim]) * 0.1f;
+	m_regionBeg[_dim]  = curve.m_endpointMin[_dim] - pad;
+	m_regionSize[_dim] = (curve.m_endpointMax[_dim] - m_regionBeg[_dim]) + pad * 2.0f;
 }
 
 bool CurveEditor::editCurve()
@@ -525,10 +568,12 @@ bool CurveEditor::editCurve()
 
 	} else if (io.MouseDoubleClicked[0]) {
 	 // double click: insert a point
+	 // \todo better tangent estimation?
+		float tangentScale = m_regionSize.x * 0.05f;
 		Curve::Endpoint ep;
 		ep.m_value = windowToCurve(io.MousePos);
-		ep.m_in    = ep.m_value + vec2(-0.01f, 0.0f);
-		ep.m_out   = ep.m_value + vec2( 0.01f, 0.0f);
+		ep.m_in    = ep.m_value + vec2(-tangentScale, 0.0f);
+		ep.m_out   = ep.m_value + vec2( tangentScale, 0.0f);
 		m_selectedEndpoint = curve.insert(ep);
 		ret = true;
 
@@ -596,17 +641,6 @@ void CurveEditor::drawBackground()
 
 	drawList.AddRectFilled(m_windowBeg, m_windowEnd, kColorBackground);
 	drawList.AddRect(m_windowBeg, m_windowEnd, kColorBorder);
-
- // curve region highlight
-	if (checkEditFlag(Flags_ShowHighlight)) {
-		if (curve.m_endpoints.size() > 1) {
-			vec2 curveMin = curveToWindow(curve.m_valueMin);
-			vec2 curveMax = curveToWindow(curve.m_valueMax);
-			drawList.AddRectFilled(vec2(curveMin.x, m_windowBeg.y), vec2(curveMax.x, m_windowEnd.y), kColorCurveHighlight);
-			drawList.AddRectFilled(vec2(m_windowBeg.x, curveMin.y), vec2(m_windowEnd.x, curveMax.y), kColorCurveHighlight);
-			drawList.AddRect(curveMin, curveMax, kColorCurveHighlight);
-		}
-	}
 }
 
 void CurveEditor::drawGrid()
@@ -652,17 +686,75 @@ void CurveEditor::drawGrid()
 	drawList.AddRect(floor(curveToWindow(curve.m_constrainMin)), floor(curveToWindow(curve.m_constrainMax)), kColorZeroAxis);
 }
 
-void CurveEditor::drawCurve()
+void CurveEditor::drawCurve(int _curveIndex)
 {
-	Curve& curve = *m_curves[m_selectedCurve];
-	Cache& cache = m_cache[m_selectedCurve];
+	Curve& curve = *m_curves[_curveIndex];
+	DrawCache& cache = m_drawCaches[_curveIndex];
+	ImU32 curveColor =  IM_COLOR_ALPHA(m_curveColors[_curveIndex], _curveIndex == m_selectedCurve ? 1.0f : kAlphaCurveWrap);
+	bool isSelected = _curveIndex == m_selectedCurve;
 
 	if (cache.empty()) {
 		return;
 	}
 
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
-	
+
+ // curve region highlight
+	if (isSelected && checkEditFlag(Flags_ShowHighlight)) {
+		if (curve.m_endpoints.size() > 1) {
+			vec2 curveMin = curveToWindow(curve.m_valueMin);
+			vec2 curveMax = curveToWindow(curve.m_valueMax);
+			drawList->AddRectFilled(vec2(curveMin.x, m_windowBeg.y), vec2(curveMax.x, m_windowEnd.y), kColorCurveHighlight);
+			drawList->AddRectFilled(vec2(m_windowBeg.x, curveMin.y), vec2(m_windowEnd.x, curveMax.y), kColorCurveHighlight);
+			drawList->AddRect(curveMin, curveMax, kColorCurveHighlight);
+		}
+	}
+
+ // wrap/unselected curve
+	switch (curve.m_wrap) {
+		case Curve::Wrap_Clamp: {
+			vec2 p = curveToWindow(cache.front());
+			drawList->AddLine(vec2(m_windowBeg.x, p.y), p, curveColor, 1.0f);
+			p = curveToWindow(cache.back());
+			drawList->AddLine(vec2(m_windowEnd.x, p.y), p, curveColor, 1.0f);
+			break;
+		}
+		case Curve::Wrap_Repeat: {
+			if (cache.size() < 2) {
+				vec2 p = curveToWindow(cache.front());
+				drawList->AddLine(vec2(m_windowBeg.x, p.y), vec2(m_windowEnd.x, p.y), curveColor, 1.0f);
+				break;
+			}
+			int i = curve.findSegmentStartIndex(curve.wrap(m_regionBeg.x));
+			vec2 p0 = curveToWindow(cache[i]);
+			float windowScale = m_windowSize.x / m_regionSize.x;
+			float offset = p0.x - m_windowBeg.x;
+			offset += (curve.wrap(m_regionBeg.x) - cache[i].x) * windowScale;
+			float offsetStep = (curve.m_valueMax.x - curve.m_valueMin.x) * windowScale;
+			p0.x -= offset;
+			for (;;) {
+				++i;
+				if (p0.x > m_windowEnd.x) {
+					break;
+				}
+				if (i >= (int)cache.size()) {
+					i = 0;
+					offset -= offsetStep;
+				}
+				vec2 p1 = curveToWindow(cache[i]);
+				p1.x -= offset;
+				drawList->AddLine(p0, p1, curveColor, 1.0f);
+				p0 = p1;
+			}
+			break;
+		}
+		default:
+			break;
+	};
+
+	if (!isSelected) {
+		return;
+	}
 
  // curve
 	vec2 p0 = curveToWindow(cache[0]);
@@ -675,7 +767,7 @@ void CurveEditor::drawCurve()
 			p0 = p1;
 			continue;
 		}
-		drawList->AddLine(p0, p1, m_curveColors[m_selectedCurve], 2.0f);
+		drawList->AddLine(p0, p1, curveColor, isSelected ? 2.0f : 1.0f);
 		#if Curve_DEBUG
 			drawList->AddCircleFilled(p0, 1.5f, IM_COLOR_ALPHA(kColorGridLabel, 0.2f), 6);
 		#endif
@@ -692,7 +784,7 @@ void CurveEditor::drawCurve()
 			}
 			continue;
 		}
-		ImU32 col = i == m_selectedEndpoint ? kColorValuePoint : m_curveColors[m_selectedCurve];
+		ImU32 col = i == m_selectedEndpoint ? kColorValuePoint : curveColor;
 		drawList->AddCircleFilled(p, kSizeValuePoint, col, 8);
 	}
 
@@ -706,7 +798,7 @@ void CurveEditor::drawCurve()
 		if (pout.x < m_windowBeg.x) {			
 			continue;
 		}
-		ImU32 col = i == m_selectedEndpoint ? kColorControlPoint : IM_COLOR_ALPHA(m_curveColors[m_selectedCurve], 0.5f);
+		ImU32 col = i == m_selectedEndpoint ? kColorControlPoint : curveColor;
 		drawList->AddCircleFilled(pin, kSizeControlPoint, col, 8);
 		drawList->AddCircleFilled(pout, kSizeControlPoint, col, 8);
 		drawList->AddLine(pin, pout, col, 1.0f);
@@ -776,7 +868,7 @@ void CurveEditor::drawRuler()
 void CurveEditor::updateCache(int _curveIndex)
 {
 	Curve& curve = *m_curves[_curveIndex];
-	Cache& cache = m_cache[_curveIndex];
+	DrawCache& cache = m_drawCaches[_curveIndex];
 
 	cache.clear();
 	if (curve.m_endpoints.empty()) {
@@ -798,7 +890,7 @@ void CurveEditor::updateCache(int _curveIndex)
 void CurveEditor::subdivide(int _curveIndex, const Curve::Endpoint& _p0, const Curve::Endpoint& _p1, float _maxError, int _limit)
 {
 	Curve& curve = *m_curves[_curveIndex];
-	Cache& cache = m_cache[_curveIndex];
+	DrawCache& cache = m_drawCaches[_curveIndex];
 
 	if (_limit == 1) {
 		cache.push_back(_p0.m_value);

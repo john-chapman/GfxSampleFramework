@@ -16,7 +16,6 @@
 #include <frm/SkeletonAnimation.h>
 #include <frm/Spline.h>
 #include <frm/Texture.h>
-#include <frm/ValueCurve.h>
 #include <frm/Window.h>
 #include <frm/XForm.h>
 
@@ -88,18 +87,6 @@ public:
 			return false;
 		}
 		
-		static Curve curve0;
-		static Curve curve1;
-		static CurveEditor curveEditor;
-		APT_ONCE curveEditor.addCurve(&curve0, IM_COL32_GREEN);		
-		APT_ONCE curveEditor.addCurve(&curve1, IM_COL32_MAGENTA);
-		ImGui::Begin("Curve Editor (new)");
-			static vec2 curveSize = vec2(-1.0f);
-			ImGui::SliderFloat2("Window Size", &curveSize.x, -1.0f, 512.0f);
-			//curve.setValueConstraint(vec2(0.0f), vec2(1.0f));
-			curveEditor.edit(curveSize, 0.0f, CurveEditor::Flags_Default);
-		ImGui::End();
-
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
 		if (ImGui::TreeNode("Intersection")) {
 			Im3d::PushDrawState();

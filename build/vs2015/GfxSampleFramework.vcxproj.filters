@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="extern">
@@ -167,7 +167,6 @@
     <ClInclude Include="..\..\src\all\frm\Spline.h" />
     <ClInclude Include="..\..\src\all\frm\Texture.h" />
     <ClInclude Include="..\..\src\all\frm\TextureAtlas.h" />
-    <ClInclude Include="..\..\src\all\frm\ValueCurve.h" />
     <ClInclude Include="..\..\src\all\frm\Window.h" />
     <ClInclude Include="..\..\src\all\frm\XForm.h" />
     <ClInclude Include="..\..\src\all\frm\def.h" />
@@ -325,7 +324,6 @@
     <ClCompile Include="..\..\src\all\frm\Spline.cpp" />
     <ClCompile Include="..\..\src\all\frm\Texture.cpp" />
     <ClCompile Include="..\..\src\all\frm\TextureAtlas.cpp" />
-    <ClCompile Include="..\..\src\all\frm\ValueCurve.cpp" />
     <ClCompile Include="..\..\src\all\frm\Window.cpp" />
     <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
     <ClCompile Include="..\..\src\all\frm\geom.cpp" />

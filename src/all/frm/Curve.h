@@ -30,8 +30,7 @@ class Curve
 {
 	friend class CurveEditor;
 public:
-	typedef int Index;
-	static const Index kInvalidIndex = -1;
+	static const int kInvalidIndex = -1;
 
 	enum Wrap
 	{
@@ -64,19 +63,19 @@ public:
 	~Curve() {}
 
 	// Insert a new endpoint with the given value, return its index.
-	Index insert(const Endpoint& _endpoint);
+	int insert(const Endpoint& _endpoint);
 
 	// Move the specified component on endpoint by setting its value, return the new index.
-	Index move(Index _endpoint, Component _component, const vec2& _value);
+	int move(int _endpointIndex, Component _component, const vec2& _value);
 
 	// Erase the specified endpoint.
-	void  erase(Index _endpoint);
+	void  erase(int _endpointIndex);
 
 	// Apply the wrap mode to _t.
 	float wrap(float _t) const;
 
-	Endpoint&       operator[](Index _i)       { APT_ASSERT(_i < (Index)m_endpoints.size()); return m_endpoints[_i]; }
-	const Endpoint& operator[](Index _i) const { APT_ASSERT(_i < (Index)m_endpoints.size()); return m_endpoints[_i]; }
+	Endpoint&       operator[](int _i)       { APT_ASSERT(_i < (int)m_endpoints.size()); return m_endpoints[_i]; }
+	const Endpoint& operator[](int _i) const { APT_ASSERT(_i < (int)m_endpoints.size()); return m_endpoints[_i]; }
 
 	void setValueConstraint(const vec2& _min, const vec2& _max);
 
@@ -89,10 +88,10 @@ private:
 	Wrap m_wrap;
 	vec2 m_constrainMin, m_constrainMax;   // limit endpoint values
 
-	Index findSegmentStart(float _t) const;
-	void  updateExtentsAndConstrain(Index _modified); // applies additional constraints, e.g. synchronize endpoints if Wrap_Repeat
-	void  copyValueAndTangent(const Endpoint& _src, Endpoint& dst_);
-	void  constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1); // move _cp_ towards _vp such that _x0 <= _cp_.x <= _x1
+	int  findSegmentStartIndex(float _t) const;
+	void updateExtentsAndConstrain(int _modified); // applies additional constraints, e.g. synchronize endpoints if Wrap_Repeat
+	void copyValueAndTangent(const Endpoint& _src, Endpoint& dst_);
+	void constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1); // move _cp_ towards _vp such that _x0 <= _cp_.x <= _x1
 
 }; // class Curve
 
@@ -118,22 +117,24 @@ public:
 	CurveEditor();
 
 	void addCurve(Curve* _curve_, const ImColor& _color);
+	void selectCurve(const Curve* _curve_);
 
-	bool edit(const vec2& _sizePixels, float _t, Flags _flags);
+	bool drawEdit(const vec2& _sizePixels, float _t, Flags _flags);
 
 private:
 
  // editor
-	vec2          m_windowBeg, m_windowEnd, m_windowSize;
-	vec2          m_regionBeg, m_regionEnd, m_regionSize;
-	Curve::Index  m_selectedEndpoint;
-	Curve::Index  m_dragEndpoint;
-	int           m_dragComponent;
-	vec2          m_dragOffset;
-	bvec2         m_dragRuler;
-	bool          m_editEndpoint;
-	bool          m_isDragging;
-	uint32        m_editFlags;
+	vec2      m_windowBeg, m_windowEnd, m_windowSize;
+	vec2      m_regionBeg, m_regionEnd, m_regionSize;
+	int       m_selectedEndpoint;
+	int       m_dragEndpoint;
+	bool      m_showAllCurves;
+	int       m_dragComponent;
+	vec2      m_dragOffset;
+	bvec2     m_dragRuler;
+	bool      m_editEndpoint;
+	bool      m_isDragging;
+	uint32    m_editFlags;
 
 	bool checkEditFlag(Flags _flag) { return (m_editFlags & _flag) != 0; }
 	bool isInside(const vec2& _point, const vec2& _min, const vec2& _max);
@@ -146,16 +147,16 @@ private:
 	bool editCurve();
 	void drawBackground();
 	void drawGrid();
-	void drawCurve();
+	void drawCurve(int _curveIndex);
 	void drawSampler(float _t);
 	void drawRuler();
 
  // curves, cache
-	typedef eastl::vector<vec2> Cache;
-	eastl::vector<Cache>  m_cache;  // piecewise linear approximations
-	eastl::vector<Curve*> m_curves;
-	eastl::vector<ImU32> m_curveColors;
-	int                   m_selectedCurve;
+	typedef eastl::vector<vec2> DrawCache;
+	eastl::vector<DrawCache>  m_drawCaches;  // piecewise linear approximations for drawing
+	eastl::vector<Curve*>     m_curves;
+	eastl::vector<ImU32>      m_curveColors;
+	int                       m_selectedCurve;
 
 	void updateCache(int _curveIndex);
 	void subdivide(int _curveIndex, const Curve::Endpoint& _p0, const Curve::Endpoint& _p1, float _maxError = 0.001f, int _limit = 64);
