@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="extern">
@@ -15,6 +15,9 @@
     </Filter>
     <Filter Include="extern\lua">
       <UniqueIdentifier>{ACC78AE6-987F-CC33-0187-A58FED5D6724}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\tinyobjloader">
+      <UniqueIdentifier>{00583F7B-ECE6-C844-9505-DD3F8173D9EA}</UniqueIdentifier>
     </Filter>
     <Filter Include="ui">
       <UniqueIdentifier>{C3795900-AF05-880B-18B4-880B045F880B}</UniqueIdentifier>
@@ -141,8 +144,8 @@
     <ClInclude Include="..\..\src\all\extern\md5mesh.h">
       <Filter>extern</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\extern\tiny_obj_loader.h">
-      <Filter>extern</Filter>
+    <ClInclude Include="..\..\src\all\extern\tinyobjloader\tiny_obj_loader.h">
+      <Filter>extern\tinyobjloader</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\App.h" />
     <ClInclude Include="..\..\src\all\frm\AppSample.h" />
