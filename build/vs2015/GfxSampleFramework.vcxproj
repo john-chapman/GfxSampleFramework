@@ -141,7 +141,7 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClInclude Include="..\..\src\all\extern\lua\lvm.h" />
     <ClInclude Include="..\..\src\all\extern\lua\lzio.h" />
     <ClInclude Include="..\..\src\all\extern\md5mesh.h" />
-    <ClInclude Include="..\..\src\all\extern\tiny_obj_loader.h" />
+    <ClInclude Include="..\..\src\all\extern\tinyobjloader\tiny_obj_loader.h" />
     <ClInclude Include="..\..\src\all\frm\App.h" />
     <ClInclude Include="..\..\src\all\frm\AppSample.h" />
     <ClInclude Include="..\..\src\all\frm\AppSample3d.h" />

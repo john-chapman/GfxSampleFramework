@@ -1,8 +1,6 @@
-Framework for graphics samples/prototyping. OpenGL/Windows only.
+Framework for graphics samples/prototyping. Currently OpenGL/Windows only. 
 
-**This project is very much WIP and therefore unstable.**
-
-See the [GfxSamples](https://github.com/john-chapman/GfxSamples) repo as a reference for the project setup/usage.
+See [GfxSamples](https://github.com/john-chapman/GfxSamples) as a reference for the project setup/usage.
 
 Use `git clone --recursive` to init/clone all submodules, as follows:
 
@@ -17,13 +15,16 @@ Build via build/GfxSampleFramework_premake.lua as follows, requires [premake5](h
 Submodule dependencies:
  - [ApplicationTools](https://github.com/john-chapman/ApplicationTools)
  
-Committed dependencies:
+Embedded dependencies:
+ - [EASTL](https://github.com/electronicarts/EASTL)
  - [GLM](https://github.com/g-truc/glm)
+ - [GLEW](http://glew.sourceforge.net/)
  - [Im3d](https://github.com/john-chapman/im3d/)
  - [ImGui](https://github.com/ocornut/imgui)
  - [RapidJSON](http://rapidjson.org/)
  - [LodePNG](http://lodev.org/lodepng/)
- - [STB](https://github.com/nothings/stb)
+ - [Miniz](https://github.com/richgel999/miniz)
+ - [stb](https://github.com/nothings/stb)
  - [tinyobjloader](https://github.com/syoyo/tinyobjloader)
  - [lua](https://www.lua.org)
 	
