@@ -122,16 +122,16 @@ Plane::Plane(const vec3& _normal, const vec3& _origin)
 
 Plane::Plane(float _a, float _b, float _c, float _d)
 	: m_normal(_a, _b, _c)
-	, m_offset(_d / length2(m_normal))
+	, m_offset(_d)
 {
-	m_normal = normalize(m_normal);
+	normalize();
 }
 
 Plane::Plane(const vec3& _p0, const vec3& _p1, const vec3& _p2)
 {
 	vec3 u(_p1 - _p0);
 	vec3 v(_p2 - _p0);
-	m_normal = normalize(cross(v, u));
+	m_normal = apt::normalize(cross(v, u));
 	m_offset = dot(m_normal, (_p0 + _p1 + _p2) / 3.0f);
 }
 
@@ -139,13 +139,20 @@ void Plane::transform(const mat4& _mat)
 {
 	vec3 origin = vec3(_mat * vec4(getOrigin(), 1.0f));
 	m_normal = vec3(_mat * vec4(m_normal, 0.0f));
-	m_normal = normalize(m_normal);
+	m_normal = apt::normalize(m_normal);
 	m_offset = dot(m_normal, origin);
 }
 
 vec3 Plane::getOrigin() const
 { 
 	return m_normal * m_offset; 
+}
+
+void Plane::normalize()
+{
+	float ln = length(m_normal);
+	m_normal /= ln;
+	m_offset /= ln;
 }
 
 /*******************************************************************************
