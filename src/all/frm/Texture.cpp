@@ -216,6 +216,15 @@ struct TextureViewer
 			if (ImGui::Button(ICON_FA_BACKWARD)) {
 				m_selected = -1;
 			}
+			ImGui::SameLine();
+			if (ImGui::Button(ICON_FA_FLOPPY_O " Save")) {
+				FileSystem::PathStr pth = tx.getPath();
+				if (FileSystem::PlatformSelect(pth)) {
+					Image* img = Texture::CreateImage(&tx);
+					Image::Write(*img, (const char*)pth);
+					Texture::DestroyImage(img);
+				}
+			}
 			if (*tx.getPath() != '\0') {
 				ImGui::SameLine();
 				if (ImGui::Button(ICON_FA_FLOPPY_O " Save")) {
@@ -1159,9 +1168,9 @@ bool Texture::isDepth() const
 
 void frm::swap(Texture& _a, Texture& _b)
 {
-	using eastl::swap;
 	swap(_a.m_path, _b.m_path);
 
+	using eastl::swap;
 	swap(_a.m_handle,     _b.m_handle);
 	swap(_a.m_ownsHandle, _b.m_ownsHandle);
 	swap(_a.m_target,     _b.m_target);
