@@ -102,6 +102,7 @@ struct Plane
 
 	void transform(const mat4& _mat);
 	vec3 getOrigin() const;
+	void normalize();
 
 }; // struct Plane
 
