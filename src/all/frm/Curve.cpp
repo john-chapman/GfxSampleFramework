@@ -752,10 +752,6 @@ void CurveEditor::drawCurve(int _curveIndex)
 			break;
 	};
 
-	if (!isSelected) {
-		return;
-	}
-
  // curve
 	vec2 p0 = curveToWindow(cache[0]);
 	for (int i = 1, n = (int)cache.size(); i < n; ++i) {
@@ -772,6 +768,10 @@ void CurveEditor::drawCurve(int _curveIndex)
 			drawList->AddCircleFilled(p0, 1.5f, IM_COLOR_ALPHA(kColorGridLabel, 0.2f), 6);
 		#endif
 		p0 = p1;
+	}
+
+	if (!isSelected) {
+		return;
 	}
 
  // endpoints
