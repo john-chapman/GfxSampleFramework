@@ -22,6 +22,7 @@ using apt::mat2;
 using apt::mat3;
 using apt::mat4;
 using apt::quat;
+using apt::identity;
 
 using apt::LCG;
 

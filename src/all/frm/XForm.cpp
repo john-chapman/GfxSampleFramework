@@ -93,7 +93,7 @@ APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionOrientationScale);
 
 XForm_PositionOrientationScale::XForm_PositionOrientationScale()
 	: m_position(0.0f)
-	, m_orientation(1.0f, 0.0f, 0.0f, 0.0f)
+	, m_orientation(0.0f, 0.0f, 0.0f, 1.0f)
 	, m_scale(1.0f)
 {
 };
@@ -128,9 +128,9 @@ void XForm_PositionOrientationScale::edit()
 bool XForm_PositionOrientationScale::serialize(Serializer& _serializer_)
 {
 	bool ret = true;
-	ret &= Serialize(_serializer_, m_position,           "Position");
-	ret &= Serialize(_serializer_, (vec4&)m_orientation, "Orientation");
-	ret &= Serialize(_serializer_, m_scale,              "Scale");
+	ret &= Serialize(_serializer_, m_position,    "Position");
+	ret &= Serialize(_serializer_, m_orientation, "Orientation");
+	ret &= Serialize(_serializer_, m_scale,       "Scale");
 	return ret;
 }
 
@@ -265,13 +265,13 @@ void XForm_FreeCamera::edit()
 bool XForm_FreeCamera::serialize(Serializer& _serializer_)
 {
 	bool ret = true;
-	ret &= Serialize(_serializer_, m_position,           "Position");
-	ret &= Serialize(_serializer_, (vec4&)m_orientation, "Orientation");
-	ret &= Serialize(_serializer_, m_maxSpeed,           "MaxSpeed");
-	ret &= Serialize(_serializer_, m_maxSpeedMul,        "MaxSpeedMultiplier");
-	ret &= Serialize(_serializer_, m_accelTime,          "AccelerationTime");
-	ret &= Serialize(_serializer_, m_rotationInputMul,   "RotationInputMultiplier");
-	ret &= Serialize(_serializer_, m_rotationDamp,       "RotationDamping");
+	ret &= Serialize(_serializer_, m_position,         "Position");
+	ret &= Serialize(_serializer_, m_orientation,      "Orientation");
+	ret &= Serialize(_serializer_, m_maxSpeed,         "MaxSpeed");
+	ret &= Serialize(_serializer_, m_maxSpeedMul,      "MaxSpeedMultiplier");
+	ret &= Serialize(_serializer_, m_accelTime,        "AccelerationTime");
+	ret &= Serialize(_serializer_, m_rotationInputMul, "RotationInputMultiplier");
+	ret &= Serialize(_serializer_, m_rotationDamp,     "RotationDamping");
 	return ret;
 }
 
@@ -728,13 +728,13 @@ struct XForm_VRGamepad: public XForm
 	bool serialize(Serializer& _serializer_)
 	{
 		bool ret = true;
-		ret &= Serialize(_serializer_, m_position,           "Position");
-		ret &= Serialize(_serializer_, (vec4&)m_orientation, "Orientation");
-		ret &= Serialize(_serializer_, m_maxSpeed,           "MaxSpeed");
-		ret &= Serialize(_serializer_, m_maxSpeedMul,        "MaxSpeedMultiplier");
-		ret &= Serialize(_serializer_, m_accelTime,          "AccelerationTime");
-		ret &= Serialize(_serializer_, m_rotationInputMul,   "RotationInputMultiplier");
-		ret &= Serialize(_serializer_, m_rotationDamp,       "RotationDamping");
+		ret &= Serialize(_serializer_, m_position,         "Position");
+		ret &= Serialize(_serializer_, m_orientation,      "Orientation");
+		ret &= Serialize(_serializer_, m_maxSpeed,         "MaxSpeed");
+		ret &= Serialize(_serializer_, m_maxSpeedMul,      "MaxSpeedMultiplier");
+		ret &= Serialize(_serializer_, m_accelTime,        "AccelerationTime");
+		ret &= Serialize(_serializer_, m_rotationInputMul, "RotationInputMultiplier");
+		ret &= Serialize(_serializer_, m_rotationDamp,     "RotationDamping");
 		return ret;
 	}
 

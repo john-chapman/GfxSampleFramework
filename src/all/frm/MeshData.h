@@ -181,7 +181,7 @@ public:
 		float           _sizeZ, 
 		int             _segsX, 
 		int             _segsZ,
-		const mat4&     _transform = mat4(1.0f)
+		const mat4&     _transform = identity
 		);
 
 	static MeshData* CreateSphere(
@@ -189,7 +189,7 @@ public:
 		float           _radius, 
 		int             _segsLat, 
 		int             _segsLong,
-		const mat4&     _transform = mat4(1.0f)
+		const mat4&     _transform = identity
 		);
 
 	static void Destroy(MeshData*& _meshData_);

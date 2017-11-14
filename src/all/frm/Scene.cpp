@@ -185,7 +185,7 @@ Node::Node(Type _type, Id _id, uint8 _state, const char* _name)
 	, m_state(_state)
 	, m_userData(0)
 	, m_sceneData(0)
-	, m_localMatrix(mat4(1.0f))
+	, m_localMatrix(identity)
 	, m_parent(nullptr)
 {
 	APT_ASSERT(_type < Type_Count);
@@ -862,10 +862,10 @@ void Scene::editNodes()
 
 			if (newParent != m_editNode->getParent()) {
 			 // maintain child world space position when changing parent
-				mat4 parentWorld = m_editNode->m_parent ? m_editNode->m_parent->m_worldMatrix : mat4(1.0f);
+				mat4 parentWorld = m_editNode->m_parent ? m_editNode->m_parent->m_worldMatrix : identity;
 				mat4 childWorld = parentWorld * m_editNode->m_localMatrix;
 				m_editNode->setParent(newParent);
-				parentWorld = m_editNode->m_parent ? m_editNode->m_parent->m_worldMatrix : mat4(1.0f);
+				parentWorld = m_editNode->m_parent ? m_editNode->m_parent->m_worldMatrix : identity;
 				m_editNode->m_localMatrix = inverse(parentWorld) * childWorld;
 			}
 			ImGui::SameLine();
@@ -896,7 +896,7 @@ void Scene::editNodes()
 
 			if (ImGui::TreeNode("Local Matrix")) {
 			 // hierarchical update - modify the world space node and transform back into parent space
-				mat4 parentWorld = m_editNode->m_parent ? m_editNode->m_parent->m_worldMatrix : mat4(1.0f);
+				mat4 parentWorld = m_editNode->m_parent ? m_editNode->m_parent->m_worldMatrix : identity;
 				mat4 childWorld = parentWorld * m_editNode->m_localMatrix;
 				if (Im3d::Gizmo("GizmoNodeLocal", (float*)&childWorld)) {
 					m_editNode->m_localMatrix = inverse(parentWorld) * childWorld;
