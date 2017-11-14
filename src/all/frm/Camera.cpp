@@ -420,14 +420,7 @@ void Camera::updateView()
 	if (m_parent) {
 		m_world = m_parent->getWorldMatrix();
 	}
-	
-	mat3 viewRotation = transpose(mat3(m_world));
-	vec3 viewTranslation = -(viewRotation * m_world[3].xyz());
-	m_view[0] = vec4(viewRotation[0], 0.0f);
-	m_view[1] = vec4(viewRotation[1], 0.0f);
-	m_view[2] = vec4(viewRotation[2], 0.0f);
-	m_view[3] = vec4(viewTranslation, 1.0f);
-
+	m_view = AffineInverse(m_world);
 	m_viewProj = m_proj * m_view;
 	m_worldFrustum = m_localFrustum;
 	m_worldFrustum.transform(m_world);
@@ -575,8 +568,8 @@ void Camera::defaultInit()
 	m_near               = 1.0f;
 	m_far                = 1000.0f;
 	m_parent             = nullptr;
-	m_world              = mat4(1.0f);
-	m_proj               = mat4(1.0f);
+	m_world              = mat4(identity);
+	m_proj               = mat4(identity);
 	m_aspectRatio        = 1.0f;
 	m_gpuBuffer          = nullptr;
 }
