@@ -100,7 +100,7 @@ XForm_PositionOrientationScale::XForm_PositionOrientationScale()
 
 void XForm_PositionOrientationScale::apply(float _dt)
 {
-	mat4 mat = scale(translate(mat4(1.0f), m_position) * mat4_cast(m_orientation), m_scale);
+	mat4 mat = TransformationMatrix(m_position, m_orientation, m_scale);
 	m_node->setWorldMatrix(m_node->getWorldMatrix() * mat);
 }
 
@@ -109,8 +109,8 @@ void XForm_PositionOrientationScale::edit()
 	ImGui::PushID(this);
 	Im3d::PushId(this);
 	
-	vec3 eul = eulerAngles(m_orientation);
 	ImGui::DragFloat3("Position", &m_position.x, 0.5f);
+	/*vec3 eul = eulerAngles(m_orientation);
 	if (ImGui::DragFloat3("Orientation", &eul.x, 0.1f)) {
 		m_orientation = quat(eul);
 	}
@@ -119,7 +119,7 @@ void XForm_PositionOrientationScale::edit()
 	mat3 orientation(m_orientation);
 	if (Im3d::Gizmo("XForm_PositionOrientationScale", &m_position.x, (float*)&orientation, &m_scale.x)) {
 		m_orientation = quat(orientation);
-	}
+	}*/
 
 	Im3d::PopId();
 	ImGui::PopID();
@@ -149,7 +149,7 @@ XForm_FreeCamera::XForm_FreeCamera()
 	, m_maxSpeedMul(5.0f)
 	, m_accelTime(0.1f)
 	, m_accelCount(0.0f)
-	, m_orientation(1.0f, 0.0f, 0.0f, 0.0f)
+	, m_orientation(0.0f, 0.0f, 0.0f, 1.0f)
 	, m_pitchYawRoll(0.0f)
 	, m_rotationInputMul(0.1f)
 	, m_rotationDamp(0.0002f)
@@ -173,33 +173,33 @@ void XForm_FreeCamera::apply(float _dt)
 		float x = gpad->getAxisState(Gamepad::Axis_LeftStickX);
 		float y = gpad->getAxisState(Gamepad::Axis_LeftStickY);
 		float z = gpad->isDown(Gamepad::Button_Right1) ? 1.0f : (gpad->isDown(Gamepad::Button_Left1) ? -1.0f : 0.0f);
-		dir += vec3(column(localMatrix, 0)) * x;
-		dir += vec3(column(localMatrix, 2)) * y;
-		dir += vec3(column(localMatrix, 1)) * z;
+		dir += localMatrix[0].xyz() * x;
+		dir += localMatrix[2].xyz() * y;
+		dir += localMatrix[1].xyz() * z;
 		isAccel = abs(x + y + z) > 0.0f;
 	}
 	if (keyb->isDown(Keyboard::Key_W)) {
-		dir -= vec3(column(localMatrix, 2));
+		dir -= localMatrix[2].xyz();
 		isAccel = true;
 	}
 	if (keyb->isDown(Keyboard::Key_A)) {
-		dir -= vec3(column(localMatrix, 0));
+		dir -= localMatrix[0].xyz();
 		isAccel = true;
 	}
 	if (keyb->isDown(Keyboard::Key_S)) {
-		dir += vec3(column(localMatrix, 2));
+		dir += localMatrix[2].xyz();
 		isAccel = true;
 	}
 	if (keyb->isDown(Keyboard::Key_D)) {
-		dir += vec3(column(localMatrix, 0));
+		dir += localMatrix[0].xyz();
 		isAccel = true;
 	}
 	if (keyb->isDown(Keyboard::Key_Q)) {
-		dir -= vec3(column(localMatrix, 1));
+		dir -= localMatrix[1].xyz();
 		isAccel = true;
 	}
 	if (keyb->isDown(Keyboard::Key_E)) {
-		dir += vec3(column(localMatrix, 1));
+		dir += localMatrix[1].xyz();
 		isAccel = true;
 	}
 	if (isAccel) {
@@ -209,7 +209,7 @@ void XForm_FreeCamera::apply(float _dt)
 	m_velocity += dir;
 			
 	m_accelCount += isAccel ? _dt : -_dt;
-	m_accelCount = clamp(m_accelCount, 0.0f, m_accelTime);
+	m_accelCount = APT_CLAMP(m_accelCount, 0.0f, m_accelTime);
 	m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
 	if (gpad) {
 		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
@@ -233,13 +233,13 @@ void XForm_FreeCamera::apply(float _dt)
 		m_pitchYawRoll.x -= mouse->getAxisState(Mouse::Axis_Y) * m_rotationInputMul;
 		m_pitchYawRoll.y -= mouse->getAxisState(Mouse::Axis_X) * m_rotationInputMul;
 	}
-	quat qpitch     = angleAxis(m_pitchYawRoll.x * _dt, vec3(column(localMatrix, 0)));
-	quat qyaw       = angleAxis(m_pitchYawRoll.y * _dt, vec3(0.0f, 1.0f, 0.0f));
-	quat qroll      = angleAxis(m_pitchYawRoll.z * _dt, vec3(column(localMatrix, 2)));
-	m_orientation   = qyaw * qpitch * qroll * m_orientation;
+	quat qpitch     = RotationQuaternion(localMatrix[0].xyz(),   m_pitchYawRoll.x * _dt);
+	quat qyaw       = RotationQuaternion(vec3(0.0f, 1.0f, 0.0f), m_pitchYawRoll.y * _dt);
+	quat qroll      = RotationQuaternion(localMatrix[2].xyz(),   m_pitchYawRoll.z * _dt);
+	m_orientation   = qmul(qmul(qmul(qyaw, qpitch), qroll), m_orientation);
 	m_pitchYawRoll *= powf(m_rotationDamp, _dt);
 
-	m_node->setLocalMatrix(translate(mat4(1.0f), m_position) * mat4_cast(m_orientation));
+	m_node->setLocalMatrix(TransformationMatrix(m_position, m_orientation));
 	
 }
 
@@ -342,7 +342,7 @@ eastl::vector<const XForm::Callback*> XForm::s_callbackRegistry;
 
 XForm_Spin::XForm_Spin()
 	: m_axis(0.0f, 0.0f, 1.0f)
-	, m_rate(pi<float>())
+	, m_rate(kPi)
 	, m_rotation(0.0f)
 {
 }
@@ -354,7 +354,7 @@ XForm_Spin::~XForm_Spin()
 void XForm_Spin::apply(float _dt)
 {
 	m_rotation += m_rate * _dt;
-	m_node->setWorldMatrix(rotate(m_node->getWorldMatrix(), m_rotation, m_axis));
+	m_node->setWorldMatrix(m_node->getWorldMatrix() * RotationMatrix(m_axis, m_rotation));
 }
 
 void XForm_Spin::edit()
@@ -410,7 +410,7 @@ void XForm_PositionTarget::apply(float _dt)
 		m_onComplete(this);
 	}
 	m_currentPosition = smooth(m_start, m_end, m_currentTime / m_duration);
-	m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), m_currentPosition));
+	m_node->setWorldPosition(m_node->getWorldPosition() + m_currentPosition);
 }
 
 void XForm_PositionTarget::edit()
@@ -504,7 +504,7 @@ void XForm_SplinePath::apply(float _dt)
 	}
 	vec3 position;
 	position = m_path->sample(m_currentTime / m_duration, &m_pathHint);
-	m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), position));
+	m_node->setWorldPosition(m_node->getWorldPosition() + position);
 }
 
 void XForm_SplinePath::edit()
@@ -549,7 +549,7 @@ APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_OrbitalPath);
 
 XForm_OrbitalPath::XForm_OrbitalPath()
 	: m_azimuth(0.0f)
-	, m_elevation(radians(90.0f))
+	, m_elevation(Radians(90.0f))
 	, m_theta(0.0f)
 	, m_radius(1.0f)
 	, m_speed(0.0f)
@@ -562,11 +562,11 @@ XForm_OrbitalPath::~XForm_OrbitalPath()
 
 void XForm_OrbitalPath::apply(float _dt)
 {
-	m_theta = fract(m_theta + m_speed * _dt);
+	m_theta = Fract(m_theta + m_speed * _dt);
 
 	float a = m_azimuth;
 	float b = -m_elevation;
-	float t = m_theta * two_pi<float>();
+	float t = m_theta * kTwoPi;
 	float ca = cosf(a);
 	float sa = sinf(a);
 	float cb = cosf(b);
@@ -574,24 +574,24 @@ void XForm_OrbitalPath::apply(float _dt)
 	float ct = cosf(t);
 	float st = sinf(t);
 	mat3 tmat = transpose(mat3(
-		st,     0.0f,  ct,
-		0.0f,   1.0f,  0.0f,
-		-ct,    0.0f,  st
+		vec3(st,     0.0f,  ct),
+		vec3(0.0f,   1.0f,  0.0f),
+		vec3(-ct,    0.0f,  st)
 		));
 	mat3 amat = transpose(mat3(
-		ca,     0.0f,  sa,
-		0.0f,   1.0f,  0.0f,
-		-sa,    0.0f,  ca
+		vec3(ca,     0.0f,  sa),
+		vec3(0.0f,   1.0f,  0.0f),
+		vec3(-sa,    0.0f,  ca)
 		));
 	mat3 bmat = transpose(mat3(
-		1.0f,   0.0f,  0.0f,
-		0.0f,   cb,    -sb,
-		0.0f,   sb,     cb
+		vec3(1.0f,   0.0f,  0.0f),
+		vec3(0.0f,   cb,    -sb),
+		vec3(0.0f,   sb,     cb)
 		));
 	m_direction = amat * bmat * tmat * vec3(1.0f, 0.0f, 0.0f);
 	m_normal = amat * bmat * vec3(0.0f, 1.0f, 0.0f);
 	if (m_node) {
-		m_node->setWorldMatrix(translate(m_node->getWorldMatrix(), m_direction * m_radius));
+		m_node->setWorldPosition(m_node->getWorldPosition() + m_direction * m_radius);
 	}
 }
 
@@ -705,7 +705,7 @@ struct XForm_VRGamepad: public XForm
 		m_velocity += dir;
 				
 		m_accelCount += isAccel ? _dt : -_dt;
-		m_accelCount = apt::clamp(m_accelCount, 0.0f, m_accelTime);
+		m_accelCount = APT_CLAMP(m_accelCount, 0.0f, m_accelTime);
 		m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
 		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
 		float len = apt::length(m_velocity);
@@ -718,7 +718,7 @@ struct XForm_VRGamepad: public XForm
 		m_orientation += m_yaw;
 		m_yaw *= powf(m_rotationDamp, _dt);
 
-		m_node->setWorldMatrix(translate(m_node->getLocalMatrix(), m_position) * mat4_cast(angleAxis(m_orientation, vec3(0.0f, 1.0f, 0.0f))));
+		m_node->setWorldMatrix(TransformationMatrix(m_position, RotationQuaternion(vec3(0.0f, 1.0f, 0.0f), m_orientation)));
 	}
 
 	void XForm_VRGamepad::edit()

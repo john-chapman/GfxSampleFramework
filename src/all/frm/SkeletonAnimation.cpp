@@ -1,5 +1,7 @@
 #include <frm/SkeletonAnimation.h>
 
+#include <frm/interpolation.h>
+
 #include <apt/hash.h>
 #include <apt/log.h>
 #include <apt/FileSystem.h>
@@ -36,12 +38,7 @@ const mat4* Skeleton::resolve()
 	for (int i = 0, n = getBoneCount(); i < n; ++i) {
 		const Bone& bone = m_bones[i];
 
-	 // \todo optimize?
-		mat4 m = 
-			translate(mat4(1.0f), bone.m_position) * 
-			mat4_cast(bone.m_orientation) * 
-			scale(mat4(1.0f), bone.m_scale)
-			;
+		mat4 m = TransformationMatrix(bone.m_position, bone.m_orientation, bone.m_scale);
 
 		if (bone.m_parentIndex >= 0) {
 			APT_ASSERT(bone.m_parentIndex <= i); // parent must come before children
@@ -133,12 +130,12 @@ void SkeletonAnimationTrack::sample(float _t, float* out_, int* _hint_)
 	//}
  // \hack where to renormalize quaternions?
 if (m_boneDataSize == 3) {
-	*((vec3*)out_) = mix(*((vec3*)a), *((vec3*)b), t);
+	*((vec3*)out_) = lerp(*((vec3*)a), *((vec3*)b), t);
 } else if (m_boneDataSize == 4) {
 	*((quat*)out_) = slerp(*((quat*)a), *((quat*)b), t);
 } else {
 	for (int j = 0; j < m_boneDataSize; ++j) {
-		out_[j] = mix(a[j], b[j], t);
+		out_[j] = lerp(a[j], b[j], t);
 	}
 }
 

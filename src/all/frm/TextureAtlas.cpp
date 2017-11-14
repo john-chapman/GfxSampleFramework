@@ -377,12 +377,12 @@ TextureAtlas::Node* TextureAtlas::find(Node* _root, uint16 _originX, uint16 _ori
 	
 	
 			vec2 a, b;
-			a = vec2(_node->m_startX + _node->m_sizeX / 2, _node->m_startY                  ) * m_rsize;
-			b = vec2(_node->m_startX + _node->m_sizeX / 2, _node->m_startY + _node->m_sizeY ) * m_rsize;
+			a = vec2((float)(_node->m_startX + _node->m_sizeX / 2), (float)(_node->m_startY                 )) * m_rsize;
+			b = vec2((float)(_node->m_startX + _node->m_sizeX / 2), (float)(_node->m_startY + _node->m_sizeY)) * m_rsize;
 			drawList->AddLine(_drawStart + a * _drawSize, _drawStart + b * _drawSize, kDbgColorLines, kDbgLineThickness);
 			
-			a = vec2(_node->m_startX,                      _node->m_startY + _node->m_sizeY / 2) * m_rsize;
-			b = vec2(_node->m_startX + _node->m_sizeX,     _node->m_startY + _node->m_sizeY / 2) * m_rsize;
+			a = vec2((float)(_node->m_startX                 ), (float)(_node->m_startY + _node->m_sizeY / 2)) * m_rsize;
+			b = vec2((float)(_node->m_startX + _node->m_sizeX), (float)(_node->m_startY + _node->m_sizeY / 2)) * m_rsize;
 			drawList->AddLine(_drawStart + a * _drawSize, _drawStart + b * _drawSize, kDbgColorLines, kDbgLineThickness);
 			
 			for (int i = 0; i < 4; ++i) {

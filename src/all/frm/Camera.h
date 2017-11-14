@@ -93,9 +93,9 @@ public:
 	void setProjFlag(ProjFlag _flag, bool _value) { m_projFlags = _value ? (m_projFlags | _flag) : (m_projFlags & ~_flag); m_projDirty = true; }
 	
 	// Extract position from world matrix.
-	vec3 getPosition() const    { return vec3(apt::column(m_world, 3));  }
+	vec3 getPosition() const    { return m_world[3].xyz();  }
 	// Extract view direction from world matrix. Projection is along -z, hence the negation.
-	vec3 getViewVector() const  { return -vec3(apt::column(m_world, 2)); }
+	vec3 getViewVector() const  { return -m_world[2].xyz(); }
 
 	uint32  m_projFlags;      // Combination of ProjFlag_ enums.
 	bool    m_projDirty;      // Whether to rebuild the projection matrix/local frustum during update().

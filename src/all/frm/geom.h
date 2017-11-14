@@ -251,20 +251,20 @@ vec3 Nearest(const Ray& _ray, const LineSegment& _segment, float& tr_);
 
 // Find the distance/square distance between two primitives.
 float        Distance2(const Line& _line, const vec3& _point);
-inline float Distance (const Line& _line, const vec3& _point)                        { return apt::sqrt(Distance2(_line, _point)); }
+inline float Distance (const Line& _line, const vec3& _point)                        { return sqrt(Distance2(_line, _point)); }
 float        Distance2(const Ray& _ray, const vec3& _point);
-inline float Distance (const Ray& _ray, const vec3& _point)                          { return apt::sqrt(Distance2(_ray, _point)); }
+inline float Distance (const Ray& _ray, const vec3& _point)                          { return sqrt(Distance2(_ray, _point)); }
 float        Distance2(const LineSegment& _segment, const vec3& _point);
-inline float Distance (const LineSegment& _segment, const vec3& _point)              { return apt::sqrt(Distance2(_segment, _point)); }
+inline float Distance (const LineSegment& _segment, const vec3& _point)              { return sqrt(Distance2(_segment, _point)); }
 float        Distance2(const Line& _line0, const Line& _line1);
-inline float Distance (const Line& _line0, const Line& _line1)                       { return apt::sqrt(Distance2(_line0, _line1)); }
+inline float Distance (const Line& _line0, const Line& _line1)                       { return sqrt(Distance2(_line0, _line1)); }
 float        Distance2(const LineSegment& _segment0, const LineSegment& _segment1);
-inline float Distance (const LineSegment& _segment0, const LineSegment& _segment1)   { return apt::sqrt(Distance2(_segment0, _segment1)); }
+inline float Distance (const LineSegment& _segment0, const LineSegment& _segment1)   { return sqrt(Distance2(_segment0, _segment1)); }
 float        Distance2(const Ray& _ray, const LineSegment& _segment);
-inline float Distance (const Ray& _ray, const LineSegment& _segment)                 { return apt::sqrt(Distance2(_ray, _segment)); }
+inline float Distance (const Ray& _ray, const LineSegment& _segment)                 { return sqrt(Distance2(_ray, _segment)); }
 float        Distance (const Plane& _plane, const vec3& _point);
 float        Distance2(const AlignedBox& _box, const vec3& _point);
-inline float Distance (const AlignedBox& _box, const vec3& _point)                   { return apt::sqrt(Distance2(_box, _point)); }
+inline float Distance (const AlignedBox& _box, const vec3& _point)                   { return sqrt(Distance2(_box, _point)); }
 
 // Line-primitive intersection.
 // t0_/t1_ return the first/second intersections along the line relative to the origin (|t0_| < |t1_|).

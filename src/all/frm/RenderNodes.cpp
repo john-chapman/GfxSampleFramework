@@ -112,8 +112,8 @@ void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, cons
 			_ctx_->bindTexture("txSrcPrev", m_txLum[prev]);
 			_ctx_->bindImage  ("txDst", dst, GL_WRITE_ONLY, ++lvl);
 			_ctx_->dispatch(
-				max((wh + localSize.x - 1) / localSize.x, 1),
-				max((wh + localSize.y - 1) / localSize.y, 1)
+				APT_MAX((wh + localSize.x - 1) / localSize.x, 1),
+				APT_MAX((wh + localSize.y - 1) / localSize.y, 1)
 				);
 			glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 			wh = wh >> 1;

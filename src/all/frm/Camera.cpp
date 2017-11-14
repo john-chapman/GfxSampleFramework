@@ -147,10 +147,10 @@ void Camera::edit()
 	}
 	updated |= ImGui::Checkbox("Reversed", &reversed);
 
-	float up    = orthographic ? m_up    : degrees(atanf(m_up));
-	float down  = orthographic ? m_down	 : degrees(atanf(m_down));
-	float right = orthographic ? m_right : degrees(atanf(m_right));
-	float left  = orthographic ? m_left	 : degrees(atanf(m_left));
+	float up    = orthographic ? m_up    : Degrees(atan(m_up));
+	float down  = orthographic ? m_down	 : Degrees(atan(m_down));
+	float right = orthographic ? m_right : Degrees(atan(m_right));
+	float left  = orthographic ? m_left	 : Degrees(atan(m_left));
 	float near  = m_near;
 	float far   = m_far;
 
@@ -185,7 +185,7 @@ void Camera::edit()
 		} else {
 			float fovVertical = up * 2.0f;
 			if (ImGui::SliderFloat("FOV Vertical", &fovVertical, 0.0f, 180.0f)) {
-				setPerspective(radians(fovVertical), m_aspectRatio, m_near, m_far, m_projFlags);
+				setPerspective(Radians(fovVertical), m_aspectRatio, m_near, m_far, m_projFlags);
 			}
 			if (ImGui::SliderFloat("Apect Ratio", &m_aspectRatio, 0.0f, 2.0f)) {
 				setAspectRatio(m_aspectRatio);
@@ -258,10 +258,10 @@ void Camera::edit()
 	}
 
 	if (updated) {
-		m_up    = orthographic ? up    : tanf(radians(up));
-		m_down  = orthographic ? down  : tanf(radians(down));
-		m_right = orthographic ? right : tanf(radians(right));
-		m_left  = orthographic ? left  : tanf(radians(left));
+		m_up    = orthographic ? up    : tanf(Radians(up));
+		m_down  = orthographic ? down  : tanf(Radians(down));
+		m_right = orthographic ? right : tanf(Radians(right));
+		m_left  = orthographic ? left  : tanf(Radians(left));
 		m_near  = near;
 		m_far   = far;
 		setProjFlag(ProjFlag_Orthographic, orthographic);
@@ -333,7 +333,7 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 		if (!getProjFlag(ProjFlag_Orthographic)) {
 			v /= v.w;
 		}
-		lvt[i] = vec3(v);
+		lvt[i] = v.xyz();
 	}
  // replace far plane in the case of an infinite projection
 	if (getProjFlag(ProjFlag_Infinite)) {
@@ -422,7 +422,7 @@ void Camera::updateView()
 	}
 	
 	mat3 viewRotation = transpose(mat3(m_world));
-	vec3 viewTranslation = -(viewRotation * vec3(column(m_world, 3)));
+	vec3 viewTranslation = -(viewRotation * m_world[3].xyz());
 	m_view[0] = vec4(viewRotation[0], 0.0f);
 	m_view[1] = vec4(viewRotation[1], 0.0f);
 	m_view[2] = vec4(viewRotation[2], 0.0f);

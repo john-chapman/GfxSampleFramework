@@ -53,7 +53,7 @@ bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 	}
 	tmpSkeleton.resolve();
 	for (int i = 0; i < tmpSkeleton.getBoneCount(); ++i) {
-		tmpSkeleton.getPose()[i] = affineInverse(tmpSkeleton.getPose()[i]);
+		tmpSkeleton.getPose()[i] = AffineInverse(tmpSkeleton.getPose()[i]);
 	}
 
 	for (auto& mesh : meshes) {
@@ -86,7 +86,7 @@ bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 			vdst->m_position = vec3(0.0f);
 			for (auto& weight : weights) {
 				auto& joint = joints[weight.m_jointIndex];
-				vec3 posJ = joint.m_orientation * weight.m_position;
+				vec3 posJ = qrot(joint.m_orientation, weight.m_position);
 				vdst->m_position += (joint.m_position + posJ) * weight.m_bias;
 			}
 

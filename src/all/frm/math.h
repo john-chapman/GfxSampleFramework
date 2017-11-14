@@ -25,8 +25,8 @@ using apt::quat;
 
 using apt::LCG;
 
-using apt::pi;
-using apt::two_pi;
+using apt::kPi;
+using apt::kTwoPi;
 
 } // namespace frm
 

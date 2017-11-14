@@ -259,7 +259,7 @@ struct TextureViewer
 			//float thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
 			float thumbHeight = ImGui::GetWindowHeight() * 0.75f;
 			float thumbWidth = (float)tx.getWidth() / (float)tx.getHeight() * thumbHeight;
-			thumbWidth = min(thumbWidth, ImGui::GetWindowSize().x * 2/3);
+			thumbWidth = APT_MIN(thumbWidth, ImGui::GetWindowSize().x * 2.0f/3.0f);
 			thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
 			vec2 thumbSize(thumbWidth, APT_MAX(thumbHeight, 16.0f));
 		  // need to flip the UVs here to account for the orientation of the quad output by ImGui
@@ -276,13 +276,13 @@ struct TextureViewer
 				drawList->PushClipRect(drawStart, min(drawEnd, vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowSize())));
 					if ((drawEnd.x - drawStart.x) > (txView.m_size.x * 3.0f)) { // only draw grid if texel density is low enough
 						float scale = thumbSize.x / txView.m_size.x;
-						float bias  = (1.0f - fract(txView.m_offset.x)) * scale;
+						float bias  = (1.0f - Fract(txView.m_offset.x)) * scale;
 						for (int i = 0, n = (int)txView.m_size.x + 1; i <= n; ++i) {
 							float x = drawStart.x + (float)i * scale + bias;
 							drawList->AddLine(vec2(x, drawStart.y), vec2(x, drawEnd.y), kColorGrid);
 						}
 						scale = thumbSize.y / txView.m_size.y;
-						bias  = (1.0f - fract(txView.m_offset.y)) * scale;
+						bias  = (1.0f - Fract(txView.m_offset.y)) * scale;
 						for (int i = 0, n = (int)txView.m_size.y + 1; i <= n; ++i) {
 							float y = drawEnd.y - (float)i * scale - bias;
 							drawList->AddLine(vec2(drawStart.x, y), vec2(drawEnd.x, y), kColorGrid);

@@ -1,6 +1,7 @@
 #include <frm/geom.h>
 
 #include <frm/math.h>
+#include <frm/interpolation.h>
 
 #define geom_debug
 #ifdef geom_debug
@@ -9,14 +10,15 @@
 #endif
 
 using namespace frm;
+using namespace apt;
 
 static float GetMaxScale(const mat4& _mat)
 {
 	float sx = _mat[0][0] * _mat[0][0] + _mat[0][1] * _mat[0][1] + _mat[0][2] * _mat[0][2];
 	float sy = _mat[1][0] * _mat[1][0] + _mat[1][1] * _mat[1][1] + _mat[1][2] * _mat[1][2];
 	float sz = _mat[2][0] * _mat[2][0] + _mat[2][1] * _mat[2][1] + _mat[2][2] * _mat[2][2];
-	float ret = apt::max(sx, apt::max(sy, sz));
-	ret = sqrtf(ret);
+	float ret = APT_MAX(sx, APT_MAX(sy, sz));
+	ret = sqrt(ret);
 	return ret;
 }
 
@@ -34,8 +36,8 @@ Line::Line(const vec3& _origin, const vec3& _direction)
 
 void Line::transform(const mat4& _mat)
 {
-	m_origin = vec3(_mat * vec4(m_origin, 1.0f));
-	m_direction = vec3(_mat * vec4(m_direction, 0.0f));
+	m_origin = TransformPosition(_mat, m_origin);
+	m_direction = TransformDirection(_mat, m_origin);
 }
 
 /*******************************************************************************
@@ -52,8 +54,8 @@ Ray::Ray(const vec3& _origin, const vec3& _direction)
 
 void Ray::transform(const mat4& _mat)
 {
-	m_origin = vec3(_mat * vec4(m_origin, 1.0f));
-	m_direction = vec3(_mat * vec4(m_direction, 0.0f));
+	m_origin = TransformPosition(_mat, m_origin);
+	m_direction = TransformDirection(_mat, m_direction);
 }
 
 /*******************************************************************************
@@ -70,8 +72,8 @@ LineSegment::LineSegment(const vec3& _start, const vec3& _end)
 
 void LineSegment::transform(const mat4& _mat)
 {
-	m_start = vec3(_mat * vec4(m_start, 1.0f));
-	m_end   = vec3(_mat * vec4(m_end, 1.0f));
+	m_start = TransformPosition(_mat, m_start);
+	m_end = TransformPosition(_mat, m_end);
 }
 
 /*******************************************************************************
@@ -99,7 +101,7 @@ void Sphere::transform(const mat4& _mat)
 	m_origin *= maxScale;
 
  // translate after scaling
-	m_origin = vec3(_mat * vec4(m_origin, 1.0f));
+	m_origin = TransformPosition(_mat, m_origin);
 }
 
 /*******************************************************************************
@@ -137,9 +139,8 @@ Plane::Plane(const vec3& _p0, const vec3& _p1, const vec3& _p2)
 
 void Plane::transform(const mat4& _mat)
 {
-	vec3 origin = vec3(_mat * vec4(getOrigin(), 1.0f));
-	m_normal = vec3(_mat * vec4(m_normal, 0.0f));
-	m_normal = apt::normalize(m_normal);
+	vec3 origin = TransformPosition(_mat, getOrigin());
+	m_normal = apt::normalize(TransformDirection(_mat, m_normal));
 	m_offset = dot(m_normal, origin);
 }
 
@@ -185,10 +186,10 @@ AlignedBox::AlignedBox(const Frustum& _frustum)
 
 void AlignedBox::transform(const mat4& _mat)
 {
-	vec3 mx = vec3(column(_mat, 0));
-	vec3 my = vec3(column(_mat, 1));
-	vec3 mz = vec3(column(_mat, 2));
-	vec3 mw = vec3(column(_mat, 3));
+	vec3 mx = _mat[0].xyz();
+	vec3 my = _mat[1].xyz();
+	vec3 mz = _mat[2].xyz();
+	vec3 mw = _mat[3].xyz();
 
 	vec3 xa = mx * m_min.x;
 	vec3 xb = mx * m_max.x;
@@ -234,8 +235,8 @@ Cylinder::Cylinder(const vec3& _start, const vec3& _end, float _radius)
 void Cylinder::transform(const mat4& _mat)
 {
 	m_radius *= GetMaxScale(_mat);
-	m_start = vec3(_mat * vec4(m_start, 1.0f));
-	m_end   = vec3(_mat * vec4(m_end, 1.0f));
+	m_start = TransformPosition(_mat, m_start);
+	m_end   = TransformPosition(_mat, m_end);
 }
 
 vec3 Cylinder::getOrigin() const
@@ -259,8 +260,8 @@ Capsule::Capsule(const vec3& _start, const vec3& _end, float _radius)
 void Capsule::transform(const mat4& _mat)
 {
 	m_radius *= GetMaxScale(_mat);
-	m_start = vec3(_mat * vec4(m_start, 1.0f));
-	m_end   = vec3(_mat * vec4(m_end, 1.0f));
+	m_start = TransformPosition(_mat, m_start);
+	m_end   = TransformPosition(_mat, m_end);
 }
 
 vec3 Capsule::getOrigin() const
@@ -365,8 +366,8 @@ Frustum::Frustum(const Frustum& _base, float _nearOffset, float _farOffset)
 	float n = _nearOffset / d;
 	float f = _farOffset  / d;
 	for (int i = 0; i < 4; ++i) {
-		m_vertices[i]     = mix(_base.m_vertices[i], _base.m_vertices[i + 4], n);
-		m_vertices[i + 4] = mix(_base.m_vertices[i], _base.m_vertices[i + 4], 1.0f + f);
+		m_vertices[i]     = lerp(_base.m_vertices[i], _base.m_vertices[i + 4], n);
+		m_vertices[i + 4] = lerp(_base.m_vertices[i], _base.m_vertices[i + 4], 1.0f + f);
 	}
 	initPlanes();
 }
@@ -377,7 +378,7 @@ void Frustum::transform(const mat4& _mat)
 		m_planes[i].transform(_mat);
 	}
 	for (int i = 0; i < 8; ++i) {
-		m_vertices[i] = vec3(_mat * vec4(m_vertices[i], 1.0f));
+		m_vertices[i] = TransformPosition(_mat, m_vertices[i]);
 	}
 }
 
@@ -463,7 +464,7 @@ vec3 frm::Nearest(const Ray& _ray, const vec3& _point)
 {
 	vec3 p = _point - _ray.m_origin;
 	float q = dot(p, _ray.m_direction);
-	return _ray.m_origin + _ray.m_direction * apt::max(q, 0.0f);
+	return _ray.m_origin + _ray.m_direction * APT_MAX(q, 0.0f);
 }
 vec3 frm::Nearest(const LineSegment& _segment, const vec3& _point)
 {
@@ -523,7 +524,7 @@ void frm::Nearest(const Line& _line0, const Line& _line1, float& t0_, float& t1_
 void frm::Nearest(const Ray& _ray, const Line& _line, float& tr_, float& tl_)
 {
 	Nearest(Line(_ray.m_origin, _ray.m_direction), _line, tr_, tl_);
-	tr_ = apt::max(tr_, 0.0f);
+	tr_ = APT_MAX(tr_, 0.0f);
 }
 vec3 frm::Nearest(const Ray& _ray, const LineSegment& _segment, float& tr_)
 {
@@ -769,10 +770,10 @@ bool frm::Intersect(const Line& _line, const AlignedBox& _box, float& t0_, float
 {
 	vec3 omin = (_box.m_min - _line.m_origin) / _line.m_direction;
 	vec3 omax = (_box.m_max - _line.m_origin) / _line.m_direction;
-	vec3 tmax = apt::max(omax, omin);
-	vec3 tmin = apt::min(omax, omin);
-	t1_ = apt::min(tmax.x, apt::min(tmax.y, tmax.z));
-	t0_ = apt::max(tmin.x, apt::max(tmin.y, tmin.z));
+	vec3 tmax = APT_MAX(omax, omin);
+	vec3 tmin = APT_MIN(omax, omin);
+	t1_ = APT_MIN(tmax.x, APT_MIN(tmax.y, tmax.z));
+	t0_ = APT_MAX(tmin.x, APT_MAX(tmin.y, tmin.z));
 	if (t1_ < t0_) {
 		return false;
 	}
@@ -818,7 +819,7 @@ bool frm::Intersect(const Line& _line, const Capsule& _capsule, float& t0_, floa
 		if (d > 0.0f) {
 			d = sqrtf(d);
 			t1_ = -b + d;
-			//t1_ = apt::min(t1_, -b + d);
+			//t1_ = APT_MIN(t1_, -b + d);
 		}
 
 		return true;
@@ -834,7 +835,7 @@ bool frm::Intersect(const Line& _line, const Capsule& _capsule, float& t0_, floa
 		t0_ = -b - d;
 
 	 // t1 may intersect the body
-		t1_ = apt::max(t1_, -b + d);
+		t1_ = APT_MAX(t1_, -b + d);
 		return true;
     }
 	return false;
@@ -874,11 +875,11 @@ bool frm::Intersect(const Line& _line, const Cylinder& _cylinder, float& t0_, fl
 		Intersect(_line, Plane(nrm, _cylinder.m_end), t2);
 		Intersect(_line, Plane(-nrm, _cylinder.m_start), t3);
 		if (t3 < t2) {
-			t0_ = apt::clamp(t0_, t3, t2);
-			t1_ = apt::clamp(t1_, t3, t2);
+			t0_ = APT_CLAMP(t0_, t3, t2);
+			t1_ = APT_CLAMP(t1_, t3, t2);
 		} else {
-			t0_ = apt::clamp(t0_, t2, t3);
-			t1_ = apt::clamp(t1_, t2, t3);
+			t0_ = APT_CLAMP(t0_, t2, t3);
+			t1_ = APT_CLAMP(t1_, t2, t3);
 		}
 		OrderByMagnitude(t0_, t1_);
 		
@@ -909,7 +910,7 @@ bool frm::Intersect(const Ray& _ray, const Sphere& _sphere, float& t0_, float& t
 	if (t0_ < 0.0f && t1_ < 0.0f) { // sphere behind ray origin
 		return false;
 	} else if (t0_ < 0.0f || t1_ < 0.0f) { // ray origin inside sphere
-		float t = apt::max(t0_, t1_);
+		float t = APT_MAX(t0_, t1_);
 		t0_ = t1_ = t;
 	}
 	return true;
@@ -934,17 +935,17 @@ bool frm::Intersect(const Ray& _ray, const AlignedBox& _box, float& t0_, float& 
 {
 	vec3 omin = (_box.m_min - _ray.m_origin) / _ray.m_direction;
 	vec3 omax = (_box.m_max - _ray.m_origin) / _ray.m_direction;
-	vec3 tmax = apt::max(omax, omin);
-	vec3 tmin = apt::min(omax, omin);
-	t1_ = apt::min(tmax.x, apt::min(tmax.y, tmax.z));
-	t0_ = apt::max(tmin.x, apt::max(tmin.y, tmin.z));
+	vec3 tmax = APT_MAX(omax, omin);
+	vec3 tmin = APT_MIN(omax, omin);
+	t1_ = APT_MIN(tmax.x, APT_MIN(tmax.y, tmax.z));
+	t0_ = APT_MAX(tmin.x, APT_MAX(tmin.y, tmin.z));
 	if (t0_ >= t1_) {
 		return false;
 	}
 	if (t0_ < 0.0f && t1_ < 0.0f) { // box behind ray origin
 		return false;
 	} else if (t0_ < 0.0f || t1_ < 0.0f) { // ray origin inside box
-		float t = apt::max(t0_, t1_);
+		float t = APT_MAX(t0_, t1_);
 		t0_ = t1_ = t;
 	}
 	return true;
@@ -977,7 +978,7 @@ bool frm::Intersect(const Ray& _ray, const Cylinder& _cylinder, float& t0_, floa
 	if (t0_ < 0.0f && t1_ < 0.0f) { // sphere behind ray origin
 		return false;
 	} else if (t0_ < 0.0f || t1_ < 0.0f) { // ray origin inside sphere
-		float t = apt::max(t0_, t1_);
+		float t = APT_MAX(t0_, t1_);
 		t0_ = t1_ = t;
 	}
 	return true;
