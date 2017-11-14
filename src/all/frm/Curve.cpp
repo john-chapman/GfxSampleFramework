@@ -437,7 +437,7 @@ void CurveEditor::selectCurve(const Curve* _curve)
 	}
 }
 
-bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, Flags _flags)
+bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 {
 	bool ret = false;
 	m_editFlags = _flags;
