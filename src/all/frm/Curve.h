@@ -12,10 +12,10 @@ namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Curve
-// 2D curve. This is designed for edit/storage; runtime evaluation should use 
-// a piecewise linear approximation which is generally cheaper to evaluate.
+// 2D Bezier curve (for edit/serialize) plus a piecewise linear approximation 
+// (for fast runtime evaluation).
 // 
-// The curve representation is flat list of 'endpoints' (EP); each EP contains 
+// The Bezier representation is flat list of 'endpoints' (EP); each EP contains 
 // 3 components: the 'value point' (VP) through which the curve will pass, plus 
 // 2 'control points' (CP) which describe the in/out tangent of the curve at
 // the VP.
@@ -62,42 +62,49 @@ public:
 	Curve();
 	~Curve() {}
 
+	friend bool Serialize(apt::Serializer& _serializer_, Curve& _curve_);
+
+ // Bezier
 	// Insert a new endpoint with the given value, return its index.
-	int insert(const Endpoint& _endpoint);
-
+	int   insert(const Endpoint& _endpoint);
 	// Move the specified component on endpoint by setting its value, return the new index.
-	int move(int _endpointIndex, Component _component, const vec2& _value);
-
+	int   move(int _endpointIndex, Component _component, const vec2& _value);
 	// Erase the specified endpoint.
 	void  erase(int _endpointIndex);
-
 	// Apply the wrap mode to _t.
 	float wrap(float _t) const;
+	// Constraint endpoint values in [_min, _max].
+	void  setValueConstraint(const vec2& _min, const vec2& _max);
 
-	Endpoint&       operator[](int _i)       { APT_ASSERT(_i < (int)m_endpoints.size()); return m_endpoints[_i]; }
-	const Endpoint& operator[](int _i) const { APT_ASSERT(_i < (int)m_endpoints.size()); return m_endpoints[_i]; }
-
-	void setValueConstraint(const vec2& _min, const vec2& _max);
-
-	//bool edit(const vec2& _sizePixels = vec2(-1.0f), float _t = 0.0f, EditFlags _flags = EditFlags_Default);
+ // Piecewise
+	// Evaluate the piecewise representation at _t (which is implicitly wrapped).
+	float evaluate(float _t) const;
 
 private:
-	eastl::vector<Endpoint> m_endpoints;
 	vec2 m_endpointMin, m_endpointMax;     // endpoint bounding box, including CPs
 	vec2 m_valueMin, m_valueMax;           // endpoint bounding box, excluding CPs
 	Wrap m_wrap;
 	vec2 m_constrainMin, m_constrainMax;   // limit endpoint values
 
-	int  findSegmentStartIndex(float _t) const;
+	eastl::vector<Endpoint> m_bezier;      // for edit/serializer
+	eastl::vector<vec2>     m_piecewise;   // for runtime evaluation
+
+	int  findBezierSegmentStartIndex(float _t) const;
+	int  findPiecewiseSegmentStartIndex(float _t) const;
 	void updateExtentsAndConstrain(int _modified); // applies additional constraints, e.g. synchronize endpoints if Wrap_Repeat
 	void copyValueAndTangent(const Endpoint& _src, Endpoint& dst_);
 	void constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1); // move _cp_ towards _vp such that _x0 <= _cp_.x <= _x1
+
+	// Update the piecewise approximation.
+	void updatePiecewise();
+	void subdivide(const Endpoint& _p0, const Endpoint& _p1, float _maxError = 1e-3f, int _limit = 64);
 
 }; // class Curve
 
 ////////////////////////////////////////////////////////////////////////////////
 // CurveEditor
 // Simultaneously edit one or more curves.
+// \todo Multiple EP select.
 ////////////////////////////////////////////////////////////////////////////////
 class CurveEditor
 {
@@ -108,10 +115,11 @@ public:
 		Flags_ShowGrid      = 1 << 0,  // Show the background grid.
 		Flags_ShowRuler     = 1 << 1,  // Show the edge ruler.
 		Flags_ShowHighlight = 1 << 2,  // Show curve bounding box highlight.
-		Flags_NoPan         = 1 << 3,  // Disable pan (middle click).
-		Flags_NoZoom        = 1 << 4,  // Disable zoom (mouse wheel).
+		Flags_ShowSampler   = 1 << 3,  // Show sample point at _t parameter to drawEdit.
+		Flags_NoPan         = 1 << 4,  // Disable pan (middle click).
+		Flags_NoZoom        = 1 << 5,  // Disable zoom (mouse wheel).
 
-		Flags_Default = Flags_ShowGrid | Flags_ShowRuler | Flags_ShowHighlight
+		Flags_Default = Flags_ShowGrid | Flags_ShowRuler | Flags_ShowHighlight | Flags_ShowSampler
 	};
 
 	CurveEditor();
@@ -151,15 +159,10 @@ private:
 	void drawSampler(float _t);
 	void drawRuler();
 
- // curves, cache
-	typedef eastl::vector<vec2> DrawCache;
-	eastl::vector<DrawCache>  m_drawCaches;  // piecewise linear approximations for drawing
-	eastl::vector<Curve*>     m_curves;
-	eastl::vector<ImU32>      m_curveColors;
-	int                       m_selectedCurve;
-
-	void updateCache(int _curveIndex);
-	void subdivide(int _curveIndex, const Curve::Endpoint& _p0, const Curve::Endpoint& _p1, float _maxError = 0.001f, int _limit = 64);
+ // curves
+	eastl::vector<Curve*> m_curves;
+	eastl::vector<ImU32>  m_curveColors;
+	int                   m_selectedCurve;
 
 }; // class CurveEditor
 

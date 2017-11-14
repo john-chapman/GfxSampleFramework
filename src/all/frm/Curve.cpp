@@ -4,6 +4,7 @@
 #include <frm/interpolation.h>
 #include <frm/Input.h>
 
+#include <apt/Serializer.h>
 #include <apt/String.h>
 
 #include <imgui/imgui.h>
@@ -19,6 +20,12 @@ using namespace apt;
 
 *******************************************************************************/
 
+static const char* WrapStr[Curve::Wrap_Count] =
+{
+	"Clamp",  //Wrap_Clamp,
+	"Repeat"  //Wrap_Repeat
+};
+
 // PUBLIC
 
 Curve::Curve()
@@ -28,25 +35,73 @@ Curve::Curve()
 {
 }
 
+bool frm::Serialize(apt::Serializer& _serializer_, Curve& _curve_)
+{
+	bool ret = true;
+
+ // metadata
+	String<32> tmp = WrapStr[_curve_.m_wrap];
+	ret &= Serialize(_serializer_, tmp, "Wrap");
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
+		for (int i = 0; i < Curve::Wrap_Count; ++i) {
+			if (tmp == WrapStr[i]) {
+				_curve_.m_wrap = (Curve::Wrap)i;
+				break;
+			}
+		}
+	}
+	ret &= Serialize(_serializer_, _curve_.m_constrainMin, "ConstrainMin");
+	ret &= Serialize(_serializer_, _curve_.m_constrainMax, "ConstrainMax");
+
+
+ // endpoints
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
+		_curve_.m_bezier.clear();
+	}
+	uint endpointCount = _curve_.m_bezier.size();
+	if (_serializer_.beginArray(endpointCount, "Endpoints")) {
+		if (_serializer_.getMode() == Serializer::Mode_Read) {
+			_curve_.m_bezier.resize(endpointCount);
+		}
+		for (uint i = 0; i < endpointCount; ++i) {
+			Curve::Endpoint& ep = _curve_.m_bezier[i];
+			_serializer_.beginArray();			
+			ret &= Serialize(_serializer_, ep.m_in);
+			ret &= Serialize(_serializer_, ep.m_value);
+			ret &= Serialize(_serializer_, ep.m_out);
+			_serializer_.endArray();
+		}
+		_serializer_.endArray();
+	} else {
+		ret = false;
+	}
+
+	if (_serializer_.getMode() == Serializer::Mode_Read) {
+		_curve_.updateExtentsAndConstrain(-1);
+		_curve_.updatePiecewise();
+	}
+
+	return ret;
+}
+
 int Curve::insert(const Endpoint& _endpoint)
 {
-	int ret = (int)m_endpoints.size();
-	if (!m_endpoints.empty() && _endpoint.m_value.x < m_endpoints[ret - 1].m_value.x) {
+	int ret = (int)m_bezier.size();
+	if (!m_bezier.empty() && _endpoint.m_value.x < m_bezier[ret - 1].m_value.x) {
 	 // can't insert at end, do binary search
-		ret = findSegmentStartIndex(_endpoint.m_value.x);
-		ret += (_endpoint.m_value.x >= m_endpoints[ret].m_value.x) ? 1 : 0; // handle case where _pos.x should be inserted at 0, normally we +1 to ret
+		ret = findBezierSegmentStartIndex(_endpoint.m_value.x);
+		ret += (_endpoint.m_value.x >= m_bezier[ret].m_value.x) ? 1 : 0; // handle case where _pos.x should be inserted at 0, normally we +1 to ret
 	}
-	m_endpoints.insert(m_endpoints.begin() + ret, _endpoint);
+	m_bezier.insert(m_bezier.begin() + ret, _endpoint);
 
 	if (m_wrap == Wrap_Repeat) {
 	 // synchronize first/last endpoints
-		if (ret == (int)m_endpoints.size() - 1) {
-			copyValueAndTangent(m_endpoints.back(), m_endpoints.front());
+		if (ret == (int)m_bezier.size() - 1) {
+			copyValueAndTangent(m_bezier.back(), m_bezier.front());
 		} else if (ret == 0) {
-			copyValueAndTangent(m_endpoints.front(), m_endpoints.back());
+			copyValueAndTangent(m_bezier.front(), m_bezier.back());
 		}
 	}
-
 	updateExtentsAndConstrain(ret);
 
 	return ret;
@@ -54,7 +109,7 @@ int Curve::insert(const Endpoint& _endpoint)
 
 int Curve::move(int _endpoint, Component _component, const vec2& _value)
 {
-	Endpoint& ep = m_endpoints[_endpoint];
+	Endpoint& ep = m_bezier[_endpoint];
 
 	int ret = _endpoint;
 	if (_component == Component_Value) {
@@ -65,16 +120,16 @@ int Curve::move(int _endpoint, Component _component, const vec2& _value)
 
 	 // swap with neighbor
 		ep.m_value = _value;
-		if (delta.x > 0.0f && _endpoint < (int)m_endpoints.size() - 1) {
+		if (delta.x > 0.0f && _endpoint < (int)m_bezier.size() - 1) {
 			int i = _endpoint + 1;
-			if (_value.x > m_endpoints[i].m_value.x) {
-				eastl::swap(ep, m_endpoints[i]);
+			if (_value.x > m_bezier[i].m_value.x) {
+				eastl::swap(ep, m_bezier[i]);
 				ret = i;
 			}
 		} else if (_endpoint > 0) {
 			int i = _endpoint - 1;
-			if (_value.x < m_endpoints[i].m_value.x) {
-				eastl::swap(ep, m_endpoints[i]);
+			if (_value.x < m_bezier[i].m_value.x) {
+				eastl::swap(ep, m_bezier[i]);
 				ret = i;
 			}
 		}
@@ -99,13 +154,12 @@ int Curve::move(int _endpoint, Component _component, const vec2& _value)
 
 	if (m_wrap == Wrap_Repeat) {
 	 // synchronize first/last endpoints
-		if (ret == (int)m_endpoints.size() - 1) {
-			copyValueAndTangent(m_endpoints.back(), m_endpoints.front());
-		} else if (ret == 0) {
-			copyValueAndTangent(m_endpoints.front(), m_endpoints.back());
+		if (_endpoint == (int)m_bezier.size() - 1) {
+			copyValueAndTangent(m_bezier.back(), m_bezier.front());
+		} else if (_endpoint == 0) {
+			copyValueAndTangent(m_bezier.front(), m_bezier.back());
 		}
 	}
-
 	updateExtentsAndConstrain(ret);
 
 	return ret;
@@ -113,9 +167,9 @@ int Curve::move(int _endpoint, Component _component, const vec2& _value)
 
 void Curve::erase(int _endpoint)
 {
-	APT_ASSERT(_endpoint < (int)m_endpoints.size());
-	m_endpoints.erase(m_endpoints.begin() + _endpoint);
-	updateExtentsAndConstrain(APT_MIN(_endpoint, APT_MAX((int)m_endpoints.size() - 1, 0)));
+	APT_ASSERT(_endpoint < (int)m_bezier.size());
+	m_bezier.erase(m_bezier.begin() + _endpoint);
+	updateExtentsAndConstrain(APT_MIN(_endpoint, APT_MAX((int)m_bezier.size() - 1, 0)));
 }
 
 float Curve::wrap(float _t) const
@@ -141,27 +195,56 @@ void Curve::setValueConstraint(const vec2& _min, const vec2& _max)
 	m_constrainMax = _max;
 }
 
+float Curve::evaluate(float _t) const
+{
+	if (m_piecewise.empty()) {
+		return 0.0f;
+	}
+	if (m_piecewise.size() < 2) {
+		return m_piecewise.front().y;
+	}
+	_t = wrap(_t);
+	int i = findPiecewiseSegmentStartIndex(_t);
+	float range = m_piecewise[i + 1].x - m_piecewise[i].x;
+	_t = (_t - m_piecewise[i].x) / (range > 0.0f ? range : 1.0f);;
+	return lerp(m_piecewise[i].y, m_piecewise[i + 1].y, _t);
+}
+
 // PRIVATE
 
-int Curve::findSegmentStartIndex(float _t) const
+int Curve::findBezierSegmentStartIndex(float _t) const
 {
-	int lo = 0, hi = (int)m_endpoints.size() - 1;
+	int lo = 0, hi = (int)m_bezier.size() - 1;
 	while (hi - lo > 1) {
 		uint32 md = (hi + lo) / 2;
-		if (_t > m_endpoints[md].m_value.x) {
+		if (_t > m_bezier[md].m_value.x) {
 			lo = md;
 		} else {
 			hi = md;
 		}
 	}
-	return _t > m_endpoints[hi].m_value.x ? hi : lo;
+	return _t > m_bezier[hi].m_value.x ? hi : lo;
+}
+
+int Curve::findPiecewiseSegmentStartIndex(float _t) const
+{
+	int lo = 0, hi = (int)m_piecewise.size() - 1;
+	while (hi - lo > 1) {
+		uint32 md = (hi + lo) / 2;
+		if (_t > m_piecewise[md].x) {
+			lo = md;
+		} else {
+			hi = md;
+		}
+	}
+	return _t > m_piecewise[hi].x ? hi : lo;
 }
 
 void Curve::updateExtentsAndConstrain(int _endpoint)
 {
 	m_valueMin = m_endpointMin = vec2(FLT_MAX);
 	m_valueMax = m_endpointMax = vec2(-FLT_MAX);
-	for (auto& ep : m_endpoints) {
+	for (auto& ep : m_bezier) {
 	 // constrain value points inside constraint region
 		vec2 inDelta = ep.m_in - ep.m_value;
 		vec2 outDelta = ep.m_out - ep.m_value;
@@ -181,10 +264,10 @@ void Curve::updateExtentsAndConstrain(int _endpoint)
 
 	if (m_wrap == Wrap_Repeat) {
 	 // synchronize first/last endpoints
-		if (_endpoint == (int)m_endpoints.size() - 1) {
-			copyValueAndTangent(m_endpoints.back(), m_endpoints.front());
+		if (_endpoint == (int)m_bezier.size() - 1) {
+			copyValueAndTangent(m_bezier.back(), m_bezier.front());
 		} else if (_endpoint == 0) {
-			copyValueAndTangent(m_endpoints.front(), m_endpoints.back());
+			copyValueAndTangent(m_bezier.front(), m_bezier.back());
 		}
 	}
 }
@@ -226,6 +309,68 @@ void Curve::constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1)
 	_cp_ = ret;
 }
 
+void Curve::updatePiecewise()
+{
+	m_piecewise.clear();
+	if (m_bezier.empty()) {
+		return;
+	}
+	if (m_bezier.size() == 1) {
+		m_piecewise.push_back(m_bezier[0].m_value);
+		return;
+	}
+
+	auto p0 = m_bezier.begin();
+	auto p1 = m_bezier.begin() + 1;
+	for (; p1 != m_bezier.end(); ++p0, ++p1) {
+		subdivide(*p0, *p1);
+	}
+}
+void Curve::subdivide(const Endpoint& _p0, const Endpoint& _p1, float _maxError, int _limit)
+{
+	if (_limit == 1) {
+		m_piecewise.push_back(_p0.m_value);
+		m_piecewise.push_back(_p1.m_value);
+		return;
+	}
+	
+	vec2 p0 = _p0.m_value;
+	vec2 p1 = _p0.m_out;
+	vec2 p2 = _p1.m_in;
+	vec2 p3 = _p1.m_value;
+
+ // constrain control point on segment (prevent loops)
+	constrainCp(p1, p0, p0.x, p3.x);
+	constrainCp(p2, p3, p0.x, p3.x);
+
+ // http://antigrain.com/research/adaptive_bezier/ suggests a better error metric: use the height of CPs above the line p1.m_val - p0.m_val
+	vec2 q0 = lerp(p0, p1, 0.5f);
+	vec2 q1 = lerp(p1, p2, 0.5f);
+	vec2 q2 = lerp(p2, p3, 0.5f);
+	vec2 r0 = lerp(q0, q1, 0.5f);
+	vec2 r1 = lerp(q1, q2, 0.5f);
+	vec2 s  = lerp(r0, r1, 0.5f);
+	float err = length(p1 - r0) + length(q1 - s) + length(p2 - r1);
+	if (err > _maxError) {
+		Curve::Endpoint pa, pb;
+		pa.m_value = p0;
+		pa.m_out   = q0;
+		pb.m_in    = r0;
+		pb.m_value = s;
+		subdivide(pa, pb, _maxError, _limit - 1);
+
+		pa.m_value = s;
+		pa.m_out   = r1;
+		pb.m_in    = q2;
+		pb.m_value = p3;
+		subdivide(pa, pb, _maxError, _limit - 1);
+		
+	} else {
+		subdivide(_p0, _p1, _maxError, 1); // push p0,p1
+
+	}
+}
+
 /*******************************************************************************
 
                                  CurveEditor
@@ -242,7 +387,7 @@ static const ImU32 kColorGridLabel       = ImColor(0xdba9a9a9);
 static const ImU32 kColorZeroAxis        = ImColor(0x22d6d6d6);
 static const ImU32 kColorValuePoint      = ImColor(0xffffffff);
 static const ImU32 kColorControlPoint    = ImColor(0xffaaaaaa);
-static const ImU32 kColorSampler         = ImColor(0xdb00ff00);
+static const ImU32 kColorSampler         = ImColor(0x9900ffff);
 static const float kAlphaCurveWrap       = 0.3f;
 static const float kSizeValuePoint       = 3.0f;
 static const float kSizeControlPoint     = 2.0f;
@@ -274,11 +419,9 @@ void CurveEditor::addCurve(Curve* _curve_, const ImColor& _color)
 	int curveIndex = (int)m_curves.size();
 	m_curves.push_back(_curve_);
 	m_curveColors.push_back((ImU32)_color);
-	m_drawCaches.push_back(DrawCache());
-	updateCache(curveIndex);
 	if (m_selectedCurve == -1) {
 		m_selectedCurve = curveIndex;
-		if (!m_curves[m_selectedCurve]->m_endpoints.empty()) {
+		if (!m_curves[m_selectedCurve]->m_bezier.empty()) {
 			fit(0);
 			fit(1);
 		}
@@ -393,7 +536,7 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, Flags _flags)
 
 	if (editCurve()) {
 		ret = true;
-		updateCache(m_selectedCurve);
+		m_curves[m_selectedCurve]->updatePiecewise();
 	}
 
 	drawBackground();
@@ -410,6 +553,9 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, Flags _flags)
 		}
 		if (m_selectedCurve != -1) {
 			drawCurve(m_selectedCurve);
+			if (checkEditFlag(Flags_ShowSampler)) {
+				drawSampler(_t);
+			}
 		}
 
 		if (checkEditFlag(Flags_ShowRuler)) {
@@ -424,11 +570,24 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, Flags _flags)
 		if (m_selectedCurve != -1) {
 			Curve& curve = *m_curves[m_selectedCurve];
 			if (ImGui::BeginMenu("Wrap")) {
-				if (ImGui::MenuItem("Clamp", nullptr, curve.m_wrap == Curve::Wrap_Clamp)) {
-					curve.m_wrap = Curve::Wrap_Clamp;
+				Curve::Wrap newWrapMode = curve.m_wrap;
+				for (int i = 0; i < Curve::Wrap_Count; ++i) {
+					if (ImGui::MenuItem(WrapStr[i], nullptr, newWrapMode == (Curve::Wrap)i)) {
+						newWrapMode = (Curve::Wrap)i;
+					}
 				}
-				if (ImGui::MenuItem("Repeat", nullptr, curve.m_wrap == Curve::Wrap_Repeat)) {
-					curve.m_wrap = Curve::Wrap_Repeat;
+				if (newWrapMode != curve.m_wrap) {
+					if (newWrapMode == Curve::Wrap_Repeat) {
+					 // constrain curve to remain continuous 
+						float delta = curve.m_bezier.front().m_value.y - curve.m_bezier.back().m_value.y;
+						curve.m_bezier.back().m_in.y += delta;
+						curve.m_bezier.back().m_value.y += delta;
+						curve.m_bezier.back().m_out.y += delta;
+						curve.updateExtentsAndConstrain((int)curve.m_bezier.size() - 1);
+						curve.updatePiecewise();
+					}
+					curve.m_wrap = newWrapMode;
+					ret = true;
 				}
 				ImGui::EndMenu();
 			}
@@ -507,9 +666,9 @@ bool CurveEditor::editCurve()
 	vec2 mousePos = io.MousePos;
 	
  // point selection
-	if (!curve.m_endpoints.empty() && !m_editEndpoint && (io.MouseDown[0] || io.MouseDown[1]) && m_dragEndpoint == Curve::kInvalidIndex) {
-		for (int i = 0, n = (int)curve.m_endpoints.size(); i < n; ++i) {
-			Curve::Endpoint& ep = curve.m_endpoints[i];
+	if (!curve.m_bezier.empty() && !m_editEndpoint && (io.MouseDown[0] || io.MouseDown[1]) && m_dragEndpoint == Curve::kInvalidIndex) {
+		for (int i = 0, n = (int)curve.m_bezier.size(); i < n; ++i) {
+			Curve::Endpoint& ep = curve.m_bezier[i];
 			bool done = false;
 			for (int j = 0; j < 3; ++j) {
 				vec2 p = curveToWindow(ep[j]);
@@ -520,7 +679,7 @@ bool CurveEditor::editCurve()
 					}
 					continue;
 				}
-				if (isInside(mousePos, p, kSizeSelectPoint)) {
+				if (isInside(mousePos, p, kSizeSelectPoint) && !ImGui::IsMouseDragging()) {
 					m_dragOffset = p - mousePos;
 					m_selectedEndpoint = m_dragEndpoint = i;
 					m_dragComponent = j;
@@ -543,17 +702,17 @@ bool CurveEditor::editCurve()
 			 // dragging component, display X Y value
 				if (io.MouseDownDuration[0] > 0.1f) {
 					ImGui::BeginTooltip();
-						ImGui::Text("X %1.3f, Y %1.3f", curve.m_endpoints[m_selectedEndpoint].m_value.x, curve.m_endpoints[m_selectedEndpoint].m_value.y);
+						ImGui::Text("X %1.3f, Y %1.3f", curve.m_bezier[m_selectedEndpoint].m_value.x, curve.m_bezier[m_selectedEndpoint].m_value.y);
 					ImGui::EndTooltip();
 				}
 			} else {
 			 // dragging endpoint, constrain to X/Y axis if ctrl pressed
 				if (io.KeyCtrl) {
-					vec2 delta = normalize(mousePos - curveToWindow(curve.m_endpoints[m_selectedEndpoint].m_value));
+					vec2 delta = normalize(mousePos - curveToWindow(curve.m_bezier[m_selectedEndpoint].m_value));
 					if (abs(delta.y) > 0.5f) {
-						newPos.x = curve.m_endpoints[m_selectedEndpoint].m_value.x;
+						newPos.x = curve.m_bezier[m_selectedEndpoint].m_value.x;
 					} else {
-						newPos.y = curve.m_endpoints[m_selectedEndpoint].m_value.y;
+						newPos.y = curve.m_bezier[m_selectedEndpoint].m_value.y;
 					}
 				}
 			}
@@ -590,8 +749,8 @@ bool CurveEditor::editCurve()
 			deleteEndpoint = true;
 
 		} else {
-			ImGui::PushID(&curve.m_endpoints[m_selectedEndpoint]);
-				if (!m_editEndpoint && io.MouseClicked[1] && isInside(mousePos, curveToWindow(curve.m_endpoints[m_selectedEndpoint].m_value), kSizeSelectPoint)) {
+			ImGui::PushID(&curve.m_bezier[m_selectedEndpoint]);
+				if (!m_editEndpoint && io.MouseClicked[1] && isInside(mousePos, curveToWindow(curve.m_bezier[m_selectedEndpoint].m_value), kSizeSelectPoint)) {
 					m_editEndpoint = true;
 					m_dragOffset = io.MousePos; // store the mouse pos for window positioning
 				}
@@ -603,7 +762,7 @@ bool CurveEditor::editCurve()
 						ImGuiWindowFlags_AlwaysAutoResize |
 						ImGuiWindowFlags_NoSavedSettings
 						);
-						vec2 p = curve.m_endpoints[m_selectedEndpoint].m_value;
+						vec2 p = curve.m_bezier[m_selectedEndpoint].m_value;
 						ImGui::PushItemWidth(128.0f);
 						ret |= ImGui::DragFloat("X", &p.x, m_regionSize.x * 0.01f);
 						ImGui::SameLine();
@@ -684,13 +843,12 @@ void CurveEditor::drawGrid()
 	if (zero.y > m_windowBeg.y && zero.y < m_windowEnd.y) {
 		drawList.AddLine(vec2(m_windowBeg.x, zero.y), vec2(m_windowEnd.x, zero.y), kColorZeroAxis);
 	}
-	drawList.AddRect(floor(curveToWindow(curve.m_constrainMin)), floor(curveToWindow(curve.m_constrainMax)), kColorZeroAxis);
 }
 
 void CurveEditor::drawCurve(int _curveIndex)
 {
 	Curve& curve = *m_curves[_curveIndex];
-	DrawCache& cache = m_drawCaches[_curveIndex];
+	eastl::vector<vec2>& cache = curve.m_piecewise;
 	ImU32 curveColor =  IM_COLOR_ALPHA(m_curveColors[_curveIndex], _curveIndex == m_selectedCurve ? 1.0f : kAlphaCurveWrap);
 	bool isSelected = _curveIndex == m_selectedCurve;
 
@@ -699,10 +857,11 @@ void CurveEditor::drawCurve(int _curveIndex)
 	}
 
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	drawList->AddRect(floor(curveToWindow(curve.m_constrainMin)), floor(curveToWindow(curve.m_constrainMax)), kColorZeroAxis);
 
  // curve region highlight
 	if (isSelected && checkEditFlag(Flags_ShowHighlight)) {
-		if (curve.m_endpoints.size() > 1) {
+		if (curve.m_bezier.size() > 1) {
 			vec2 curveMin = curveToWindow(curve.m_valueMin);
 			vec2 curveMax = curveToWindow(curve.m_valueMax);
 			drawList->AddRectFilled(vec2(curveMin.x, m_windowBeg.y), vec2(curveMax.x, m_windowEnd.y), kColorCurveHighlight);
@@ -726,7 +885,7 @@ void CurveEditor::drawCurve(int _curveIndex)
 				drawList->AddLine(vec2(m_windowBeg.x, p.y), vec2(m_windowEnd.x, p.y), curveColor, 1.0f);
 				break;
 			}
-			int i = curve.findSegmentStartIndex(curve.wrap(m_regionBeg.x));
+			int i = curve.findBezierSegmentStartIndex(curve.wrap(m_regionBeg.x));
 			vec2 p0 = curveToWindow(cache[i]);
 			float windowScale = m_windowSize.x / m_regionSize.x;
 			float offset = p0.x - m_windowBeg.x;
@@ -776,8 +935,8 @@ void CurveEditor::drawCurve(int _curveIndex)
 	}
 
  // endpoints
-	for (int i = 0, n = (int)curve.m_endpoints.size(); i < n; ++i) {
-		Curve::Endpoint& ep = curve.m_endpoints[i];
+	for (int i = 0, n = (int)curve.m_bezier.size(); i < n; ++i) {
+		Curve::Endpoint& ep = curve.m_bezier[i];
 		vec2 p = curveToWindow(ep.m_value);
 		if (!isInside(p, m_windowBeg, m_windowEnd)) {
 			if (p.x > m_windowEnd.x) { // can end search if beyond window X
@@ -789,8 +948,8 @@ void CurveEditor::drawCurve(int _curveIndex)
 		drawList->AddCircleFilled(p, kSizeValuePoint, col, 8);
 	}
 
-	for (int i = 0, n = (int)curve.m_endpoints.size(); i < n; ++i) {
-		Curve::Endpoint& ep = curve.m_endpoints[i];
+	for (int i = 0, n = (int)curve.m_bezier.size(); i < n; ++i) {
+		Curve::Endpoint& ep = curve.m_bezier[i];
 		vec2 pin = curveToWindow(ep.m_in);
 		vec2 pout = curveToWindow(ep.m_out);
 		if (pin.x > m_windowEnd.x && pout.x > m_windowEnd.x) {
@@ -808,13 +967,13 @@ void CurveEditor::drawCurve(int _curveIndex)
 		 // visualize CP constraint
 			if (i > 0) {
 				pin = ep.m_in;
-				constrainCp(pin, ep.m_value, m_endpoints[i - 1].m_value.x, ep.m_value.x);
+				curve.constrainCp(pin, ep.m_value, curve.m_bezier[i - 1].m_value.x, ep.m_value.x);
 				pin = curveToWindow(pin);
 				drawList->AddCircleFilled(pin, kSizeControlPoint, IM_COL32_YELLOW, 8);
 			}
 			if (i < n - 1) {
 				pout = ep.m_out;
-				constrainCp(pout, ep.m_value, ep.m_value.x, m_endpoints[i + 1].m_value.x);
+				curve.constrainCp(pout, ep.m_value, ep.m_value.x, curve.m_bezier[i + 1].m_value.x);
 				pout = curveToWindow(pout);
 				drawList->AddCircleFilled(pout, kSizeControlPoint, IM_COL32_CYAN, 8);
 			}
@@ -824,13 +983,30 @@ void CurveEditor::drawCurve(int _curveIndex)
 
 void CurveEditor::drawSampler(float _t)
 {
+	ImDrawList& drawList = *ImGui::GetWindowDrawList();	
+	Curve& curve = *m_curves[m_selectedCurve];
+	
+	float x = floor(curveToWindow(vec2(_t, 0.0f)).x);
+	if (x > m_windowBeg.x && x < m_windowEnd.x) {
+		drawList.AddLine(vec2(x, m_windowBeg.y), vec2(x, m_windowEnd.y), kColorSampler);
+		if (!curve.m_piecewise.empty()) {
+			float y = floor(curveToWindow(vec2(0.0f, curve.evaluate(_t))).y);
+			drawList.AddRect(vec2(x, y) - vec2(2.0f), vec2(x, y) + vec2(3.0f), kColorSampler);
+			#if Curve_DEBUG
+				String<sizeof("999")> label;
+				label.setf("%d", curve.findPiecewiseSegmentStartIndex(_t));
+				drawList.AddText(vec2(x, y) + vec2(3.0f, -3.0f), kColorRulerLabel, (const char*)label);
+			#endif
+		}
+	}
+
 }
 
 void CurveEditor::drawRuler()
 {
 	ImDrawList& drawList = *ImGui::GetWindowDrawList();	
  	Curve& curve = *m_curves[m_selectedCurve];
-
+	
 	const float kSpacing = 32.0f;
 	const float kBase = 10.0f;
 	String<sizeof("999.999")> label;
@@ -863,75 +1039,5 @@ void CurveEditor::drawRuler()
 			drawList.AddText(vec2(m_windowBeg.x + 2.0f, line.y), kColorRulerLabel, (const char*)label);
 			drawList.AddLine(vec2(m_windowBeg.x, line.y), vec2(m_windowBeg.x + kSizeRuler - 1.0f, line.y), kColorRulerLabel);
 		}
-	}
-}
-
-void CurveEditor::updateCache(int _curveIndex)
-{
-	Curve& curve = *m_curves[_curveIndex];
-	DrawCache& cache = m_drawCaches[_curveIndex];
-
-	cache.clear();
-	if (curve.m_endpoints.empty()) {
-		return;
-	}
-	if (curve.m_endpoints.size() == 1) {
-		cache.push_back(curve.m_endpoints[0].m_value);
-		return;
-	}
-
- // \todo only cache the visible subrange of the curve
-	auto p0 = curve.m_endpoints.begin();
-	auto p1 = curve.m_endpoints.begin() + 1;
-	for (; p1 != curve.m_endpoints.end(); ++p0, ++p1) {
-		subdivide(_curveIndex, *p0, *p1);
-	}
-}
-
-void CurveEditor::subdivide(int _curveIndex, const Curve::Endpoint& _p0, const Curve::Endpoint& _p1, float _maxError, int _limit)
-{
-	Curve& curve = *m_curves[_curveIndex];
-	DrawCache& cache = m_drawCaches[_curveIndex];
-
-	if (_limit == 1) {
-		cache.push_back(_p0.m_value);
-		cache.push_back(_p1.m_value);
-		return;
-	}
-	
-	vec2 p0 = _p0.m_value;
-	vec2 p1 = _p0.m_out;
-	vec2 p2 = _p1.m_in;
-	vec2 p3 = _p1.m_value;
-
- // constrain control point on segment (prevent loops)
-	curve.constrainCp(p1, p0, p0.x, p3.x);
-	curve.constrainCp(p2, p3, p0.x, p3.x);
-
- // http://antigrain.com/research/adaptive_bezier/ suggests a better error metric: use the height of CPs above the line p1.m_val - p0.m_val
-	vec2 q0 = lerp(p0, p1, 0.5f);
-	vec2 q1 = lerp(p1, p2, 0.5f);
-	vec2 q2 = lerp(p2, p3, 0.5f);
-	vec2 r0 = lerp(q0, q1, 0.5f);
-	vec2 r1 = lerp(q1, q2, 0.5f);
-	vec2 s  = lerp(r0, r1, 0.5f);
-	float err = length(p1 - r0) + length(q1 - s) + length(p2 - r1);
-	if (err > _maxError) {
-		Curve::Endpoint pa, pb;
-		pa.m_value = p0;
-		pa.m_out   = q0;
-		pb.m_in    = r0;
-		pb.m_value = s;
-		subdivide(_curveIndex, pa, pb, _maxError, _limit - 1);
-
-		pa.m_value = s;
-		pa.m_out   = r1;
-		pb.m_in    = q2;
-		pb.m_value = p3;
-		subdivide(_curveIndex, pa, pb, _maxError, _limit - 1);
-		
-	} else {
-		subdivide(_curveIndex, _p0, _p1, _maxError, 1); // push p0,p1
-
 	}
 }
