@@ -907,7 +907,7 @@ void Scene::editNodes()
 				vec3 rotation = ToEulerXYZ(GetRotation(m_editNode->m_localMatrix));
 				vec3 scale    = GetScale(m_editNode->m_localMatrix);
 				ImGui::Text("Position: %.3f, %.3f, %.3f", position.x, position.y, position.z);
-				ImGui::Text("Rotation: %.3f, %.3f, %.3f", degrees(rotation.x), degrees(position.y), degrees(position.z));
+				ImGui::Text("Rotation: %.3f, %.3f, %.3f", Degrees(rotation.x), Degrees(position.y), Degrees(position.z));
 				ImGui::Text("Scale:    %.3f, %.3f, %.3f", scale.x, scale.y, scale.z);
 				ImGui::TreePop();
 			}

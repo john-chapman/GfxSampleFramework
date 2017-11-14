@@ -75,9 +75,9 @@ inline float nlerp(float _p0, float _p1, float _delta)
 template <typename T>
 inline T slerp(const T& _p0, const T& _p1, float _delta) 
 { 
-	float cosH = dot(p0, p1);
+	float cosH = dot(_p0, _p1);
 	if (abs(cosH) >= 1.0f) { // theta = 0, return p0
-		return p0;
+		return _p0;
 	}
 		
 	float H = acos(cosH);
@@ -88,7 +88,7 @@ inline T slerp(const T& _p0, const T& _p1, float _delta)
 		a = b = 0.5f;
 	} else {
 		a = sin((1.0f - _delta) * H) / sinH;
-		b = sin(delta * H) / sinH;
+		b = sin(_delta * H) / sinH;
 	}
 	
 	return (_p0 * a) + (_p1 * b);
@@ -101,12 +101,12 @@ inline float slerp(float _p0, float _p1, float _delta)
 template <typename T>
 inline T coserp(const T& _p0, const T& _p1, float _delta) 
 { 
-	_delta = (1.0f - cos(_delta * pi<float>())) * 0.5f;
+	_delta = (1.0f - cos(_delta * kPi)) * 0.5f;
 	return _p0 * (1.0f - _delta) + _p1 * _delta;
 }
 inline float coserp(float _p0, float _p1, float _delta) 
 { 
-	_delta = (1.0f - cos(_delta * pi<float>())) * 0.5f;
+	_delta = (1.0f - cos(_delta * kPi)) * 0.5f;
 	return _p0 * (1.0f - _delta) + _p1 * _delta;
 }
 

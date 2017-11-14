@@ -296,11 +296,11 @@ MeshData* MeshData::CreateSphere(
 	)
 {
 	MeshBuilder mesh;
-	BuildPlane(mesh, two_pi<float>(), pi<float>(), _segsLong, _segsLat);
+	BuildPlane(mesh, kTwoPi, kPi, _segsLong, _segsLat);
 	for (uint32 i = 0; i < mesh.getVertexCount(); ++i) {
 		MeshBuilder::Vertex& v = mesh.getVertex(i);
-		float x = sinf(v.m_position.x) * sinf(v.m_position.z + half_pi<float>());
-		float y = cosf(v.m_position.x) * sinf(v.m_position.z + half_pi<float>());
+		float x = sinf(v.m_position.x) * sinf(v.m_position.z + kHalfPi);
+		float y = cosf(v.m_position.x) * sinf(v.m_position.z + kHalfPi);
 		float z = v.m_position.z;
 		v.m_normal = normalize(vec3(x, -z, y)); // swap yz to align the poles along y
 		v.m_position = v.m_normal * _radius;
@@ -591,10 +591,10 @@ void MeshBuilder::transform(const mat4& _mat)
 	mat3 nmat = transpose(inverse(mat3(_mat)));
 
 	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
-		vert->m_position = vec3(_mat * vec4(vert->m_position, 1.0f));
+		vert->m_position = TransformPosition(_mat, vert->m_position);
 		vert->m_normal   = normalize(nmat * vert->m_normal);
 
-		vec3 tng = normalize(nmat * vec3(vert->m_tangent));
+		vec3 tng = normalize(nmat * vert->m_tangent.xyz());
 		vert->m_tangent = vec4(tng, vert->m_tangent.w);
 	}
 }
@@ -602,7 +602,7 @@ void MeshBuilder::transform(const mat4& _mat)
 void MeshBuilder::transformTexcoords(const mat3& _mat)
 {
 	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
-		vert->m_texcoord = vec2(_mat * vec3(vert->m_texcoord, 1.0f));
+		vert->m_texcoord = TransformPosition(_mat, vert->m_texcoord);
 	}
 }
 

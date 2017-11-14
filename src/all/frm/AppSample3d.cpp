@@ -1,6 +1,7 @@
 #include <frm/AppSample3d.h>
 
 #include <frm/def.h>
+#include <frm/interpolation.h>
 #include <frm/gl.h>
 #include <frm/geom.h>
 #include <frm/GlContext.h>
@@ -34,7 +35,7 @@ bool AppSample3d::init(const apt::ArgList& _args)
 
 	if (!Scene::Load((const char*)m_scenePath, *m_scene)) {
  		Camera* defaultCamera = m_scene->createCamera(Camera());
-		defaultCamera->setPerspective(radians(45.0f), 1.0f, 0.1f, 1.0f, Camera::ProjFlag_Infinite);
+		defaultCamera->setPerspective(Radians(45.0f), 1.0f, 0.1f, 1.0f, Camera::ProjFlag_Infinite);
 		defaultCamera->updateGpuBuffer(); // alloc the gpu buffer
 		Node* defaultCameraNode = defaultCamera->m_parent;
 		defaultCameraNode->setStateMask(Node::State_Active | Node::State_Dynamic | Node::State_Selected);
@@ -201,14 +202,14 @@ Ray AppSample3d::getCursorRayV() const
 	const Camera&  cam = *Scene::GetDrawCamera();
 	Ray ret;
 	if (cam.getProjFlag(Camera::ProjFlag_Orthographic)) {
-		ret.m_origin.x  = mix(cam.m_left, cam.m_right, mpos.x);
-		ret.m_origin.y  = mix(cam.m_up,   cam.m_down,  mpos.y);
+		ret.m_origin.x  = lerp(cam.m_left, cam.m_right, mpos.x);
+		ret.m_origin.y  = lerp(cam.m_up,   cam.m_down,  mpos.y);
 		ret.m_origin.z  = 0.0f;
 		ret.m_direction = vec3(0.0f, 0.0f, -1.0f);
 	} else {
 		ret.m_origin      = vec3(0.0f);
-		ret.m_direction.x = mix(cam.m_left, cam.m_right, mpos.x);
-		ret.m_direction.y = mix(cam.m_up,   cam.m_down,  mpos.y);
+		ret.m_direction.x = lerp(cam.m_left, cam.m_right, mpos.x);
+		ret.m_direction.y = lerp(cam.m_up,   cam.m_down,  mpos.y);
 		ret.m_direction.z = -1.0f;
 		ret.m_direction   = normalize(ret.m_direction);
 	}
@@ -368,7 +369,7 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::Key_S);
 
 	ad.m_snapTranslation = ctrlDown ? 0.1f : 0.0f;
-	ad.m_snapRotation    = ctrlDown ? radians(15.0f) : 0.0f;
+	ad.m_snapRotation    = ctrlDown ? Radians(15.0f) : 0.0f;
 	ad.m_snapScale       = ctrlDown ? 0.5f : 0.0f;
 
 	Im3d::NewFrame();

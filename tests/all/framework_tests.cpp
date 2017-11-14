@@ -334,7 +334,7 @@ public:
 						m_meshTest.m_bfSkinning->unmap();
 						
 					}
-					m_meshTest.m_worldMatrix = mat4_cast(angleAxis(radians(90.0f), vec3(-1.0f, 0.0f, 0.0f)));
+					m_meshTest.m_worldMatrix = RotationMatrix(vec3(-1.0f, 0.0f, 0.0f), Radians(90.0f));
 				}
 				if (!m_meshTest.m_animPath.isEmpty()) {
 					m_meshTest.m_anim = SkeletonAnimation::Create((const char*)m_meshTest.m_animPath);
@@ -349,7 +349,7 @@ public:
 				if (m_meshTest.m_anim && m_meshTest.m_mesh && m_meshTest.m_mesh->getBindPose()) {
 					ImGui::SliderFloat("Anim Time", &m_meshTest.m_animTime, 0.0f, 1.0f);
 					ImGui::SliderFloat("Anim Speed", &m_meshTest.m_animSpeed, 0.0f, 2.0f);
-					m_meshTest.m_animTime = fract(m_meshTest.m_animTime + (float)m_deltaTime * m_meshTest.m_animSpeed);
+					m_meshTest.m_animTime = Fract(m_meshTest.m_animTime + (float)m_deltaTime * m_meshTest.m_animSpeed);
 					Skeleton framePose = m_meshTest.m_anim->getBaseFrame();
 					{	PROFILER_MARKER_CPU("Skinning");
 						m_meshTest.m_anim->sample(m_meshTest.m_animTime, framePose, m_meshTest.m_animHints.data());

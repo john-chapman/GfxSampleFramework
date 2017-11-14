@@ -77,9 +77,14 @@ public:
 
 	const mat4&  getLocalMatrix() const              { return m_localMatrix; }
 	void         setLocalMatrix(const mat4& _mat)    { m_localMatrix = _mat; }
+	vec3         getLocalPosition() const            { return m_localMatrix[3].xyz(); }
+	void         setLocalPosition(const vec3& _p)    { m_localMatrix[3] = vec4(_p, 1.0f); }
 	
 	const mat4&  getWorldMatrix() const              { return m_worldMatrix; }
 	void         setWorldMatrix(const mat4& _mat)    { m_worldMatrix = _mat; }
+	vec3         getWorldPosition() const            { return m_worldMatrix[3].xyz(); }
+	void         setWorldPosition(const vec3& _p)    { m_worldMatrix[3] = vec4(_p, 1.0f); }
+	
 	
 	void         addXForm(XForm* _xform);
 	void         removeXForm(XForm* _xform);

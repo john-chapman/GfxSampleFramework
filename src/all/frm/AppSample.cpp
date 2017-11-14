@@ -612,10 +612,10 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 
 	glAssert(glViewport(0, 0, (GLsizei)fbX, (GLsizei)fbY));
 	mat4 ortho = mat4(
-		 2.0f/io.DisplaySize.x, 0.0f,                   0.0f, 0.0f,
-		 0.0f,                  2.0f/-io.DisplaySize.y, 0.0f, 0.0f,
-		 0.0f,                  0.0f,                   1.0f, 0.0f,
-		-1.0f,                  1.0f,                   0.0f, 1.0f
+		vec4( 2.0f/io.DisplaySize.x, 0.0f,                   0.0f, 0.0f),
+		vec4( 0.0f,                  2.0f/-io.DisplaySize.y, 0.0f, 0.0f),
+		vec4( 0.0f,                  0.0f,                   1.0f, 0.0f),
+		vec4(-1.0f,                  1.0f,                   0.0f, 1.0f)
 		);
 	ctx->setMesh(g_msImGui);
 

@@ -1,6 +1,7 @@
 #include <frm/Curve.h>
 
 #include <frm/icon_fa.h>
+#include <frm/interpolation.h>
 #include <frm/Input.h>
 
 #include <apt/String.h>
@@ -82,9 +83,9 @@ int Curve::move(int _endpoint, Component _component, const vec2& _value)
 	 // prevent crossing VP in x
 		ep[_component] = _value;
 		if (_component == Component_In) {
-			ep[_component].x = min(ep[_component].x, ep[Component_Value].x);
+			ep[_component].x = APT_MIN(ep[_component].x, ep[Component_Value].x);
 		} else {
-			ep[_component].x = max(ep[_component].x, ep[Component_Value].x);
+			ep[_component].x = APT_MAX(ep[_component].x, ep[Component_Value].x);
 		}
 
 	 // CPs are locked so we must update the other
@@ -146,7 +147,7 @@ int Curve::findSegmentStartIndex(float _t) const
 {
 	int lo = 0, hi = (int)m_endpoints.size() - 1;
 	while (hi - lo > 1) {
-		u32 md = (hi + lo) / 2;
+		uint32 md = (hi + lo) / 2;
 		if (_t > m_endpoints[md].m_value.x) {
 			lo = md;
 		} else {
@@ -207,7 +208,7 @@ void Curve::constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1)
 		v = v / vlen;
 		n = vec2(1.0f, 0.0f);
 		t = dot(n, n * _x0 - _vp.x) / dot(n, v);
-		vlen = min(vlen, t > 0.0f ? t : vlen);
+		vlen = APT_MIN(vlen, t > 0.0f ? t : vlen);
 		ret = _vp + v * vlen;
 
 	} else if (ret.x > _x1) {
@@ -218,7 +219,7 @@ void Curve::constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1)
 		v = v / vlen;
 		n = vec2(1.0f, 0.0f);
 		t = dot(n, n * _x1 - _vp.x) / dot(n, v);
-		vlen = min(vlen, t > 0.0f ? t : vlen);
+		vlen = APT_MIN(vlen, t > 0.0f ? t : vlen);
 		ret = _vp + v * vlen;
 
 	}
@@ -330,7 +331,7 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, Flags _flags)
 			float wy = ImGui::GetWindowContentRegionMax().y;
 			float zoom = (io.MouseWheel * m_regionSize.y * 0.1f);
 			float before = (io.MousePos.y - ImGui::GetWindowPos().y) / wy * m_regionSize.y;
-			m_regionSize.y = max(m_regionSize.y - zoom, 0.01f);
+			m_regionSize.y = APT_MAX(m_regionSize.y - zoom, 0.01f);
 			float after = (io.MousePos.y - ImGui::GetWindowPos().y) / wy * m_regionSize.y;
 			m_regionBeg.y += (before - after);
 
@@ -339,7 +340,7 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, Flags _flags)
 			float wx = ImGui::GetWindowContentRegionMax().x;
 			float zoom = (io.MouseWheel * m_regionSize.x * 0.1f);
 			float before = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize.x;
-			m_regionSize.x = max(m_regionSize.x - zoom, 0.01f);
+			m_regionSize.x = APT_MAX(m_regionSize.x - zoom, 0.01f);
 			float after = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize.x;
 			m_regionBeg.x += (before - after);
 
@@ -372,8 +373,8 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, Flags _flags)
 		}
 
 		vec2 before = (vec2(io.MousePos) - vec2(ImGui::GetWindowPos())) / m_windowSize * m_regionSize;
-		m_regionSize.x = max(m_regionSize.x - zoom.x, 0.1f);
-		m_regionSize.y = max(m_regionSize.y - zoom.y, 0.1f);
+		m_regionSize.x = APT_MAX(m_regionSize.x - zoom.x, 0.1f);
+		m_regionSize.y = APT_MAX(m_regionSize.y - zoom.y, 0.1f);
 		vec2 after = (vec2(io.MousePos) - vec2(ImGui::GetWindowPos())) / m_windowSize * m_regionSize;
 		m_regionBeg += (before - after);
 
@@ -908,12 +909,12 @@ void CurveEditor::subdivide(int _curveIndex, const Curve::Endpoint& _p0, const C
 	curve.constrainCp(p2, p3, p0.x, p3.x);
 
  // http://antigrain.com/research/adaptive_bezier/ suggests a better error metric: use the height of CPs above the line p1.m_val - p0.m_val
-	vec2 q0 = mix(p0, p1, 0.5f);
-	vec2 q1 = mix(p1, p2, 0.5f);
-	vec2 q2 = mix(p2, p3, 0.5f);
-	vec2 r0 = mix(q0, q1, 0.5f);
-	vec2 r1 = mix(q1, q2, 0.5f);
-	vec2 s  = mix(r0, r1, 0.5f);
+	vec2 q0 = lerp(p0, p1, 0.5f);
+	vec2 q1 = lerp(p1, p2, 0.5f);
+	vec2 q2 = lerp(p2, p3, 0.5f);
+	vec2 r0 = lerp(q0, q1, 0.5f);
+	vec2 r1 = lerp(q1, q2, 0.5f);
+	vec2 s  = lerp(r0, r1, 0.5f);
 	float err = length(p1 - r0) + length(q1 - s) + length(p2 - r1);
 	if (err > _maxError) {
 		Curve::Endpoint pa, pb;

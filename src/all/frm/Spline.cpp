@@ -44,8 +44,8 @@ vec3 SplinePath::sample(float _t, int* _hint_) const
 		*_hint_ = seg;
 	}
 
-	vec3 p0 = vec3(m_eval[seg]);
-	vec3 p1 = vec3(m_eval[seg + 1]);
+	vec3 p0 = m_eval[seg].xyz();
+	vec3 p1 = m_eval[seg + 1].xyz();
 	float t = (_t - m_eval[seg].w) / (m_eval[seg + 1].w - m_eval[seg].w);
 	return lerp(p0, p1, t);
 }
@@ -68,7 +68,7 @@ void SplinePath::build()
 	m_length = 0.0f;
 	m_eval[0].w = 0.0f;
 	for (int i = 1, n = (int)m_eval.size() - 1; i < n; ++i) {
-		float seglen = length(vec3(m_eval[i]) - vec3(m_eval[i - 1]));
+		float seglen = length(m_eval[i].xyz() - m_eval[i - 1].xyz());
 		m_length += seglen;
 		m_eval[i].w = m_eval[i - 1].w + seglen;
 	}
@@ -91,7 +91,7 @@ void SplinePath::edit()
 		Im3d::SetSize(2.0f);
 		Im3d::BeginLineStrip();
 			for (int i = 0, n = (int)m_eval.size(); i < n; ++i) {
-				Im3d::Vertex(vec3(m_eval[i]));
+				Im3d::Vertex(m_eval[i].xyz());
 			}
 		Im3d::End();
 		
