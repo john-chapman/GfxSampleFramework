@@ -127,7 +127,7 @@ public:
 	void addCurve(Curve* _curve_, const ImColor& _color);
 	void selectCurve(const Curve* _curve_);
 
-	bool drawEdit(const vec2& _sizePixels, float _t, Flags _flags);
+	bool drawEdit(const vec2& _sizePixels, float _t, int _flags);
 
 private:
 
