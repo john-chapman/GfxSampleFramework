@@ -71,4 +71,96 @@ float Bayer_4x4(in uvec2 _seed)
 	return kBayer[i];
 }
 
+
+// WIP - note that Bicubic4 exhibits artefacts in areas of high contrast (lower precision in the bilinear filtering HW?)
+
+vec4 CubicWeights_BSpline(in float _d)
+{
+	float d1 = _d;
+	float d2 = d1 * d1;
+	float d3 = d2 * d1;
+	
+	vec4 ret;
+	
+ 	ret.x = -d3 + 3.0 * d2 - 3.0 * d1 + 1.0;
+    ret.y = 3.0 * d3 - 6.0 * d2 + 4.0;
+    ret.z = -3.0 * d3 + 3.0 * d2 + 3.0 * d1 + 1.0;
+    ret.w = d3;
+	
+	return ret / 6.0;
+}
+#define CubicWeights(_d) CubicWeights_BSpline(_d)
+
+vec4 Bicubic16(in sampler2D _tx, in vec2 _uv, in int _lod)
+{
+	vec2 texelSize = 1.0 / vec2(textureSize(_tx, _lod));
+	_uv /= texelSize;
+	vec2 iuv = floor(_uv - 0.5) + 0.5; // round to nearest texel center
+	vec2 d = _uv - iuv; // offset from the texel center to the sample location
+	
+	vec4 wX = CubicWeights(d.x);
+	vec4 wY = CubicWeights(d.y);
+	vec2 w0 = vec2(wX[0], wY[0]);
+	vec2 w1 = vec2(wX[1], wY[1]);
+	vec2 w2 = vec2(wX[2], wY[2]);
+	vec2 w3 = vec2(wX[3], wY[3]);
+	
+	vec2 s0 = (iuv - 1.0) * texelSize;
+	vec2 s1 = (iuv + 0.0) * texelSize;
+	vec2 s2 = (iuv + 1.0) * texelSize;
+	vec2 s3 = (iuv + 2.0) * texelSize;
+	
+	return 
+		  textureLod(_tx, vec2(s0.x, s0.y), float(_lod)) * (w0.x * w0.y) 
+		+ textureLod(_tx, vec2(s1.x, s0.y), float(_lod)) * (w1.x * w0.y) 
+		+ textureLod(_tx, vec2(s2.x, s0.y), float(_lod)) * (w2.x * w0.y) 
+		+ textureLod(_tx, vec2(s3.x, s0.y), float(_lod)) * (w3.x * w0.y)
+		
+		+ textureLod(_tx, vec2(s0.x, s1.y), float(_lod)) * (w0.x * w1.y) 
+		+ textureLod(_tx, vec2(s1.x, s1.y), float(_lod)) * (w1.x * w1.y) 
+		+ textureLod(_tx, vec2(s2.x, s1.y), float(_lod)) * (w2.x * w1.y) 
+		+ textureLod(_tx, vec2(s3.x, s1.y), float(_lod)) * (w3.x * w1.y)
+		
+		+ textureLod(_tx, vec2(s0.x, s2.y), float(_lod)) * (w0.x * w2.y) 
+		+ textureLod(_tx, vec2(s1.x, s2.y), float(_lod)) * (w1.x * w2.y) 
+		+ textureLod(_tx, vec2(s2.x, s2.y), float(_lod)) * (w2.x * w2.y) 
+		+ textureLod(_tx, vec2(s3.x, s2.y), float(_lod)) * (w3.x * w2.y)
+		
+		+ textureLod(_tx, vec2(s0.x, s3.y), float(_lod)) * (w0.x * w3.y) 
+		+ textureLod(_tx, vec2(s1.x, s3.y), float(_lod)) * (w1.x * w3.y) 
+		+ textureLod(_tx, vec2(s2.x, s3.y), float(_lod)) * (w2.x * w3.y) 
+		+ textureLod(_tx, vec2(s3.x, s3.y), float(_lod)) * (w3.x * w3.y)
+		;
+}
+vec4 Bicubic4(in sampler2D _tx, in vec2 _uv, in int _lod)
+{
+	vec2 texelSize = 1.0 / vec2(textureSize(_tx, _lod));
+	_uv /= texelSize;
+	vec2 iuv = floor(_uv - 0.5) + 0.5; // round to nearest texel center
+	vec2 d = _uv - iuv; // offset from the texel center to the sample location
+	
+	vec4 wX = CubicWeights(d.x);
+	vec4 wY = CubicWeights(d.y);
+	vec2 w0 = vec2(wX[0], wY[0]);
+	vec2 w1 = vec2(wX[1], wY[1]);
+	vec2 w2 = vec2(wX[2], wY[2]);
+	vec2 w3 = vec2(wX[3], wY[3]);
+	
+	vec2 s0 = w0 + w1;
+	vec2 s1 = w2 + w3;
+	vec2 f0 = w1 / (w0 + w1);
+	vec2 f1 = w3 / (w2 + w3);
+	
+	vec2 t0 = (iuv - 1.0 + f0) * texelSize;
+	vec2 t1 = (iuv + 1.0 + f1) * texelSize;
+	
+	return 
+		  textureLod(_tx, vec2(t0.x, t0.y), float(_lod)) * (s0.x * s0.y) 
+		+ textureLod(_tx, vec2(t1.x, t0.y), float(_lod)) * (s1.x * s0.y) 
+		+ textureLod(_tx, vec2(t0.x, t1.y), float(_lod)) * (s0.x * s1.y) 
+		+ textureLod(_tx, vec2(t1.x, t1.y), float(_lod)) * (s1.x * s1.y)
+		;
+}
+
+
 #endif // Sampling_glsl
