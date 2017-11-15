@@ -446,17 +446,19 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 	ImDrawList& drawList = *ImGui::GetWindowDrawList();
 	
  // set the 'window' size to either fill the available space or use the specified size
-	m_windowBeg = (vec2)ImGui::GetCursorPos() + (vec2)ImGui::GetWindowPos();
-	m_windowEnd = (vec2)ImGui::GetContentRegionMax() + (vec2)ImGui::GetWindowPos();
+	vec2 scroll = vec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+	m_windowBeg = (vec2)ImGui::GetCursorPos() - scroll + (vec2)ImGui::GetWindowPos();
+	m_windowEnd = (vec2)ImGui::GetContentRegionMax() - scroll + (vec2)ImGui::GetWindowPos();
 	if (_sizePixels.x >= 0.0f) {
 		m_windowEnd.x = m_windowBeg.x + _sizePixels.x;
 	}
 	if (_sizePixels.y >= 0.0f) {
 		m_windowEnd.y = m_windowBeg.y + _sizePixels.y;
 	}
-	m_windowBeg = floor(m_windowBeg);
-	m_windowEnd = floor(m_windowEnd);
-	m_windowSize = m_windowEnd - m_windowBeg;
+	m_windowBeg  = floor(m_windowBeg);
+	m_windowEnd  = floor(m_windowEnd);
+	m_windowSize = max(m_windowEnd - m_windowBeg, vec2(64.0f));
+	m_windowEnd  = m_windowBeg + m_windowSize;
 	ImGui::InvisibleButton("##PreventDrag", m_windowSize);
 
  // focus window on middle-click if inside the curve editor
@@ -469,6 +471,10 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 
  // zoom/pan
 	if (m_isDragging || (windowActive && mouseInWindow)) {
+	 // prevent mouse wheel scrolling on zoom
+		ImGui::SetScrollX(scroll.x);
+		ImGui::SetScrollY(scroll.y);
+
 		if (io.KeyCtrl) {
 		 // zoom Y (value)
 			float wy = ImGui::GetWindowContentRegionMax().y;
