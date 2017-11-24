@@ -74,6 +74,16 @@ float Bayer_4x4(in uvec2 _seed)
 
 // WIP - note that Bicubic4 exhibits artefacts in areas of high contrast (lower precision in the bilinear filtering HW?)
 
+vec4 Quintic(in sampler2D _tx, in vec2 _uv, in int _lod)
+{
+	vec2 uv = _uv * vec2(textureSize(_tx, _lod)) + 0.5;
+	vec2 iuv = floor(uv);
+	vec2 fuv = uv - iuv;
+	fuv = fuv * fuv * fuv * (fuv * (fuv * 6.0 - 15.0) + 10.0);
+	uv = (iuv + fuv - 0.5) / vec2(textureSize(_tx, _lod));
+	fResult = textureLod(_tx, uv, float(_lod)).rgb;
+}
+
 vec4 CubicWeights_BSpline(in float _d)
 {
 	float d1 = _d;
