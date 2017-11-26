@@ -81,7 +81,7 @@ vec4 Quintic(in sampler2D _tx, in vec2 _uv, in int _lod)
 	vec2 fuv = uv - iuv;
 	fuv = fuv * fuv * fuv * (fuv * (fuv * 6.0 - 15.0) + 10.0);
 	uv = (iuv + fuv - 0.5) / vec2(textureSize(_tx, _lod));
-	fResult = textureLod(_tx, uv, float(_lod)).rgb;
+	return  textureLod(_tx, uv, float(_lod));
 }
 
 vec4 CubicWeights_BSpline(in float _d)
