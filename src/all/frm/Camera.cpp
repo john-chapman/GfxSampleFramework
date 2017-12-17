@@ -440,7 +440,7 @@ void Camera::updateProj()
 	float n = m_near;
 	float f = m_far;
 
-	float scale = -1.0f; // view space z direction \todo expose? need to also modify getViewVector(), lookAt()
+	float scale = -1.0f; // view space z direction \todo expose? need to also modify getViewVector(), lookAt(), frustum ctors, shader code
 
 	if (getProjFlag(ProjFlag_Orthographic)) {
 		m_proj = mat4(
