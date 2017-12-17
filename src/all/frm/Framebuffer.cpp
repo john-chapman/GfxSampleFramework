@@ -53,6 +53,7 @@ Framebuffer* Framebuffer::Create(int _count, ...)
 			case GL_DEPTH_COMPONENT:
 			case GL_DEPTH_COMPONENT16:
 			case GL_DEPTH_COMPONENT24:
+			case GL_DEPTH_COMPONENT32:
 			case GL_DEPTH_COMPONENT32F:
 				ret->attachImpl(tx, GL_DEPTH_ATTACHMENT, 0);
 				break;

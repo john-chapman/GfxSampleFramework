@@ -81,4 +81,12 @@ namespace frm {
 	struct Sphere;
 }
 
+// Config
+
+// Control Z range in NDC, either FRM_NDC_Z_NEG_ONE_TO_ONE (OpenGL default) or FRM_NDC_Z_ZERO_TO_ONE (Direct3D default).
+// This modifies how the projection matrix is constructed, see Camera.cpp.
+#if !defined(FRM_NDC_Z_ZERO_TO_ONE) && !defined(FRM_NDC_Z_NEG_ONE_TO_ONE)
+	#define FRM_NDC_Z_ZERO_TO_ONE 1
+#endif
+
 #endif // frm_def_h

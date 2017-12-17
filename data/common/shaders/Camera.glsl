@@ -3,11 +3,11 @@
 
 #include "shaders/def.glsl"
 
-#define Camera_ProjFlag_Perspective  (0)
-#define Camera_ProjFlag_Orthographic (1)
-#define Camera_ProjFlag_Asymmetrical (2)
-#define Camera_ProjFlag_Infinite     (4)
-#define Camera_ProjFlag_Reversed     (8)
+#define Camera_ProjFlag_Perspective  (1)
+#define Camera_ProjFlag_Orthographic (2)
+#define Camera_ProjFlag_Asymmetrical (4)
+#define Camera_ProjFlag_Infinite     (8)
+#define Camera_ProjFlag_Reversed     (16)
 
 struct Camera_GpuBuffer
 {
@@ -41,26 +41,26 @@ float Camera_GetDepthRange()
 	return bfCamera.m_far - bfCamera.m_near;
 }
 
-// Calls the appropriate LinearizeDepth_* function based on bfCamera.m_projFlags.
-float Camera_LinearizeDepth(in float _depth)
+bool Camera_GetProjFlag(in uint _flag)
 {
-	uint projFlags = bfCamera.m_projFlags;
-	if        ((projFlags & Camera_ProjFlag_Infinite) != 0 && (projFlags & Camera_ProjFlag_Reversed) != 0) {
-		return LinearizeDepth_InfiniteReversed(_depth, bfCamera.m_near);
-	} else if ((projFlags & Camera_ProjFlag_Infinite) != 0) {
-		return LinearizeDepth_Infinite(_depth, bfCamera.m_near);
-	} else if ((projFlags & Camera_ProjFlag_Reversed) != 0) {
-		return LinearizeDepth_Reversed(_depth, bfCamera.m_near, bfCamera.m_far);
+	return (bfCamera.m_projFlags & _flag) != 0;
+}
+
+// Recover view space depth from a depth buffer value.
+// This may return INF for infinite perspective projections.
+float Camera_GetDepthV(in float _depth)
+{
+	if (Camera_GetProjFlag(Camera_ProjFlag_Perspective)) {
+		return GetDepthV_Perspective(_depth, bfCamera.m_proj);
 	} else {
-		return LinearizeDepth(_depth, bfCamera.m_near, bfCamera.m_far);
+		return GetDepthV_Orthographic(_depth, bfCamera.m_proj);
 	}
 }
 
 // Recover a frustum ray from _ndc (in [-1,1]). Ray * linear depth = view space position.
 vec3 Camera_GetFrustumRay(in vec2 _ndc)
 {
-	uint projFlags = bfCamera.m_projFlags;
-	if ((projFlags & Camera_ProjFlag_Asymmetrical) != 0) {
+	if (Camera_GetProjFlag(Camera_ProjFlag_Asymmetrical)) {
 	 // \todo interpolate between frustum edges in XY
 		return vec3(0.0, 0.0, 0.0);
 	} else {

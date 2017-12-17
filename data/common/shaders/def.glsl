@@ -5,8 +5,8 @@
 	#error No shader stage defined.
 #endif
 
-#if !defined(Camera_ClipD3D) && !defined(Camera_ClipOGL)
-	#error Camera_Clip* not defined.
+#if !defined(FRM_NDC_Z_ZERO_TO_ONE) && !defined(FRM_NDC_Z_NEG_ONE_TO_ONE)
+	#error FRM_NDC_Z_* not defined.
 #endif
 
 #if defined(COMPUTE_SHADER)
@@ -114,45 +114,27 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 #define max3(_a, _b, _c)             max(_a, max(_b, _c))
 #define min3(_a, _b, _c)             min(_a, min(_b, _c))
 
-// Linearizing depth requires applying the inverse of Z part of the projection matrix, which depends on how the matrix was set up.
-// The following variants correspond to ProjFlags_; see frm/Camera.h for more info.
-// \todo revisit the formulae and clean this up
-float LinearizeDepth(in float _depth, in float _near, in float _far)
+// Recover view space depth from a depth buffer value given a perspective projection.
+// This may return INF for infinite perspective projections.
+float GetDepthV_Perspective(in float _depth, in mat4 _proj)
 {
-	#if   defined(Camera_ClipD3D)
-	 	return (_far * _near) / (_far * -_depth + _far + (_near * _depth));
-	#elif defined(Camera_ClipOGL)
+	#if FRM_NDC_Z_ZERO_TO_ONE
+		float zndc = _depth;
+	#else
 		float zndc = _depth * 2.0 - 1.0;
-		return 2.0 * _near * _far / (_far + _near - (_far - _near) * zndc);
 	#endif
+	return _proj[3][2] / (_proj[2][3] * zndc - _proj[2][2]);
 }
-float LinearizeDepth_Infinite(in float _depth, in float _near)
+// Recover view space depth from a depth buffer value given an orthographic projection.
+// This may return INF for infinite perspective projections.
+float GetDepthV_Orthographic(in float _depth, in mat4 _proj)
 {
-	_depth = _depth - 1e-7; // prevent issues at the far plane
-	#if   defined(Camera_ClipD3D)
-		return -_near / (_depth - 1.0);
-	#elif defined(Camera_ClipOGL)
+	#if FRM_NDC_Z_ZERO_TO_ONE
+		float zndc = _depth;
+	#else
 		float zndc = _depth * 2.0 - 1.0;
-		return -2.0 * _near / (zndc - 1.0);
 	#endif
-}
-float LinearizeDepth_Reversed(in float _depth, in float _near, in float _far)
-{
-	#if   defined(Camera_ClipD3D)
-		return (_far * _near) / (_far * _depth + _near * -_depth + _near);
-	#elif defined(Camera_ClipOGL)
-		float zndc = _depth * 2.0 - 1.0;
-		return (2.0 * _far * _near) / (_far * zndc + _far - _near * zndc + _near);
-	#endif
-}
-float LinearizeDepth_InfiniteReversed(in float _depth, in float _near)
-{
-	#if   defined(Camera_ClipD3D)
-		return _near / _depth;
-	#elif defined(Camera_ClipOGL)
-		float zndc = _depth * 2.0 - 1.0;
-		return 2.0 * _near / (zndc + 1.0);
-	#endif
+	return (zndc - _proj[3][2]) / _proj[2][2];
 }
 
 vec3 TransformPosition(in mat4 _m, in vec3 _v)
@@ -165,7 +147,7 @@ vec2 TransformPosition(in mat3 _m, in vec2 _v)
 }
 vec3 TransformDirection(in mat4 _m, in vec3 _v)
 {
-	return (_m * vec4(_v, 0.0)).xyz;
+	return mat3(_m) * _v;
 }
 vec2 TransformDirection(in mat3 _m, in vec2 _v)
 {

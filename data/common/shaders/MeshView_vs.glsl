@@ -38,19 +38,19 @@ void main()
 			bfSkinning[boneIndices.z] * boneWeights.z +
 			bfSkinning[boneIndices.w] * boneWeights.w
 			;
-		vec3 posM = (boneMatrix * vec4(aPosition.xyz, 1.0)).xyz;
-		vec3 nrmM = mat3(boneMatrix) * aNormal.xyz;
-		vec3 tngM = mat3(boneMatrix) * aTangent.xyz;
+		vec3 posM = TransformPosition(boneMatrix, aPosition.xyz);
+		vec3 nrmM = TransformDirection(boneMatrix, aNormal.xyz);
+		vec3 tngM = TransformDirection(boneMatrix, aTangent.xyz);
 	#else
 		#define posM aPosition.xyz
 		#define nrmM aNormal.xyz
 		#define tngM aTangent.xyz
 	#endif
-	vec3 posV = (uViewMatrix * (uWorldMatrix * vec4(posM, 1.0))).xyz;
+	vec3 posV = TransformPosition(uViewMatrix, TransformPosition(uWorldMatrix, posM));
 
 	#if    defined(SHADED)
 		vUv = aTexcoord;
-		vNormalV = mat3(uViewMatrix) * (mat3(uWorldMatrix) * nrmM);
+		vNormalV = TransformDirection(uViewMatrix, TransformDirection(uWorldMatrix, nrmM));
 		#ifdef SKINNING
 			vBoneWeights = mix(aBoneWeights.xyz, vec3(1.0, 0.0, 1.0), aBoneWeights.w);
 		#endif

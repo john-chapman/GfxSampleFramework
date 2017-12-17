@@ -96,9 +96,10 @@ bool frm::Serialize(apt::Serializer& _serializer_, Camera& _camera_)
 	_serializer_.value(hasGpuBuffer, "HasGpuBuffer");
 
 	if (_serializer_.getMode() == apt::Serializer::Mode_Read) {
+		_camera_.setProjFlag(Camera::ProjFlag_Perspective,  !orthographic);
 		_camera_.setProjFlag(Camera::ProjFlag_Orthographic, orthographic);
 		_camera_.setProjFlag(Camera::ProjFlag_Asymmetrical, asymmetrical);
-		_camera_.setProjFlag(Camera::ProjFlag_Infinite,     infinite);
+		_camera_.setProjFlag(Camera::ProjFlag_Infinite,     orthographic ? false : infinite);
 		_camera_.setProjFlag(Camera::ProjFlag_Reversed,     reversed);
 		
 		_camera_.m_aspectRatio = abs(_camera_.m_right - _camera_.m_left) / abs(_camera_.m_up - _camera_.m_down);
@@ -311,12 +312,12 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
  // transform an NDC box by the inverse matrix
 	mat4 invProj = inverse(_projMatrix);
 	static const vec4 lv[8] = {
-		#if   defined(Camera_ClipD3D)
+		#if FRM_NDC_Z_ZERO_TO_ONE
 			vec4(-1.0f,  1.0f, 0.0f,  1.0f),
 			vec4( 1.0f,  1.0f, 0.0f,  1.0f),
 			vec4( 1.0f, -1.0f, 0.0f,  1.0f),
 			vec4(-1.0f, -1.0f, 0.0f,  1.0f),
-		#elif defined(Camera_ClipOGL)
+		#else
 			vec4(-1.0f,  1.0f, -1.0f,  1.0f),
 			vec4( 1.0f,  1.0f, -1.0f,  1.0f),
 			vec4( 1.0f, -1.0f, -1.0f,  1.0f),
@@ -428,8 +429,7 @@ void Camera::updateView()
 
 void Camera::updateProj()
 {
- 	m_proj = mat4(0.0f);
-	m_localFrustum = Frustum(m_up, m_down, m_right, m_left, m_near, m_far, getProjFlag(ProjFlag_Orthographic));
+ 	m_localFrustum = Frustum(m_up, m_down, m_right, m_left, m_near, m_far, getProjFlag(ProjFlag_Orthographic));
 	bool infinite = getProjFlag(ProjFlag_Infinite) && !getProjFlag(ProjFlag_Orthographic); // infinite ortho projection not supported
 	bool reversed = getProjFlag(ProjFlag_Reversed);
 
@@ -440,91 +440,90 @@ void Camera::updateProj()
 	float n = m_near;
 	float f = m_far;
 
- // \note both clip modes below assume a right-handed coordinates system (view axis along -z).
- // \todo infinite ortho projection probably not possible as it involves tampering with the w component
- // \todo generate an inverse projection matrix at the same time
+	float scale = -1.0f; // view space z direction \todo expose? need to also modify getViewVector(), lookAt()
 
 	if (getProjFlag(ProjFlag_Orthographic)) {
-		m_proj[0][0] = 2.0f / (r - l);
-		m_proj[1][1] = 2.0f / (t - b);
-		m_proj[2][0] = 0.0f;
-		m_proj[2][1] = 0.0f;
-		m_proj[2][3] = 0.0f;
-		m_proj[3][0] = -(r + l) / (r - l);
-		m_proj[3][1] = -(t + b) / (t - b);
-		m_proj[3][3] = 1.0f;
+		m_proj = mat4(
+			2.0f / (r - l), 0.0f,           0.0f,    scale * (l + r) / (r - l),
+			0.0f,           2.0f / (t - b), 0.0f,    scale * (b + t) / (t - b),
+			0.0f,           0.0f,           0.0f,    0.0f,
+			0.0f,           0.0f,           0.0f,    1.0f
+			);
 
-	 	if (infinite && reversed) {
-			#if   defined(Camera_ClipD3D)
-			#elif defined(Camera_ClipOGL)
-			#endif
-		} else if (infinite) {
-			#if   defined(Camera_ClipD3D)
-			#elif defined(Camera_ClipOGL)
-			#endif
-		} else if (reversed) {
-			#if   defined(Camera_ClipD3D)
-				m_proj[2][2] = 1.0f / (f - n);
-				m_proj[3][2] = 1.0f - n / (n - f);
-			#elif defined(Camera_ClipOGL)
-				m_proj[2][2] = -2.0f / (n - f);
-				m_proj[3][2] = -(n + f) / (n - f);
+	 	if (reversed) {
+			#if FRM_NDC_Z_ZERO_TO_ONE
+				m_proj[2][2] = -scale * 1.0f / (f - n);
+				m_proj[3][2] = f / (f - n);
+			#else
+				m_proj[2][2] = -scale * 2.0f / (f - n);
+				m_proj[3][2] = (f + n) / (f - n);
 			#endif
 		} else {
-			#if   defined(Camera_ClipD3D)
-				m_proj[2][2] = -1.0f / (f - n);
+			#if FRM_NDC_Z_ZERO_TO_ONE
+				m_proj[2][2] = scale * 1.0f / (f - n);
 				m_proj[3][2] = n / (n - f);
-			#elif defined(Camera_ClipOGL)
-				m_proj[2][2] = -2.0f / (f - n);
-				m_proj[3][2] = -(f + n) / (f - n);
+			#else
+				m_proj[2][2] = scale * 2.0f / (f - n);
+				m_proj[3][2] = (n + f) / (n - f);
 			#endif
 		}
 
 	} else {
 	 // oblique perspective
-		m_proj[0][0] = (2.0f * n) / (r - l);
-		m_proj[1][1] = (2.0f * n) / (t - b);
-		m_proj[2][0] = (r + l) / (r - l);
-		m_proj[2][1] = (t + b) / (t - b);
-		m_proj[2][3] = -1.0f;
-		m_proj[3][3] = 0.0f;
-
+		m_proj = mat4(
+			(2.0f * n) / (r - l), 0.0f,                 -scale * (l + r) / (r - l), 0.0f,
+			0.0f,                 (2.0f * n) / (t - b), -scale * (b + t) / (t - b), 0.0f,
+			0.0f,                 0.0f,                  0.0f,                      0.0f,
+			0.0f,                 0.0f,                  scale,                     0.0f
+			);
 		if (infinite && reversed) {
-			#if   defined(Camera_ClipD3D)
-				m_proj[2][2] = 0.0f;
+			#if FRM_NDC_Z_ZERO_TO_ONE
+				m_proj[2][2] = 0.0;
 				m_proj[3][2] = n;
-			#elif defined(Camera_ClipOGL)
-				m_proj[2][2] = 1.0f;
+			#else
+				m_proj[2][2] = -scale;
 				m_proj[3][2] = 2.0f * n;
 			#endif
+			//m_proj[2][2] = ndcGl ? -scale : 0.0f;
+			//m_proj[3][2] = (n + offset);
+
 		} else if (infinite) {
-			#if   defined(Camera_ClipD3D)
-				m_proj[2][2] = -1.0f;
+			#if FRM_NDC_Z_ZERO_TO_ONE
+				m_proj[2][2] = scale;
 				m_proj[3][2] = -n;
-			#elif defined(Camera_ClipOGL)
-				m_proj[2][2] = -1.0f;
+			#else
+				m_proj[2][2] = scale;
 				m_proj[3][2] = -2.0f * n;
 			#endif
+			//m_proj[2][2] = scale;
+			//m_proj[3][2] = -(n + offset);
+
 		} else if (reversed) {
-			#if   defined(Camera_ClipD3D)
-				m_proj[2][2] = n / (f - n);
-				m_proj[3][2] = (f * n) / (f - n);
-			#elif defined(Camera_ClipOGL)
-				m_proj[2][2] = (f + n) / (f - n);
-				m_proj[3][2] = (2.0f * n * f) / (f - n);
+			#if FRM_NDC_Z_ZERO_TO_ONE
+				m_proj[2][2] = -scale * n / (f - n);
+				m_proj[3][2] = n * f / (f - n);
+			#else
+				m_proj[2][2] = -scale * (f + n) / (f - n);
+				m_proj[3][2] = 2.0f * n * f / (f - n);
 			#endif
+			//m_proj[2][2] = -scale * (ndcGl? (f + offset) : n) / (f - n);
+			//m_proj[3][2] = (n + offset) * f / (f - n);
+
 		} else {
-			#if   defined(Camera_ClipD3D)
-				m_proj[2][2] = f / (n - f);
-				m_proj[3][2] = (n * f) / (n - f);
-			#elif defined(Camera_ClipOGL)
-				m_proj[2][2] = (n + f) / (n - f);
-				m_proj[3][2] = (2.0f * n * f) / (n - f);
+			#if FRM_NDC_Z_ZERO_TO_ONE
+				m_proj[2][2] = scale * f / (f - n);
+				m_proj[3][2] = n * f / (n - f);
+			#else
+				m_proj[2][2] = scale * (f + n) / (f - n);
+				m_proj[3][2] = 2.0f * n * f / (n - f);
 			#endif
+			//m_proj[2][2] = scale * (f + offset) / (f - n);
+			//m_proj[3][2] = -(n + offset) * f / (f - n);
+
 		}
 	}
 
-	m_inverseProj = inverse(m_proj);
+	m_inverseProj = inverse(m_proj); // \todo avoid this, compute the inverse directly
 	m_projDirty = false;
 }
 
@@ -555,6 +554,20 @@ void Camera::updateGpuBuffer(Buffer* _buffer_)
 	data.m_aspectRatio     = m_aspectRatio;
 	data.m_projFlags       = m_projFlags;
 	buf->setData(sizeof(GpuBuffer), &data);
+}
+
+float Camera::getDepthV(float _depth) const
+{	
+	#if FRM_NDC_Z_ZERO_TO_ONE
+		float zndc = _depth;
+	#else
+		float zndc = _depth * 2.0f - 1.0f;
+	#endif	
+	if (getProjFlag(ProjFlag_Perspective)) {
+		return m_proj[3][2] / (m_proj[2][3] * zndc - m_proj[2][2]);
+	} else {
+		return (zndc - m_proj[3][2]) / m_proj[2][2];
+	}
 }
 
 void Camera::defaultInit()

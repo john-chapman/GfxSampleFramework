@@ -50,4 +50,15 @@ workspace "GfxSampleFramework"
 
 		ApplicationTools_Link()
 		GfxSampleFramework_Link()
+		
+		local name = "AppSampleTest"
+		filter { "action:vs*" }
+			postbuildcommands({
+			-- make the project data dir
+				"mkdir \"$(ProjectDir)..\\..\\data\\" .. tostring(name) .. "\"",
+	
+			-- make link to project data dir in bin
+				"rmdir \"$(ProjectDir)..\\..\\bin\\" .. tostring(name) .. "\"",
+				"mklink /j \"$(ProjectDir)..\\..\\bin\\" .. tostring(name) .. "\" " .. "\"$(ProjectDir)..\\..\\data\\" .. tostring(name) .. "\"",
+				})
 

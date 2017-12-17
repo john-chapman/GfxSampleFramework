@@ -1,7 +1,7 @@
 #include <frm/GlContext.h>
 
 #include <frm/def.h>
-#include <frm/Camera.h> // set clip control based on Camera_Clip* define
+#include <frm/gl.h>
 #include <frm/Profiler.h>
 #include <frm/Window.h>
 
@@ -145,7 +145,7 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 		internal::GlGetString(GL_RENDERER)
 		);
 
-	#ifdef Camera_ClipD3D
+	#if FRM_NDC_Z_ZERO_TO_ONE
 		APT_ASSERT(glewIsExtensionSupported("GL_ARB_clip_control"));
 		glAssert(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE));
 	#endif

@@ -6,11 +6,6 @@
 #include <frm/geom.h>
 #include <frm/math.h>
 
-// Control how the projection matrix is set up to produce Zndc in [0,1] (D3D) or [-1,1] (OGL)
-// Camera_ClipOGL should not really be used unless the platform doesn't support glClipControl.
-#define Camera_ClipD3D
-//#define Camera_ClipOGL
-
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -24,11 +19,8 @@ namespace frm {
 // well as any shader operations which might be affected (depth linearization,
 // shadow tests, etc.).
 //
-// ProjFlag_Reversed will give better precision when using a floating points
-// depth buffer - in this case the following setup is required for OpenGL:
-//		glClearDepth(0.0f);
-//		glDepthFunc(GL_GREATER);
-//		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+// ProjFlag_Reversed will give better precision when using a floating point depth
+// depth buffer, in which case FRM_NDC_Z_ZERO_TO_ONE should be defined.
 // 
 // ProjFlag_Infinite does not affect the frustum far plane, so m_far should be
 // be set to a distance appropriate for culling.
@@ -38,11 +30,11 @@ class Camera
 public:
 	enum ProjFlag
 	{
-		ProjFlag_Perspective  = 0,
-		ProjFlag_Orthographic = 1 << 0,
-		ProjFlag_Asymmetrical = 1 << 1,
-		ProjFlag_Infinite     = 1 << 2,
-		ProjFlag_Reversed     = 1 << 3,
+		ProjFlag_Perspective  = 1 << 0,
+		ProjFlag_Orthographic = 1 << 1,
+		ProjFlag_Asymmetrical = 1 << 2,
+		ProjFlag_Infinite     = 1 << 3, // only for perspective projections
+		ProjFlag_Reversed     = 1 << 4,
 
 		ProjFlag_Default      = ProjFlag_Infinite // symmetrical infinite perspective projection
 	};
@@ -93,9 +85,13 @@ public:
 	void setProjFlag(ProjFlag _flag, bool _value) { m_projFlags = _value ? (m_projFlags | _flag) : (m_projFlags & ~_flag); m_projDirty = true; }
 	
 	// Extract position from world matrix.
-	vec3 getPosition() const    { return m_world[3].xyz();  }
+	vec3 getPosition() const                      { return m_world[3].xyz();  }
 	// Extract view direction from world matrix. Projection is along -z, hence the negation.
-	vec3 getViewVector() const  { return -m_world[2].xyz(); }
+	vec3 getViewVector() const                    { return -m_world[2].xyz(); }
+
+	// Recover view space depth from a depth buffer value.
+	// This may return INF for infinite perspective projections.
+	float getDepthV(float _depth) const;
 
 	uint32  m_projFlags;      // Combination of ProjFlag_ enums.
 	bool    m_projDirty;      // Whether to rebuild the projection matrix/local frustum during update().

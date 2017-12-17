@@ -28,6 +28,9 @@ public:
 	// Argument list is a set of _count texture pointers to attach (in order).
 	static Framebuffer* Create(int _count, ...);
 
+	// Attach a single texture.
+	static Framebuffer* Create(Texture* _tx) { return Create(1, _tx); }
+
 	static void Destroy(Framebuffer*& _inst_);
 
 	// Attach _mip level of _texture to _attachment. _texture may not be an array, 3d or cubemap 
