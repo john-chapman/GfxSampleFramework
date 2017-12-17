@@ -32,8 +32,7 @@ public:
 		uint32 m_baseInstance;
 	};
 
-	// Create a buffer object. _data is optional. 
-	// \note _target is only used as a hint for GlContext::bindBuffer() functions.
+	// Create a buffer object. _data is optional. _target is only used as a hint for GlContext::bindBuffer() functions.
 	static Buffer* Create(GLenum _target, GLsizei _size, GLbitfield _flags = 0, GLvoid* _data = nullptr);
 
 	static void Destroy(Buffer*& _inst_);
@@ -49,11 +48,13 @@ public:
 	void clearDataRange(tType _value, GLenum _internalFormat, GLintptr _offset, GLsizei _size);
 
 	// Map the buffer for cpu-side access. _access is GL_READ_ONLY, GL_WRITE_ONLY or GL_READ_WRITE.
+	// The buffer must have been created with GL_DYNAMIC_STORAGE_BIT and GL_MAP_READ_BIT/GL_MAP_WRITE_BIT.
 	void* map(GLenum _access);
 
 	// Map a range for cpu-side access. _access is a bitfield containing one of more of the following:
 	// GL_MAP_READ_BIT, GL_MAP_WRITE_BIT, GL_MAP_PERSISTENT_BIT, GL_MAP_COHERENT_BIT, GL_MAP_INVALIDATE_RANGE_BIT,
 	// GL_MAP_INVALIDATE_BUFFER_BIT, GL_MAP_FLUSH_EXPLICIT_BIT, GL_MAP_UNSYNCHRONIZED_BIT.
+	// The buffer must have been created with GL_DYNAMIC_STORAGE_BIT and GL_MAP_READ_BIT/GL_MAP_WRITE_BIT.
 	void* mapRange(GLintptr _offset, GLsizei _size, GLbitfield _access);
 
 	// Unmap the buffer, previously bound by map() or mapRange().

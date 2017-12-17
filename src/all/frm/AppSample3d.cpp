@@ -35,7 +35,7 @@ bool AppSample3d::init(const apt::ArgList& _args)
 
 	if (!Scene::Load((const char*)m_scenePath, *m_scene)) {
  		Camera* defaultCamera = m_scene->createCamera(Camera());
-		defaultCamera->setPerspective(Radians(45.0f), 1.0f, 0.1f, 1.0f, Camera::ProjFlag_Infinite);
+		defaultCamera->setPerspective(Radians(45.0f), 1.0f, 0.1f, 1000.0f, Camera::ProjFlag_Infinite);
 		defaultCamera->updateGpuBuffer(); // alloc the gpu buffer
 		Node* defaultCameraNode = defaultCamera->m_parent;
 		defaultCameraNode->setStateMask(Node::State_Active | Node::State_Dynamic | Node::State_Selected);
@@ -411,7 +411,7 @@ void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 	GlContext* ctx = GlContext::GetCurrent();
 	ctx->setShader(sh);
 	ctx->setUniform("uViewProjMatrix", Scene::GetDrawCamera()->m_viewProj);
-	ctx->setUniform("uViewport", vec2(ctx->getViewportWidth(), ctx->getViewportHeight()));
+	ctx->setUniform("uViewport", vec2((float)ctx->getViewportWidth(), (float)ctx->getViewportHeight()));
 	ctx->setMesh(ms);
 	ctx->draw();
 

@@ -1,7 +1,7 @@
 #include <frm/Shader.h>
 
+#include <frm/def.h>
 #include <frm/gl.h>
-#include <frm/Camera.h> // Camera_Clip* define passed to shader
 #include <frm/GlContext.h>
 
 #include <apt/hash.h>
@@ -887,10 +887,10 @@ bool Shader::loadStage(int _i, bool _loadSource)
 	src.appendf("#define %s\n", internal::GlEnumStr(stageDesc.m_stage) + 3); // \hack +3 removes the 'GL_' which is reserved in the shader language
 	
 	src.append("#define ");
-	#if   defined(Camera_ClipD3D)
-		src.append("Camera_ClipD3D\n");
-	#elif defined(Camera_ClipOGL)
-		src.append("Camera_ClipOGL\n");
+	#if   defined(FRM_NDC_Z_NEG_ONE_TO_ONE)
+		src.append("FRM_NDC_Z_NEG_ONE_TO_ONE 1\n");
+	#elif defined(FRM_NDC_Z_ZERO_TO_ONE)
+		src.append("FRM_NDC_Z_ZERO_TO_ONE 1\n");
 	#endif
 	
 	src.append((const char*)stageDesc.m_source);
