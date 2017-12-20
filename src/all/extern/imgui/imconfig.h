@@ -64,4 +64,8 @@ namespace ImGui
 {
 	bool ComboInt(const char* label, int* current_value, const char* items_separated_by_zeros, const int* item_values, int value_count);
 	bool ComboFloat(const char* label, float* current_value, const char* items_separated_by_zeros, const float* item_values, int value_count);
+
+	// Begin/end an invisible window at origin with the specified size (useful for drawing custom overlays).
+	bool BeginInvisible(const char* name, frm::vec2 origin, frm::vec2 size, bool* p_open = NULL, int flags = 0);
+	void EndInvisible();
 }
