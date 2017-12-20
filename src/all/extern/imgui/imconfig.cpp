@@ -39,3 +39,25 @@ bool ImGui::ComboFloat(const char* label, float* current_value, const char* item
 	}
 	return false;
 }
+
+bool ImGui::BeginInvisible(const char* name, frm::vec2 origin, frm::vec2 size, bool* p_open, int flags)
+{
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32_BLACK_TRANS);
+	ImGui::SetNextWindowPos(origin);
+	ImGui::SetNextWindowSize(size);
+	return ImGui::Begin(name, p_open,
+		(ImGuiWindowFlags)flags |
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoScrollbar |
+		ImGuiWindowFlags_NoInputs |
+		ImGuiWindowFlags_NoSavedSettings |
+		ImGuiWindowFlags_NoFocusOnAppearing |
+		ImGuiWindowFlags_NoBringToFrontOnFocus
+	);
+}
+void ImGui::EndInvisible()
+{
+	ImGui::End();
+	ImGui::PopStyleColor(1);
+}
