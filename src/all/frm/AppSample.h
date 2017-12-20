@@ -21,7 +21,6 @@ class AppSample: public App
 {
 public:
 
-	/// \return Current app instance. 
 	static AppSample* AppSample::GetCurrent();
 
 	virtual bool        init(const apt::ArgList& _args) override;
@@ -30,19 +29,21 @@ public:
 	virtual void        draw();
 
 	virtual void        drawMainMenuBar()             {}
-	virtual void        drawStatusBar()               {}
-	
+	virtual void        drawStatusBar()               {}	
 	void                drawNdcQuad();
 	
-	Window*             getWindow()                   { return m_window; }
-	const Window*       getWindow() const             { return m_window; }
-	GlContext*          getGlContext()                { return m_glContext; }
-	const GlContext*    getGlContext() const          { return m_glContext; }
-
 	// Get/set the framebuffer to which UI/overlays are drawn (a null ptr means the context backbuffer).
 	const Framebuffer*  getDefaultFramebuffer() const                 { return m_fbDefault; }
 	void                setDefaultFramebuffer(const Framebuffer* _fb) { m_fbDefault = _fb; }
 
+	Properties&         getProperties()               { return m_props; }
+	const Properties&   getProperties() const         { return m_props; }
+	const ivec2&        getResolution() const         { return m_resolution; }
+	const ivec2&        getWindowSize() const         { return m_windowSize; }
+	Window*             getWindow()                   { return m_window; }
+	const Window*       getWindow() const             { return m_window; }
+	GlContext*          getGlContext()                { return m_glContext; }
+	const GlContext*    getGlContext() const          { return m_glContext; }
 	uint64              getFrameIndex() const         { return m_frameIndex; }
 
 protected:		
