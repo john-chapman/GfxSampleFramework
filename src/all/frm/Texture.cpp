@@ -94,30 +94,29 @@ struct TextureViewer
 
 	void addTextureView(Texture* _tx)
 	{
-		m_txViews.push_back(TextureView(_tx));
+		if (eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto& _txView) { return _txView.m_texture == _tx; }) == m_txViews.end()) {
+			m_txViews.push_back(TextureView(_tx));
+		}
 	}
 
 	void removeTextureView(Texture* _tx)
 	{
-		int i = 0;
-		for (auto it = m_txViews.begin(); it != m_txViews.end(); ++it, ++i) {
-			if (it->m_texture == _tx) {
-				APT_ASSERT(_tx->getHandle() == it->m_texture->getHandle());
-				m_txViews.erase(it);
-				if (m_selected == i) {
-					m_selected = -1;
-				}
-				return;
+		auto it = eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto& _txView) { return _txView.m_texture == _tx; });
+		if (it != m_txViews.end()) {
+			APT_ASSERT(_tx->getHandle() == it->m_texture->getHandle());
+			int i = (int)(it - m_txViews.begin());
+			if (m_selected == i) {
+				m_selected = -1;
 			}
+			m_txViews.erase(it);
 		}
 	}
 
 	TextureView* findTextureView(Texture* _tx)
 	{
-		for (auto& txView : m_txViews) {
-			if (txView.m_texture == _tx) {
-				return &txView;
-			}
+		auto it = eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto& _txView) { return _txView.m_texture == _tx; });
+		if (it != m_txViews.end()) {
+			return it;
 		}
 		return nullptr;
 	}
@@ -482,8 +481,6 @@ Texture* Texture::Create(const char* _path)
 	Use(ret);
 	if (ret->getState() != State_Loaded) {
 	 // \todo replace with default
-	} else if (ret->getRefCount() == 1) {
-		g_textureViewer.addTextureView(ret);
 	}
 	return ret;
 }
@@ -500,8 +497,6 @@ Texture* Texture::CreateCubemap2x3(const char* _path)
 	Use(ret);
 	if (ret->getState() != State_Loaded) {
 	 // \todo replace with default
-	} else {
-		g_textureViewer.addTextureView(ret);
 	}
 	return ret;
 }
@@ -516,7 +511,6 @@ Texture* Texture::Create(const Image& _img)
 		return ret;
 	}
 	Use(ret);
-	g_textureViewer.addTextureView(ret);
 	return ret;
 }
 
@@ -652,13 +646,11 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 	ret->setState(State_Loaded);
 	
 	Use(ret);
-	g_textureViewer.addTextureView(ret);
 	return ret;
 }
 
 void Texture::Destroy(Texture*& _inst_)
 {
-	g_textureViewer.removeTextureView(_inst_);
 	delete _inst_;
 }
 
@@ -891,6 +883,8 @@ bool Texture::reload()
 		return false;
 	}
 	setState(State_Loaded);
+
+	g_textureViewer.addTextureView(this);
 
 	return true;
 }
@@ -1145,6 +1139,7 @@ Texture::Texture(
 	updateParams();
 	
 	setState(State_Loaded);
+	g_textureViewer.addTextureView(this);
 }
 
 Texture::~Texture()
@@ -1154,6 +1149,7 @@ Texture::~Texture()
 		m_handle = 0;
 	}
 	setState(State_Unloaded);
+	g_textureViewer.removeTextureView(this);
 }
 
 
@@ -1198,7 +1194,6 @@ Texture* Texture::Create(
 	Texture* ret = new Texture(id, "", _target, _width, _height, _depth, _arrayCount, _mipCount, _format);
 	ret->setNamef("%llu", id);
 	Use(ret);
-	g_textureViewer.addTextureView(ret);
 	return ret;
 }
 
