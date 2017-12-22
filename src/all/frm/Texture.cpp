@@ -218,22 +218,13 @@ struct TextureViewer
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_FLOPPY_O " Save")) {
 				FileSystem::PathStr pth = tx.getPath();
-				if (FileSystem::PlatformSelect(pth)) {
+				if (FileSystem::PlatformSelect(pth, "*.bmp\0*.dds\0*.exr\0*.hdr\0*.png\0*.tga\0")) {
 					Image* img = Texture::CreateImage(&tx);
 					Image::Write(*img, (const char*)pth);
 					Texture::DestroyImage(img);
 				}
 			}
 			if (*tx.getPath() != '\0') {
-				ImGui::SameLine();
-				if (ImGui::Button(ICON_FA_FLOPPY_O " Save")) {
-					FileSystem::PathStr pth = tx.getPath();
-					if (FileSystem::PlatformSelect(pth, "*.bmp\0*.dds\0*.exr\0*.hdr\0*.png\0*.tga\0")) {
-						Image* img = Texture::CreateImage(&tx);
-						Image::Write(*img, (const char*)pth);
-						Texture::DestroyImage(img);
-					}
-				}
 				ImGui::SameLine();
 				if (ImGui::Button(ICON_FA_REFRESH " Reload")) {
 					tx.reload();
