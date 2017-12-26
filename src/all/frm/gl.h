@@ -46,7 +46,7 @@ const int kShaderStageCount = 6;
 extern const GLenum kShaderStages[kShaderStageCount];
 int ShaderStageToIndex(GLenum _stage);
 
-GLenum GlDataTypeToEnum(apt::DataType _type);
+GLenum DataTypeToGLenum(apt::DataType _type);
 
 apt::AssertBehavior GlAssert(const char* _call, const char* _file, int _line);
 const char* GlEnumStr(GLenum _enum);

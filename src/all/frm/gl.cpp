@@ -104,7 +104,7 @@ int frm::internal::ShaderStageToIndex(GLenum _stage)
 	return FindIndex(kShaderStages, _stage);
 }
 
-GLenum frm::internal::GlDataTypeToEnum(DataType _type)
+GLenum frm::internal::DataTypeToGLenum(DataType _type)
 {
 	switch (_type) {
 		case DataType_Sint8:
@@ -121,7 +121,7 @@ GLenum frm::internal::GlDataTypeToEnum(DataType _type)
 		case DataType_Uint32N:  return GL_UNSIGNED_INT;
 		case DataType_Float16:  return GL_HALF_FLOAT;
 		case DataType_Float32:  return GL_FLOAT;
-		default:                 APT_ASSERT(false); return GL_INVALID_VALUE;
+		default:                APT_ASSERT(false); return GL_INVALID_VALUE;
 	};
 }
 

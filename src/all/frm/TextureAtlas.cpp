@@ -103,7 +103,7 @@ TextureAtlas::Region* TextureAtlas::alloc(const apt::Image& _img, RegionId _id)
 		case Image::Layout_RGBA: srcFormat = GL_RGBA; break;
 		default:                   APT_ASSERT(false); return false;
 	};
-	GLenum srcType = _img.isCompressed() ? GL_UNSIGNED_BYTE : internal::GlDataTypeToEnum(_img.getImageDataType());
+	GLenum srcType = _img.isCompressed() ? GL_UNSIGNED_BYTE : internal::DataTypeToGLenum(_img.getImageDataType());
 	int mipMax = APT_MIN(APT_MIN((int)getMipCount(), (int)_img.getMipmapCount()), ret->m_lodMax + 1);
 	for (int mip = 0; mip < mipMax; ++mip) {
 		if (_img.isCompressed()) { // \hack, see Texture.h
