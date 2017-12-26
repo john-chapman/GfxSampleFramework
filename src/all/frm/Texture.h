@@ -72,10 +72,7 @@ public:
 
 	// Set base/max level for mipmap access.
 	void setMipRange(GLint _base, GLint _max);
-
-	// DEPRECATED; use CreateImage().
-	apt::Image* downloadImage();
-
+	
 	// Filter mode.
 	void        setFilter(GLenum _mode);    // mipmap filter modes cannot be applied globally
 	void        setMinFilter(GLenum _mode);

@@ -112,10 +112,10 @@ void Mesh::setVertexData(const void* _data, uint _vertexCount, GLenum _usage)
 			glAssert(glEnableVertexAttribArray(i));
 			if (DataTypeIsInt(attr.getDataType()) && !DataTypeIsNormalized(attr.getDataType())) {
 			 // non-normalized integer types bind as ints
-				glAssert(glVertexAttribIPointer(i, attr.getCount(), internal::GlDataTypeToEnum(attr.getDataType()), m_desc.m_vertexSize, (const GLvoid*)attr.getOffset()));
+				glAssert(glVertexAttribIPointer(i, attr.getCount(), internal::DataTypeToGLenum(attr.getDataType()), m_desc.m_vertexSize, (const GLvoid*)attr.getOffset()));
 			} else {
 			 // else bind as floats
-				glAssert(glVertexAttribPointer(i, attr.getCount(), internal::GlDataTypeToEnum(attr.getDataType()), (GLboolean)DataTypeIsNormalized(attr.getDataType()), m_desc.m_vertexSize, (const GLvoid*)attr.getOffset()));
+				glAssert(glVertexAttribPointer(i, attr.getCount(), internal::DataTypeToGLenum(attr.getDataType()), (GLboolean)DataTypeIsNormalized(attr.getDataType()), m_desc.m_vertexSize, (const GLvoid*)attr.getOffset()));
 			}
 		}
 	} else {
@@ -143,7 +143,7 @@ void Mesh::setIndexData(DataType _dataType, const void* _data, uint _indexCount,
 	glAssert(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer));
 	glAssert(glBufferData(GL_ELEMENT_ARRAY_BUFFER, _indexCount * DataTypeSizeBytes(_dataType), _data, _usage));
 	m_submeshes[0].m_indexCount = _indexCount;
-	m_indexDataType = internal::GlDataTypeToEnum(_dataType);
+	m_indexDataType = internal::DataTypeToGLenum(_dataType);
 
 	glAssert(glBindVertexArray(0)); // prevent changing the vao state
 	glAssert(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, prevIbo));

@@ -973,11 +973,6 @@ void Texture::setMipRange(GLint _base, GLint _max)
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAX_LEVEL, (GLint)_max));
 }
 
-Image* Texture::downloadImage()
-{
-	return CreateImage(this);
-}
-
 void Texture::setFilter(GLenum _mode)
 {
 	APT_ASSERT(m_handle);
@@ -1361,7 +1356,7 @@ bool Texture::loadImage(const Image& _img)
 					case DataType_Float32: m_format = GL_R32F; break;
 					case DataType_Float16: m_format = GL_R16F; break;
 					case DataType_Uint16N: m_format = GL_R16;  break;
-					default:                m_format = GL_R8;   break;
+					default:               m_format = GL_R8;   break;
 				};
 				break;
 			case Image::Layout_RG:
@@ -1369,7 +1364,7 @@ bool Texture::loadImage(const Image& _img)
 					case DataType_Float32: m_format = GL_RG32F; break;
 					case DataType_Float16: m_format = GL_RG16F; break;
 					case DataType_Uint16N: m_format = GL_RG16;  break;
-					default:                m_format = GL_RG8;   break;
+					default:               m_format = GL_RG8;   break;
 				};
 				break;
 			case Image::Layout_RGB:			
@@ -1377,7 +1372,7 @@ bool Texture::loadImage(const Image& _img)
 					case DataType_Float32: m_format = GL_RGB32F; break;
 					case DataType_Float16: m_format = GL_RGB16F; break;
 					case DataType_Uint16N: m_format = GL_RGB16;  break;
-					default:                m_format = GL_RGB8;   break;
+					default:               m_format = GL_RGB8;   break;
 				};
 				break;
 			case Image::Layout_RGBA:
@@ -1385,14 +1380,14 @@ bool Texture::loadImage(const Image& _img)
 					case DataType_Float32: m_format = GL_RGBA32F; break;
 					case DataType_Float16: m_format = GL_RGBA16F; break;
 					case DataType_Uint16N: m_format = GL_RGBA16;  break;
-					default:                m_format = GL_RGBA8;   break;
+					default:               m_format = GL_RGBA8;   break;
 				};
 				break;
 			default: break;
 		};
 	}
 	
-	GLenum srcType = _img.isCompressed() ? GL_UNSIGNED_BYTE : internal::GlDataTypeToEnum(_img.getImageDataType());
+	GLenum srcType = _img.isCompressed() ? GL_UNSIGNED_BYTE : internal::DataTypeToGLenum(_img.getImageDataType());
 
  // delete old handle, gen new handle (required since we use immutable storage)
 	if (m_handle) {
