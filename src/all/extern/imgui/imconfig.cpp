@@ -1,5 +1,44 @@
 #include "imgui.h"
 
+void ImGui::Value(const char* prefix, const frm::vec2& v)
+{
+	Text("%s: %+0.5f, %+0.5f", prefix, v.x, v.y);
+}
+void ImGui::Value(const char* prefix, const frm::vec3& v)
+{
+	Text("%s: %+0.5f, %+0.5f, %+0.5f", prefix, v.x, v.y, v.z);
+}
+void ImGui::Value(const char* prefix, const frm::vec4& v)
+{
+	Text("%s: %+0.5f, %+0.5f, %+0.5f, %+0.5f", prefix, v.x, v.y, v.z, v.w);
+}
+void ImGui::Value(const char* prefix, const frm::mat3& v)
+{
+	Text("%s:\n"
+		"   %+0.5f, %+0.5f, %+0.5f,\n"
+		"   %+0.5f, %+0.5f, %+0.5f,\n"
+		"   %+0.5f, %+0.5f, %+0.5f,",
+		prefix,
+		v[0][0], v[1][0], v[2][0],
+		v[0][1], v[1][1], v[2][1],
+		v[0][2], v[1][2], v[2][2]
+		);
+}
+void ImGui::Value(const char* prefix, const frm::mat4& v)
+{
+	Text("%s:\n"
+		"   %+0.5f, %+0.5f, %+0.5f, %+0.5f,\n"
+		"   %+0.5f, %+0.5f, %+0.5f, %+0.5f,\n"
+		"   %+0.5f, %+0.5f, %+0.5f, %+0.5f,\n"
+		"   %+0.5f, %+0.5f, %+0.5f, %+0.5f",
+		prefix,
+		v[0][0], v[1][0], v[2][0], v[3][0],
+		v[0][1], v[1][1], v[2][1], v[3][1],
+		v[0][2], v[1][2], v[2][2], v[3][2],
+		v[0][3], v[1][3], v[2][3], v[3][3]
+		);
+}
+
 bool ImGui::ComboInt(const char* label, int* current_value, const char* items_separated_by_zeros, const int* item_values, int value_count)
 {
 	int select = 0;
