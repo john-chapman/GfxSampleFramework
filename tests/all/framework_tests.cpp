@@ -115,7 +115,7 @@ public:
 			return false;
 		}
 		
-		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
+		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Intersection")) {
 			Im3d::PushDrawState();
 
@@ -134,14 +134,14 @@ public:
 				"Cylinder\0"
 				"Capsule\0"
 				;
-			static int currentPrim = Primitive_Capsule;
+			static int currentPrim = Primitive_AlignedBox;
 			ImGui::Combo("Primitive", &currentPrim, primitiveList);
 			static int useLine = 1;
 			ImGui::RadioButton("Ray", &useLine, 0);
 			ImGui::SameLine();
 			ImGui::RadioButton("Line", &useLine, 1);
 
-			static mat4 primMat(1.0f);
+			static mat4 primMat = identity;
 			static float length = 3.0f;
 			static float width  = 3.0f;
 			static float radius = 1.0f;
@@ -152,6 +152,7 @@ public:
 			Line line(ray.m_origin, ray.m_direction);
 			bool intersects = false;
 			bool intersectCheck = false;
+			bool inFrustum = false;
 			float t0, t1;
 
 			#define Intersect1(prim) \
@@ -180,7 +181,10 @@ public:
 					Sphere sphere(vec3(0.0f), radius);
 					sphere.transform(primMat);
 					Intersect2(sphere);
-					Im3d::DrawSphere(sphere.m_origin, sphere.m_radius);
+					inFrustum = Scene::GetCullCamera()->m_worldFrustum.inside(sphere);
+					Im3d::PushAlpha(inFrustum ? 1.0f : 0.1f);
+						Im3d::DrawSphere(sphere.m_origin, sphere.m_radius);
+					Im3d::PopAlpha();
 					break;
 				}
 				case Primitive_Plane: {
@@ -198,12 +202,15 @@ public:
 				}
 				case Primitive_AlignedBox: {
 					ImGui::SliderFloat("X", &length, 0.0f, 8.0f);
-					ImGui::SliderFloat("Y",  &width,  0.0f, 8.0f);
+					ImGui::SliderFloat("Y", &width,  0.0f, 8.0f);
 					ImGui::SliderFloat("Z", &radius, 0.0f, 8.0f);
 					AlignedBox alignedBox(vec3(-length, -width, -radius) * 0.5f, vec3(length, width, radius) * 0.5f);
 					alignedBox.transform(primMat);
 					Intersect2(alignedBox);
-					Im3d::DrawAlignedBox(alignedBox.m_min, alignedBox.m_max);
+					inFrustum = Scene::GetCullCamera()->m_worldFrustum.inside(alignedBox);
+					Im3d::PushAlpha(inFrustum ? 1.0f : 0.1f);
+						Im3d::DrawAlignedBox(alignedBox.m_min, alignedBox.m_max);
+					Im3d::PopAlpha();
 					break;
 				}
 				case Primitive_Cylinder: {
@@ -260,6 +267,10 @@ public:
 			}
  
 			Im3d::PopDrawState();
+
+			if (currentPrim == Primitive_AlignedBox || currentPrim == Primitive_Sphere) {
+				ImGui::Text("In Frustum: %s", inFrustum ? "TRUE" : "FALSE");
+			}
 
 			static bool enablePerf = false;	
 			ImGui::Checkbox("Perf Test", &enablePerf);
@@ -341,7 +352,7 @@ public:
 		Camera* drawCam = Scene::GetDrawCamera();
 		Camera* cullCam = Scene::GetCullCamera();
 
-		//ImGui::SetNextTreeNodeOpen(true, ImGuiSetCond_Once);
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Mesh/Anim")) {
 			APT_ONCE {
 				if (!m_meshTest.m_shMeshShaded) {
