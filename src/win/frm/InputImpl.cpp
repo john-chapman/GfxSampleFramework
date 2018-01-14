@@ -4,8 +4,9 @@
 #include <frm/Profiler.h>
 
 #include <apt/platform.h>
-#include <apt/win.h>
 #include <apt/log.h>
+#include <apt/math.h>
+#include <apt/win.h>
 
 #include <new>
 #include <cmath>

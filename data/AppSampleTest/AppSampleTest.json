@@ -7,7 +7,7 @@
 		"Vsync Mode": 0,
 		"Show Shader Viewer": false,
 		"GlVersion": [4, 5],
-		"Show Menu": true,
+		"Show Menu": false,
 		"Show Profiler": false,
 		"Show Property Editor": false,
 		"Show Texture Viewer": false,

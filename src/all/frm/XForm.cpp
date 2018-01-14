@@ -222,7 +222,7 @@ void XForm_FreeCamera::apply(float _dt)
 	if (keyb && keyb->isDown(Keyboard::Key_LShift)) {
 		m_speed *= m_maxSpeedMul;
 	}
-	float len2 = apt::length2(m_velocity);
+	float len2 = apt::Length2(m_velocity);
 	if (len2 > 0.0f) {
 		m_velocity = (m_velocity / sqrt(len2)) * m_speed;
 	}		
@@ -713,7 +713,7 @@ struct XForm_VRGamepad: public XForm
 		m_accelCount = APT_CLAMP(m_accelCount, 0.0f, m_accelTime);
 		m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
 		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
-		float len = apt::length(m_velocity);
+		float len = apt::Length(m_velocity);
 		if (len > 0.0f) {
 			m_velocity = (m_velocity / len) * m_speed;
 		}

@@ -133,14 +133,14 @@ Plane::Plane(const vec3& _p0, const vec3& _p1, const vec3& _p2)
 {
 	vec3 u(_p1 - _p0);
 	vec3 v(_p2 - _p0);
-	m_normal = apt::normalize(cross(v, u));
+	m_normal = apt::Normalize(cross(v, u));
 	m_offset = dot(m_normal, (_p0 + _p1 + _p2) / 3.0f);
 }
 
 void Plane::transform(const mat4& _mat)
 {
 	vec3 origin = TransformPosition(_mat, getOrigin());
-	m_normal = apt::normalize(TransformDirection(_mat, m_normal));
+	m_normal = apt::Normalize(TransformDirection(_mat, m_normal));
 	m_offset = dot(m_normal, origin);
 }
 
@@ -179,8 +179,8 @@ AlignedBox::AlignedBox(const Frustum& _frustum)
 	m_min = vec3(FLT_MAX);
 	m_max = vec3(-FLT_MAX);
 	for (int i = 0; i < 8; ++i) {
-		m_min = min(m_min, _frustum.m_vertices[i]);
-		m_max = max(m_max, _frustum.m_vertices[i]);
+		m_min = APT_MIN(m_min, _frustum.m_vertices[i]);
+		m_max = APT_MAX(m_max, _frustum.m_vertices[i]);
 	}
 }
 
@@ -198,8 +198,8 @@ void AlignedBox::transform(const mat4& _mat)
 	vec3 za = mz * m_min.z;
 	vec3 zb = mz * m_max.z;
 
-	m_min = min(xa, xb) + min(ya, yb) + min(za, zb) + mw;
-	m_max = max(xa, xb) + max(ya, yb) + max(za, zb) + mw;
+	m_min = APT_MIN(xa, xb) + APT_MIN(ya, yb) + APT_MIN(za, zb) + mw;
+	m_max = APT_MAX(xa, xb) + APT_MAX(ya, yb) + APT_MAX(za, zb) + mw;
 }
 
 vec3 AlignedBox::getOrigin() const 
@@ -277,35 +277,21 @@ vec3 Capsule::getOrigin() const
 
 Frustum::Frustum(float _aspect, float _tanHalfFov, float _near, float _far)
 {
-	/*if (_isOrtho) {
-		float right = tanHalfFov * _far * _aspect;
-		float up = tanHalfFov * _far;
-	 // near plane
-		m_vertices[0] = vec3( right,  up, -_near);
-		m_vertices[1] = vec3(-right,  up, -_near);
-		m_vertices[2] = vec3(-right, -up, -_near);
-		m_vertices[3] = vec3( right, -up, -_near);
-	 // far plane
-		m_vertices[4] = vec3( right,  up, -_far);
-		m_vertices[5] = vec3(-right,  up, -_far);
-		m_vertices[6] = vec3(-right, -up, -_far);
-		m_vertices[7] = vec3( right, -up, -_far);
-	} else {*/
-	 	float ny = _tanHalfFov * _near;
-		float nx = _aspect * ny;
-	 // near plane
-		m_vertices[0] = vec3( nx,  ny, -_near);
-		m_vertices[1] = vec3(-nx,  ny, -_near);
-		m_vertices[2] = vec3(-nx, -ny, -_near);
-		m_vertices[3] = vec3( nx, -ny, -_near);
-	//	far plane
-		float fy = _tanHalfFov * _far;
-		float fx = _aspect * fy;
-		m_vertices[4] = vec3( fx,  fy, -_far);
-		m_vertices[5] = vec3(-fx,  fy, -_far);
-		m_vertices[6] = vec3(-fx, -fy, -_far);
-		m_vertices[7] = vec3( fx, -fy, -_far);
-	/*}*/
+ 	float ny = _tanHalfFov * _near;
+	float nx = _aspect * ny;
+
+ // near plane
+	m_vertices[0] = vec3( nx,  ny, -_near);
+	m_vertices[1] = vec3(-nx,  ny, -_near);
+	m_vertices[2] = vec3(-nx, -ny, -_near);
+	m_vertices[3] = vec3( nx, -ny, -_near);
+ // far plane
+	float fy = _tanHalfFov * _far;
+	float fx = _aspect * fy;
+	m_vertices[4] = vec3( fx,  fy, -_far);
+	m_vertices[5] = vec3(-fx,  fy, -_far);
+	m_vertices[6] = vec3(-fx, -fy, -_far);
+	m_vertices[7] = vec3( fx, -fy, -_far);
 
 	initPlanes();
 }
@@ -404,8 +390,7 @@ bool Frustum::insideIgnoreNear(const Sphere& _sphere) const
 
 bool Frustum::inside(const AlignedBox& _box) const
 {
-	 // todo TEST ALTERNATE METHOD AND TIME
- // build box points from extents
+#if 0
 	vec3 points[] = {
 		vec3(_box.m_min.x, _box.m_min.y, _box.m_min.z),
 		vec3(_box.m_max.x, _box.m_min.y, _box.m_min.z),
@@ -418,7 +403,6 @@ bool Frustum::inside(const AlignedBox& _box) const
 		vec3(_box.m_min.x, _box.m_max.y, _box.m_max.z)
 	};
 
- // test points against frustum plains
 	for (int i = 0; i < 6; ++i) {
 		bool inside = false;
 		for (int j = 0; j < 8; ++j) {
@@ -432,6 +416,21 @@ bool Frustum::inside(const AlignedBox& _box) const
 		}
 	}
 	return true;
+#else
+	for (int i = 0; i < 6; ++i) {
+		vec3 n = m_planes[i].m_normal;
+		float d = 
+			APT_MAX(_box.m_min.x * n.x, _box.m_max.x * n.x) +
+			APT_MAX(_box.m_min.y * n.y, _box.m_max.y * n.y) +
+			APT_MAX(_box.m_min.z * n.z, _box.m_max.z * n.z) -
+			m_planes[i].m_offset
+			;
+		if (d < 0.0f) {
+			return false;
+		}
+	}
+	return true;
+#endif
 }
 
 void Frustum::setVertices(const vec3 _vertices[8])

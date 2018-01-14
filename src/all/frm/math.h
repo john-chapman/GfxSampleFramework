@@ -24,8 +24,6 @@ using apt::mat4;
 using apt::quat;
 using apt::identity;
 
-using apt::LCG;
-
 using apt::kPi;
 using apt::kTwoPi;
 
