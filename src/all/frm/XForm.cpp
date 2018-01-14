@@ -166,6 +166,9 @@ void XForm_FreeCamera::apply(float _dt)
 
 	const Gamepad* gpad = Input::GetGamepad();
 	const Keyboard* keyb = Input::GetKeyboard();
+	if (keyb && keyb->isDown(Keyboard::Key_LCtrl)) {
+		keyb = nullptr; // disable keyboard input on lctrl
+	}
 
 	bool isAccel = false;
 	vec3 dir = vec3(0.0);		
@@ -178,29 +181,31 @@ void XForm_FreeCamera::apply(float _dt)
 		dir += localMatrix[1].xyz() * z;
 		isAccel = abs(x + y + z) > 0.0f;
 	}
-	if (keyb->isDown(Keyboard::Key_W)) {
-		dir -= localMatrix[2].xyz();
-		isAccel = true;
-	}
-	if (keyb->isDown(Keyboard::Key_A)) {
-		dir -= localMatrix[0].xyz();
-		isAccel = true;
-	}
-	if (keyb->isDown(Keyboard::Key_S)) {
-		dir += localMatrix[2].xyz();
-		isAccel = true;
-	}
-	if (keyb->isDown(Keyboard::Key_D)) {
-		dir += localMatrix[0].xyz();
-		isAccel = true;
-	}
-	if (keyb->isDown(Keyboard::Key_Q)) {
-		dir -= localMatrix[1].xyz();
-		isAccel = true;
-	}
-	if (keyb->isDown(Keyboard::Key_E)) {
-		dir += localMatrix[1].xyz();
-		isAccel = true;
+	if (keyb) {
+		if (keyb->isDown(Keyboard::Key_W)) {
+			dir -= localMatrix[2].xyz();
+			isAccel = true;
+		}
+		if (keyb->isDown(Keyboard::Key_A)) {
+			dir -= localMatrix[0].xyz();
+			isAccel = true;
+		}
+		if (keyb->isDown(Keyboard::Key_S)) {
+			dir += localMatrix[2].xyz();
+			isAccel = true;
+		}
+		if (keyb->isDown(Keyboard::Key_D)) {
+			dir += localMatrix[0].xyz();
+			isAccel = true;
+		}
+		if (keyb->isDown(Keyboard::Key_Q)) {
+			dir -= localMatrix[1].xyz();
+			isAccel = true;
+		}
+		if (keyb->isDown(Keyboard::Key_E)) {
+			dir += localMatrix[1].xyz();
+			isAccel = true;
+		}
 	}
 	if (isAccel) {
 	 // if accelerating, zero the velocity here to allow instantaneous direction changes
@@ -214,7 +219,7 @@ void XForm_FreeCamera::apply(float _dt)
 	if (gpad) {
 		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
 	}
-	if (keyb->isDown(Keyboard::Key_LShift)) {
+	if (keyb && keyb->isDown(Keyboard::Key_LShift)) {
 		m_speed *= m_maxSpeedMul;
 	}
 	float len2 = apt::length2(m_velocity);
