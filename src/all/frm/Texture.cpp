@@ -87,7 +87,7 @@ struct TextureViewer
 	TextureViewer()
 		: m_selected(-1)
 		, m_showHidden(false)
-		, m_showTexelGrid(true)
+		, m_showTexelGrid(false)
 		, m_isDragging(false)
 	{
 	}
@@ -218,7 +218,7 @@ struct TextureViewer
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_FLOPPY_O " Save")) {
 				FileSystem::PathStr pth = tx.getPath();
-				if (FileSystem::PlatformSelect(pth, "*.bmp\0*.dds\0*.exr\0*.hdr\0*.png\0*.tga\0")) {
+				if (FileSystem::PlatformSelect(pth, { "*.bmp", "*.dds", "*.exr", "*.hdr", "*.png", "*.tga" })) {
 					Image* img = Texture::CreateImage(&tx);
 					Image::Write(*img, (const char*)pth);
 					Texture::DestroyImage(img);
@@ -259,22 +259,24 @@ struct TextureViewer
 				//m_selected = -1;
 			}
 			if (m_showTexelGrid) {
-				vec2 drawStart = ImGui::GetItemRectMin();
-				vec2 drawEnd   = ImGui::GetItemRectMax();
+				const vec2 drawStart = ImGui::GetItemRectMin();
+				const vec2 drawEnd   = ImGui::GetItemRectMax();
+				const int  sizeX     = Max((int)txView.m_size.x >> txView.m_mip, 1);
+				const int  sizeY     = Max((int)txView.m_size.y >> txView.m_mip, 1);
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 				drawList->AddRect(drawStart, drawEnd, kColorGrid);
 				drawList->PushClipRect(drawStart, min(drawEnd, vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowSize())));
-					if ((drawEnd.x - drawStart.x) > (txView.m_size.x * 3.0f)) { // only draw grid if texel density is low enough
-						float scale = thumbSize.x / txView.m_size.x;
+					if ((drawEnd.x - drawStart.x) > (sizeX * 3.0f)) { // only draw grid if texel density is low enough
+						float scale = thumbSize.x / sizeX;
 						float bias  = (1.0f - Fract(txView.m_offset.x)) * scale;
-						for (int i = 0, n = (int)txView.m_size.x + 1; i <= n; ++i) {
-							float x = drawStart.x + (float)i * scale + bias;
+						for (int i = 0, n = sizeX + 1; i <= n; ++i) {
+							float x = Floor(drawStart.x + (float)i * scale + bias);
 							drawList->AddLine(vec2(x, drawStart.y), vec2(x, drawEnd.y), kColorGrid);
 						}
-						scale = thumbSize.y / txView.m_size.y;
+						scale = thumbSize.y / sizeY;
 						bias  = (1.0f - Fract(txView.m_offset.y)) * scale;
-						for (int i = 0, n = (int)txView.m_size.y + 1; i <= n; ++i) {
-							float y = drawEnd.y - (float)i * scale - bias;
+						for (int i = 0, n = sizeY + 1; i <= n; ++i) {
+							float y = Floor(drawEnd.y - (float)i * scale - bias);
 							drawList->AddLine(vec2(drawStart.x, y), vec2(drawEnd.x, y), kColorGrid);
 						}
 					}	
