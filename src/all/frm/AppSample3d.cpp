@@ -149,7 +149,7 @@ void AppSample3d::drawMainMenuBar()
 {
 	if (ImGui::BeginMenu("Scene")) {
 		if (ImGui::MenuItem("Load...")) {
-			if (FileSystem::PlatformSelect(m_scenePath, "*.json")) {
+			if (FileSystem::PlatformSelect(m_scenePath, { "*.json" })) {
 				FileSystem::MakeRelative(m_scenePath);
 				Scene::Load((const char*)m_scenePath, *m_scene);
 			}
@@ -158,7 +158,7 @@ void AppSample3d::drawMainMenuBar()
 			Scene::Save((const char*)m_scenePath, *m_scene);
 		}
 		if (ImGui::MenuItem("Save As...")) {
-			if (FileSystem::PlatformSelect(m_scenePath, "*.json")) {
+			if (FileSystem::PlatformSelect(m_scenePath, { "*.json" })) {
 				FileSystem::MakeRelative(m_scenePath);
 				Scene::Save((const char*)m_scenePath, *m_scene);
 			}
