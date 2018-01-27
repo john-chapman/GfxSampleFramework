@@ -128,7 +128,7 @@ struct TextureViewer
 		static ImGuiTextFilter filter;
 	 	static const ImVec4 kColorTxName = ImVec4(1.0f, 0.7f, 0.2f, 1.0f);
 		static const ImVec4 kColorTxInfo = ImVec4(0.8f, 0.8f, 0.8f, 1.0f);
-		static const ImU32  kColorGrid   = ImColor(1.0f, 1.0f, 1.0f, 0.5f);
+		static const ImU32  kColorGrid   = ImColor(1.0f, 1.0f, 1.0f, 0.25f);
 		static const float  kThumbHeight = 128.0f;
 		static const float  kZoomSpeed   = 32.0f;
 	
