@@ -268,13 +268,13 @@ struct TextureViewer
 				drawList->PushClipRect(drawStart, min(drawEnd, vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowSize())));
 					if ((drawEnd.x - drawStart.x) > (sizeX * 3.0f)) { // only draw grid if texel density is low enough
 						float scale = thumbSize.x / sizeX;
-						float bias  = (1.0f - Fract(txView.m_offset.x)) * scale;
+						float bias  = (1.0f - Fract(txView.m_offset.x / pow(2.0f, (float)txView.m_mip))) * scale;
 						for (int i = 0, n = sizeX + 1; i <= n; ++i) {
 							float x = Floor(drawStart.x + (float)i * scale + bias);
 							drawList->AddLine(vec2(x, drawStart.y), vec2(x, drawEnd.y), kColorGrid);
 						}
 						scale = thumbSize.y / sizeY;
-						bias  = (1.0f - Fract(txView.m_offset.y)) * scale;
+						bias  = (1.0f - Fract(txView.m_offset.y / pow(2.0f, (float)txView.m_mip))) * scale;
 						for (int i = 0, n = sizeY + 1; i <= n; ++i) {
 							float y = Floor(drawEnd.y - (float)i * scale - bias);
 							drawList->AddLine(vec2(drawStart.x, y), vec2(drawEnd.x, y), kColorGrid);
