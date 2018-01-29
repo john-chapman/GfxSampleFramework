@@ -19,9 +19,7 @@ extern "C" {
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 
-static APT_THREAD_LOCAL GlContext* g_currentCtx = 0;
-static APT_THREAD_LOCAL PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormat = 0;
-static APT_THREAD_LOCAL PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs = 0;
+static APT_THREAD_LOCAL GlContext* g_currentCtx;
 
 
 /*******************************************************************************
@@ -55,31 +53,26 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 	GlContext::Impl* impl = ret->m_impl = new GlContext::Impl;
 	APT_ASSERT(impl);
 	impl->m_hwnd = (HWND)_window->getHandle();
+	APT_PLATFORM_VERIFY(impl->m_hdc = GetDC(impl->m_hwnd));
 
-	// create dummy context for extension loading
-	static ATOM wndclassex = 0;
-	if (wndclassex == 0) {
-		WNDCLASSEX wc;
-		memset(&wc, 0, sizeof(wc));
-		wc.cbSize = sizeof(wc);
-		wc.style = CS_OWNDC;// | CS_HREDRAW | CS_VREDRAW;
-		wc.lpfnWndProc = DefWindowProc;
-		wc.hInstance = GetModuleHandle(0);
-		wc.lpszClassName = "opengl_context_window";
-		wc.hCursor = LoadCursor(0, IDC_ARROW);
-		APT_PLATFORM_VERIFY(wndclassex = RegisterClassEx(&wc));
-	}
-	HWND hwndDummy = CreateWindowEx(0, MAKEINTATOM(wndclassex), 0, NULL, 0, 0, 1, 1, NULL, NULL, GetModuleHandle(0), NULL);
-	APT_PLATFORM_ASSERT(hwndDummy);
-	HDC hdcDummy = 0;
-	APT_PLATFORM_VERIFY(hdcDummy = GetDC(hwndDummy));	
-	PIXELFORMATDESCRIPTOR pfd;
-	memset(&pfd, 0, sizeof(pfd));
-	APT_PLATFORM_VERIFY(SetPixelFormat(hdcDummy, 1, &pfd));
-	HGLRC hglrcDummy = 0;
-	APT_PLATFORM_VERIFY(hglrcDummy = wglCreateContext(hdcDummy));
-	APT_PLATFORM_VERIFY(wglMakeCurrent(hdcDummy, hglrcDummy));
+ // set the window pixel format
+	PIXELFORMATDESCRIPTOR pfd = {};
+	pfd.nSize        = sizeof(PIXELFORMATDESCRIPTOR);
+	pfd.nVersion     = 1;
+	pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_GENERIC_ACCELERATED;
+	pfd.iPixelType   = PFD_TYPE_RGBA;
+	pfd.cColorBits   = 24;
+	pfd.cDepthBits   = 24;
+	pfd.dwDamageMask = 8;
+	int pformat = 0;
+	APT_PLATFORM_VERIFY(pformat = ChoosePixelFormat(GetDC(impl->m_hwnd), &pfd));
+	APT_PLATFORM_VERIFY(SetPixelFormat(impl->m_hdc, pformat, &pfd));
 	
+ // create dummy context to load wgl extensions
+	HGLRC hGLRC = 0;
+	APT_PLATFORM_VERIFY(hGLRC = wglCreateContext(impl->m_hdc));
+	APT_PLATFORM_VERIFY(wglMakeCurrent(impl->m_hdc, hGLRC));
+
  // check the platform supports the requested GL version
 	GLint platformVMaj, platformVMin;
 	glAssert(glGetIntegerv(GL_MAJOR_VERSION, &platformVMaj));
@@ -91,34 +84,15 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 		return 0;
 	}
 	
-
  // load wgl extensions for true context creation
-	APT_PLATFORM_VERIFY(wglChoosePixelFormat = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB"));
+	static APT_THREAD_LOCAL PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs;
 	APT_PLATFORM_VERIFY(wglCreateContextAttribs = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB"));
 
  // delete the dummy context
 	APT_PLATFORM_VERIFY(wglMakeCurrent(0, 0));
-	APT_PLATFORM_VERIFY(wglDeleteContext(hglrcDummy));
-	APT_PLATFORM_VERIFY(ReleaseDC(hwndDummy, hdcDummy) != 0);
-	APT_PLATFORM_VERIFY(DestroyWindow(hwndDummy) != 0);
+	APT_PLATFORM_VERIFY(wglDeleteContext(hGLRC));
 
  // create true context
-	APT_PLATFORM_VERIFY(impl->m_hdc = GetDC(impl->m_hwnd));
-	const int pfattr[] = {
-		WGL_SUPPORT_OPENGL_ARB, 1,
-		WGL_DRAW_TO_WINDOW_ARB, 1,
-		WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
-		WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
-		WGL_DOUBLE_BUFFER_ARB,  1,
-		WGL_COLOR_BITS_ARB,     24,
-		WGL_ALPHA_BITS_ARB,     8,
-		WGL_DEPTH_BITS_ARB,     24,
-		WGL_STENCIL_BITS_ARB,   0,
-		0
-	};
-    int pformat = -1, npformat = -1;
-	APT_PLATFORM_VERIFY(wglChoosePixelFormat(impl->m_hdc, pfattr, 0, 1, &pformat, (::UINT*)&npformat));
-	APT_PLATFORM_VERIFY(SetPixelFormat(impl->m_hdc, pformat, &pfd));
 	int profileBit = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 	if (_compatibility) {
 		profileBit = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
@@ -145,10 +119,12 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 		internal::GlGetString(GL_RENDERER)
 		);
 
+ // set default states
 	#if FRM_NDC_Z_ZERO_TO_ONE
 		APT_ASSERT(glewIsExtensionSupported("GL_ARB_clip_control"));
 		glAssert(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE));
 	#endif
+	APT_ASSERT(glewIsExtensionSupported("GL_ARB_seamless_cube_map"));
 	glAssert(glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS));
 
 	APT_VERIFY(ret->init());
