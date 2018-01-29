@@ -507,7 +507,7 @@ const char* ShaderDesc::findVirtualInclude(const char* _name) const
 
 // PRIVATE
 
-ShaderDesc::VersionStr ShaderDesc::s_defaultVersion("430");
+ShaderDesc::VersionStr ShaderDesc::s_defaultVersion; // see GlContextImpl
 
 bool ShaderDesc::StageDesc::isEnabled() const
 {

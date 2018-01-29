@@ -323,10 +323,10 @@ AppSample::AppSample(const char* _name)
 	g_current = this;
 
 	PropertyGroup& propGroup = m_props.addGroup("AppSample");
-	//                name                     default        min     max                          storage
-	propGroup.addInt2("Resolution",            ivec2(-1),     1,      8192,                        &m_resolutionProp);
-	propGroup.addInt2("WindowSize",            ivec2(-1),     1,      8192,                        &m_windowSizeProp);
-	propGroup.addInt ("Vsync Mode",            0,             0,      (int)GlContext::Vsync_On3,   &m_vsyncMode);
+	//                name                     default         min     max                          storage
+	propGroup.addInt2("Resolution",            ivec2(-1),      1,      8192,                        &m_resolutionProp);
+	propGroup.addInt2("WindowSize",            ivec2(-1),      1,      8192,                        &m_windowSizeProp);
+	propGroup.addInt ("Vsync Mode",            0,              0,      (int)GlContext::Vsync_On3,   &m_vsyncMode);
 	propGroup.addBool("Show Menu",             false,                                              &m_showMenu);
 	propGroup.addBool("Show Log",              false,                                              &m_showLog);
 	propGroup.addBool("Show Property Editor",  false,                                              &m_showPropertyEditor);
@@ -334,7 +334,7 @@ AppSample::AppSample(const char* _name)
 	propGroup.addBool("Show Texture Viewer",   false,                                              &m_showTextureViewer);
 	propGroup.addBool("Show Shader Viewer",    false,                                              &m_showShaderViewer);
 
-	propGroup.addInt2("GlVersion",             ivec2(4, 5),   1,      5);
+	propGroup.addInt2("GlVersion",             ivec2(-1, -1), -1,      99);
 	propGroup.addBool("GlCompatibility",       false);
 }
 

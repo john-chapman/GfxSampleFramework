@@ -3,11 +3,13 @@
 #include <frm/def.h>
 #include <frm/gl.h>
 #include <frm/Profiler.h>
+#include <frm/Shader.h>
 #include <frm/Window.h>
 
 #include <apt/log.h>
 #include <apt/platform.h>
 #include <apt/win.h>
+#include <apt/String.h>
 
 #include <GL/wglew.h>
 
@@ -77,9 +79,11 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 	GLint platformVMaj, platformVMin;
 	glAssert(glGetIntegerv(GL_MAJOR_VERSION, &platformVMaj));
 	glAssert(glGetIntegerv(GL_MINOR_VERSION, &platformVMin));
+	_vmaj = _vmaj < 0 ? platformVMaj : _vmaj;
+	_vmin = _vmin < 0 ? platformVMin : _vmin;
 	if (platformVMaj < _vmaj || (platformVMaj >= _vmaj && platformVMin < _vmin)) {
-		APT_LOG_ERR("OpenGL version %d.%d is not available (max version is %d.%d)", _vmaj, _vmin, platformVMaj, platformVMin);
-		APT_LOG("This error may occur if the platform has an integrated GPU");
+		APT_LOG_ERR("OpenGL version %d.%d is not available (available version is %d.%d).", _vmaj, _vmin, platformVMaj, platformVMin);
+		APT_LOG("This error may occur if the platform has an integrated GPU.");
 		APT_ASSERT(false);
 		return 0;
 	}
@@ -120,6 +124,7 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 		);
 
  // set default states
+	ShaderDesc::SetDefaultVersion((const char*)apt::String<8>("%d%d0", _vmaj, _vmin));
 	#if FRM_NDC_Z_ZERO_TO_ONE
 		APT_ASSERT(glewIsExtensionSupported("GL_ARB_clip_control"));
 		glAssert(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE));
