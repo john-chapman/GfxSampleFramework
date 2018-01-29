@@ -6,8 +6,8 @@
 	"AppSample": {
 		"Vsync Mode": 0,
 		"Show Shader Viewer": false,
-		"GlVersion": [4, 5],
-		"Show Menu": false,
+		"GlVersion": [-1, -1],
+		"Show Menu": true,
 		"Show Profiler": false,
 		"Show Property Editor": false,
 		"Show Texture Viewer": false,
@@ -19,11 +19,11 @@
 	"AppSample3d": {
 		"Scene Path": "Scene.json",
 		"Show Helpers": true,
-		"Show Scene Editor": true
+		"Show Scene Editor": false
 	},
 	"DepthTest": {
-		"Mesh Count": 32,
+		"Mesh Count": 64,
 		"Mesh Path": "models/teapot.obj",
-		"Max Error": 0.0010000000474974514
+		"Max Error": 0.00009999999747378752
 	}
 }
