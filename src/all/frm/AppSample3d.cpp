@@ -352,6 +352,7 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	ad.m_projScaleY = Scene::GetDrawCamera()->m_up - Scene::GetDrawCamera()->m_down;
 	ad.m_projOrtho = Scene::GetDrawCamera()->getProjFlag(Camera::ProjFlag_Orthographic);
 	ad.m_viewOrigin = Scene::GetDrawCamera()->getPosition();
+	ad.m_viewDirection = Scene::GetDrawCamera()->getViewVector();
 	
 	Ray cursorRayW = _app->getCursorRayW();
 	ad.m_cursorRayOrigin = cursorRayW.m_origin;
