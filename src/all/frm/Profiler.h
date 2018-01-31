@@ -15,10 +15,6 @@
 	#define PROFILER_VALUE_CPU(_name, _value)  APT_UNUSED(_name)
 	#define PROFILER_VALUE(_name, _value)      APT_UNUSED(_name)
 
-	// \deprecated
-		#define CPU_AUTO_MARKER(_name) APT_UNUSED(_name)
-		#define GPU_AUTO_MARKER(_name) APT_UNUSED(_name)
-		#define AUTO_MARKER(_name)     APT_UNUSED(_name)
 #else
 	#define PROFILER_MARKER_CPU(_name)         volatile frm::Profiler::CpuAutoMarker APT_UNIQUE_NAME(_cpuAutoMarker_)(_name)
 	#define PROFILER_MARKER_GPU(_name)         volatile frm::Profiler::GpuAutoMarker APT_UNIQUE_NAME(_gpuAutoMarker_)(_name)
@@ -27,10 +23,6 @@
 	#define PROFILER_VALUE_CPU(_name, _value)  Profiler::CpuValue(_name, (float)_value)
 	#define PROFILER_VALUE(_name, _value)      PROFILER_VALUE_CPU(_name, _value)
 
-	// \deprecated
-		#define CPU_AUTO_MARKER(_name) PROFILER_MARKER_CPU(_name)
-		#define GPU_AUTO_MARKER(_name) PROFILER_MARKER_GPU(_name)
-		#define AUTO_MARKER(_name)     PROFILER_MARKER(_name)
 #endif
 
 namespace frm {
