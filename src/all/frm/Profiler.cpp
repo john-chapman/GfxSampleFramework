@@ -304,7 +304,7 @@ struct ProfilerViewer
 		m_windowSize.y   = m_windowSize.y * 0.5f;
 		m_windowEnd      = m_windowBeg + m_windowSize;
 		
-		ImGui::SetCursorPosX(m_windowBeg.x);
+		ImGui::SetCursorPosX(m_windowBeg.x - ImGui::GetWindowPos().x);
 		if (ImGui::SmallButton("Fit")) {
 			float spacing = timeRange * 0.01f;
 			m_regionSize = timeRange + spacing * 2.0f;
