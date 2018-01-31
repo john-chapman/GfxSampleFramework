@@ -100,8 +100,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	m_glContext->setFramebufferAndViewport(0);
 	glAssert(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
 	glAssert(glClear(GL_COLOR_BUFFER_BIT));
-	ImGui::SetNextWindowPosCenter();
-	ImGui::SetNextWindowSize(ImVec2(sizeof("Loading") * ImGui::GetFontSize(), ImGui::GetItemsLineHeightWithSpacing()));
+	ImGui::SetNextWindowSize(ImVec2(sizeof("Loading") * ImGui::GetFontSize(), ImGui::GetFrameHeightWithSpacing()));
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 	ImGui::Begin(
 		"Loading", 0, 
@@ -182,7 +181,7 @@ bool AppSample::update()
 	}
 	
  // AppSample UI
-	const float kStatusBarHeight = ImGui::GetItemsLineHeightWithSpacing();// + 4.0f;
+	const float kStatusBarHeight = ImGui::GetFrameHeightWithSpacing();// + 4.0f;
 	const ImGuiWindowFlags kStatusBarFlags = 
 		ImGuiWindowFlags_NoTitleBar |
 		ImGuiWindowFlags_NoResize |
@@ -201,7 +200,7 @@ bool AppSample::update()
 		ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - kStatusBarHeight));
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, kStatusBarHeight));
 		ImGui::Begin("Status Bar", 0, kStatusBarFlags);
-			ImGui::AlignFirstTextHeightToWidgets();
+			ImGui::AlignTextToFramePadding();
 			
 			float cpuAvgFrameDuration = (float)Timestamp(Profiler::GetCpuAvgFrameDuration()).asMilliseconds();
 			float gpuAvgFrameDuration = (float)Timestamp(Profiler::GetGpuAvgFrameDuration()).asMilliseconds();
@@ -472,8 +471,11 @@ bool AppSample::ImGui_Init()
 
 void AppSample::ImGui_InitStyle()
 {
+#if 1
+	ImGui::StyleColorsClassic();
+#else
 	ImGuiStyle& style = ImGui::GetStyle();
-	style.WindowRounding = style.ChildWindowRounding = style.FrameRounding = style.GrabRounding = 4.0f;
+	style.WindowRounding = style.ChildRounding = style.FrameRounding = style.GrabRounding = 4.0f;
 	style.ScrollbarRounding = 16.0f;
 	style.ScrollbarSize = 12.0f;
 	style.FramePadding = ImVec2(4.0f, 2.0f);
@@ -483,7 +485,7 @@ void AppSample::ImGui_InitStyle()
 	style.Colors[ImGuiCol_Text]                     = ImColor(0xffdedede);
     style.Colors[ImGuiCol_TextDisabled]             = ImColor(0xd0dedede);
     style.Colors[ImGuiCol_WindowBg]                 = ImColor(0xdc242424);
-    style.Colors[ImGuiCol_ChildWindowBg]            = ImColor(0xff242424);
+    style.Colors[ImGuiCol_ChildBg]                  = ImColor(0xff242424);
     style.Colors[ImGuiCol_PopupBg]                  = ImColor(0xdc101010);
     style.Colors[ImGuiCol_Border]                   = ImColor(0x080a0a0a);
     style.Colors[ImGuiCol_BorderShadow]             = ImColor(0x04040404);
@@ -498,7 +500,6 @@ void AppSample::ImGui_InitStyle()
     style.Colors[ImGuiCol_ScrollbarGrab]            = ImColor(0xef4f4f4f);
     style.Colors[ImGuiCol_ScrollbarGrabHovered]     = ImColor(0xff4f4f4f);
     style.Colors[ImGuiCol_ScrollbarGrabActive]      = ImColor(0xff4f4f4f);
-    style.Colors[ImGuiCol_ComboBg]                  = ImColor(0xff513926);
     //style.Colors[ImGuiCol_CheckMark]
     style.Colors[ImGuiCol_SliderGrab]               = ImColor(0xffe0853d);
     style.Colors[ImGuiCol_SliderGrabActive]         = ImColor(0xfff0954d);
@@ -523,6 +524,7 @@ void AppSample::ImGui_InitStyle()
     style.Colors[ImGuiCol_PlotHistogramHovered]     = ImColor(0xff0485fd);
     //style.Colors[ImGuiCol_TextSelectedBg]
     //style.Colors[ImGuiCol_ModalWindowDarkening]
+#endif
 
 	ImGui::SetColorEditOptions(
 		ImGuiColorEditFlags_NoOptions |
