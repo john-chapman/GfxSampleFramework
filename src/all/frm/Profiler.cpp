@@ -159,7 +159,7 @@ struct ProfilerViewer
 	// Return true if the marker is hovered.
 	bool drawFrameMarker(const Profiler::Marker& _marker, float _frameEndX)
 	{
-		float markerHeight = ImGui::GetItemsLineHeightWithSpacing();
+		float markerHeight = ImGui::GetFrameHeightWithSpacing();
 		vec2 markerBeg = vec2(timeToWindowX(_marker.m_startTime), m_windowBeg.y + markerHeight * (float)_marker.m_markerDepth);
 		vec2 markerEnd = vec2(timeToWindowX(_marker.m_endTime) - 1.0f, markerBeg.y + markerHeight);
 		if (markerBeg.x > m_windowEnd.x || markerEnd.x < m_windowBeg.x) {
@@ -296,11 +296,11 @@ struct ProfilerViewer
 		// GPU ---
 		kColors          = &kColorsGpu;
 		m_windowBeg      = vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowContentRegionMin());
-		m_windowBeg.y   += ImGui::GetItemsLineHeightWithSpacing();
+		m_windowBeg.y   += ImGui::GetFrameHeightWithSpacing();
 		float infoX      = m_windowBeg.x; // where to draw the CPU/GPU global info
 		m_windowBeg.x   += ImGui::GetFontSize() * 4.0f;
 		m_windowSize     = vec2(ImGui::GetContentRegionMax()) - (m_windowBeg - vec2(ImGui::GetWindowPos()));
-		m_windowSize    -= ImGui::GetItemsLineHeightWithSpacing();
+		m_windowSize    -= ImGui::GetFrameHeightWithSpacing();
 		m_windowSize.y   = m_windowSize.y * 0.5f;
 		m_windowEnd      = m_windowBeg + m_windowSize;
 		
@@ -334,8 +334,8 @@ struct ProfilerViewer
 					continue;
 				}
 				if (drawFrameMarker(marker, fend)) {
-					vec2 lbeg = vec2(timeToWindowX(marker.m_startTime), m_windowBeg.y + ImGui::GetItemsLineHeightWithSpacing() * (float)marker.m_markerDepth);
-					lbeg.y += ImGui::GetItemsLineHeightWithSpacing() * 0.5f;
+					vec2 lbeg = vec2(timeToWindowX(marker.m_startTime), m_windowBeg.y + ImGui::GetFrameHeightWithSpacing() * (float)marker.m_markerDepth);
+					lbeg.y += ImGui::GetFrameHeightWithSpacing() * 0.5f;
 					vec2 lend = vec2(timeToWindowX(marker.m_cpuStart), m_windowBeg.y + m_windowSize.y);
 					drawList.AddLine(lbeg, lend, kColors->kFrame, 2.0f);
 					ImGui::BeginTooltip();
@@ -397,7 +397,7 @@ struct ProfilerViewer
 		ImGui::SetNextWindowContentSize(ImVec2(regionSizePx, 0.0f));
 		ImGui::SetCursorPosX(m_windowBeg.x - ImGui::GetWindowPos().x);
 		ImGui::SetCursorPosY(m_windowEnd.y - ImGui::GetWindowPos().y);
-		ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, IM_COL32_BLACK_TRANS);
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32_BLACK_TRANS);
 		bool refocusMainWindow = ImGui::IsWindowFocused();
 		ImGui::BeginChild("hscroll", ImVec2(m_windowSize.x, ImGui::GetStyle().ScrollbarSize), true, ImGuiWindowFlags_HorizontalScrollbar);
 			if (m_regionChanged) {
@@ -473,7 +473,7 @@ struct ProfilerViewer
 	void draw(bool *_isOpen_)
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetFrameHeightWithSpacing()), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y / 4), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Profiler", _isOpen_, ImGuiWindowFlags_MenuBar);
 			if (ImGui::BeginMenuBar()) {

@@ -50,7 +50,7 @@ struct ShaderViewer
 			vec4(0.7f, 0.3f, 0.1f, 1.0f) //GL_FRAGMENT_SHADER
 		};
 		
-		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetItemsLineHeightWithSpacing()), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetFrameHeightWithSpacing()), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiCond_FirstUseEver);
 		if (!ImGui::Begin("Shader Viewer", _open_)) {
 			ImGui::End();
@@ -59,7 +59,7 @@ struct ShaderViewer
 
 		ImGuiIO& io = ImGui::GetIO();
 
-		ImGui::AlignFirstTextHeightToWidgets();
+		ImGui::AlignTextToFramePadding();
 		ImGui::Text("%d shaders", Shader::GetInstanceCount());
 		ImGui::SameLine();
 		ImGui::Checkbox("Show Hidden", &m_showHidden);

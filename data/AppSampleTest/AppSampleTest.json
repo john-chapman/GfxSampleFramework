@@ -8,7 +8,7 @@
 		"Show Shader Viewer": false,
 		"GlVersion": [-1, -1],
 		"Show Menu": true,
-		"Show Profiler": true,
+		"Show Profiler": false,
 		"Show Property Editor": false,
 		"Show Texture Viewer": false,
 		"GlCompatibility": false,
@@ -18,8 +18,8 @@
 	},
 	"AppSample3d": {
 		"Scene Path": "Scene.json",
-		"Show Helpers": false,
-		"Show Scene Editor": false
+		"Show Helpers": true,
+		"Show Scene Editor": true
 	},
 	"DepthTest": {
 		"Mesh Count": 64,
