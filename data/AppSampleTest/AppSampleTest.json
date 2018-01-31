@@ -8,7 +8,7 @@
 		"Show Shader Viewer": false,
 		"GlVersion": [-1, -1],
 		"Show Menu": true,
-		"Show Profiler": false,
+		"Show Profiler": true,
 		"Show Property Editor": false,
 		"Show Texture Viewer": false,
 		"GlCompatibility": false,
@@ -18,7 +18,7 @@
 	},
 	"AppSample3d": {
 		"Scene Path": "Scene.json",
-		"Show Helpers": true,
+		"Show Helpers": false,
 		"Show Scene Editor": false
 	},
 	"DepthTest": {
