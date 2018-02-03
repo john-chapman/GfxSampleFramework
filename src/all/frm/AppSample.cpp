@@ -472,7 +472,7 @@ bool AppSample::ImGui_Init()
 void AppSample::ImGui_InitStyle()
 {
 #if 1
-	ImGui::StyleColorsClassic();
+	ImGui::StyleColorsDark();
 #else
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowRounding = style.ChildRounding = style.FrameRounding = style.GrabRounding = 4.0f;
