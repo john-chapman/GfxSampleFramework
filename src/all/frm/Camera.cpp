@@ -363,7 +363,7 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 
 void Camera::setPerspective(float _fovVertical, float _aspect, float _near, float _far, uint32 _flags)
 {
-	m_projFlags   = _flags;
+	m_projFlags   = _flags | ProjFlag_Perspective;
 	m_aspectRatio = _aspect;
 	m_up          = tanf(_fovVertical * 0.5f);
 	m_down        = -m_up;
@@ -378,14 +378,14 @@ void Camera::setPerspective(float _fovVertical, float _aspect, float _near, floa
 
 void Camera::setPerspective(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags)
 {
-	setProj(_up, _down, _right, _left, _near, _far, _flags);
+	setProj(_up, _down, _right, _left, _near, _far, _flags | ProjFlag_Perspective);
 	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // invalid _flags
 }
 
 void Camera::setOrtho(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags)
 {
 	_flags &= ~ProjFlag_Infinite; // disallow infinite ortho projection
-	setProj(_up, _down, _right, _left, _near, _far, _flags);
+	setProj(_up, _down, _right, _left, _near, _far, _flags | ProjFlag_Orthographic);
 	APT_ASSERT(getProjFlag(ProjFlag_Orthographic)); // invalid _flags 
 }
 
