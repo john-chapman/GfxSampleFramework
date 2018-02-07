@@ -13,13 +13,12 @@ noperspective in vec3 vFrustumRayW;
 
 layout(location=0) out vec3 fResult;
 
-uniform float churn;
-void main() 
+void main()
 {
 #if   defined(ENVMAP_CUBE)
 	vec3 ret = textureLod(txEnvmap, normalize(vFrustumRayW), 0.0).rgb;
 #elif defined(ENVMAP_SPHERE)
 	vec3 ret = textureLod(txEnvmap, Envmap_GetSphereUv(normalize(vFrustumRayW)), 0.0).rgb;
 #endif
-	fResult = ret;	
+	fResult = ret;
 }
