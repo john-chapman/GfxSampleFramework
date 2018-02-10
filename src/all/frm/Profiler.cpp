@@ -597,7 +597,7 @@ struct ProfilerData
 
 	tMarker& pushMarker(const char* _name)
 	{ 
-		APT_ASSERT(m_markerStackTop != Profiler::kMaxDepth);
+		APT_ASSERT(m_markerStackTop < Profiler::kMaxDepth);
 		m_markers.push_back(tMarker()); 
 		m_markerStack[m_markerStackTop++] = getCurrentMarkerIndex();
 		m_markers.back().m_name = _name;
