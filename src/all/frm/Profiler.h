@@ -42,8 +42,8 @@ class Profiler: private apt::non_copyable<Profiler>
 public:
 	static const int kMaxFrameCount              = 32; // must be at least 2 (keep 1 frame to write to while visualizing the others)
 	static const int kMaxDepth                   = 255;
-	static const int kMaxTotalCpuMarkersPerFrame = 32;
-	static const int kMaxTotalGpuMarkersPerFrame = 32;
+	static const int kMaxTotalCpuMarkersPerFrame = 255;
+	static const int kMaxTotalGpuMarkersPerFrame = 255;
 
 	struct Marker
 	{
