@@ -8,7 +8,7 @@
 		#error Multiple conversions defined
 	#endif
 	uniform samplerCube txCube;
-	uniform image2D writeonly txSphere;
+	uniform writeonly image2D txSphere;
 #endif
 
 #ifdef SPHERE_TO_CUBE
@@ -16,13 +16,13 @@
 		#error Multiple conversions defined
 	#endif
 	uniform sampler2D txSphere;
-	uniform imageCube writeonly txCube;
+	uniform writeonly imageCube txCube;
 #endif
 
 void main()
 {
 	vec2 uv = vec2(gl_WorkGroupID.xy) / vec2(gl_NumWorkGroups.xy);
-	
+
 #ifdef CUBE_TO_SPHERE
 	ivec2 iuv = ivec2(uv * vec2(imageSize(txSphere)));
 	uv = uv * 2.0 - 1.0;
