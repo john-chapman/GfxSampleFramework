@@ -10,7 +10,7 @@ using namespace apt;
                                  VirtualWindow
 
 *******************************************************************************/
-vec2 VirtualWindow::windowToVirtual(const vec2& _posW)
+/*vec2 VirtualWindow::windowToVirtual(const vec2& _posW)
 {
 	vec2 ret = (_posW - m_minW) / m_sizeW;
 	ret = m_minV + ret * m_sizeV;
@@ -22,7 +22,7 @@ vec2 VirtualWindow::virtualToWindow(const vec2& _posV)
 	vec2 ret = (_posV * m_scaleV - m_minV) / m_sizeV;
 	ret = m_minW + ret * m_sizeW;
 	return Floor(ret);
-}
+}*/
 
 void VirtualWindow::init(int _flags/* = Flags_Default*/)
 {
@@ -31,7 +31,7 @@ void VirtualWindow::init(int _flags/* = Flags_Default*/)
 	auto& style       = ImGui::GetStyle();
 	m_colorBackground = IM_COLOR_ALPHA((ImU32)ImColor(style.Colors[ImGuiCol_WindowBg]), 1.0f);
 	m_colorBorder     = ImColor(style.Colors[ImGuiCol_Border]);
-	m_colorGrid       = IM_COLOR_ALPHA((ImU32)ImColor(style.Colors[ImGuiCol_Border]), 0.1f);
+	m_colorGrid       = IM_COLOR_ALPHA((ImU32)ImColor(style.Colors[ImGuiCol_Border]), 0.8f);
 }
 
 void VirtualWindow::begin(const vec2& _zoom, const vec2& _pan, int _flags/* = Flags_Default*/)
@@ -43,8 +43,6 @@ void VirtualWindow::begin(const vec2& _zoom, const vec2& _pan, int _flags/* = Fl
 	if (_flags != Flags_Default) {
 		m_flags = _flags;
 	}
-
-	m_rscaleV = 1.0f / m_scaleV;
 
  // window beg, end, size
 	vec2 scroll = vec2(ImGui::GetScrollX(), ImGui::GetScrollY());
@@ -78,17 +76,20 @@ void VirtualWindow::begin(const vec2& _zoom, const vec2& _pan, int _flags/* = Fl
 			zoom *= m_sizeV; // keep zoom rate proportional to current region size = 'linear' zoom
 			vec2 before = windowToVirtual(io.MousePos);
 			m_sizeV = Max(m_sizeV + zoom, vec2(1e-7f));
+			updateTransforms();
 			vec2 after = windowToVirtual(io.MousePos);
-			m_minV += (before - after);
+			m_originV += m_basisV * (before - after);
 		}
 	 // pan
 		vec2 pan = _pan / m_sizeW;
 		if (Abs(pan.x) > 0.0f || Abs(pan.y) > 0.0f) {
-			m_minV -= pan * m_sizeV;
+			m_originV -= pan * m_sizeV;
 			ImGui::CaptureMouseFromApp(); // \todo?
 		}
 	}
-	m_maxV = m_minV + m_sizeV;
+	m_maxV = m_originV + m_sizeV;
+	m_minV = m_originV - m_sizeV;
+	updateTransforms();
 
 	drawList.AddRectFilled(m_minW, m_maxW, m_colorBackground);
 	ImGui::PushClipRect(m_minW, m_maxW, true);
@@ -100,10 +101,13 @@ void VirtualWindow::begin(const vec2& _zoom, const vec2& _pan, int _flags/* = Fl
 			spacingV *= m_gridSpacingBase.x;
 			spacingW *= m_gridSpacingBase.x;
 		}
-		float i = virtualToWindow(Floor(windowToVirtual(m_minW) / spacingV) * spacingV).x;
-		for (; i <= m_maxW.x; i += spacingW) {
-			float x = Floor(i);
-			drawList.AddLine(vec2(x, m_minW.y), vec2(x, m_maxW.y), m_colorGrid);
+		float i = Round(m_minV.x / spacingV) * spacingV;
+		for (; i <= m_maxV.x; i += spacingV) {
+			drawList.AddLine(
+				virtualToWindow(vec2(i, m_minV.y)),
+				virtualToWindow(vec2(i, m_maxV.y)),
+				m_colorGrid
+				);
 		}
 	}
  // grid Y
@@ -114,10 +118,13 @@ void VirtualWindow::begin(const vec2& _zoom, const vec2& _pan, int _flags/* = Fl
 			spacingV *= m_gridSpacingBase.y;
 			spacingW *= m_gridSpacingBase.y;
 		}
-		float i = virtualToWindow(Floor(windowToVirtual(m_minW) / spacingV) * spacingV).y;
-		for (; i <= m_maxW.y; i += spacingW) {
-			float y = Floor(i);
-			drawList.AddLine(vec2(m_minW.x, y), vec2(m_maxW.x, y), m_colorGrid);
+		float i = Round(m_minV.y / spacingV) * spacingV;
+		for (; i <= m_maxV.y; i += spacingW) {
+			drawList.AddLine(
+				virtualToWindow(vec2(m_minV.x, i)),
+				virtualToWindow(vec2(m_maxV.x, i)),
+				m_colorGrid
+				);
 		}
 	}
 
@@ -193,10 +200,56 @@ void VirtualWindow::edit()
 			}
 
 		}
-		ImGui::DragFloat2("Scale V", &m_scaleV.x, 0.1f);
 	ImGui::PopID();
 
 	m_minGridSpacingV = Max(m_minGridSpacingV, vec2(0.1f));
 	m_minGridSpacingW = Max(m_minGridSpacingW, vec2(1.0f));
 	m_gridSpacingBase = Max(m_gridSpacingBase, vec2(1.0f));
+}
+
+#include <apt/log.h>
+
+void VirtualWindow::updateTransforms()
+{
+	mat3 view, proj, ndc, window;
+	
+ // virtual -> window
+	{
+	#if 0
+		view = mat3(
+			m_basisV[0].x,    m_basisV[1].x,    -m_originV.x,
+			m_basisV[0].y,    m_basisV[1].y,    -m_originV.y,
+			0.0f,             0.0f,             1.0f
+			);
+		proj = mat3(
+			2.0f / m_sizeV.x, 0.0f,             0.0f,
+			0.0f,             2.0f / m_sizeV.y, 0.0f,
+			0.0f,             0.0f,             1.0f
+			);
+		ndc = mat3(
+			0.5f,             0.0f,             0.5f,
+			0.0f,             0.5f,             0.5f,
+			0.0f,             0.0f,             1.0f
+			);
+		window = mat3(
+			m_sizeW.x,        0.0f,             m_minW.x,
+			0.0f,             m_sizeW.y,        m_minW.y,
+			0.0f,             0.0f,             1.0f
+			);
+		m_virtualToWindow = window * ndc * proj * view;
+	#else
+		float a = m_sizeW.x / m_sizeV.x;
+		float b = m_sizeW.y / m_sizeV.y;
+		float c = m_sizeW.x * 0.5f + m_minW.x;
+		float d = m_sizeW.y * 0.5f + m_minW.y;
+		m_virtualToWindow = mat3(
+			a * m_basisV[0].x, a * m_basisV[1].x, -a * m_originV.x + c,
+			b * m_basisV[0].y, b * m_basisV[1].y, -b * m_originV.y + d,
+			0.0f,              0.0f,              1.0f
+			);
+	#endif
+	}
+
+ // window -> virtual
+	m_windowToVirtual = Inverse(m_virtualToWindow); // \todo construct directly
 }

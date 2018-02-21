@@ -42,6 +42,12 @@ struct VirtualWindow
 		Flags_Default = Flags_Square | Flags_GridX | Flags_GridY
 	};
 
+	mat2 m_basisV;
+	vec2 m_originV;
+	vec2 m_sizeV;
+	mat3 m_virtualToWindow;
+	mat3 m_windowToVirtual;
+
 	vec2 m_size                   = vec2(0.0f);      // Requested size, 0 to fill the available content region.
 
 	vec2 m_minW                   = vec2(-1.0f);     // Window space region min.
@@ -50,13 +56,10 @@ struct VirtualWindow
 
 	vec2 m_minV                   = vec2(-1.5f);     // Virtual space region min.
 	vec2 m_maxV                   = vec2( 1.5f);     // Virtual space region max.
-	vec2 m_sizeV                  = vec2( 3.0f);     // Virtual space size (m_maxV - m_minV).
-	vec2 m_scaleV                 = vec2( 1.0f);     // Virtual space scale (e.g. vec2(1,-1) to flip Y).
-	vec2 m_rscaleV;                                  // 1/m_scaleV.	
 
 	vec2 m_minGridSpacingV        = vec2(0.1f);      // Minimum spacing of grid lines.
 	vec2 m_minGridSpacingW        = vec2(16.0f);     // Minimum spacing of grid lines.
-	vec2 m_gridSpacingBase        = vec2(10.0f);     // Major grid lines appear
+	vec2 m_gridSpacingBase        = vec2(10.0f);     // Major grid lines appear on multiples of m_gridSpacingBase.
 
 	bool m_isActive               = false;           // If the parent window is focussed and the window region is hovered.
 
@@ -71,10 +74,10 @@ struct VirtualWindow
 
 
 	// Convert window space (pixels) to virtual space.
-	vec2 windowToVirtual(const vec2& _posW);
+	vec2 windowToVirtual(const vec2& _posW) const       { return apt::TransformPosition(m_windowToVirtual, _posW); }
 
 	// Convert virtual space to window space (pixels).
-	vec2 virtualToWindow(const vec2& _posV);
+	vec2 virtualToWindow(const vec2& _posV) const       { return apt::Floor(apt::TransformPosition(m_virtualToWindow, _posV)); }
 	
 	// Call once to init internal state.
 	void init(int _flags = Flags_Default);
@@ -87,6 +90,10 @@ struct VirtualWindow
 
 	// Modify settings.
 	void edit();
+
+
+
+	void updateTransforms();
 };
 
 
