@@ -15,15 +15,19 @@ namespace frm {
 //
 // Typical usage:
 //    static ImGui::VirtualWindow s_virtualWindow;
-//    APT_ONCE s_virtualWindow.init(Flags_GridX | Flags_GridY);
+//    APT_ONCE {
+//       s_virtualWindow.m_size = vec2(0, 256); // set options before init()
+//       s_virtualWindow.init(Flags_GridX | Flags_GridY);
+//    }
 //    auto& io  = ImGui::GetIO();
+//    auto& drawList = *ImGui::GetWindowDrawList();
 //    vec2 zoom = vec2(io.MouseWheel * -16.0f);
 //    vec2 pan  = io.MouseDown[2] ? vec2(io.MouseDelta) : vec2(0.0f); 
 //    s_virtualWindow.begin(zoom, pan);
-//      // render to the draw list here, use s_virtualWindow.virtualToWindow()
+//      // render to drawList here, use s_virtualWindow.virtualToWindow()
 //    s_virtualWindow.end();
 //
-// Todo:
+// \todo
 // - Need to handle dragging to pan when mouse is outside of the window.
 // - Fade in/out fine grid lines during zoom.
 ////////////////////////////////////////////////////////////////////////////////
@@ -47,7 +51,9 @@ struct VirtualWindow
 	vec2 m_minV                   = vec2(-1.5f);     // Virtual space region min.
 	vec2 m_maxV                   = vec2( 1.5f);     // Virtual space region max.
 	vec2 m_sizeV                  = vec2( 3.0f);     // Virtual space size (m_maxV - m_minV).
-	
+	vec2 m_scaleV                 = vec2( 1.0f);     // Virtual space scale (e.g. vec2(1,-1) to flip Y).
+	vec2 m_rscaleV;                                  // 1/m_scaleV.	
+
 	vec2 m_minGridSpacingV        = vec2(0.1f);      // Minimum spacing of grid lines.
 	vec2 m_minGridSpacingW        = vec2(16.0f);     // Minimum spacing of grid lines.
 	vec2 m_gridSpacingBase        = vec2(10.0f);     // Major grid lines appear

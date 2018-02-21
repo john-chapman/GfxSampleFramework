@@ -1,5 +1,7 @@
 #include <frm/imgui_helpers.h>
 
+#include <apt/String.h>
+
 using namespace frm;
 using namespace apt;
 
@@ -8,17 +10,16 @@ using namespace apt;
                                  VirtualWindow
 
 *******************************************************************************/
-
 vec2 VirtualWindow::windowToVirtual(const vec2& _posW)
 {
 	vec2 ret = (_posW - m_minW) / m_sizeW;
 	ret = m_minV + ret * m_sizeV;
-	return ret;
+	return ret * m_rscaleV;
 }
 
 vec2 VirtualWindow::virtualToWindow(const vec2& _posV)
 {
-	vec2 ret = (_posV - m_minV) / m_sizeV;
+	vec2 ret = (_posV * m_scaleV - m_minV) / m_sizeV;
 	ret = m_minW + ret * m_sizeW;
 	return Floor(ret);
 }
@@ -28,7 +29,6 @@ void VirtualWindow::init(int _flags/* = Flags_Default*/)
 	m_flags = _flags;
 
 	auto& style       = ImGui::GetStyle();
-
 	m_colorBackground = IM_COLOR_ALPHA((ImU32)ImColor(style.Colors[ImGuiCol_WindowBg]), 1.0f);
 	m_colorBorder     = ImColor(style.Colors[ImGuiCol_Border]);
 	m_colorGrid       = IM_COLOR_ALPHA((ImU32)ImColor(style.Colors[ImGuiCol_Border]), 0.1f);
@@ -43,6 +43,8 @@ void VirtualWindow::begin(const vec2& _zoom, const vec2& _pan, int _flags/* = Fl
 	if (_flags != Flags_Default) {
 		m_flags = _flags;
 	}
+
+	m_rscaleV = 1.0f / m_scaleV;
 
  // window beg, end, size
 	vec2 scroll = vec2(ImGui::GetScrollX(), ImGui::GetScrollY());
@@ -130,6 +132,25 @@ void VirtualWindow::begin(const vec2& _zoom, const vec2& _pan, int _flags/* = Fl
 			m_sizeV.x, m_sizeV.y
 			);
 		drawList.AddText(m_minW + vec2(2.0f), IM_COL32_YELLOW, (const char*)dbg);
+
+	 // orientation grid (X red, Y green)
+		const int gridCount = 12;
+		const float gridSize = 1.0f;
+		const float gridHalf = gridSize * 0.5f;
+		for (int i = 0; i < gridCount; ++i) {
+			float alpha = (float)i / (float)(gridCount - 1);
+			float x = (alpha - 0.5f) * gridSize;
+			drawList.AddLine(
+				virtualToWindow(vec2(x, -gridHalf)),
+				virtualToWindow(vec2(x,  gridHalf)),
+				IM_COLOR_ALPHA(IM_COL32_RED, alpha)
+				);
+			drawList.AddLine(
+				virtualToWindow(vec2(-gridHalf, x)),
+				virtualToWindow(vec2( gridHalf, x)),
+				IM_COLOR_ALPHA(IM_COL32_GREEN, alpha)
+				);
+		}
 	#endif
 }
 
@@ -172,6 +193,7 @@ void VirtualWindow::edit()
 			}
 
 		}
+		ImGui::DragFloat2("Scale V", &m_scaleV.x, 0.1f);
 	ImGui::PopID();
 
 	m_minGridSpacingV = Max(m_minGridSpacingV, vec2(0.1f));
