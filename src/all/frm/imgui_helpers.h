@@ -62,8 +62,9 @@ public:
 	// Convert virtual space to window space (pixels).
 	vec2        virtualToWindow(const vec2& _posV) const                 { return apt::Floor(apt::TransformPosition(m_virtualToWindow, _posV)); }
 		
-	// Begin rendering (push the ImGui clip rectangle), handle zoom (_deltaSizeV) and pan (_deltaOriginV).
-	void        begin(const vec2& _deltaSizeV, const vec2& _deltaOriginV);
+	// Begin rendering (push the ImGui clip rectangle), handle zoom (_deltaSizeW) and pan (_deltaOriginW).
+	// _anchorW is a window space position constrained to remain fixed during zoom, by default this is the mouse position.
+	void        begin(const vec2& _deltaSizeW, const vec2& _deltaOriginW, const vec2& _anchorW = vec2(-1.0f));
 	// End rendering (pop the ImGui clip rectangle).
 	void        end();
 	
@@ -128,7 +129,7 @@ private:
 
 
 	void updateRegionW();
-	void updateRegionV(const vec2& _zoom, const vec2& _pan);
+	void updateRegionV(const vec2& _deltaSizeW, const vec2& _deltaOriginW, const vec2& _anchorW);
 	void updateTransforms();
 	void drawGrid();
 	void editColor(Color _enum, const char* _name);
