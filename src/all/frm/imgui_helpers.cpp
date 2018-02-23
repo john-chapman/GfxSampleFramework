@@ -29,7 +29,7 @@ VirtualWindow::~VirtualWindow()
 {
 }
 
-void VirtualWindow::begin(const vec2& _zoom, const vec2& _pan)
+void VirtualWindow::begin(const vec2& _deltaSizeW, const vec2& _deltaOriginW, const vec2& _anchorW)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	ImDrawList& drawList = *ImGui::GetWindowDrawList();
@@ -41,7 +41,7 @@ void VirtualWindow::begin(const vec2& _zoom, const vec2& _pan)
 	
 	ImGui::InvisibleButton("##prevent drag", m_sizeW); // prevent drag
 	m_isActive = ImGui::IsItemHovered() && ImGui::IsWindowFocused();
-	updateRegionV(_zoom, _pan);
+	updateRegionV(_deltaSizeW, _deltaOriginW, _anchorW);
 	updateTransforms();
 
 	drawList.AddRectFilled(m_minW, m_maxW, m_colors[Color_Background]);
@@ -191,7 +191,7 @@ void VirtualWindow::updateRegionW()
 	m_maxW = Floor(m_minW + m_sizeW);
 }
 
-void VirtualWindow::updateRegionV(const vec2& _zoom, const vec2& _pan)
+void VirtualWindow::updateRegionV(const vec2& _deltaSizeW, const vec2& _deltaOriginW, const vec2& _anchorW)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	vec2 scroll = vec2(ImGui::GetScrollX(), ImGui::GetScrollY());
@@ -200,9 +200,12 @@ void VirtualWindow::updateRegionV(const vec2& _zoom, const vec2& _pan)
 	 // zoom
 		ImGui::SetScrollX(scroll.x);
 		ImGui::SetScrollY(scroll.y);
-		vec2 zoom = _zoom / m_sizeW;
+		vec2 zoom = _deltaSizeW / m_sizeW;
 		zoom.x *= aspect; // maintain aspect ratio during zoom
 		if (Abs(zoom.x) > 0.0f || Abs(zoom.y) > 0.0f) {
+			vec2 anchorW = _anchorW;
+			anchorW.x = anchorW.x == -1.0f ? io.MousePos.x : anchorW.x;
+			anchorW.y = anchorW.y == -1.0f ? io.MousePos.y : anchorW.y;
 			zoom *= m_sizeV; // keep zoom rate proportional to current region size = 'linear' zoom
 			vec2 before = windowToVirtual(io.MousePos);
 			m_sizeV = Max(m_sizeV + zoom, vec2(1e-7f));
@@ -211,7 +214,7 @@ void VirtualWindow::updateRegionV(const vec2& _zoom, const vec2& _pan)
 			m_originV += m_basisV * (before - after);
 		}
 	 // pan
-		vec2 pan = _pan / m_sizeW;
+		vec2 pan = _deltaOriginW / m_sizeW;
 		if (Abs(pan.x) > 0.0f || Abs(pan.y) > 0.0f) {
 			m_originV -= pan * m_sizeV;
 			ImGui::CaptureMouseFromApp();
