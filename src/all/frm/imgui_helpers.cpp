@@ -11,14 +11,17 @@ using namespace apt;
 
 *******************************************************************************/
 
-VirtualWindow::VirtualWindow()
+VirtualWindow::VirtualWindow(const vec2& _sizeV, const vec2& _originV)
+	: m_sizeV(_sizeV)
+	, m_originV(_originV)
 {
 	if (ImGui::GetCurrentContext()) { // ImGui might not be init during the ctor e.g. if the VirutalWindow instance is declared static at namespace scope
 		auto& style                = ImGui::GetStyle();
-		m_colors[Color_Background] = IM_COLOR_ALPHA((ImU32)ImColor(style.Colors[ImGuiCol_WindowBg]), 1.0f);
-		m_colors[Color_Border]     = ImColor(style.Colors[ImGuiCol_Border]);
-		m_colors[Color_Grid]       = IM_COLOR_ALPHA((ImU32)ImColor(style.Colors[ImGuiCol_Border]), 0.1f);
-		m_colors[Color_GridOrigin] = ImColor(style.Colors[ImGuiCol_PlotLines]);
+		
+		m_colors[Color_Background] = ImGui::GetColorU32(ImGuiCol_WindowBg, 1.0f);
+		m_colors[Color_Border]     = ImGui::GetColorU32(ImGuiCol_Border);
+		m_colors[Color_Grid]       = ImGui::GetColorU32(ImGuiCol_Border, 0.1f);
+		m_colors[Color_GridOrigin] = ImGui::GetColorU32(ImGuiCol_PlotLines);
 	}
 }
 
@@ -156,8 +159,9 @@ void VirtualWindow::edit()
 					ImGui::DragFloat2("Grid Spacing W", &m_minGridSpacingW.x, 1.0f, 1.0f);
 					ImGui::DragFloat2("Grid Base",      &m_gridSpacingBase.x, 1.0f, 1.0f);
 				}
-
 			}
+
+			ImGui::TreePop();
 		}
 	ImGui::PopID();
 
