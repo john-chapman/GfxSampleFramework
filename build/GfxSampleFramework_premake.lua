@@ -1,4 +1,5 @@
 local FRM_UUID        = "33827CC1-9FEC-3038-E82A-E2DD54D40E8D"
+
 local SRC_DIR         = "/src/"
 local ALL_SRC_DIR     = SRC_DIR .. "all/"
 local ALL_EXTERN_DIR  = ALL_SRC_DIR .. "extern/"
@@ -32,16 +33,18 @@ local function GfxSampleFramework_Globals()
 	filter {}
 end
 
-function GfxSampleFramework_Project(_root, _libDir, _binDir)
-	_root = _root or ""
+function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
+	_root   = _root or ""
 	_libDir = _libDir or "../lib"
 	_binDir = _binDir or "../bin"
+	_config = _config or {}
 
 	GfxSampleFramework_SetPaths(_root)
 
 	project "GfxSampleFramework"
 		kind "StaticLib"
 		language "C++"
+		cppdialect "C++11"
 		targetdir(_libDir)
 		uuid(FRM_UUID)
 
@@ -82,6 +85,12 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir)
 				WIN_SRC_DIR .. "**.cpp",
 			})
 		filter {}
+		
+		for k,v in pairs(_config) do
+			if v then
+				defines { tostring(k) .. "=" .. tostring(v) }
+			end
+		end
 
 		filter { "action:vs*" }
 			postbuildcommands({
