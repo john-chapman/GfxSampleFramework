@@ -84,7 +84,7 @@ public:
 	// Orientation of the virtual subregion relative to the window, by default positive values in V move down/right in W.
 	// E.g. use setOrientationV(vec2(0,-1), vec2(-1,0)) to flip both axes.
 	void        setOrientationV(const vec2& _down, const vec2& _right)   { m_basisV = mat2(_right, _down); }
-	void        setOrientationV(const vec2& _down)                       { setOrientationV(_down, vec2(-_down.y, _down.x)); } // _right is perpendicular to _down
+	void        setOrientationV(const vec2& _down)                       { setOrientationV(_down, vec2(_down.y, -_down.x)); } // _right is perpendicular to _down
 	const mat2& getOrientationV() const                                  { return m_basisV; }
 
 	// Grid lines subdivide the virtual subregion, aligned on multiples of gridSpacingBase with a minimum spacing in both V and W.
