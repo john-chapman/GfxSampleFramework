@@ -5,7 +5,7 @@ workspace "GfxSampleFramework"
 	location(_ACTION)
 	configurations { "Debug", "Release" }
 	platforms { "Win64" }
-	flags { "C++11", "StaticRuntime" }
+	flags { "StaticRuntime" }
 	filter { "platforms:Win64" }
 		system "windows"
 		architecture "x86_64"
