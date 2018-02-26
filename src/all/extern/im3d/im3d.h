@@ -4,15 +4,15 @@
 
 #include "im3d_config.h"
 
-#define IM3D_VERSION "1.06"
+#define IM3D_VERSION "1.10"
 
 #ifndef IM3D_ASSERT
 	#include <cassert>
 	#define IM3D_ASSERT(e) assert(e)
 #endif
 
-#ifndef IM3D_VERTEX_ALIGNEMENT
-	#define IM3D_VERTEX_ALIGNEMENT 4
+#ifndef IM3D_VERTEX_ALIGNMENT
+	#define IM3D_VERTEX_ALIGNMENT 4
 #endif
 
 namespace Im3d {
@@ -81,7 +81,7 @@ void  PopAlpha();
 void  SetAlpha(float _alpha);
 float GetAlpha();
 
-// Size draw state, for points/lines this is the width/radius in pixels (per vertex).
+// Size draw state, for points/lines this is the radius/width in pixels (per vertex).
 void  PushSize(); // push the stack top
 void  PushSize(float _size);
 void  PopSize();
@@ -98,6 +98,11 @@ void  EnableSorting(bool _enable);
 void  PushDrawState();
 void  PopDrawState();
 
+// Layer id state, subsequent primitives are added to a separate draw list associated with the id (per primitive).
+void  PushLayerId(Id _layer);
+void  PopLayerId();
+Id    GetLayerId();
+
 // Transform state (per vertex).
 void  PushMatrix(); // push stack top
 void  PushMatrix(const Mat4& _mat4);
@@ -110,7 +115,7 @@ void  Rotate(const Vec3& _axis, float _angle);
 void  Rotate(const Mat3& _rotation);
 void  Scale(float _x, float _y, float _z);
 
-// High order shapes. Where _detail = -1, an automatic level of detail is chosen based on the distance to the view origin.
+// High order shapes. Where _detail = -1, an automatic level of detail is chosen based on the distance to the view origin (as specified via the AppData struct).
 void  DrawXyzAxes();
 void  DrawPoint(const Vec3& _position, float _size, Color _color);
 void  DrawLine(const Vec3& _a, const Vec3& _b, float _size, Color _color);
@@ -121,7 +126,9 @@ void  DrawQuadFilled(const Vec3& _origin, const Vec3& _normal, const Vec2& _size
 void  DrawCircle(const Vec3& _origin, const Vec3& _normal, float _radius, int _detail = -1);
 void  DrawCircleFilled(const Vec3& _origin, const Vec3& _normal, float _radius, int _detail = -1);
 void  DrawSphere(const Vec3& _origin, float _radius, int _detail = -1);
+void  DrawSphereFilled(const Vec3& _origin, float _radius, int _detail = -1);
 void  DrawAlignedBox(const Vec3& _min, const Vec3& _max);
+void  DrawAlignedBoxFilled(const Vec3& _min, const Vec3& _max);
 void  DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, int _detail = -1);
 void  DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int _detail = -1);
 void  DrawPrism(const Vec3& _start, const Vec3& _end, float _radius, int _sides);
@@ -160,13 +167,17 @@ bool  GizmoScale(Id _id, float _scale_[3]);
 bool  Gizmo(Id _id, float _transform_[4*4]);
 bool  Gizmo(Id _id, float _translation_[3], float _rotation_[3*3], float _scale_[3]);
 
+// Visibility tests. The application must set a culling frustum via AppData.
+bool  IsVisible(const Vec3& _origin, float _radius); // sphere
+bool  IsVisible(const Vec3& _min, const Vec3& _max); // axis-aligned bounding box
+
 // Get/set the current context. All Im3d calls affect the currently bound context.
 Context& GetContext();
 void     SetContext(Context& _ctx);
 
 struct Vec2
 {
-	float x, y; 
+	float x, y;
 	Vec2()                                                                   {}
 	Vec2(float _xy): x(_xy), y(_xy)                                          {}
 	Vec2(float _x, float _y): x(_x), y(_y)                                   {}
@@ -177,7 +188,7 @@ struct Vec2
 	#endif
 };
 struct Vec3
-{ 
+{
 	float x, y, z;
 	Vec3()                                                                   {}
 	Vec3(float _xyz): x(_xyz), y(_xyz), z(_xyz)                              {}
@@ -191,7 +202,7 @@ struct Vec3
 	#endif
 };
 struct Vec4
-{ 
+{
 	float x, y, z, w;
 	Vec4()                                                                   {}
 	Vec4(float _xyzw): x(_xyzw), y(_xyzw), z(_xyzw), w(_xyzw)                {}
@@ -226,7 +237,7 @@ struct Mat3
 
 	Vec3 getScale() const;
 	void setScale(const Vec3& _scale);
-	
+
 	float operator()(int _row, int _col) const
 	{
 		#ifdef IM3D_MATRIX_ROW_MAJOR
@@ -237,7 +248,7 @@ struct Mat3
 		return m[i];
 	}
 	float& operator()(int _row, int _col)
-	{ 
+	{
 		#ifdef IM3D_MATRIX_ROW_MAJOR
 			int i = _row * 3 + _col;
 		#else
@@ -245,7 +256,7 @@ struct Mat3
 		#endif
 		return m[i];
 	}
-	
+
 	#ifdef IM3D_MAT3_APP
 		IM3D_MAT3_APP
 	#endif
@@ -277,7 +288,7 @@ struct Mat4
 	void setRotation(const Mat3& _rotation);
 	Vec3 getScale() const;
 	void setScale(const Vec3& _scale);
-	
+
 	float operator()(int _row, int _col) const
 	{
 		#ifdef IM3D_MATRIX_ROW_MAJOR
@@ -288,7 +299,7 @@ struct Mat4
 		return m[i];
 	}
 	float& operator()(int _row, int _col)
-	{ 
+	{
 		#ifdef IM3D_MATRIX_ROW_MAJOR
 			int i = _row * 4 + _col;
 		#else
@@ -296,7 +307,7 @@ struct Mat4
 		#endif
 		return m[i];
 	}
-	
+
 	#ifdef IM3D_MAT4_APP
 		IM3D_MAT4_APP
 	#endif
@@ -333,7 +344,7 @@ struct Color
 	float getA() const                                                       { return get(0); }
 };
 
-struct alignas(IM3D_VERTEX_ALIGNEMENT) VertexData
+struct alignas(IM3D_VERTEX_ALIGNMENT) VertexData
 {
 	Vec4   m_positionSize; // xyz = position, w = size
 	Color  m_color;        // rgba8 (MSB = r)
@@ -351,16 +362,10 @@ enum DrawPrimitiveType
 
 	DrawPrimitive_Count
 };
-const int DrawPrimitiveSize[DrawPrimitive_Count] = 
-{
- // vertices per draw primitive type
-	3, //DrawPrimitive_Triangles,
-	2, //DrawPrimitive_Lines,
-	1  //DrawPrimitive_Points,
-};
 
 struct DrawList
 {
+	Id                m_layerId;
 	DrawPrimitiveType m_primType;
 	const VertexData* m_vertexData;
 	U32               m_vertexCount;
@@ -386,24 +391,42 @@ enum Key
 
 	Action_Count
 };
+
+enum FrustumPlane
+{
+	FrustumPlane_Near,
+	FrustumPlane_Far,
+	FrustumPlane_Top,
+	FrustumPlane_Right,
+	FrustumPlane_Bottom,
+	FrustumPlane_Left,
+
+	FrustumPlane_Count
+};
+
 struct AppData
 {
-	bool   m_keyDown[Key_Count];  // Application-provided key states.
-
-	Vec3   m_cursorRayOrigin;     // World space cursor ray origin.
-	Vec3   m_cursorRayDirection;  // World space cursor ray direction.
-	Vec3   m_worldUp;             // World space 'up' vector.
-	Vec3   m_viewOrigin;          // World space render origin (camera position).
-	Vec2   m_viewportSize;        // Viewport size (pixels).
-	float  m_projScaleY;          // Scale factor used to convert from pixel size -> world scale; use tan(fov) for perspective projections, far plane height for ortho.
-	bool   m_projOrtho;           // If the projection matrix is orthographic.
-	float  m_deltaTime;           // Time since previous frame (seconds).
-	float  m_snapTranslation;     // Snap value for translation gizmos (world units). 0 = disabled.
-	float  m_snapRotation;        // Snap value for rotation gizmos (radians). 0 = disabled.
-	float  m_snapScale;           // Snap value for scale gizmos. 0 = disabled.
-	void*  m_appData;             // App-specific data (useful for passing app context to drawCallback).
+	bool   m_keyDown[Key_Count];               // Key states.
+	Vec4   m_cullFrustum[FrustumPlane_Count];  // Frustum planes for culling (if culling enabled).
+	Vec3   m_cursorRayOrigin;                  // World space cursor ray origin.
+	Vec3   m_cursorRayDirection;               // World space cursor ray direction.
+	Vec3   m_worldUp;                          // World space 'up' vector.
+	Vec3   m_viewOrigin;                       // World space render origin (camera position).
+	Vec3   m_viewDirection;                    // World space view direction.
+	Vec2   m_viewportSize;                     // Viewport size (pixels).
+	float  m_projScaleY;                       // Scale factor used to convert from pixel size -> world scale; use tan(fov) for perspective projections, far plane height for ortho.
+	bool   m_projOrtho;                        // If the projection matrix is orthographic.
+	float  m_deltaTime;                        // Time since previous frame (seconds).
+	float  m_snapTranslation;                  // Snap value for translation gizmos (world units). 0 = disabled.
+	float  m_snapRotation;                     // Snap value for rotation gizmos (radians). 0 = disabled.
+	float  m_snapScale;                        // Snap value for scale gizmos. 0 = disabled.
+	void*  m_appData;                          // App-specific data.
 
 	DrawPrimitivesCallback* drawCallback; // e.g. void Im3d_Draw(const DrawList& _drawList)
+
+	// Extract cull frustum planes from the view-projection matrix.
+	// Set _ndcZNegativeOneToOne = true if the proj matrix maps z from [-1,1] (OpenGL style).
+	void setCullFrustum(const Mat4& _viewProj, bool _ndcZNegativeOneToOne);
 };
 
 // Minimal vector.
@@ -481,27 +504,31 @@ public:
 	Color       getColor() const                 { return m_colorStack.back();     }
 	void        pushColor(Color _color)          { m_colorStack.push_back(_color); }
 	void        popColor()                       { IM3D_ASSERT(m_colorStack.size() > 1); m_colorStack.pop_back(); }
-	
+
 	void        setAlpha(float _alpha)           { m_alphaStack.back() = _alpha;   }
 	float       getAlpha() const                 { return m_alphaStack.back();     }
 	void        pushAlpha(float _alpha)          { m_alphaStack.push_back(_alpha); }
 	void        popAlpha()                       { IM3D_ASSERT(m_alphaStack.size() > 1); m_alphaStack.pop_back(); }
-	
+
 	void        setSize(float _size)             { m_sizeStack.back() = _size;     }
 	float       getSize() const                  { return m_sizeStack.back();      }
 	void        pushSize(float _size)            { m_sizeStack.push_back(_size);   }
 	void        popSize()                        { IM3D_ASSERT(m_sizeStack.size() > 1); m_sizeStack.pop_back(); }
-	
+
 	void        setEnableSorting(bool _enable);
 	bool        getEnableSorting() const         { return m_enableSortingStack.back(); }
 	void        pushEnableSorting(bool _enable);
 	void        popEnableSorting();
-	
+
+	Id          getLayerId() const               { return m_layerIdStack.back(); }
+	void        pushLayerId(Id _layer);
+	void        popLayerId();
+
 	void        setMatrix(const Mat4& _mat4)     { m_matrixStack.back() = _mat4;   }
 	const Mat4& getMatrix() const                { return m_matrixStack.back();    }
 	void        pushMatrix(const Mat4& _mat4)    { m_matrixStack.push_back(_mat4); }
 	void        popMatrix()                      { IM3D_ASSERT(m_matrixStack.size() > 1); m_matrixStack.pop_back(); }
-	
+
 	void        setId(Id _id)                    { m_idStack.back() = _id;   }
 	Id          getId() const                    { return m_idStack.back();  }
 	void        pushId(Id _id)                   { m_idStack.push_back(_id); }
@@ -531,8 +558,8 @@ public:
 	// Convert world space size -> pixels based on distance between _position and view origin.
 	float worldSizeToPixels(const Vec3& _position, float _pixels);
 	// Blend between _min and _max based on distance betwen _position and view origin.
-	int estimateLevelOfDetail(const Vec3& _position, float _worldSize, int _min = 16, int _max = 256);
-	
+	int estimateLevelOfDetail(const Vec3& _position, float _worldSize, int _min = 4, int _max = 256);
+
 	// Make _id hot if _depth < m_hotDepth && _intersects.
 	bool makeHot(Id _id, float _depth, bool _intersects);
 	// Make _id active.
@@ -543,6 +570,11 @@ public:
 	// Interpret key state.
 	bool isKeyDown(Key _key) const     { return m_keyDownCurr[_key]; }
 	bool wasKeyPressed(Key _key) const { return m_keyDownCurr[_key] && !m_keyDownPrev[_key]; }
+
+	// Visibiity tests for culling.
+	bool isVisible(const VertexData* _vdata, DrawPrimitiveType _prim); // per-vertex
+	bool isVisible(const Vec3& _origin, float _radius);                // sphere
+	bool isVisible(const Vec3& _min, const Vec3& _max);                // axis-aligned box
 
  // gizmo state
 	bool               m_gizmoLocal;               // Global mode selection for gizmos.
@@ -560,41 +592,57 @@ public:
 	float              m_gizmoSizePixels;          // Thickness of gizmo lines.
 
 
- // stats/debugging	
+ // stats/debugging
 
-	// Return the total number of primitives (sorted + unsorted) of the given _type.
-	U32 getPrimitiveCount(DrawPrimitiveType _type) const; 
+	// Return the total number of primitives (sorted + unsorted) of the given _type in all layers.
+	U32 getPrimitiveCount(DrawPrimitiveType _type) const;
+
+	// Return the number of layers.
+	U32 getLayerCount() const { return m_layerIdMap.size(); }
 
 private:
  // state stacks
-	Vector<Color>      m_colorStack;
-	Vector<float>      m_alphaStack;
-	Vector<float>      m_sizeStack;
-	Vector<bool>       m_enableSortingStack;
-	Vector<Mat4>       m_matrixStack;
-	Vector<Id>         m_idStack;
+	Vector<Color>       m_colorStack;
+	Vector<float>       m_alphaStack;
+	Vector<float>       m_sizeStack;
+	Vector<bool>        m_enableSortingStack;
+	Vector<Mat4>        m_matrixStack;
+	Vector<Id>          m_idStack;
+	Vector<Id>          m_layerIdStack;
 
- // primitive data: [0] unsorted, [1] sorted
-	Vector<VertexData> m_vertexData[DrawPrimitive_Count][2];
-	Vector<DrawList>   m_sortedDrawLists;
-	bool               m_sortCalled;               // Prevent sorting during every call to draw().
-	bool               m_drawCalled;               // For assert if primitives are pushed after draw() was called.
+ // vertex data: one list per layer, per primitive type, *2 for sorted/unsorted
+	typedef Vector<VertexData> VertexList;
+	Vector<VertexList*> m_vertexData[2];            // Each layer is DrawPrimitive_Count consecutive lists.
+	int                 m_vertexDataIndex;          // 0, or 1 if sorting enabled.
+	Vector<Id>          m_layerIdMap;               // Map Id -> vertex data index.
+	int                 m_layerIndex;               // Index of the currently active layer in m_layerIdMap.
+	Vector<DrawList>    m_sortedDrawLists;          // Sorted draw lists are stored to avoid multiple calls to sort().
+	bool                m_sortCalled;               // Avoid calling sort() during every call to draw().
+	bool                m_drawCalled;               // For assert, if vertices are pushed after draw() was called.
 
  // primitive state
-	PrimitiveMode      m_primMode;   
-	int                m_primList;                 // 1 if sorting enabled, else 0.
-	U32                m_firstVertThisPrim;        // Index of the first vertex pushed during this primitive.
-	U32                m_vertCountThisPrim;        // # calls to vertex() since the last call to begin().
+	PrimitiveMode       m_primMode;
+	DrawPrimitiveType   m_primType;
+	U32                 m_firstVertThisPrim;        // Index of the first vertex pushed during this primitive.
+	U32                 m_vertCountThisPrim;        // # calls to vertex() since the last call to begin().
+	Vec3                m_minVertThisPrim;
+	Vec3                m_maxVertThisPrim;
 
  // app data
-	AppData            m_appData;
-	bool               m_keyDownCurr[Key_Count];   // Key state captured during reset().
-	bool               m_keyDownPrev[Key_Count];   // Key state from previous frame.
+	AppData             m_appData;
+	bool                m_keyDownCurr[Key_Count];   // Key state captured during reset().
+	bool                m_keyDownPrev[Key_Count];   // Key state from previous frame.
+	Vec4                m_cullFrustum[FrustumPlane_Count];  // Optimized frustum planes from m_appData.m_cullFrustum.
+	int                 m_cullFrustumCount;         // # valid frustum planes in m_cullFrustum.
 
 
 	// Sort primitive data.
 	void sort();
 
+	// Return -1 if _id not found.
+	int  findLayerIndex(Id _id) const;
+
+	VertexList* getCurrentVertexList();
 };
 
 namespace internal {
@@ -649,6 +697,11 @@ inline void  PushEnableSorting(bool _enable)                                 { G
 inline void  PopEnableSorting()                                              { GetContext().popEnableSorting();         }
 inline void  EnableSorting(bool _enable)                                     { GetContext().setEnableSorting(_enable);  }
 
+inline void  PushLayerId()                                                   { GetContext().pushLayerId(GetContext().getLayerId()); }
+inline void  PushLayerId(Id _layer)                                          { GetContext().pushLayerId(_layer); }
+inline void  PopLayerId()                                                    { GetContext().popLayerId();        }
+inline Id    GetLayerId()                                                    { return GetContext().getLayerId(); }
+
 inline void  PushMatrix()                                                    { GetContext().pushMatrix(GetContext().getMatrix()); }
 inline void  PushMatrix(const Mat4& _mat4)                                   { GetContext().pushMatrix(_mat4);                    }
 inline void  PopMatrix()                                                     { GetContext().popMatrix();                          }
@@ -670,6 +723,9 @@ inline bool GizmoRotation(const char* _id, float _rotation_[3*3], bool _local)  
 inline bool GizmoScale(const char* _id, float _scale_[3])                                            { return GizmoScale(MakeId(_id), _scale_);                       }
 inline bool Gizmo(const char* _id, float _translation_[3], float _rotation_[3*3], float _scale_[3])  { return Gizmo(MakeId(_id), _translation_, _rotation_, _scale_); }
 inline bool Gizmo(const char* _id, float _transform_[4*4])                                           { return Gizmo(MakeId(_id), _transform_);                        }
+
+inline bool IsVisible(const Vec3& _origin, float _radius)                    { return GetContext().isVisible(_origin, _radius); }
+inline bool IsVisible(const Vec3& _min, const Vec3& _max)                    { return GetContext().isVisible(_min, _max);       }
 
 inline Context& GetContext()                                                 { return *internal::g_CurrentContext; }
 inline void     SetContext(Context& _ctx)                                    { internal::g_CurrentContext = &_ctx; }

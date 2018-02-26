@@ -176,6 +176,7 @@
     <ClInclude Include="..\..\src\all\frm\geom.h" />
     <ClInclude Include="..\..\src\all\frm\gl.h" />
     <ClInclude Include="..\..\src\all\frm\icon_fa.h" />
+    <ClInclude Include="..\..\src\all\frm\imgui_helpers.h" />
     <ClInclude Include="..\..\src\all\frm\interpolation.h" />
     <ClInclude Include="..\..\src\all\frm\math.h" />
     <ClInclude Include="..\..\src\all\frm\ui\Log.h">
@@ -331,6 +332,7 @@
     <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
     <ClCompile Include="..\..\src\all\frm\geom.cpp" />
     <ClCompile Include="..\..\src\all\frm\gl.cpp" />
+    <ClCompile Include="..\..\src\all\frm\imgui_helpers.cpp" />
     <ClCompile Include="..\..\src\all\frm\ui\Log.cpp">
       <Filter>ui</Filter>
     </ClCompile>

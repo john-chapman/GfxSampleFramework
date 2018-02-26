@@ -15,10 +15,6 @@
 	#define PROFILER_VALUE_CPU(_name, _value)  APT_UNUSED(_name)
 	#define PROFILER_VALUE(_name, _value)      APT_UNUSED(_name)
 
-	// \deprecated
-		#define CPU_AUTO_MARKER(_name) APT_UNUSED(_name)
-		#define GPU_AUTO_MARKER(_name) APT_UNUSED(_name)
-		#define AUTO_MARKER(_name)     APT_UNUSED(_name)
 #else
 	#define PROFILER_MARKER_CPU(_name)         volatile frm::Profiler::CpuAutoMarker APT_UNIQUE_NAME(_cpuAutoMarker_)(_name)
 	#define PROFILER_MARKER_GPU(_name)         volatile frm::Profiler::GpuAutoMarker APT_UNIQUE_NAME(_gpuAutoMarker_)(_name)
@@ -27,10 +23,6 @@
 	#define PROFILER_VALUE_CPU(_name, _value)  Profiler::CpuValue(_name, (float)_value)
 	#define PROFILER_VALUE(_name, _value)      PROFILER_VALUE_CPU(_name, _value)
 
-	// \deprecated
-		#define CPU_AUTO_MARKER(_name) PROFILER_MARKER_CPU(_name)
-		#define GPU_AUTO_MARKER(_name) PROFILER_MARKER_GPU(_name)
-		#define AUTO_MARKER(_name)     PROFILER_MARKER(_name)
 #endif
 
 namespace frm {
@@ -50,8 +42,8 @@ class Profiler: private apt::non_copyable<Profiler>
 public:
 	static const int kMaxFrameCount              = 32; // must be at least 2 (keep 1 frame to write to while visualizing the others)
 	static const int kMaxDepth                   = 255;
-	static const int kMaxTotalCpuMarkersPerFrame = 32;
-	static const int kMaxTotalGpuMarkersPerFrame = 32;
+	static const int kMaxTotalCpuMarkersPerFrame = 255;
+	static const int kMaxTotalGpuMarkersPerFrame = 255;
 
 	struct Marker
 	{

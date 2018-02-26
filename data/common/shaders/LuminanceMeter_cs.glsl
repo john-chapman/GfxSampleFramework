@@ -22,7 +22,7 @@ uniform float uDeltaTime;
 
 uniform sampler2D txSrc;
 uniform sampler2D txSrcPrev;
-uniform image2D writeonly txDst;
+uniform writeonly image2D txDst;
 
 uniform int uSrcLevel;
 uniform int uMaxLevel;
@@ -42,15 +42,15 @@ void main()
 			ret = log(max(ret, 1e-7)); // use exp(avg) to get the geometric mean when reading the texture
 		#endif
 		ret.y = ret.x;
-		
+
 	} else {
 		#if (WEIGHT_MODE == Weight_Average)
 			float w = 1.0;
 		#endif
-		
+
 	 // average
 		ret.x = textureLod(txSrc, uv, uSrcLevel).x * w;
-		
+
 	 // max
 		vec2 offset = 0.25 / vec2(txSize);
 		vec4 s;
@@ -59,7 +59,7 @@ void main()
 		s.z = textureLod(txSrc, uv + vec2( offset.x,  offset.y), uSrcLevel).x;
 		s.w = textureLod(txSrc, uv + vec2(-offset.x,  offset.y), uSrcLevel).x;
 		ret.y = max(s.x, max(s.y, max(s.z, s.w)));
-		
+
 		if (uSrcLevel == uMaxLevel - 1) {
 			vec2 prev = textureLod(txSrcPrev, uv, 99.0).xy;
 			ret = prev + (ret - prev) * (1.0 - exp(uDeltaTime * -bfData.m_rate));

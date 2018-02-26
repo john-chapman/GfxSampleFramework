@@ -497,7 +497,7 @@ public:
 			bool reinitDepthTexture = false;
 			APT_ONCE reinitDepthTexture = true;
 			
-			ImGui::SliderFloat("Max Error", &m_depthTest.m_maxError, 0.0f, 1.0f);
+			ImGui::SliderFloat("Max Error", &m_depthTest.m_maxError, 0.0f, 1.0f, "%0.3f", 2.0f);
 			ImGui::Checkbox("Reconstruct Position", &reconstructPosition);
 			reinitDepthTexture |= ImGui::Combo("Depth Format", &depthFormat,
 				"DepthFormat_16\0"
