@@ -10,6 +10,7 @@
 #include <apt/File.h>
 #include <apt/FileSystem.h>
 #include <apt/Image.h>
+#include <apt/Pool.h>
 #include <apt/Time.h>
 
 #include <imgui/imgui.h>
@@ -68,11 +69,12 @@ vec2 TextureView::getNormalizedSize() const
 *******************************************************************************/
 struct TextureViewer
 {
-	int  m_selected;
-	bool m_showHidden;
-	bool m_showTexelGrid;
-	bool m_isDragging;
-	eastl::vector<TextureView> m_txViews;
+	bool                        m_showHidden     = false;
+	bool                        m_showTexelGrid  = false;
+	bool                        m_isDragging     = false;
+	int                         m_selected       = -1;
+	apt::Pool<TextureView>      m_txViewPool;
+	eastl::vector<TextureView*> m_txViews;
 
 	static vec2 ThumbToTxView(const frm::TextureView& _txView)
 	{
@@ -85,38 +87,35 @@ struct TextureViewer
 	}
 
 	TextureViewer()
-		: m_selected(-1)
-		, m_showHidden(false)
-		, m_showTexelGrid(false)
-		, m_isDragging(false)
+		: m_txViewPool(64)
 	{
 	}
 
 	void addTextureView(Texture* _tx)
 	{
-		if (eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto& _txView) { return _txView.m_texture == _tx; }) == m_txViews.end()) {
-			m_txViews.push_back(TextureView(_tx));
+		if (!findTextureView(_tx)) {
+			m_txViews.push_back(m_txViewPool.alloc(TextureView(_tx)));
 		}
 	}
 
 	void removeTextureView(Texture* _tx)
 	{
-		auto it = eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto& _txView) { return _txView.m_texture == _tx; });
+		auto it = eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto _txView) { return _txView->m_texture == _tx; });
 		if (it != m_txViews.end()) {
-			APT_ASSERT(_tx->getHandle() == it->m_texture->getHandle());
-			int i = (int)(it - m_txViews.begin());
-			if (m_selected == i) {
+			APT_STRICT_ASSERT(_tx->getHandle() == (*it)->m_texture->getHandle());
+			if (m_selected == (int)(it - m_txViews.begin())) {
 				m_selected = -1;
 			}
-			m_txViews.erase(it);
+			m_txViewPool.free(*it);
+			m_txViews.erase_unsorted(it);
 		}
 	}
 
 	TextureView* findTextureView(Texture* _tx)
 	{
-		auto it = eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto& _txView) { return _txView.m_texture == _tx; });
+		auto it = eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto _txView) { return _txView->m_texture == _tx; });
 		if (it != m_txViews.end()) {
-			return it;
+			return *it;
 		}
 		return nullptr;
 	}
@@ -167,7 +166,7 @@ struct TextureViewer
 			
 			bool first = true;
 			for (int i = 0; i < (int)m_txViews.size(); ++i) {
-				TextureView& txView = m_txViews[i];
+				TextureView& txView = *m_txViews[i];
 				APT_ASSERT(txView.m_texture != nullptr);
 				Texture& tx = *txView.m_texture;
 				if (!filter.PassFilter(tx.getName())) {
@@ -207,7 +206,7 @@ struct TextureViewer
 			}
 		
 		} else {
-			TextureView& txView = m_txViews[m_selected];
+			TextureView& txView = *m_txViews[m_selected];
 			APT_ASSERT(txView.m_texture != nullptr);
 			Texture& tx = *txView.m_texture;
 			float txAspect = (float)tx.getWidth() / (float)tx.getHeight();
