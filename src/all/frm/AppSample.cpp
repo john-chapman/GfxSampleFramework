@@ -541,6 +541,7 @@ void AppSample::ImGui_Shutdown()
 	Shader::Release(g_shImGui);
 	Mesh::Release(g_msImGui); 
 	Texture::Release(g_txImGui);
+	Texture::Release(g_txRadar);
 	
 	ImGui::Shutdown();
 }

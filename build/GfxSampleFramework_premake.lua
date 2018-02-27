@@ -48,17 +48,6 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 		targetdir(_libDir)
 		uuid(FRM_UUID)
 
-		filter { "configurations:debug" }
-			targetsuffix "_debug"
-			symbols "On"
-			optimize "Off"
-		filter {}
-
-		filter { "configurations:release" }
-			symbols "Off"
-			optimize "Full"
-		filter {}
-
 		vpaths({
 			["*"]        = ALL_SRC_DIR .. "frm/**",
 			["extern/*"] = ALL_EXTERN_DIR .. "**",
@@ -121,4 +110,5 @@ function GfxSampleFramework_Link()
 
 	filter { "platforms:Win*" }
 		links { "hid", "opengl32" }
+	filter {}
 end

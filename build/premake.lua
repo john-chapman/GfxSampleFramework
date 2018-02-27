@@ -3,12 +3,22 @@ dofile "../extern/ApplicationTools/build/ApplicationTools_premake.lua"
 
 workspace "GfxSampleFramework"
 	location(_ACTION)
-	configurations { "Debug", "Release" }
 	platforms { "Win64" }
 	flags { "StaticRuntime" }
 	filter { "platforms:Win64" }
 		system "windows"
 		architecture "x86_64"
+	filter {}
+	
+	configurations { "Debug", "Release" }
+	filter { "configurations:Debug" }
+		targetsuffix "_debug"
+		symbols "On"
+		optimize "Off"
+	filter {}
+	filter { "configurations:Release" }
+		symbols "Off"
+		optimize "Full"
 	filter {}
 
 	group "libs"
@@ -26,17 +36,6 @@ workspace "GfxSampleFramework"
 		kind "ConsoleApp"
 		language "C++"
 		targetdir "../bin"
-
-		filter { "configurations:debug" }
-			targetsuffix "_debug"
-			symbols "On"
-			optimize "Off"
-		filter {}
-
-		filter { "configurations:release" }
-			symbols "Off"
-			optimize "Full"
-		filter {}
 
 		local ALL_TESTS_DIR = "../tests/all/"
 
