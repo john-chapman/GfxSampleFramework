@@ -193,18 +193,24 @@ bool Property::edit()
 			case Type_String: {
 				char buf[kStrBufLen];
 				switch (m_count) {
-					case 1:
+					case 1: {
+						StringBase& str = (StringBase&)*m_data;
+						APT_ASSERT(str.getCapacity() < kStrBufLen);
+						memcpy(buf, (const char*)str, str.getLength() + 1);
 						if (ImGui::InputText((const char*)m_displayName, buf, kStrBufLen)) {
-							((StringBase*)m_data)->set(buf);
+							str.set(buf);
 							ret = true;
 						}
 						break;
+					}
 					default: {
 						String displayName;
 						for (int i = 0; i < (int)m_count; ++i) {
 							displayName.setf("%s[%d]", (const char*)m_displayName, i); 
-						 	if (ImGui::InputText((const char*)displayName, buf, kStrBufLen)) {
-								((StringBase*)m_data)->set(buf);
+						 	StringBase& str = (StringBase&)*m_data;
+							APT_ASSERT(str.getCapacity() < kStrBufLen);
+							if (ImGui::InputText((const char*)displayName, buf, kStrBufLen)) {
+								str.set(buf);
 								ret = true;
 							}
 						}
