@@ -94,7 +94,8 @@ struct TextureViewer
 	void addTextureView(Texture* _tx)
 	{
 		if (!findTextureView(_tx)) {
-			m_txViews.push_back(m_txViewPool.alloc(TextureView(_tx)));
+			//m_txViews.push_back(m_txViewPool.alloc(TextureView(_tx)));
+			m_txViews.push_back(new TextureView(_tx));
 		}
 	}
 
@@ -106,7 +107,8 @@ struct TextureViewer
 			if (m_selected == (int)(it - m_txViews.begin())) {
 				m_selected = -1;
 			}
-			m_txViewPool.free(*it);
+			//m_txViewPool.free(*it);
+			delete *it;
 			m_txViews.erase_unsorted(it);
 		}
 	}

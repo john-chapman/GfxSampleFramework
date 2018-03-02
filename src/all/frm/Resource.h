@@ -76,11 +76,18 @@ protected:
 	void setState(State _state) { m_state = _state; }
 
 private:
-	static uint32                  s_nextUniqueId;
-	static eastl::vector<Derived*> s_instances;
-	State                          m_state;
-	Id                             m_id;
-	sint64                         m_refs;
+	struct InstanceList: public eastl::vector<Derived*>
+	{
+		typedef eastl::vector<Derived*> BaseType;
+		InstanceList(): BaseType() {}
+		~InstanceList(); // dtor used to check resources were correctly released
+	};
+	static const char*  s_className;
+	static InstanceList s_instances;
+	static uint32       s_nextUniqueId;
+	State               m_state;
+	Id                  m_id;
+	sint64              m_refs;
 
 	void init(Id _id, const char* _name);
 

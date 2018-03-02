@@ -623,7 +623,8 @@ int main(int _argc, char** _argv)
 	GlContext* ctx = app->getGlContext();
 	while (app->update()) {
 		APT_VERIFY(GlContext::MakeCurrent(ctx));
-		glAssert(glViewport(0, 0, win->getWidth(), win->getHeight()));
+		ctx->setFramebuffer(nullptr);
+		ctx->setViewport(0, 0, win->getWidth(), win->getHeight());
 		glAssert(glClearColor(0.3f, 0.3f, 0.3f, 0.0f));
 		glAssert(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
