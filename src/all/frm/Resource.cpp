@@ -1,8 +1,9 @@
 #include <frm/Resource.h>
 
+#include <apt/hash.h>
+#include <apt/log.h>
 #include <apt/String.h>
 #include <apt/Time.h>
-#include <apt/hash.h>
 
 #include <cstdarg> // va_list
 #include <EASTL/algorithm.h>
@@ -105,9 +106,7 @@ Resource<tDerived>::~Resource()
 {
 	APT_ASSERT(m_refs == 0); // resource still in use
 	auto it = eastl::find(s_instances.begin(), s_instances.end(), (Derived*)this);
-	APT_ASSERT(it != s_instances.end()); 
-	eastl::swap(*it, s_instances.back());
-	s_instances.pop_back();
+	s_instances.erase_unsorted(it);
 }
 
 template <typename tDerived>
@@ -122,14 +121,13 @@ void Resource<tDerived>::setNamef(const char* _fmt, ...)
 
 // PRIVATE
 
-template <typename tDerived>  uint32 Resource<tDerived>::s_nextUniqueId;
-template <typename tDerived>  eastl::vector<tDerived*> Resource<tDerived>::s_instances;
+template <typename tDerived> uint32 Resource<tDerived>::s_nextUniqueId;
+template <typename tDerived> typename Resource<tDerived>::InstanceList Resource<tDerived>::s_instances;
 
 template <typename tDerived>
 void Resource<tDerived>::init(Id _id, const char* _name)
 {
- // at this point an id collision is an error; reusing existing resources must happen
- // prior to calling the Resource ctor
+ // at this point an id collision is an error; reusing existing resources must happen prior to calling the Resource ctor
 	APT_ASSERT_MSG(Find(_id) == 0, "Resource '%s' already exists", _name);
 
 	m_state = State::State_Unloaded;
@@ -139,14 +137,30 @@ void Resource<tDerived>::init(Id _id, const char* _name)
 	s_instances.push_back((Derived*)this);
 }
 
+template <typename tDerived>
+Resource<tDerived>::InstanceList::~InstanceList()
+{
+	if (size() != 0) {
+		String<256> list;
+		for (auto inst : (*this)) {
+			list.appendf("\n\t'%s' -- %d refs", inst->getName(), inst->getRefCount());
+		}
+		list.append("\n");
+		APT_LOG_ERR("Warning: %d %s instances were not released:%s", (int)size(), tDerived::s_className, (const char*)list);
+	}
+}
 
 
-// Explicit template instantiations
+// Explicit template instantiations, resource release check
+#define DECL_RESOURCE(_name) \
+	template class Resource<_name>; \
+	const char* Resource<_name>::s_className = #_name;
+
 #include <frm/Mesh.h>
-template class Resource<Mesh>;
+DECL_RESOURCE(Mesh);
 #include <frm/SkeletonAnimation.h>
-template class Resource<SkeletonAnimation>;
+DECL_RESOURCE(SkeletonAnimation);
 #include <frm/Shader.h>
-template class Resource<Shader>;
+DECL_RESOURCE(Shader);
 #include <frm/Texture.h>
-template class Resource<Texture>;
+DECL_RESOURCE(Texture);
