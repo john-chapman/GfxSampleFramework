@@ -10,41 +10,29 @@ static eastl::vector<Window*> g_instances;
 
 // PUBLIC
 
-Window::Callbacks::Callbacks()
-{
-	memset(this, 0, sizeof(Callbacks));
-}
-
 Window* Window::Find(const void* _handle)
 {
-	APT_ASSERT(_handle != 0);
-	for (auto it = g_instances.begin(); it != g_instances.end(); ++it) {
-		if ((*it)->getHandle() == _handle) {
-			return *it;
+	APT_STRICT_ASSERT(_handle != nullptr);
+	for (auto inst : g_instances) {
+		if (inst->getHandle() == _handle) {
+			return inst;
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 
 // PRIVATE
 
 Window::Window()
-	: m_width(-1), m_height(-1)
-	, m_title("")
-	, m_impl(0)
 {
 	g_instances.push_back(this);
 }
 
 Window::~Window()
 {
-	APT_ASSERT(m_impl == 0);
-	APT_ASSERT(m_handle == 0);
-	for (auto it = g_instances.begin(); it != g_instances.end(); ++it) {
-		if (*it == this) {
-			g_instances.erase(it);
-			break;
-		}
-	}
+	APT_ASSERT(m_impl == nullptr);
+	APT_ASSERT(m_handle == nullptr);
+	auto it = eastl::find(g_instances.begin(), g_instances.end(), this);
+	g_instances.erase(it);
 }
