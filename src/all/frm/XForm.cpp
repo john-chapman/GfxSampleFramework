@@ -21,6 +21,8 @@ using namespace apt;
 
 APT_FACTORY_DEFINE(XForm);
 
+eastl::vector<const XForm::Callback*> XForm::s_callbackRegistry;
+
 XForm::Callback::Callback(const char* _name, OnComplete* _callback)
 	: m_callback(_callback)
 	, m_name(_name)
@@ -91,13 +93,6 @@ bool XForm::SerializeCallback(Serializer& _serializer_, OnComplete*& _callback, 
 *******************************************************************************/
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionOrientationScale);
 
-XForm_PositionOrientationScale::XForm_PositionOrientationScale()
-	: m_position(0.0f)
-	, m_orientation(0.0f, 0.0f, 0.0f, 1.0f)
-	, m_scale(1.0f)
-{
-};
-
 void XForm_PositionOrientationScale::apply(float _dt)
 {
 	mat4 mat = TransformationMatrix(m_position, m_orientation, m_scale);
@@ -140,21 +135,6 @@ bool XForm_PositionOrientationScale::serialize(Serializer& _serializer_)
 
 *******************************************************************************/
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_FreeCamera);
-
-XForm_FreeCamera::XForm_FreeCamera()
-	: m_position(0.0f)
-	, m_velocity(0.0f)
-	, m_speed(0.0f)
-	, m_maxSpeed(10.0f)
-	, m_maxSpeedMul(5.0f)
-	, m_accelTime(0.1f)
-	, m_accelCount(0.0f)
-	, m_orientation(0.0f, 0.0f, 0.0f, 1.0f)
-	, m_pitchYawRoll(0.0f)
-	, m_rotationInputMul(0.1f)
-	, m_rotationDamp(0.0002f)
-{
-}
 
 void XForm_FreeCamera::apply(float _dt)
 {
@@ -287,13 +267,6 @@ bool XForm_FreeCamera::serialize(Serializer& _serializer_)
 *******************************************************************************/
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_LookAt);
 
-XForm_LookAt::XForm_LookAt()
-	: m_target(nullptr)
-	, m_targetId(Node::kInvalidId)
-	, m_offset(0.0f)
-{
-}
-
 void XForm_LookAt::apply(float _dt)
 {
 	vec3 posW = GetTranslation(m_node->getWorldMatrix());
@@ -343,19 +316,6 @@ bool XForm_LookAt::serialize(Serializer& _serializer_)
 *******************************************************************************/
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_Spin);
 
-eastl::vector<const XForm::Callback*> XForm::s_callbackRegistry;
-
-XForm_Spin::XForm_Spin()
-	: m_axis(0.0f, 0.0f, 1.0f)
-	, m_rate(kPi)
-	, m_rotation(0.0f)
-{
-}
-
-XForm_Spin::~XForm_Spin()
-{
-}
-
 void XForm_Spin::apply(float _dt)
 {
 	m_rotation += m_rate * _dt;
@@ -394,19 +354,6 @@ bool XForm_Spin::serialize(Serializer& _serializer_)
 
 *******************************************************************************/
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionTarget);
-
-XForm_PositionTarget::XForm_PositionTarget()
-	: m_start(0.0f, 0.0f, 1.0f)
-	, m_end(0.0f, 1.0f, 0.0f)
-	, m_duration(1.0f)
-	, m_currentTime(0.0f)
-	, m_onComplete(nullptr)
-{
-}
-
-XForm_PositionTarget::~XForm_PositionTarget()
-{
-}
 
 void XForm_PositionTarget::apply(float _dt)
 {
@@ -488,19 +435,6 @@ void XForm_PositionTarget::reverse()
 *******************************************************************************/
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_SplinePath);
 
-XForm_SplinePath::XForm_SplinePath()
-	: m_path(nullptr)
-	, m_pathHint(0)
-	, m_duration(1.0f)
-	, m_currentTime(0.0f)
-	, m_onComplete(XForm::Reset)
-{
-}
-
-XForm_SplinePath::~XForm_SplinePath()
-{
-}
-
 void XForm_SplinePath::apply(float _dt)
 {
 	m_currentTime = APT_MIN(m_currentTime + _dt, m_duration);
@@ -552,19 +486,6 @@ void XForm_SplinePath::reverse()
 *******************************************************************************/
 APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_OrbitalPath);
 
-XForm_OrbitalPath::XForm_OrbitalPath()
-	: m_azimuth(0.0f)
-	, m_elevation(Radians(90.0f))
-	, m_theta(0.0f)
-	, m_radius(1.0f)
-	, m_speed(0.0f)
-{
-}
-
-XForm_OrbitalPath::~XForm_OrbitalPath()
-{
-}
-
 void XForm_OrbitalPath::apply(float _dt)
 {
 	m_theta = Fract(m_theta + m_speed * _dt);
@@ -605,19 +526,20 @@ void XForm_OrbitalPath::edit()
 	ImGui::PushID(this);
 	Im3d::PushId(this);
 
-	ImGui::SliderFloat("Theta", &m_theta, 0.0f, 1.0f);
-	ImGui::Spacing();
-		
+	ImGui::SliderFloat("Theta",     &m_theta,      0.0f, 1.0f);
+	ImGui::Spacing();		
 	ImGui::SliderAngle("Azimuth",   &m_azimuth,   -180.0f, 180.0f);
 	ImGui::SliderAngle("Elevation", &m_elevation, -180.0f, 180.0f);
-	ImGui::DragFloat  ("Radius",    &m_radius, 0.1f);
-	ImGui::DragFloat  ("Speed",     &m_speed, 0.01f);
+	ImGui::DragFloat  ("Radius",    &m_radius,     0.1f);
+	ImGui::DragFloat  ("Speed",     &m_speed,      0.01f);
 	
-	Im3d::SetAlpha(0.5f);
-	Im3d::SetSize(2.0f);
-	Im3d::SetColor(Im3d::Color_Yellow);
-	Im3d::DrawCircle(vec3(0.0f), m_normal, m_radius);
-	Im3d::DrawPoint(m_direction * m_radius, 8.0f, Im3d::Color_White);
+	Im3d::PushAlpha(0.5f);
+	Im3d::PushSize(2.0f);
+	Im3d::SetColor(Im3d::Color(m_displayColor));
+		Im3d::DrawCircle(vec3(0.0f), m_normal, m_radius);
+	Im3d::PopAlpha();
+	Im3d::PopSize();
+	Im3d::DrawPoint(m_direction * m_radius, 8.0f, Im3d::Color(m_displayColor));
 
 	Im3d::PopId();
 	ImGui::PopID();
@@ -648,33 +570,18 @@ void XForm_OrbitalPath::reset()
 
 struct XForm_VRGamepad: public XForm
 {
-	vec3  m_position;
-	vec3  m_velocity;
-	float m_speed;
-	float m_maxSpeed;
-	float m_maxSpeedMul; //< Multiplies m_speed for speed 'boost'.
-	float m_accelTime;   //< Acceleration ramp length in seconds.
-	float m_accelCount;  //< Current ramp position in [0,m_accelTime].
+	vec3  m_position          = vec3(0.0f);
+	vec3  m_velocity          = vec3(0.0f);
+	float m_speed             = 0.0f;
+	float m_maxSpeed          = 2.0f;
+	float m_maxSpeedMul       = 5.0f;        // Multiplies m_speed for speed 'boost'.
+	float m_accelTime         = 0.01f;       // Acceleration ramp length in seconds.
+	float m_accelCount        = 0.0f;        // Current ramp position in [0,m_accelTime].
 	
-	float m_orientation;        //< 
-	float m_yaw;                //< Angular velocity in rads/sec.
-	float m_rotationInputMul;   //< Scale rotation inputs (should be relative to fov/screen size).
-	float m_rotationDamp;       //< Adhoc damping factor.
-
-	XForm_VRGamepad::XForm_VRGamepad()
-		: m_position(0.0f)
-		, m_velocity(0.0f)
-		, m_accelTime(0.1f)
-		, m_accelCount(0.0f)
-		, m_maxSpeed(2.0f)
-		, m_maxSpeedMul(5.0f)
-		, m_orientation(0.0f)
-		, m_yaw(0.0f)
-		, m_rotationInputMul(0.1f)
-		, m_rotationDamp(0.0001f)
-	{
-	}
-
+	float m_orientation       = 0.0f;
+	float m_yaw               = 0.0f;        // Angular velocity in rads/sec.
+	float m_rotationInputMul  = 0.1f;        // Scale rotation inputs (should be relative to fov/screen size).
+	float m_rotationDamp      = 0.0001f;     // Adhoc damping factor.
 
 	void XForm_VRGamepad::apply(float _dt)
 	{
