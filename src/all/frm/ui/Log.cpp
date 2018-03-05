@@ -3,6 +3,8 @@
 #include <cstring>
 
 #include <imgui/imgui.h>
+#include <time.h>
+#include <string>
 
 using namespace frm;
 using namespace ui;
@@ -64,6 +66,14 @@ const Log::Message* Log::addMessage(const char* _msg, LogType _type)
 
 const Log::Message* Log::addMessage(const char* _msg, ImU32 _col)
 {
+	time_t rawtime;
+	time(&rawtime);
+	struct tm * timeinfo = localtime(&rawtime);
+	char buffer[80];
+	strftime(buffer, sizeof(buffer), "[%d/%m/%Y - %H:%M:%S] : ", timeinfo);
+	std::string msg(buffer);
+	msg += _msg;
+
 	#define INC_WRAP(_ptr_, _start, _length) ++_ptr_; if (_ptr_ >= _start + _length) { _ptr_ = _start; }
 	#define DEC_WRAP(_ptr_, _start, _length) --_ptr_; if (_ptr_ < _start) { _ptr_ = _start + _length - 1; }
 	#define INC_MSG_HEAD() INC_WRAP(m_msgBufHead, m_msgBuf, m_msgBufCapacity)
@@ -72,7 +82,7 @@ const Log::Message* Log::addMessage(const char* _msg, ImU32 _col)
 	#define INC_TXT_NEXT() INC_WRAP(m_txtBufNext, m_txtBuf, m_txtBufCapacity)
 
 
-	int len = (int)strlen(_msg) + 1; // +1 for null terminator
+	int len = (int)strlen(msg.c_str()) + 1; // +1 for null terminator
 	APT_ASSERT(len < m_txtBufCapacity);
 	len = APT_MIN(len, m_txtBufCapacity);
 	const char* txtBufEnd = m_txtBuf + m_txtBufCapacity;
@@ -80,7 +90,7 @@ const Log::Message* Log::addMessage(const char* _msg, ImU32 _col)
 	 // text must be contiguous in memory, so wrap if _msg won't fit in the remaining space
 		m_txtBufNext = m_txtBuf;
 	}
-	memcpy(m_txtBufNext, _msg, len);
+	memcpy(m_txtBufNext, msg.c_str(), len);
 
 	Message* ret = m_msgBufNext;
 	if (ret == m_lastErr) {
