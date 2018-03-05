@@ -6,6 +6,9 @@
 #include <apt/log.h>
 #include <apt/platform.h>
 #include <apt/win.h>
+#include <apt/FileSystem.h>
+
+#include <shellapi.h>
 
 using namespace frm;
 
@@ -95,7 +98,7 @@ struct Window::Impl
 	static LRESULT CALLBACK WindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, LPARAM _lparam)
 	{
 		Window* window = Window::Find((void*)_hwnd);
-		#define DISPATCH_CALLBACK(cbk, ...) \
+		#define WindowImpl_DISPATCH_CALLBACK(cbk, ...) \
 			if (window->m_callbacks.m_##cbk) { \
 				if (window->m_callbacks.m_##cbk(window, __VA_ARGS__)) { \
 					return 0; \
@@ -106,9 +109,9 @@ struct Window::Impl
 				case WM_SIZE: {
 					int w = (int)LOWORD(_lparam), h = (int)HIWORD(_lparam);
 					if (window->m_width != w || window->m_height != h) {
-						window->m_width = w;
+						window->m_width  = w;
 						window->m_height = h;
-						DISPATCH_CALLBACK(OnResize, window->m_width, window->m_height);
+						WindowImpl_DISPATCH_CALLBACK(OnResize, window->m_width, window->m_height);
 					}
 					break;
 				}
@@ -117,35 +120,35 @@ struct Window::Impl
 					int w = (int)(r->right - r->left);
 					int h = (int)(r->bottom - r->top);
 					if (window->m_width != w || window->m_height != h) {
-						window->m_width = w;
+						window->m_width  = w;
 						window->m_height = h;
-						DISPATCH_CALLBACK(OnResize, window->m_width, window->m_height);
+						WindowImpl_DISPATCH_CALLBACK(OnResize, window->m_width, window->m_height);
 					}
 					break;
 				}
 				case WM_SHOWWINDOW:
 					if (_wparam) {
-						DISPATCH_CALLBACK(OnShow);
+						WindowImpl_DISPATCH_CALLBACK(OnShow);
 					} else {
-						DISPATCH_CALLBACK(OnHide);
+						WindowImpl_DISPATCH_CALLBACK(OnHide);
 					}
 					break;
 
 				case WM_LBUTTONDOWN:
 				case WM_LBUTTONUP:
-					DISPATCH_CALLBACK(OnMouseButton, (unsigned)Mouse::Button_Left, _umsg == WM_LBUTTONDOWN);
+					WindowImpl_DISPATCH_CALLBACK(OnMouseButton, (unsigned)Mouse::Button_Left, _umsg == WM_LBUTTONDOWN);
 					break;
 				case WM_MBUTTONDOWN:
 				case WM_MBUTTONUP:
-					DISPATCH_CALLBACK(OnMouseButton, (unsigned)Mouse::Button_Middle, _umsg == WM_MBUTTONDOWN);
+					WindowImpl_DISPATCH_CALLBACK(OnMouseButton, (unsigned)Mouse::Button_Middle, _umsg == WM_MBUTTONDOWN);
 					break;
 				case WM_RBUTTONDOWN:
 				case WM_RBUTTONUP:
-					DISPATCH_CALLBACK(OnMouseButton, (unsigned)Mouse::Button_Right, _umsg == WM_RBUTTONDOWN);
+					WindowImpl_DISPATCH_CALLBACK(OnMouseButton, (unsigned)Mouse::Button_Right, _umsg == WM_RBUTTONDOWN);
 					break;
 
 				case WM_MOUSEWHEEL:
-					DISPATCH_CALLBACK(OnMouseWheel, (float)(GET_WHEEL_DELTA_WPARAM(_wparam)) / (float)(WHEEL_DELTA)); 
+					WindowImpl_DISPATCH_CALLBACK(OnMouseWheel, (float)(GET_WHEEL_DELTA_WPARAM(_wparam)) / (float)(WHEEL_DELTA)); 
 					break;
 
 				case WM_SYSKEYDOWN:
@@ -153,16 +156,33 @@ struct Window::Impl
 				case WM_KEYDOWN:
 				case WM_KEYUP:
 					//APT_LOG_DBG("%s", Keyboard::GetButtonName(ButtonFromVk(_wparam, _lparam)));
-					DISPATCH_CALLBACK(OnKey, (unsigned)ButtonFromVk(_wparam, _lparam), _umsg == WM_KEYDOWN || _umsg == WM_SYSKEYDOWN);
+					WindowImpl_DISPATCH_CALLBACK(OnKey, (unsigned)ButtonFromVk(_wparam, _lparam), _umsg == WM_KEYDOWN || _umsg == WM_SYSKEYDOWN);
 					break;
 				case WM_CHAR:
-					DISPATCH_CALLBACK(OnChar, (char)_wparam);
+					WindowImpl_DISPATCH_CALLBACK(OnChar, (char)_wparam);
 					break;
+
+				case WM_DROPFILES: {
+					HDROP hdrop = (HDROP)_wparam;
+					UINT fileCount = DragQueryFile(hdrop, 0xffffffff, NULL, NULL);
+					for (UINT i = 0; i < fileCount; ++i) {
+						TCHAR fileName[MAX_PATH];
+						APT_PLATFORM_VERIFY(DragQueryFile(hdrop, i, fileName, MAX_PATH));
+					 // don't use the DISPATCH_CALLBACK macro as we want to dispatch once per file
+						//WindowImpl_DISPATCH_CALLBACK(OnFileDrop, fileName);
+						if (window->m_callbacks.m_OnFileDrop) {
+							window->m_callbacks.m_OnFileDrop(window, fileName);
+						}
+						window->m_fileDropList.push_back(fileName);
+					}
+					DragFinish(hdrop);
+					return 0;
+				}
 
 				default: break;
 			};
 		}
-		#undef DISPATCH_CALLBACK
+		#undef WindowImpl_DISPATCH_CALLBACK
 	
 		switch (_umsg) {
 			case WM_PAINT:
@@ -245,6 +265,7 @@ Window* Window::Create(int _width, int _height, const char* _title)
 		NULL
 		);
 	APT_PLATFORM_ASSERT(ret->m_handle);
+	DragAcceptFiles((HWND)ret->m_handle, TRUE);
 	return ret;
 }
 
@@ -257,8 +278,10 @@ void Window::Destroy(Window*& _window_)
 	_window_ = 0;
 }
 
-bool Window::pollEvents() const
+bool Window::pollEvents()
 {
+	m_fileDropList.clear();
+
 	MSG msg;
 	while (PeekMessage(&msg, (HWND)m_handle, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
 		TranslateMessage(&msg);
@@ -266,8 +289,10 @@ bool Window::pollEvents() const
 	}
 	return msg.message != WM_QUIT;
 }
-bool Window::waitEvents() const
+bool Window::waitEvents()
 {
+	m_fileDropList.clear();
+
 	MSG msg;
 	if (GetMessage(&msg, (HWND)m_handle, 0, 0)) {
 		TranslateMessage(&msg);

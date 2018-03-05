@@ -18,8 +18,8 @@ namespace frm {
 class Node;
 
 ////////////////////////////////////////////////////////////////////////////////
-/// XForm
-/// Base class/factory for XForms.
+// XForm
+// Base class/factory for XForms.
 ////////////////////////////////////////////////////////////////////////////////
 class XForm: public apt::Factory<XForm>
 {
@@ -80,13 +80,10 @@ protected:
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_PositionOrientationScale: public XForm
 {
-	vec3  m_position;
-	quat  m_orientation;
-	vec3  m_scale;
-
-	XForm_PositionOrientationScale();
-	virtual ~XForm_PositionOrientationScale() {}
-
+	vec3  m_position      = vec3(0.0f);
+	quat  m_orientation   = quat(0.0f, 0.0f, 0.0f, 1.0f);
+	vec3  m_scale         = vec3(1.0f);
+	
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
@@ -110,22 +107,18 @@ struct XForm_PositionOrientationScale: public XForm
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_FreeCamera: public XForm
 {
-	vec3  m_position;
-	vec3  m_velocity;
-	float m_speed;
-	float m_maxSpeed;
-	float m_maxSpeedMul;        // Multiplies m_speed for speed 'boost'.
-	float m_accelTime;          // Acceleration ramp length in seconds.
-	float m_accelCount;         // Current ramp position in [0,m_accelTime].
+	vec3  m_position           = vec3(0.0f);
+	vec3  m_velocity           = vec3(0.0f);
+	float m_speed              = 0.0f;
+	float m_maxSpeed           = 10.0f;
+	float m_maxSpeedMul        = 5.0f;                          // Multiplies m_speed for speed 'boost'.
+	float m_accelTime          = 0.1f;                          // Acceleration ramp length in seconds.
+	float m_accelCount         = 0.0f;                          // Current ramp position in [0,m_accelTime].
 
-	quat  m_orientation;
-	vec3  m_pitchYawRoll;       // Angular velocity in rads/sec.
-	float m_rotationInputMul;   // Scale rotation inputs (should be relative to fov/screen size).
-	float m_rotationDamp;       // Adhoc damping factor.
-
-	
-	XForm_FreeCamera();
-	virtual ~XForm_FreeCamera() {}
+	quat  m_orientation        = quat(0.0f, 0.0f, 0.0f, 1.0f);
+	vec3  m_pitchYawRoll       = vec3(0.0f);                    // Angular velocity in rads/sec.
+	float m_rotationInputMul   = 0.1f;                          // Scale rotation inputs (should be relative to fov/screen size).
+	float m_rotationDamp       = 0.0002f;                       // Adhoc damping factor.
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
@@ -138,12 +131,9 @@ struct XForm_FreeCamera: public XForm
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_LookAt: public XForm
 {
-	Node*     m_target;   // Node to look at (can be 0).
-	Node::Id  m_targetId; // Required for serialization.
-	vec3      m_offset;   // Offset from target, or world space if target is 0.
-
-	XForm_LookAt();
-	virtual ~XForm_LookAt() {}
+	Node*     m_target    = nullptr;          // Node to look at (can be 0).
+	Node::Id  m_targetId  = Node::kInvalidId; // Required for serialization.
+	vec3      m_offset    = vec3(0.0f);       // Offset from target, or world space if target is 0.
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
@@ -156,13 +146,10 @@ struct XForm_LookAt: public XForm
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_Spin: public XForm
 {
-	vec3  m_axis;
-	float m_rate;      // radians/s
-	float m_rotation;
-
-	XForm_Spin();
-	virtual ~XForm_Spin();
-
+	vec3  m_axis       = vec3(0.0f, 0.0f, 1.0f);
+	float m_rate       = 0.0f; // radians/s
+	float m_rotation   = 0.0f;
+	
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
@@ -174,17 +161,14 @@ struct XForm_Spin: public XForm
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_PositionTarget: public XForm
 {
-	vec3  m_start;
-	vec3  m_end;
-	vec3  m_currentPosition;
-	float m_duration;
-	float m_currentTime;
+	vec3  m_start             = vec3(0.0f);
+	vec3  m_end               = vec3(0.0f);
+	vec3  m_currentPosition   = vec3(0.0f);
+	float m_duration          = 1.0f;
+	float m_currentTime       = 0.0f;
 
 	OnComplete* m_onComplete;
-
-	XForm_PositionTarget();
-	virtual ~XForm_PositionTarget();
-
+	
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
@@ -199,15 +183,12 @@ struct XForm_PositionTarget: public XForm
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_SplinePath: public XForm
 {
-	SplinePath* m_path;
-	int         m_pathHint;
-	float       m_duration;
-	float       m_currentTime;
+	SplinePath* m_path          = nullptr;
+	int         m_pathHint      = 0;
+	float       m_duration      = 1.0f;
+	float       m_currentTime   = 0.0f;
 
 	OnComplete* m_onComplete;
-
-	XForm_SplinePath();
-	virtual ~XForm_SplinePath();
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
@@ -223,16 +204,14 @@ struct XForm_SplinePath: public XForm
 ////////////////////////////////////////////////////////////////////////////////
 struct XForm_OrbitalPath: public XForm
 {
-	float m_azimuth;
-	float m_elevation;
-	float m_theta;      // distance along path
-	float m_radius;
-	float m_speed;
-	vec3  m_direction;
-	vec3  m_normal;
-
-	XForm_OrbitalPath();
-	virtual ~XForm_OrbitalPath();
+	float m_azimuth         = 0.0f;
+	float m_elevation       = 90.0f;
+	float m_theta           = 0.0f;      // distance along path
+	float m_radius          = 1.0f;
+	float m_speed           = 0.0f;
+	vec3  m_direction       = vec3(0.0f);
+	vec3  m_normal          = vec3(0.0f);
+	vec4  m_displayColor    = vec4(1.0f, 1.0f, 0.0f, 1.0f);
 
 	virtual void apply(float _dt) override;
 	virtual void edit() override;
