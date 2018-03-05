@@ -135,6 +135,16 @@ const Log::Message* Log::addMessage(const char* _msg, ImU32 _col)
 	#undef INC_WRAP
 }
 
+void Log::clear()
+{
+	m_msgBufHead = m_msgBuf;
+	m_msgBufNext = m_msgBuf;
+	m_txtBufNext = m_txtBuf;
+	m_lastLog = nullptr;
+	m_lastDbg = nullptr;
+	m_lastErr = nullptr;
+}
+
 void Log::draw()
 {
 	const Message* msg = m_msgBufHead;
