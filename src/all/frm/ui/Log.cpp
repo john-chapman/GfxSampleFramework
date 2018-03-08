@@ -131,7 +131,7 @@ void Log::draw()
 	const Message* msgEnd = m_msgBuf + m_msgBufCapacity;
 	while (msg != m_msgBufNext) {
 
-		if (m_msgFilter.PassFilter(msg->m_txt))
+		if (m_msgTxtFilter.PassFilter(msg->m_txt))
 		{
 			ImGui::PushStyleColor(ImGuiCol_Text, msg->m_col);
 			ImGui::TextWrapped(msg->m_txt);
