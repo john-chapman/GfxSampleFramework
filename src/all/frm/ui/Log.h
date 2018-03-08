@@ -35,9 +35,19 @@ public:
 	const Message* getLastDbg() const { return m_lastDbg; }
 	const Message* getLastErr() const { return m_lastErr; }
 
+	void           clear();
+	
+	void		   clearLastLog() { m_lastLog = nullptr; }
+	void		   clearLastDbg() { m_lastDbg = nullptr; }
+	void		   clearLastErr() { m_lastErr = nullptr; }
+
 	const Message* addMessage(const char* _msg, apt::LogType _type);
 	const Message* addMessage(const char* _msg, ImU32 _col = ImColor(255, 255, 255));
 	void           draw();
+	void           update    (double _dt);
+private:	
+	void           createBuffers();
+	void           deleteBuffers();
 
 private:
 	Message*       m_msgBuf;
