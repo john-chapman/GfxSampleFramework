@@ -29,42 +29,43 @@ public:
 	Log(int _maxMessageCount, int _maxMessageLength);
 	~Log();
 	
-	const double   getElapsedTimeSinceLastMessage() const { return 0.0; }
+	const double    getElapsedTimeSinceLastMessage() const { return 0.0; }
 
-	const Message* getLastLog() const { return m_lastLog; }
-	const Message* getLastDbg() const { return m_lastDbg; }
-	const Message* getLastErr() const { return m_lastErr; }
-	ImGuiTextFilter getMsgTextFilter()       { return m_msgTxtFilter; }
+	const Message*  getLastLog                    () const { return m_lastLog; }
+	const Message*  getLastDbg                    () const { return m_lastDbg; }
+	const Message*  getLastErr                    () const { return m_lastErr; }
 
-	void           clear();
+	ImGuiTextFilter getMsgTextFilter              ()       { return m_msgTxtFilter; }
+
+	void            clear                         ();
 	
-	void		   clearLastLog() { m_lastLog = nullptr; }
-	void		   clearLastDbg() { m_lastDbg = nullptr; }
-	void		   clearLastErr() { m_lastErr = nullptr; }
+	void		    clearLastLog                  ()       { m_lastLog = nullptr; }
+	void		    clearLastDbg                  ()       { m_lastDbg = nullptr; }
+	void		    clearLastErr                  ()       { m_lastErr = nullptr; }
 
-	const Message* addMessage(const char* _msg, apt::LogType _type);
-	const Message* addMessage(const char* _msg, ImU32 _col = ImColor(255, 255, 255));
-	void           draw      ();
-	void           update    (double _dt);
+	const Message*  addMessage                    (const char* _msg, apt::LogType _type);
+	const Message*  addMessage                    (const char* _msg, ImU32 _col = ImColor(255, 255, 255));
+	void            draw                          ();
+	void            update                        (double _dt);
 private:	
-	void           createBuffers();
-	void           deleteBuffers();
+	void            createBuffers                 ();
+	void            deleteBuffers                 ();
 
-	Message*       m_msgBuf;
-	Message*       m_msgBufHead;     //< First message.
-	Message*       m_msgBufNext;     //< Next place to write.
-	int            m_msgBufCapacity; // size of m_msgBuf (#messages).
+	Message*        m_msgBuf;
+	Message*        m_msgBufHead;     //< First message.
+	Message*        m_msgBufNext;     //< Next place to write.
+	int             m_msgBufCapacity; // size of m_msgBuf (#messages).
 	ImGuiTextFilter m_msgTxtFilter;
 
-	char*          m_txtBuf;
-	char*          m_txtBufNext;      //< Next place to write.
-	int            m_txtBufCapacity;  //< Size of m_msgBuf (bytes).
+	char*           m_txtBuf;
+	char*           m_txtBufNext;      //< Next place to write.
+	int             m_txtBufCapacity;  //< Size of m_msgBuf (bytes).
 
-	const Message* m_lastLog;
-	const Message* m_lastDbg;
-	const Message* m_lastErr;
-	bool           m_scrollToBottom; 
-	double         m_elapsedTimeSinceLastMessage;
+	const Message*  m_lastLog;
+	const Message*  m_lastDbg;
+	const Message*  m_lastErr;
+	bool            m_scrollToBottom; 
+	double          m_elapsedTimeSinceLastMessage;
 }; // class Log
 
 } } // namespace frm::ui
