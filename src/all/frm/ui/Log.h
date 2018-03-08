@@ -29,6 +29,7 @@ public:
 	Log(int _maxMessageCount, int _maxMessageLength);
 	~Log();
 	
+	const double   getElapsedTimeSinceLastMessage() const { return 0.0; }
 
 	const Message* getLastLog() const { return m_lastLog; }
 	const Message* getLastDbg() const { return m_lastDbg; }
@@ -52,7 +53,7 @@ private:
 	const Message* m_lastDbg;
 	const Message* m_lastErr;
 	bool           m_scrollToBottom; 
-
+	double         m_elapsedTimeSinceLastMessage;
 }; // class Log
 
 } } // namespace frm::ui
