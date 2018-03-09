@@ -5,6 +5,7 @@
 #include <imgui/imgui.h>
 #include <time.h>
 #include <string>
+#include "apt/String.h"
 
 using namespace frm;
 using namespace ui;
@@ -75,10 +76,7 @@ const Log::Message* Log::addMessage(const char* _msg, ImU32 _col)
 	time_t rawtime;
 	time(&rawtime);
 	struct tm * timeinfo = localtime(&rawtime);
-	char buffer[80];
-	strftime(buffer, sizeof(buffer), "[%d/%m/%Y - %H:%M:%S] : ", timeinfo);
-	std::string msg(buffer);
-	msg += _msg;
+	apt::String<64> msg("[%d/%m/%Y - %H:%M:%S] : %s", timeinfo, _msg);
 
 	#define INC_WRAP(_ptr_, _start, _length) ++_ptr_; if (_ptr_ >= _start + _length) { _ptr_ = _start; }
 	#define DEC_WRAP(_ptr_, _start, _length) --_ptr_; if (_ptr_ < _start) { _ptr_ = _start + _length - 1; }
