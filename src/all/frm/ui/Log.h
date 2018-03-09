@@ -47,9 +47,8 @@ public:
 	const Message*  addMessage                    (const char* _msg, ImU32 _col = ImColor(255, 255, 255));
 	void            draw                          ();
 	void            update                        (double _dt);
+
 private:	
-	void            createBuffers                 ();
-	void            deleteBuffers                 ();
 
 	Message*        m_msgBuf;
 	Message*        m_msgBufHead;     //< First message.
