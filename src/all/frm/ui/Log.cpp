@@ -37,12 +37,18 @@ Log::Log(int _maxMessageCount, int _maxMessageLength)
 	, m_scrollToBottom(true)
 	, m_elapsedTimeSinceLastMessage(0.0)
 {
-	createBuffers();
+	m_msgBuf = new Message[m_msgBufCapacity];
+	m_msgBufHead = m_msgBuf;
+	m_msgBufNext = m_msgBuf;
+
+	m_txtBuf = new char[m_txtBufCapacity];
+	m_txtBufNext = m_txtBuf;
 }
 
 Log::~Log()
 {
-	deleteBuffers();
+	delete[] m_msgBuf;
+	delete[] m_txtBuf;
 }
 
 const Log::Message* Log::addMessage(const char* _msg, LogType _type)
@@ -140,9 +146,6 @@ void Log::clear()
 	m_msgBufHead = m_msgBuf;
 	m_msgBufNext = m_msgBuf;
 	m_txtBufNext = m_txtBuf;
-	m_lastLog = nullptr;
-	m_lastDbg = nullptr;
-	m_lastErr = nullptr;
 }
 
 void Log::draw()
@@ -172,40 +175,4 @@ void Log::draw()
 void Log::update(double _dt)
 {
 	m_elapsedTimeSinceLastMessage += _dt;
-}
-
-void Log::clear()
-{
-	/* Deletes the current buffers */
-	deleteBuffers();
-
-	/* Reset some parameters */
-	m_msgBuf     = 0;
-	m_msgBufHead = 0;
-	m_msgBufNext = 0;
-	m_txtBuf     = 0;
-	m_txtBufNext = 0;
-	m_lastLog    = 0;
-	m_lastDbg    = 0;
-	m_lastErr    = 0;
-
-	/* Create new empty buffers */
-	createBuffers();
-}
-
-
-void Log::deleteBuffers()
-{
-	delete[] m_msgBuf;
-	delete[] m_txtBuf;
-}
-
-void Log::createBuffers()
-{
-	m_msgBuf     = new Message[m_msgBufCapacity];
-	m_msgBufHead = m_msgBuf;
-	m_msgBufNext = m_msgBuf;
-
-	m_txtBuf     = new char[m_txtBufCapacity];
-	m_txtBufNext = m_txtBuf;
 }
