@@ -1,6 +1,4 @@
 #pragma once
-#ifndef frm_Property_h
-#define frm_Property_h
 
 #include <frm/def.h>
 #include <frm/math.h>
@@ -19,6 +17,8 @@ class Property
 {
 public:
 	typedef bool (Edit)(Property& _prop); // edit func, return true if the value changed
+	typedef apt::StringBase StringBase;
+	typedef apt::StringHash StringHash;
 
 	enum Type : uint8
 	{
@@ -50,14 +50,29 @@ public:
 	Property& operator=(Property&& _rhs);
 	friend void swap(Property& _a_, Property& _b_);
 
-	bool edit();
+	bool        edit();
+	void        setDefault();
 	friend bool Serialize(apt::SerializerJson& _serializer_, Property& _prop_);
 
-	void* getData()               { return m_data; }
-	Type getType()                { return m_type; }
-	int  getCount()               { return m_count; }
-	const char* getName()         { return (const char*)m_name; }
-	const char* getDisplayName()  { return (const char*)m_displayName; }
+	bool*       asBool()               { APT_ASSERT(getType() == Type_Bool);   return (bool*)getData();       }
+	int*        asInt()                { APT_ASSERT(getType() == Type_Int);    return (int*)getData();        }
+	ivec2*      asInt2()               { APT_ASSERT(getType() == Type_Int);    return (ivec2*)getData();      }
+	ivec3*      asInt3()               { APT_ASSERT(getType() == Type_Int);    return (ivec3*)getData();      }
+	ivec4*      asInt4()               { APT_ASSERT(getType() == Type_Int);    return (ivec4*)getData();      }
+	float*      asFloat()              { APT_ASSERT(getType() == Type_Float);  return (float*)getData();      }
+	vec2*       asFloat2()             { APT_ASSERT(getType() == Type_Float);  return (vec2*)getData();       }
+	vec3*       asFloat3()             { APT_ASSERT(getType() == Type_Float);  return (vec3*)getData();       }
+	vec4*       asFloat4()             { APT_ASSERT(getType() == Type_Float);  return (vec4*)getData();       }
+	vec3*       asRgb()                { APT_ASSERT(getType() == Type_Float);  return (vec3*)getData();       }
+	vec4*       asRgba()               { APT_ASSERT(getType() == Type_Float);  return (vec4*)getData();       }
+	StringBase* asString()             { APT_ASSERT(getType() == Type_String); return (StringBase*)getData(); }
+	StringBase* asPath()               { APT_ASSERT(getType() == Type_String); return (StringBase*)getData(); }
+
+	void*       getData() const        { return m_data; }
+	Type        getType() const        { return m_type; }
+	int         getCount() const       { return m_count; }
+	const char* getName() const        { return (const char*)m_name; }
+	const char* getDisplayName() const { return (const char*)m_displayName; }
 
 private:
 	typedef apt::String<32> String;
@@ -73,7 +88,7 @@ private:
 	String m_displayName;
 	Edit*  m_pfEdit;
 
-}; // class Property
+};
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -106,19 +121,19 @@ public:
 	StringBase* addString(const char* _name, const char*  _default,                         StringBase* storage_ = nullptr, const char* _displayName = nullptr);
 	StringBase* addPath  (const char* _name, const char*  _default,                         StringBase* storage_ = nullptr, const char* _displayName = nullptr);
 
-	Property* find(StringHash _nameHash);
-	Property* find(const char* _name) { return find(StringHash(_name)); }
+	Property*   find(StringHash _nameHash);
+	Property*   find(const char* _name) { return find(StringHash(_name)); }
 
 	const char* getName() const { return (const char*)m_name; }
 
-	bool edit(bool _showHidden = false);
+	bool        edit(bool _showHidden = false);
 	friend bool Serialize(apt::SerializerJson& _serializer_, PropertyGroup& _prop_);
 
 private:
 	apt::String<32> m_name;
 	eastl::vector_map<apt::StringHash, Property*> m_props;
 
-}; // class PropertyGroup
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Properties
@@ -133,21 +148,19 @@ public:
 
 	PropertyGroup& addGroup(const char* _name);
 
-	Property* findProperty(StringHash _nameHash);	
-	Property* findProperty(const char* _name) { return findProperty(StringHash(_name)); }
+	Property*      findProperty(const char* _name)   { return findProperty(StringHash(_name)); }
+	Property*      findProperty(StringHash _nameHash);	
 
 	PropertyGroup* findGroup(StringHash _nameHash);	
 	PropertyGroup* findGroup(const char* _name) { return findGroup(StringHash(_name)); }
 
-	bool edit(bool _showHidden = false);
-	friend bool Serialize(apt::SerializerJson& _serializer_, Properties& _props_);
+	bool           edit(bool _showHidden = false);
+	friend bool    Serialize(apt::SerializerJson& _serializer_, Properties& _props_);
 
 private:
 	eastl::vector_map<apt::StringHash, PropertyGroup*> m_groups;
 
-}; // class Properties
+};
 
 
 } // namespace frm
-
-#endif // frm_Property_h
