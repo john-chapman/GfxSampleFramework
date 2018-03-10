@@ -55,8 +55,8 @@ Property::Property(
 	int sizeBytes = GetTypeSize(_type) * _count;
 
 	m_default = (char*)malloc_aligned(sizeBytes, 16);
-	m_min = (char*)malloc_aligned(sizeBytes, 16);
-	m_max = (char*)malloc_aligned(sizeBytes, 16);
+	m_min     = (char*)malloc_aligned(sizeBytes, 16);
+	m_max     = (char*)malloc_aligned(sizeBytes, 16);
 	if (storage_) {
 		m_data = (char*)storage_;
 		m_ownsData = false;
@@ -64,18 +64,15 @@ Property::Property(
 		m_data = (char*)malloc_aligned(sizeBytes, 16);
 		m_ownsData = true;
 	}
-	
+
 	if (_type == Type_String) {
 	 // call StringBase ctor
 		if (m_ownsData) {
 			new((apt::String<0>*)m_data) apt::String<0>();
 		}
 		new((apt::String<0>*)m_default) apt::String<0>();
-
-		((StringBase*)m_data)->set((const char*)_default);
 		((StringBase*)m_default)->set((const char*)_default);
 	} else {
-		memcpy(m_data, _default, sizeBytes);
 		memcpy(m_default, _default, sizeBytes);
 	}
 
@@ -86,6 +83,8 @@ Property::Property(
 	if (_max) {
 		memcpy(m_max, _max, GetTypeSize(_type));
 	}
+
+	setDefault();
 }
 
 Property::~Property()
@@ -224,7 +223,19 @@ bool Property::edit()
 		};
 	}
 
+	if (ImGui::GetIO().MouseClicked[1] && ImGui::IsItemHovered()) {
+		setDefault();
+	}
 	return ret;
+}
+
+void Property::setDefault()
+{
+	if (getType() == Type_String) {
+		((StringBase*)m_data)->set(((StringBase*)m_default)->c_str());
+	} else {
+		memcpy(m_data, m_default, GetTypeSize(getType()) * getCount());
+	}
 }
 
 bool frm::Serialize(SerializerJson& _serializer_, Property& _prop_)
@@ -339,79 +350,79 @@ bool* PropertyGroup::addBool(const char* _name, bool _default, bool* storage_, c
 {
 	Property* ret = new Property(_name, Property::Type_Bool, 1, &_default, nullptr, nullptr, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (bool*)ret->getData();
+	return ret->asBool();
 }
 int* PropertyGroup::addInt(const char* _name, int _default, int _min, int _max, int* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Int, 1, &_default, &_min, &_max, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (int*)ret->getData();
+	return ret->asInt();
 }
 ivec2* PropertyGroup::addInt2(const char* _name, const ivec2& _default, int _min, int _max, ivec2* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Int, 2, &_default.x, &_min, &_max, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (ivec2*)ret->getData();
+	return ret->asInt2();
 }
 ivec3* PropertyGroup::addInt3(const char* _name, const ivec3& _default, int _min, int _max, ivec3* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Int, 3, &_default.x, &_min, &_max, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (ivec3*)ret->getData();
+	return ret->asInt3();
 }
 ivec4* PropertyGroup::addInt4(const char* _name, const ivec4& _default, int _min, int _max, ivec4* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Int, 4, &_default.x, &_min, &_max, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (ivec4*)ret->getData();
+	return ret->asInt4();
 }
 float* PropertyGroup::addFloat(const char* _name, float _default, float _min, float _max, float* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Float, 1, &_default, &_min, &_max, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (float*)ret->getData();
+	return ret->asFloat();
 }
 vec2* PropertyGroup::addFloat2(const char* _name, const vec2& _default, float _min, float _max, vec2* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Float, 2, &_default.x, &_min, &_max, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (vec2*)ret->getData();
+	return ret->asFloat2();
 }
 vec3* PropertyGroup::addFloat3(const char* _name, const vec3& _default, float _min, float _max, vec3* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Float, 3, &_default.x, &_min, &_max, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (vec3*)ret->getData();
+	return ret->asFloat3();
 }
 vec4* PropertyGroup::addFloat4(const char* _name, const vec4& _default, float _min, float _max, vec4* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Float, 4, &_default.x, &_min, &_max, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (vec4*)ret->getData();
+	return ret->asFloat4();
 }
 vec3* PropertyGroup::addRgb(const char* _name, const vec3& _default, float _min, float _max, vec3* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Float, 3, &_default.x, &_min, &_max, storage_, _displayName, &EditColor);
 	m_props[StringHash(_name)] = ret;
-	return (vec3*)ret->getData();
+	return ret->asFloat3();
 }
 vec4* PropertyGroup::addRgba(const char* _name, const vec4& _default, float _min, float _max, vec4* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_Float, 4, &_default.x, &_min, &_max, storage_, _displayName, &EditColor);
 	m_props[StringHash(_name)] = ret;
-	return (vec4*)ret->getData();
+	return ret->asFloat4();
 }
 StringBase* PropertyGroup::addString(const char* _name, const char* _default, StringBase* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_String, 1, _default, nullptr, nullptr, storage_, _displayName, nullptr);
 	m_props[StringHash(_name)] = ret;
-	return (StringBase*)ret->getData();
+	return ret->asString();
 }
 StringBase* PropertyGroup::addPath(const char* _name, const char* _default, StringBase* storage_, const char* _displayName)
 {
 	Property* ret = new Property(_name, Property::Type_String, 1, _default, nullptr, nullptr, storage_, _displayName, &EditPath);
 	m_props[StringHash(_name)] = ret;
-	return (StringBase*)ret->getData();
+	return ret->asString();
 }
 
 Property* PropertyGroup::find(StringHash _nameHash)
