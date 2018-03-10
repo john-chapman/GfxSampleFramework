@@ -25,8 +25,8 @@
 using namespace frm;
 using namespace apt;
 
-static ui::Log            g_log(32, 512);
-static AppSample*         g_current;
+static ui::Log    g_log(32, 512);
+static AppSample* g_current;
 
 void AppLogCallback(const char* _msg, LogType _type)
 {
@@ -49,28 +49,29 @@ AppSample* AppSample::GetCurrent()
 
 bool AppSample::init(const apt::ArgList& _args)
 {
-	apt::SetLogCallback(AppLogCallback);
-
+	if (apt::GetLogCallback() == nullptr) { // don't override an existing callback
+		apt::SetLogCallback(AppLogCallback);
+	}
 	if (!App::init(_args)) {
 		return false;
 	}
 	
- // init FileSystem roots
 	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
 	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
 
- // load settings from json
-	m_propsPath.setf("%s.json", (const char*)m_name);
+ 	m_propsPath.setf("%s.json", (const char*)m_name);
 	readProps((const char*)m_propsPath);
-
- // init the app
 	PropertyGroup* propGroup;
 	APT_VERIFY(propGroup = m_props.findGroup("AppSample"));
-	m_window = Window::Create(m_windowSizeProp.x, m_windowSizeProp.y, (const char*)m_name);
+
+
+	ivec2 windowSize     = *propGroup->find("WindowSize")->asInt2();
+	m_window             = Window::Create(windowSize.x, windowSize.y, (const char*)m_name);
+	m_windowSize         = ivec2(m_window->getWidth(), m_window->getHeight());
 		
-	ivec2* glVersion = (ivec2*)propGroup->find("GlVersion")->getData();
-	bool* glCompatibility = (bool*)propGroup->find("GlCompatibility")->getData();
-	m_glContext = GlContext::Create(m_window, glVersion->x, glVersion->y, *glCompatibility);
+	ivec2 glVersion      = *propGroup->find("GlVersion")->asInt2();
+	bool glCompatibility = *propGroup->find("GlCompatibility")->asBool();
+	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
 	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 	FileSystem::MakePath(m_imguiIniPath, "imgui.ini", FileSystem::RootType_Application);
 	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
@@ -78,20 +79,18 @@ bool AppSample::init(const apt::ArgList& _args)
 		return false;
 	}
 
-	// \hack can't change the props, but need to set m_resolution/m_windowSize to the correct values
-	m_windowSize = ivec2(m_window->getWidth(), m_window->getHeight());
-	m_resolution.x = m_resolutionProp.x == -1 ? m_windowSize.x : m_resolutionProp.x;
-	m_resolution.y = m_resolutionProp.y == -1 ? m_windowSize.y : m_resolutionProp.y;
+	ivec2 resolution = *propGroup->find("Resolution")->asInt2();
+	m_resolution.x   = resolution.x == -1 ? m_windowSize.x : resolution.x;
+	m_resolution.y   = resolution.y == -1 ? m_windowSize.y : resolution.y;
 
  // set ImGui callbacks
  // \todo poll input directly = easier to use proxy devices
 	Window::Callbacks cb = m_window->getCallbacks();
-	cb.m_OnMouseButton = ImGui_OnMouseButton;
-	cb.m_OnMouseWheel = ImGui_OnMouseWheel;
-	cb.m_OnKey = ImGui_OnKey;
-	cb.m_OnChar = ImGui_OnChar;
+	cb.m_OnMouseButton   = ImGui_OnMouseButton;
+	cb.m_OnMouseWheel    = ImGui_OnMouseWheel;
+	cb.m_OnKey           = ImGui_OnKey;
+	cb.m_OnChar          = ImGui_OnChar;
 	m_window->setCallbacks(cb);
-
 
 	m_window->show();
 
@@ -313,25 +312,22 @@ void AppSample::drawNdcQuad()
 AppSample::AppSample(const char* _name)
 	: App()
 	, m_name(_name)
-	, m_window(nullptr)
-	, m_glContext(nullptr)
-	, m_frameIndex(0)
-	, m_fbDefault(nullptr)
 {
-	APT_ASSERT(g_current == 0); // don't support multiple apps (yet)
+	APT_ASSERT(g_current == nullptr); // don't support multiple apps (yet)
 	g_current = this;
 
 	PropertyGroup& propGroup = m_props.addGroup("AppSample");
 	//                name                     default         min     max                          storage
-	propGroup.addInt2("Resolution",            ivec2(-1),      1,      8192,                        &m_resolutionProp);
-	propGroup.addInt2("WindowSize",            ivec2(-1),      1,      8192,                        &m_windowSizeProp);
-	propGroup.addInt ("Vsync Mode",            0,              0,      (int)GlContext::Vsync_On3,   &m_vsyncMode);
-	propGroup.addBool("Show Menu",             false,                                              &m_showMenu);
-	propGroup.addBool("Show Log",              false,                                              &m_showLog);
-	propGroup.addBool("Show Property Editor",  false,                                              &m_showPropertyEditor);
-	propGroup.addBool("Show Profiler",         false,                                              &m_showProfilerViewer);
-	propGroup.addBool("Show Texture Viewer",   false,                                              &m_showTextureViewer);
-	propGroup.addBool("Show Shader Viewer",    false,                                              &m_showShaderViewer);
+	propGroup.addInt2("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroup.addInt2("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroup.addInt ("Vsync Mode",            0,              0,      (int)GlContext::Vsync_On,    &m_vsyncMode);
+	propGroup.addBool("Show Menu",             false,                                               &m_showMenu);
+	propGroup.addBool("Show Log",              false,                                               &m_showLog);
+	propGroup.addBool("Show Property Editor",  false,                                               &m_showPropertyEditor);
+	propGroup.addBool("Show Profiler",         false,                                               &m_showProfilerViewer);
+	propGroup.addBool("Show Texture Viewer",   false,                                               &m_showTextureViewer);
+	propGroup.addBool("Show Shader Viewer",    false,                                               &m_showShaderViewer);
+	propGroup.addPath("Font",                  "",                                                  nullptr);
 
 	propGroup.addInt2("GlVersion",             ivec2(-1, -1), -1,      99);
 	propGroup.addBool("GlCompatibility",       false);
@@ -380,7 +376,8 @@ static Texture*    g_txRadar;
 
 bool AppSample::ImGui_Init()
 {
-	ImGuiIO& io = ImGui::GetIO();
+	auto  app = AppSample::GetCurrent();
+	auto& io  = ImGui::GetIO();
 	
  // mesh
  	if (g_msImGui) {
@@ -425,12 +422,15 @@ bool AppSample::ImGui_Init()
 	int txX, txY;
 	ImFontConfig fontCfg;
 	fontCfg.OversampleH = fontCfg.OversampleV = 1;
-	io.Fonts->AddFontDefault();
-	//io.Fonts->AddFontFromFileTTF("common/fonts/Roboto-Regular.ttf", 13.0f, &fontCfg);
+	auto fontProp = app->getProperties().findProperty("Font");
+	if (fontProp && !fontProp->asString()->isEmpty()) {
+		io.Fonts->AddFontFromFileTTF(fontProp->asString()->c_str(), 13.0f, &fontCfg);
+	} else {
+		io.Fonts->AddFontDefault();
+	}
 	fontCfg.MergeMode = true;
 	const ImWchar glyphRanges[] = { 0xf000, 0xf2e0, 0 };
 	io.Fonts->AddFontFromFileTTF("common/fonts/fontawesome-webfont.ttf", 13.0f, &fontCfg, glyphRanges);
-	
 	io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
 	g_txImGui = Texture::Create2d(txX, txY, GL_R8);
 	g_txImGui->setFilter(GL_NEAREST);
