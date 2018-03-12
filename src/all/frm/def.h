@@ -34,6 +34,8 @@ namespace frm {
 	class  AppSample3d;
 	class  Buffer;
 	class  Camera;
+	class  Curve;
+	class  CurveEditor;
 	class  Device;
 	class  Framebuffer;
 	class  Gamepad;
@@ -67,6 +69,7 @@ namespace frm {
 	class  ValueCurve;
 	class  ValueCurveEditor;
 	class  VertexAttr;
+	class  VirtualWindow;
 	class  Window;
 	class  XForm;
 

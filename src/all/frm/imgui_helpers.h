@@ -7,6 +7,18 @@
 
 namespace frm {
 
+// Point-circle test.
+inline bool IsInside(const vec2& _point, const vec2& _origin, float _radius)
+{
+	return apt::Length2(_point - _origin) < (_radius * _radius);
+}
+// Point-rectangle test.
+inline bool IsInside(const vec2& _point, const vec2& _min, const vec2& _max)
+{
+	return _point.x > _min.x && _point.x < _max.x && _point.y > _min.y && _point.y < _max.y;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // VirtualWindow
 // Provide mapping between a rectangular subregion of a virtual space and a 
@@ -31,7 +43,7 @@ namespace frm {
 // - Need to handle dragging to pan when mouse is outside of the window.
 // - Fade in/out fine grid lines during zoom.
 ////////////////////////////////////////////////////////////////////////////////
-struct VirtualWindow
+class VirtualWindow
 {
 public:
 	enum Flag
@@ -59,8 +71,10 @@ public:
 
 	// Convert window space (pixels) to virtual space.
 	vec2        windowToVirtual(const vec2& _posW) const                 { return apt::TransformPosition(m_windowToVirtual, _posW); }
+	float       windowToVirtual(float _posWX) const                      { return windowToVirtual(vec2(_posWX, 0.0f)).x; }
 	// Convert virtual space to window space (pixels).
 	vec2        virtualToWindow(const vec2& _posV) const                 { return apt::Floor(apt::TransformPosition(m_virtualToWindow, _posV)); }
+	float       virtualToWindow(float _posVX) const                      { return virtualToWindow(vec2(_posVX, 0.0f)).x; }
 		
 	// Begin rendering (push the ImGui clip rectangle), handle zoom (_deltaSizeW) and pan (_deltaOriginW).
 	// _anchorW is a window space position constrained to remain fixed during zoom, by default this is the mouse position.
@@ -72,15 +86,23 @@ public:
 	bool        isActive() const                                         { return m_isActive; }
 
 	// Window size (pixels), 0 to fill the available content region of the current ImGui window.
-	void        setSizeW(float _width, float _height = 0.0f)             { m_requestedSizeW = vec2(_width, _height); }
+	void        setSizeW(float _width, float _height = -1.0f)            { m_requestedSizeW = vec2(_width, _height); }
 	const vec2& getSizeW() const                                         { return m_sizeW; }
 
+	// Window min/max.
+	const vec2& getMinW() const                                          { return m_minW; }
+	const vec2& getMaxW() const                                          { return m_maxW; }
+
 	// Virtual subregion is ± sizeV*0.5, centerd on originV.
-	void        setSizeV(float _width, float _height = 0.0f)             { m_sizeV = vec2(_width, _height); }
+	void        setSizeV(float _width, float _height = -1.0f)            { m_sizeV = vec2(_width, _height); }
 	const vec2& getSizeV() const                                         { return m_sizeV; }
-	void        setOriginV(float _x, float _y)                           { m_originV = vec2(_x, _y); }
+	void        setOriginV(float _x, float _y = 0.0f)                    { m_originV = vec2(_x, _y); }
 	const vec2& getOriginV() const                                       { return m_originV; }
 
+	// Virtual subregion min/max.
+	const vec2  getMinV() const                                          { return m_minV; }
+	const vec2  getMaxV() const                                          { return m_maxV; }
+	
 	// Orientation of the virtual subregion relative to the window, by default positive values in V move down/right in W.
 	// E.g. use setOrientationV(vec2(0,-1), vec2(-1,0)) to flip both axes.
 	void        setOrientationV(const vec2& _down, const vec2& _right)   { m_basisV = mat2(_right, _down); }
@@ -104,7 +126,7 @@ public:
 	void        edit();
 
 private:
-	vec2  m_requestedSizeW         = vec2(0.0f);      // Requested window size, 0 to fill the available content region.
+	vec2  m_requestedSizeW         = vec2(-1.0f);     // Requested window size, -1 to fill the available content region.
 	vec2  m_sizeW                  = vec2(-1.0f);     // Actual window size (m_maxW - m_minW).
 	vec2  m_minW                   = vec2(-1.0f);
 	vec2  m_maxW                   = vec2(-1.0f);
@@ -135,5 +157,47 @@ private:
 	void editColor(Color _enum, const char* _name);
 };
 
+
+////////////////////////////////////////////////////////////////////////////////
+// GradientEditor
+////////////////////////////////////////////////////////////////////////////////
+class GradientEditor
+{
+public:
+	enum Flag
+	{
+		Flag_ZoomPan     = 1 << 0,    // Enable zoom/pan (via mouse wheel).
+		Flag_Alpha       = 1 << 1,    // Enable alpha.
+		Flags_Default    = Flag_Alpha,
+	};
+
+	int           m_flags             = Flags_Default;
+	int           m_selectedKeyRGB    = -1;//Curve::kInvalidIndex;
+	int           m_selectedKeyA      = -1;//Curve::kInvalidIndex;
+	int           m_dragKey           = -1;//Curve::kInvalidIndex;
+	int           m_dragComponent     = -1;
+	float         m_dragOffset        = 0.0f;
+	Curve*        m_curves[4]         = {}; // RGBA
+	VirtualWindow m_virtualWindow;
+
+	GradientEditor();
+	~GradientEditor() {}
+
+	void        setFlags(int _flags)                                     { m_flags = _flags; }
+	void        setFlag(Flag _flag, bool _value)                         { m_flags = _value ? (m_flags | _flag) : (m_flags & ~_flag); }
+	bool        getFlag(Flag _flag) const                                { return (m_flags & _flag) != 0; }
+	
+	bool        drawEdit(const vec2& _sizePixels = vec2(-1.0f, 64.0f), float _t = -1.0f, int _flags = 0);
+
+	// Edit settings.
+	void        edit();
+
+	void        drawGradient();
+	void        drawKeysRGB();
+	void        drawKeysA();
+
+	bool        editKeysRGB();
+
+};
 
 } // namespace frm

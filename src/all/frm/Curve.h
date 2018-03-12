@@ -20,9 +20,9 @@ namespace frm {
 // 2 'control points' (CP) which describe the in/out tangent of the curve at
 // the VP.
 //
-// When sampling, CPs are constrained to lie within their containing segment. This 
-// is necessary to ensure a 1:1 maping between the curve input and output (loops
-// are prohibited).
+// When sampling, Bezier CPs are constrained to lie within their containing 
+// segment. This is necessary to ensure a 1:1 maping between the curve input 
+// and output (loops are prohibited).
 //
 // \todo Allow unlocked CPs (e.g. to create cusps).
 ////////////////////////////////////////////////////////////////////////////////
@@ -67,28 +67,45 @@ public:
  // Bezier
 	// Insert a new endpoint with the given value, return its index.
 	int   insert(const Endpoint& _endpoint);
+	int   insert(float _valueX, float _valueY);
 	// Move the specified component on endpoint by setting its value, return the new index.
 	int   move(int _endpointIndex, Component _component, const vec2& _value);
+	int   moveX(int _endpointIndex, Component _component, float _value);
+	void  moveY(int _endpointIndex, Component _component, float _value);
 	// Erase the specified endpoint.
 	void  erase(int _endpointIndex);
 	// Apply the wrap mode to _t.
 	float wrap(float _t) const;
 	// Constraint endpoint values in [_min, _max].
 	void  setValueConstraint(const vec2& _min, const vec2& _max);
+	
+	// Bezier endpoint access.
+	int   getBezierEndpointCount() const              { return (int)m_bezier.size(); }
+	const Endpoint& getBezierEndpoint(int _i) const   { return m_bezier[_i]; }
 
  // Piecewise
 	// Evaluate the piecewise representation at _t (which is implicitly wrapped).
 	float evaluate(float _t) const;
 
+	// Max error controls the number of segments in the piecewise approximation.
+	void  setMaxError(float _maxError)                { m_maxError = _maxError; updatePiecewise(); }
+	float getMaxError() const                         { return m_maxError; }
+
+	// Piecewise endpoint access.
+	int   getPiecewiseEndpointCount() const           { return (int)m_piecewise.size(); }
+	const vec2& getPiecewiseEndpoint(int _i) const    { return m_piecewise[_i]; }
+
 private:
-	vec2 m_endpointMin, m_endpointMax;     // endpoint bounding box, including CPs
-	vec2 m_valueMin, m_valueMax;           // endpoint bounding box, excluding CPs
-	Wrap m_wrap;
-	vec2 m_constrainMin, m_constrainMax;   // limit endpoint values
+	vec2  m_endpointMin, m_endpointMax;     // endpoint bounding box, including CPs
+	vec2  m_valueMin, m_valueMax;           // endpoint bounding box, excluding CPs
+	Wrap  m_wrap;
+	vec2  m_constrainMin, m_constrainMax;   // limit endpoint values
+	float m_maxError;
 
-	eastl::vector<Endpoint> m_bezier;      // for edit/serializer
-	eastl::vector<vec2>     m_piecewise;   // for runtime evaluation
+	eastl::vector<Endpoint> m_bezier;       // for edit/serializer
+	eastl::vector<vec2>     m_piecewise;    // for runtime evaluation
 
+	int  findInsertIndex(float _t);
 	int  findBezierSegmentStartIndex(float _t) const;
 	int  findPiecewiseSegmentStartIndex(float _t) const;
 	void updateExtentsAndConstrain(int _modified); // applies additional constraints, e.g. synchronize endpoints if Wrap_Repeat
@@ -97,7 +114,7 @@ private:
 
 	// Update the piecewise approximation.
 	void updatePiecewise();
-	void subdivide(const Endpoint& _p0, const Endpoint& _p1, float _maxError = 1e-3f, int _limit = 64);
+	void subdivide(const Endpoint& _p0, const Endpoint& _p1, int _limit = 64);
 
 }; // class Curve
 
@@ -126,7 +143,7 @@ public:
 
 	void addCurve(Curve* _curve_, const ImColor& _color);
 	void selectCurve(const Curve* _curve_);
-
+	void reset();
 	bool drawEdit(const vec2& _sizePixels, float _t, int _flags);
 
 private:
@@ -136,21 +153,21 @@ private:
 	vec2      m_regionBeg, m_regionEnd, m_regionSize;
 	int       m_selectedEndpoint;
 	int       m_dragEndpoint;
-	bool      m_showAllCurves;
 	int       m_dragComponent;
+	bool      m_showAllCurves;
 	vec2      m_dragOffset;
 	bvec2     m_dragRuler;
 	bool      m_editEndpoint;
 	bool      m_isDragging;
 	uint32    m_editFlags;
 
-	bool checkEditFlag(Flags _flag) { return (m_editFlags & _flag) != 0; }
-	bool isInside(const vec2& _point, const vec2& _min, const vec2& _max);
-	bool isInside(const vec2& _point, const vec2& _origin, float _radius);
-	vec2 curveToRegion(const vec2& _pos);
-	vec2 curveToWindow(const vec2& _pos);
-	vec2 regionToCurve(const vec2& _pos);
-	vec2 windowToCurve(const vec2& _pos);
+	bool checkEditFlag(Flags _flag) const { return (m_editFlags & _flag) != 0; }
+	bool isInside(const vec2& _point, const vec2& _min, const vec2& _max) const;
+	bool isInside(const vec2& _point, const vec2& _origin, float _radius) const;
+	vec2 curveToRegion(const vec2& _pos) const;
+	vec2 curveToWindow(const vec2& _pos) const;
+	vec2 regionToCurve(const vec2& _pos) const;
+	vec2 windowToCurve(const vec2& _pos) const;
 	void fit(int _dim);
 	bool editCurve();
 	void drawBackground();
