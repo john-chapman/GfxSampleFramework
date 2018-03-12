@@ -31,8 +31,9 @@ public:
 	virtual void drawStatusBar() override;
 
 	// Get a world/view space ray corresponding to the cursor position (by default the window-relative mouse position).
-	virtual Ray getCursorRayW() const;
-	virtual Ray getCursorRayV() const;
+	// By default Scene::GetDrawCamera() is used (if _camera == nullptr).
+	virtual Ray getCursorRayW(const Camera* _camera = nullptr) const;
+	virtual Ray getCursorRayV(const Camera* _camera = nullptr) const;
 
 protected:		
 	static void DrawFrustum(const Frustum& _frustum);
