@@ -185,31 +185,31 @@ void AppSample3d::draw()
 	AppSample::draw();
 }
 
-Ray AppSample3d::getCursorRayW() const
+Ray AppSample3d::getCursorRayW(const Camera* _camera) const
 {
-	Ray ret = getCursorRayV();
-	ret.transform(Scene::GetDrawCamera()->m_world);
+	_camera = _camera ? _camera : Scene::GetDrawCamera();
+	Ray ret = getCursorRayV(_camera);
+	ret.transform(_camera->m_world);
 	return ret;
 }
 
-Ray AppSample3d::getCursorRayV() const
+Ray AppSample3d::getCursorRayV(const Camera* _camera) const
 {
+	_camera = _camera ? _camera : Scene::GetDrawCamera();
 	int mx, my;
 	getWindow()->getWindowRelativeCursor(&mx, &my);
-	vec2 mpos  = vec2((float)mx, (float)my);
 	vec2 wsize = vec2((float)getWindow()->getWidth(), (float)getWindow()->getHeight());
-	mpos = (mpos / wsize);
-	const Camera&  cam = *Scene::GetDrawCamera();
+	vec2 mpos  = vec2((float)mx, (float)my) / wsize;
 	Ray ret;
-	if (cam.getProjFlag(Camera::ProjFlag_Orthographic)) {
-		ret.m_origin.x  = lerp(cam.m_left, cam.m_right, mpos.x);
-		ret.m_origin.y  = lerp(cam.m_up,   cam.m_down,  mpos.y);
-		ret.m_origin.z  = 0.0f;
-		ret.m_direction = vec3(0.0f, 0.0f, -1.0f);
+	if (_camera->getProjFlag(Camera::ProjFlag_Orthographic)) {
+		ret.m_origin.x    = lerp(_camera->m_left, _camera->m_right, mpos.x);
+		ret.m_origin.y    = lerp(_camera->m_up,   _camera->m_down,  mpos.y);
+		ret.m_origin.z    = 0.0f;
+		ret.m_direction   = vec3(0.0f, 0.0f, -1.0f);
 	} else {
 		ret.m_origin      = vec3(0.0f);
-		ret.m_direction.x = lerp(cam.m_left, cam.m_right, mpos.x);
-		ret.m_direction.y = lerp(cam.m_up,   cam.m_down,  mpos.y);
+		ret.m_direction.x = lerp(_camera->m_left, _camera->m_right, mpos.x);
+		ret.m_direction.y = lerp(_camera->m_up,   _camera->m_down,  mpos.y);
 		ret.m_direction.z = -1.0f;
 		ret.m_direction   = normalize(ret.m_direction);
 	}
