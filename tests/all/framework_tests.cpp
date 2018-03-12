@@ -1,5 +1,6 @@
 #include <frm/def.h>
 
+#include <frm/imgui_helpers.h>
 #include <frm/interpolation.h>
 #include <frm/gl.h>
 #include <frm/AppSample3d.h>
@@ -115,7 +116,7 @@ public:
 			return false;
 		}
 		
-		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Intersection")) {
 			Im3d::PushDrawState();
 
@@ -603,6 +604,46 @@ public:
 			}
 
 			ctx->blitFramebuffer(fbDepthColor, 0, GL_COLOR_BUFFER_BIT);
+
+			ImGui::TreePop();
+		}
+
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Curve Editor")) {
+			static float t = 0.0f;
+			static Curve s_curve;
+			static CurveEditor s_curveEditor;
+			APT_ONCE {
+				s_curveEditor.addCurve(&s_curve, IM_COL32_MAGENTA);
+			}
+			s_curveEditor.drawEdit(vec2(-1.0f, 200.0f), t, CurveEditor::Flags_ShowGrid | CurveEditor::Flags_ShowRuler | CurveEditor::Flags_ShowHighlight | CurveEditor::Flags_ShowSampler);
+			if (s_curve.getBezierEndpointCount() > 1) {
+				ImGui::SliderFloat("t", &t, s_curve.getBezierEndpoint(0).m_value.x, s_curve.getBezierEndpoint(s_curve.getBezierEndpointCount() - 1).m_value.x);
+			}
+
+			ImGui::TreePop();
+		}
+
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Gradient Editor")) {
+			static Curve          s_gradient[4];
+			static GradientEditor s_gradientEditor;
+			static CurveEditor    s_curveEditor;
+			APT_ONCE {
+				s_curveEditor.addCurve(&s_gradient[0], IM_COL32_RED);
+				s_curveEditor.addCurve(&s_gradient[1], IM_COL32_GREEN);
+				s_curveEditor.addCurve(&s_gradient[2], IM_COL32_BLUE);
+				s_curveEditor.addCurve(&s_gradient[3], IM_COL32_WHITE);
+				s_curveEditor.selectCurve(nullptr);	
+				for (int i = 0; i < 4; ++i) {
+					s_gradient[i].setMaxError(1e-2f);
+					s_gradient[i].setValueConstraint(vec2(0.0f), vec2(1.0f, FLT_MAX));
+					s_gradientEditor.m_curves[i] = &s_gradient[i];
+				}
+			}
+			s_curveEditor.drawEdit(vec2(-1.0f, 200.0f), 0.0f, CurveEditor::Flags_ShowGrid | CurveEditor::Flags_ShowRuler | CurveEditor::Flags_ShowHighlight);
+			s_gradientEditor.drawEdit(vec2(-1.0f, 48.0f));
+			s_gradientEditor.edit();
 
 			ImGui::TreePop();
 		}

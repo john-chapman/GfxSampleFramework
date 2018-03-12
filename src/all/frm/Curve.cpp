@@ -32,6 +32,7 @@ Curve::Curve()
 	: m_constrainMin(-FLT_MAX)
 	, m_constrainMax(FLT_MAX)
 	, m_wrap(Wrap_Clamp)
+	, m_maxError(1e-3f)
 {
 }
 
@@ -86,24 +87,51 @@ bool frm::Serialize(apt::Serializer& _serializer_, Curve& _curve_)
 
 int Curve::insert(const Endpoint& _endpoint)
 {
-	int ret = (int)m_bezier.size();
-	if (!m_bezier.empty() && _endpoint.m_value.x < m_bezier[ret - 1].m_value.x) {
-	 // can't insert at end, do binary search
-		ret = findBezierSegmentStartIndex(_endpoint.m_value.x);
-		ret += (_endpoint.m_value.x >= m_bezier[ret].m_value.x) ? 1 : 0; // handle case where _pos.x should be inserted at 0, normally we +1 to ret
-	}
+	int ret = Curve::findInsertIndex(_endpoint.m_value.x);
 	m_bezier.insert(m_bezier.begin() + ret, _endpoint);
-
-	if (m_wrap == Wrap_Repeat) {
-	 // synchronize first/last endpoints
-		if (ret == (int)m_bezier.size() - 1) {
-			copyValueAndTangent(m_bezier.back(), m_bezier.front());
-		} else if (ret == 0) {
-			copyValueAndTangent(m_bezier.front(), m_bezier.back());
-		}
-	}
 	updateExtentsAndConstrain(ret);
+	updatePiecewise();
+	return ret;
+}
 
+int Curve::insert(float _valueX, float _valueY)
+{
+	int ret = findInsertIndex(_valueX);
+	Endpoint ep;
+	ep.m_value = vec2(_valueX, _valueY);
+
+ // tangent estimation
+	if (ret > 0 && ret < (int)m_bezier.size()) {
+		vec2 prev = m_bezier[ret - 1].m_value;
+		vec2 next = m_bezier[ret    ].m_value;
+		
+		#if 0
+		// use the tangent at _valueX
+			float xd = (next.x - prev.x) * 0.001f;
+			ep.m_in.x  = _valueX - xd;
+			ep.m_out.x = _valueX + xd;
+			ep.m_in.y  = evaluate(ep.m_in.x);
+			ep.m_out.y = evaluate(ep.m_out.x);
+		
+			vec2 tangent = normalize(ep.m_out - ep.m_in) * length(next - prev) * 0.1f;
+			ep.m_in  = ep.m_value - tangent;
+			ep.m_out = ep.m_value + tangent;
+		#else
+		// horizontal with the CPs at 50% along the segment
+			float xd   = Min(_valueX - prev.x, next.x - _valueX) * 0.5f;
+			ep.m_in.x  = _valueX - xd;
+			ep.m_out.x = _valueX + xd;
+			ep.m_in.y = ep.m_out.y = _valueY;
+		#endif
+
+	} else {
+		ep.m_in  = vec2(_valueX - 0.05f, _valueY);
+		ep.m_out = vec2(_valueX + 0.05f, _valueY);
+	}
+
+	m_bezier.insert(m_bezier.begin() + ret, ep);
+	updateExtentsAndConstrain(ret);
+	updatePiecewise();
 	return ret;
 }
 
@@ -152,17 +180,19 @@ int Curve::move(int _endpoint, Component _component, const vec2& _value)
 
 	}
 
-	if (m_wrap == Wrap_Repeat) {
-	 // synchronize first/last endpoints
-		if (_endpoint == (int)m_bezier.size() - 1) {
-			copyValueAndTangent(m_bezier.back(), m_bezier.front());
-		} else if (_endpoint == 0) {
-			copyValueAndTangent(m_bezier.front(), m_bezier.back());
-		}
-	}
 	updateExtentsAndConstrain(ret);
+	updatePiecewise();
 
 	return ret;
+}
+
+int Curve::moveX(int _endpointIndex, Component _component, float _value)
+{
+	return move(_endpointIndex, _component, vec2(_value, m_bezier[_endpointIndex][_component].y));
+}
+void Curve::moveY(int _endpointIndex, Component _component, float _value)
+{
+	move(_endpointIndex, _component, vec2(m_bezier[_endpointIndex][_component].x, _value));
 }
 
 void Curve::erase(int _endpoint)
@@ -170,6 +200,7 @@ void Curve::erase(int _endpoint)
 	APT_ASSERT(_endpoint < (int)m_bezier.size());
 	m_bezier.erase(m_bezier.begin() + _endpoint);
 	updateExtentsAndConstrain(APT_MIN(_endpoint, APT_MAX((int)m_bezier.size() - 1, 0)));
+	updatePiecewise();
 }
 
 float Curve::wrap(float _t) const
@@ -211,6 +242,17 @@ float Curve::evaluate(float _t) const
 }
 
 // PRIVATE
+
+int Curve::findInsertIndex(float _t)
+{
+	int ret = (int)m_bezier.size();
+	if (!m_bezier.empty() && _t < m_bezier[ret - 1].m_value.x) {
+	 // can't insert at end, do binary search
+		ret = findBezierSegmentStartIndex(_t);
+		ret += (_t >= m_bezier[ret].m_value.x) ? 1 : 0; // handle case where _pos.x should be inserted at 0, normally we +1 to ret
+	}
+	return ret;
+}
 
 int Curve::findBezierSegmentStartIndex(float _t) const
 {
@@ -326,7 +368,7 @@ void Curve::updatePiecewise()
 		subdivide(*p0, *p1);
 	}
 }
-void Curve::subdivide(const Endpoint& _p0, const Endpoint& _p1, float _maxError, int _limit)
+void Curve::subdivide(const Endpoint& _p0, const Endpoint& _p1, int _limit)
 {
 	if (_limit == 1) {
 		m_piecewise.push_back(_p0.m_value);
@@ -351,22 +393,22 @@ void Curve::subdivide(const Endpoint& _p0, const Endpoint& _p1, float _maxError,
 	vec2 r1 = lerp(q1, q2, 0.5f);
 	vec2 s  = lerp(r0, r1, 0.5f);
 	float err = length(p1 - r0) + length(q1 - s) + length(p2 - r1);
-	if (err > _maxError) {
+	if (err > m_maxError) {
 		Curve::Endpoint pa, pb;
 		pa.m_value = p0;
 		pa.m_out   = q0;
 		pb.m_in    = r0;
 		pb.m_value = s;
-		subdivide(pa, pb, _maxError, _limit - 1);
+		subdivide(pa, pb, _limit - 1);
 
 		pa.m_value = s;
 		pa.m_out   = r1;
 		pb.m_in    = q2;
 		pb.m_value = p3;
-		subdivide(pa, pb, _maxError, _limit - 1);
+		subdivide(pa, pb, _limit - 1);
 		
 	} else {
-		subdivide(_p0, _p1, _maxError, 1); // push p0,p1
+		subdivide(_p0, _p1, 1); // push p0,p1
 
 	}
 }
@@ -398,20 +440,8 @@ static const float kSizeSampler          = 3.0f;
 // PUBLIC
 
 CurveEditor::CurveEditor()
-	: m_regionBeg(0.0f)
-	, m_regionEnd(1.0f)
-	, m_regionSize(1.0f)
-	, m_selectedEndpoint(Curve::kInvalidIndex)
-	, m_dragEndpoint(Curve::kInvalidIndex)
-	, m_dragComponent(-1)
-	, m_dragOffset(0.0f)
-	, m_dragRuler(false)
-	, m_editEndpoint(false)
-	, m_showAllCurves(true)
-	, m_isDragging(false)
-	, m_editFlags(Flags_Default)
-	, m_selectedCurve(-1)
 {
+	reset();
 }
 
 void CurveEditor::addCurve(Curve* _curve_, const ImColor& _color)
@@ -437,6 +467,23 @@ void CurveEditor::selectCurve(const Curve* _curve)
 	}
 }
 
+void CurveEditor::reset()
+{
+	m_regionBeg        = vec2(0.0f);
+	m_regionEnd        = vec2(1.0f);
+	m_regionSize       = vec2(1.0f);
+	m_selectedEndpoint = Curve::kInvalidIndex;
+	m_dragEndpoint     = Curve::kInvalidIndex;
+	m_dragComponent    = -1;
+	m_dragOffset       = vec2(0.0f);
+	m_dragRuler        = bvec2(false);
+	m_editEndpoint     = false;
+	m_showAllCurves    = true;
+	m_isDragging       = false;
+	m_editFlags        = Flags_Default;
+	m_selectedCurve    = -1;
+}
+
 bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 {
 	bool ret = false;
@@ -455,9 +502,9 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 	if (_sizePixels.y >= 0.0f) {
 		m_windowEnd.y = m_windowBeg.y + _sizePixels.y;
 	}
-	m_windowBeg  = floor(m_windowBeg);
-	m_windowEnd  = floor(m_windowEnd);
-	m_windowSize = max(m_windowEnd - m_windowBeg, vec2(64.0f));
+	m_windowBeg  = Floor(m_windowBeg);
+	m_windowEnd  = Floor(m_windowEnd);
+	m_windowSize = Max(m_windowEnd - m_windowBeg, vec2(64.0f));
 	m_windowEnd  = m_windowBeg + m_windowSize;
 	ImGui::InvisibleButton("##PreventDrag", m_windowSize);
 
@@ -540,9 +587,9 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 		m_regionEnd = m_regionBeg + m_regionSize;
 	}
 
-	if (editCurve()) {
-		ret = true;
-		m_curves[m_selectedCurve]->updatePiecewise();
+	m_isDragging |= m_dragEndpoint != Curve::kInvalidIndex;
+	if (m_isDragging || (windowActive && mouseInWindow)) {
+		ret |= editCurve();
 	}
 
 	drawBackground();
@@ -573,7 +620,19 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 		ImGui::OpenPopup("CurveEditorPopup");
 	}
 	if (ImGui::BeginPopup("CurveEditorPopup")) {
+		if (ImGui::MenuItem("Fit")) {
+			fit(0);
+			fit(1);
+		}
+		if (m_curves.size() > 1) {
+			if (ImGui::MenuItem("Show All", "", m_showAllCurves)) {
+				m_showAllCurves = !m_showAllCurves;
+			}
+		}
+
 		if (m_selectedCurve != -1) {
+			ImGui::Separator();
+
 			Curve& curve = *m_curves[m_selectedCurve];
 			if (ImGui::BeginMenu("Wrap")) {
 				Curve::Wrap newWrapMode = curve.m_wrap;
@@ -597,17 +656,15 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 				}
 				ImGui::EndMenu();
 			}
-			ImGui::Spacing();
-		}
-		if (ImGui::MenuItem("Fit")) {
-			fit(0);
-			fit(1);
-		}
-		if (m_curves.size() > 1) {
-			if (ImGui::MenuItem("Show All", "", m_showAllCurves)) {
-				m_showAllCurves = !m_showAllCurves;
+
+			if (ImGui::BeginMenu("Max Error")) {
+				if (ImGui::DragFloat("##Max Error Drag", &curve.m_maxError, 1e-4f, 1e-6f, 1.0f, "%.4f")) {
+					curve.m_maxError = APT_CLAMP(curve.m_maxError, 1e-6f, 1.0f);
+					curve.updatePiecewise();
+				}
+				ImGui::EndMenu();
 			}
-		}
+		}		
 
 		ImGui::EndPopup();
 	}
@@ -617,36 +674,36 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 
 // PRIVATE
 
-bool CurveEditor::isInside(const vec2& _point, const vec2& _min, const vec2& _max)
+bool CurveEditor::isInside(const vec2& _point, const vec2& _min, const vec2& _max) const
 {
 	return _point.x > _min.x && _point.x < _max.x && _point.y > _min.y && _point.y < _max.y;
 }
 
-bool CurveEditor::isInside(const vec2& _point, const vec2& _origin, float _radius)
+bool CurveEditor::isInside(const vec2& _point, const vec2& _origin, float _radius) const
 {
 	return distance2(_point, _origin) < (_radius * _radius);
 }
 
-vec2 CurveEditor::curveToRegion(const vec2& _pos)
+vec2 CurveEditor::curveToRegion(const vec2& _pos) const 
 {
 	vec2 ret = (_pos - m_regionBeg) / m_regionSize;
 	ret.y = 1.0f - ret.y;
 	return ret;
 }
-vec2 CurveEditor::curveToWindow(const vec2& _pos)
+vec2 CurveEditor::curveToWindow(const vec2& _pos) const
 {
 	vec2 ret = curveToRegion(_pos);
 	return m_windowBeg + ret * m_windowSize;
 }
 
-vec2 CurveEditor::regionToCurve(const vec2& _pos)
+vec2 CurveEditor::regionToCurve(const vec2& _pos) const
 {
 	vec2 pos = _pos;
 	pos.y = 1.0f - _pos.y;
 	return m_regionBeg + pos *  m_regionSize;
 }
 
-vec2 CurveEditor::windowToCurve(const vec2& _pos)
+vec2 CurveEditor::windowToCurve(const vec2& _pos) const
 {
 	return regionToCurve((_pos - m_windowBeg) / m_windowSize);
 }
@@ -734,13 +791,8 @@ bool CurveEditor::editCurve()
 
 	} else if (io.MouseDoubleClicked[0]) {
 	 // double click: insert a point
-	 // \todo better tangent estimation?
-		float tangentScale = m_regionSize.x * 0.05f;
-		Curve::Endpoint ep;
-		ep.m_value = windowToCurve(io.MousePos);
-		ep.m_in    = ep.m_value + vec2(-tangentScale, 0.0f);
-		ep.m_out   = ep.m_value + vec2( tangentScale, 0.0f);
-		m_selectedEndpoint = curve.insert(ep);
+		vec2 value = windowToCurve(io.MousePos);
+		m_selectedEndpoint = curve.insert(value.x, value.y);
 		ret = true;
 
 	} else if (io.MouseClicked[0] && !m_editEndpoint) {
