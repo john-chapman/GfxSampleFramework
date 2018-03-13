@@ -98,6 +98,7 @@ public:
 	const vec2& getSizeV() const                                         { return m_sizeV; }
 	void        setOriginV(float _x, float _y = 0.0f)                    { m_originV = vec2(_x, _y); }
 	const vec2& getOriginV() const                                       { return m_originV; }
+	void        setRegionV(const vec2& _min, const vec2& _max)           { m_sizeV = _max - _min; m_originV = _min + m_sizeV * 0.5f; }
 
 	// Virtual subregion min/max.
 	const vec2  getMinV() const                                          { return m_minV; }
@@ -180,14 +181,19 @@ public:
 	Curve*        m_curves[4]         = {}; // RGBA
 	VirtualWindow m_virtualWindow;
 
-	GradientEditor();
+	static GradientEditor* s_current; // which editor has focus when >1 are visible
+
+	GradientEditor(int _flags = Flags_Default);
 	~GradientEditor() {}
 
+	void        setCurves(CurveGradient& _curveGradient);
 	void        setFlags(int _flags)                                     { m_flags = _flags; }
 	void        setFlag(Flag _flag, bool _value)                         { m_flags = _value ? (m_flags | _flag) : (m_flags & ~_flag); }
 	bool        getFlag(Flag _flag) const                                { return (m_flags & _flag) != 0; }
 	
 	bool        drawEdit(const vec2& _sizePixels = vec2(-1.0f, 64.0f), float _t = -1.0f, int _flags = 0);
+
+	void        reset();
 
 	// Edit settings.
 	void        edit();
