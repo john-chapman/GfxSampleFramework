@@ -78,6 +78,8 @@ public:
 	float wrap(float _t) const;
 	// Constraint endpoint values in [_min, _max].
 	void  setValueConstraint(const vec2& _min, const vec2& _max);
+
+	void  setWrap(Wrap _wrap)                         { m_wrap = _wrap; }
 	
 	// Bezier endpoint access.
 	int   getBezierEndpointCount() const              { return (int)m_bezier.size(); }
@@ -94,6 +96,7 @@ public:
 	// Piecewise endpoint access.
 	int   getPiecewiseEndpointCount() const           { return (int)m_piecewise.size(); }
 	const vec2& getPiecewiseEndpoint(int _i) const    { return m_piecewise[_i]; }
+	const vec2* getPiecewise() const                  { return m_piecewise.data(); }
 
 private:
 	vec2  m_endpointMin, m_endpointMax;     // endpoint bounding box, including CPs
@@ -117,6 +120,26 @@ private:
 	void subdivide(const Endpoint& _p0, const Endpoint& _p1, int _limit = 64);
 
 }; // class Curve
+
+////////////////////////////////////////////////////////////////////////////////
+// CurveGradient
+////////////////////////////////////////////////////////////////////////////////
+class CurveGradient
+{
+public:
+	CurveGradient();
+
+	vec4         evaluate(float _t) const;
+	
+	const Curve& operator[](int _i) const     { APT_STRICT_ASSERT(_i < 4); return m_curves[_i]; }
+	Curve&       operator[](int _i)           { APT_STRICT_ASSERT(_i < 4); return m_curves[_i]; }
+
+	friend bool  Serialize(apt::Serializer& _serializer_, CurveGradient& _curveGradient_);
+
+private:
+	Curve m_curves[4]; // RGBA
+
+}; // class CurveGradient
 
 ////////////////////////////////////////////////////////////////////////////////
 // CurveEditor

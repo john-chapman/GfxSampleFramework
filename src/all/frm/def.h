@@ -36,10 +36,12 @@ namespace frm {
 	class  Camera;
 	class  Curve;
 	class  CurveEditor;
+	class  CurveGradient;
 	class  Device;
 	class  Framebuffer;
 	class  Gamepad;
 	class  GlContext;
+	class  GradientEditor;
 	class  Keyboard;
 	class  Light;
 	class  LuaScript;
