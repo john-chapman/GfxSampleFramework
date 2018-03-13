@@ -415,6 +415,44 @@ void Curve::subdivide(const Endpoint& _p0, const Endpoint& _p1, int _limit)
 
 /*******************************************************************************
 
+                               CurveGradient
+
+*******************************************************************************/
+CurveGradient::CurveGradient()
+{
+	for (auto& curve : m_curves) {
+		curve.setWrap(Curve::Wrap_Clamp);
+		curve.setMaxError(1e-3f); // larger error = use a smaller number of piecewise segments
+		curve.insert(0.0f, 1.0f);
+	}
+}
+
+vec4 CurveGradient::evaluate(float _t) const
+{
+	return vec4(
+		m_curves[0].evaluate(_t),
+		m_curves[1].evaluate(_t),
+		m_curves[2].evaluate(_t),
+		m_curves[3].evaluate(_t)
+		);
+}
+
+bool frm::Serialize(apt::Serializer& _serializer_, CurveGradient& _curveGradient_)
+{
+	const char* kCurveNames[] = { "Red", "Green", "Blue", "Alpha" };
+	bool ret = true;
+	for (int i = 0; i < 4; ++i) {
+		if (_serializer_.beginObject(kCurveNames[i])) {
+			ret &= Serialize(_serializer_, _curveGradient_.m_curves[i]);
+			_serializer_.endObject();
+		}
+	}
+	return ret;
+}
+
+
+/*******************************************************************************
+
                                  CurveEditor
 
 *******************************************************************************/
