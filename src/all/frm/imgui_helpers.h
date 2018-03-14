@@ -169,7 +169,8 @@ public:
 	{
 		Flag_ZoomPan     = 1 << 0,    // Enable zoom/pan (via mouse wheel).
 		Flag_Alpha       = 1 << 1,    // Enable alpha.
-		Flags_Default    = Flag_Alpha,
+		Flag_Sampler     = 1 << 2,    // Show sample point at _t (arg to drawEdit).
+		Flags_Default    = Flag_Alpha | Flag_Sampler
 	};
 
 	int           m_flags             = Flags_Default;
