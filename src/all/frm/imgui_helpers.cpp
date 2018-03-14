@@ -389,7 +389,10 @@ bool GradientEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 
 	bool ret = false;
 
-	if (s_current != this) {
+	if (s_current == this) {
+		m_virtualWindow.setColor(VirtualWindow::Color_Border, IM_COL32_WHITE);
+	} else {
+		m_virtualWindow.setColor(VirtualWindow::Color_Border, ImGui::GetColorU32(ImGuiCol_Border));
 		m_selectedKeyRGB = m_selectedKeyA = Curve::kInvalidIndex;
 	}
 
@@ -416,15 +419,24 @@ bool GradientEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 	}
 	m_virtualWindow.begin(zoom, pan, io.MousePos);
 		drawGradient();
+		if (getFlag(Flag_Sampler)) {
+			vec4 color(
+				1.0f - Saturate(m_curves[0]->evaluate(_t)),
+				1.0f - Saturate(m_curves[1]->evaluate(_t)),
+				1.0f - Saturate(m_curves[2]->evaluate(_t)),
+				0.5f
+				);
+			_t = m_virtualWindow.virtualToWindow(_t);
+			drawList.AddLine(
+				vec2(_t, m_virtualWindow.getMinW().y),
+				vec2(_t, m_virtualWindow.getMaxW().y - m_virtualWindow.getSizeW().y * 0.5f),
+				ImColor(color)
+				);
+		}
 	m_virtualWindow.end();	
 	drawKeysRGB();
 
-	_t = m_virtualWindow.virtualToWindow(_t);
-	drawList.AddLine(
-		vec2(_t, m_virtualWindow.getMinW().y),
-		vec2(_t, m_virtualWindow.getMaxW().y),
-		IM_COL32_MAGENTA
-		);
+	
 	
 
 	ret |= editKeysRGB();
@@ -517,7 +529,8 @@ void GradientEditor::drawGradient()
 
 void GradientEditor::drawKeysRGB()
 {
-	const float y = ImGui::GetCursorScreenPos().y;
+	const vec2 cursorPos = vec2(m_virtualWindow.getMinW().x, m_virtualWindow.getMaxW().y);
+	ImGui::SetCursorScreenPos(cursorPos);
 	ImGui::InvisibleButton("##PreventDrag", vec2(m_virtualWindow.getSizeW().x, kKeyBar_Height)); // prevent window drag
 
 	const int keyCount = m_curves[0]->getBezierEndpointCount();
@@ -537,7 +550,7 @@ void GradientEditor::drawKeysRGB()
 			m_curves[2]->getBezierEndpoint(i).m_value.y,
 			1.0f
 			);
-		vec2 p(m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(i).m_value.x), y - 1.0f);
+		vec2 p(m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(i).m_value.x), cursorPos.y - 1.0f);
 		float w = kKey_HalfWidth;
 		ImVec2 keyShape[] = {
 			ImVec2(p + vec2(-w, w + 4.0f)),
@@ -557,7 +570,7 @@ void GradientEditor::drawKeysRGB()
 			m_curves[2]->getBezierEndpoint(m_selectedKeyRGB).m_value.y,
 			1.0f
 			);
-		vec2 p(m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(m_selectedKeyRGB).m_value.x), y - 4.0f);
+		vec2 p(m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(m_selectedKeyRGB).m_value.x), cursorPos.y - 4.0f);
 		float w = kKey_HalfWidth;
 		//drawList.AddTriangleFilled(p, p + vec2(-w, w), p + vec2(w, w), ImColor(color));
 		//drawList.AddText(p, ImColor(color), ICON_FA_ARROW_UP);
