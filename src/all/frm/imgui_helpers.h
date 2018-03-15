@@ -169,7 +169,8 @@ public:
 	{
 		Flag_ZoomPan     = 1 << 0,    // Enable zoom/pan (via mouse wheel).
 		Flag_Alpha       = 1 << 1,    // Enable alpha.
-		Flag_Sampler     = 1 << 2,    // Show sample point at _t (arg to drawEdit).
+		Flag_Sampler     = 1 << 2,    // Display the sample point at _t (arg to drawEdit).
+
 		Flags_Default    = Flag_Alpha | Flag_Sampler
 	};
 
@@ -179,10 +180,11 @@ public:
 	int           m_dragKey           = -1;//Curve::kInvalidIndex;
 	int           m_dragComponent     = -1;
 	float         m_dragOffset        = 0.0f;
+	bool          m_keyBarRGBHovered;
 	Curve*        m_curves[4]         = {}; // RGBA
 	VirtualWindow m_virtualWindow;
-
-	static GradientEditor* s_current; // which editor has focus when >1 are visible
+	
+	static GradientEditor* s_current; // tracke which GradientEditor has focus when >1 are visible
 
 	GradientEditor(int _flags = Flags_Default);
 	~GradientEditor() {}
@@ -199,11 +201,19 @@ public:
 	// Edit settings.
 	void        edit();
 
+
+
 	void        drawGradient();
 	void        drawKeysRGB();
-	void        drawKeysA();
 
 	bool        editKeysRGB();
+
+	// Move the currently selected key to _newX, return the new index.
+	int         moveSelectedKeyRGB(float _newX, int _keyIndex, int _keyComponent);
+
+	// Convert between window <-> gradient space.
+	float       windowToGradient(float _x)                              { return m_virtualWindow.windowToVirtual(_x); }
+	float       gradientToWindow(float _x)                              { return m_virtualWindow.virtualToWindow(_x); }
 
 };
 

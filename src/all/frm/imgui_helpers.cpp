@@ -358,6 +358,7 @@ static const float kGradient_PixelsPerSegment = 4.0f;
 static const float kKeyBar_Height             = 12.0f;
 static const float kKey_Width                 = 10.0f;
 static const float kKey_HalfWidth             = kKey_Width / 2.0f;
+static const char* kColorEdit_PopupName       = "GradientEditor_ColorEditPopup";
 
 GradientEditor* GradientEditor::s_current;
 
@@ -406,11 +407,21 @@ bool GradientEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 	m_virtualWindow.setMinGridSpacingW(8.0f);
 	m_virtualWindow.setSizeW(_sizePixels.x, _sizePixels.y);
 
+ 	vec2 minW = ImGui::GetCursorScreenPos();
+	vec2 maxW = m_virtualWindow.getMaxW();
+	maxW.y += kKeyBar_Height;
+	if (ImGui::IsWindowHovered()) {
+		if ((io.MouseDown[0] || io.MouseClicked[1]) && IsInside(io.MousePos, minW, maxW)) {
+			s_current = this;
+			ImGui::SetWindowFocus();
+		}
+	}
+	if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+		reset();
+	}
+
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, vec2(0.0f));
 
-	if (getFlag(Flag_Alpha)) {
-		drawKeysA();
-	}
 	vec2 zoom = vec2(0.0f);
 	vec2 pan  = vec2(0.0f);	
 	if (getFlag(Flag_ZoomPan)) {
@@ -436,9 +447,6 @@ bool GradientEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 	m_virtualWindow.end();	
 	drawKeysRGB();
 
-	
-	
-
 	ret |= editKeysRGB();
 
 	ImGui::PopStyleVar(1);
@@ -459,10 +467,6 @@ bool GradientEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 	}
 	#endif
 
-	if (ret) {
-		s_current = this;
-	}
-
 	return ret;
 }
 
@@ -473,6 +477,7 @@ void GradientEditor::reset()
 	m_dragKey           = -1;//Curve::kInvalidIndex;
 	m_dragComponent     = -1;
 	m_dragOffset        = 0.0f;
+	s_current           = s_current == this ? nullptr : s_current;
 }
 
 void GradientEditor::drawGradient()
@@ -529,9 +534,10 @@ void GradientEditor::drawGradient()
 
 void GradientEditor::drawKeysRGB()
 {
-	const vec2 cursorPos = vec2(m_virtualWindow.getMinW().x, m_virtualWindow.getMaxW().y);
+	const vec2 cursorPos = vec2(m_virtualWindow.getMinW().x - kKey_Width, m_virtualWindow.getMaxW().y);
 	ImGui::SetCursorScreenPos(cursorPos);
-	ImGui::InvisibleButton("##PreventDrag", vec2(m_virtualWindow.getSizeW().x, kKeyBar_Height)); // prevent window drag
+	ImGui::InvisibleButton("##PreventDrag", vec2(m_virtualWindow.getSizeW().x + kKey_Width * 2.0f, kKeyBar_Height)); // prevent window drag
+	m_keyBarRGBHovered = ImGui::IsItemHovered();
 
 	const int keyCount = m_curves[0]->getBezierEndpointCount();
 	if (keyCount == 0) {
@@ -586,73 +592,12 @@ void GradientEditor::drawKeysRGB()
 
 	 // tangent in
 		p.y += 5.0f;
-		p.x = m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(m_selectedKeyRGB).m_in.x);
+		p.x = gradientToWindow(m_curves[0]->getBezierEndpoint(m_selectedKeyRGB).m_in.x);
 		w = kKey_HalfWidth * 0.5f;
 		drawList.AddTriangleFilled(p, p + vec2(-w, w), p + vec2(w, w), IM_COL32_WHITE);
 
 	 // tangent out
-		p.x = m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(m_selectedKeyRGB).m_out.x);
-		w = kKey_HalfWidth * 0.5f;
-		drawList.AddTriangleFilled(p, p + vec2(-w, w), p + vec2(w, w), IM_COL32_WHITE);
-	}
-}
-
-void GradientEditor::drawKeysA()
-{
-	ImGui::InvisibleButton("##PreventDrag", vec2(m_virtualWindow.getSizeW().x, kKeyBar_Height)); // prevent window drag
-
-	const int keyCount = m_curves[3]->getBezierEndpointCount();
-	if (keyCount == 0) {
-		return;
-	}
-
-	auto& drawList = *ImGui::GetWindowDrawList();
-
-	const float y = m_virtualWindow.getMinW().y;
-	for (int i = 0; i < keyCount; ++i) {
-		if (i == m_selectedKeyA) {
-			continue;
-		}
-		vec4 color(m_curves[3]->getBezierEndpoint(i).m_value.y);
-		color.w = 1.0f;
-		vec2 p(m_virtualWindow.virtualToWindow(m_curves[3]->getBezierEndpoint(i).m_value.x), y - 1.0f);
-		float w = kKey_HalfWidth;
-		ImVec2 keyShape[] = {
-			ImVec2(p - vec2(-w, w + 4.0f)),
-			ImVec2(p - vec2(-w, w)),
-			ImVec2(p),
-			ImVec2(p - vec2(w, w)),
-			ImVec2(p - vec2(w, w + 4.0f)),
-		};
-		drawList.AddConvexPolyFilled(keyShape, 5, ImColor(color));
-	}
-	
-	if (m_selectedKeyA != Curve::kInvalidIndex) {
-	 // value
-		vec4 color(m_curves[3]->getBezierEndpoint(m_selectedKeyA).m_value.y);
-		color.w = 1.0f;
-		vec2 p(m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(m_selectedKeyA).m_value.x), y - 4.0f);
-		float w = kKey_HalfWidth;
-		//drawList.AddTriangleFilled(p, p + vec2(-w, w), p + vec2(w, w), ImColor(color));
-		//drawList.AddText(p, ImColor(color), ICON_FA_ARROW_UP);
-		ImVec2 keyShape[] = {
-			ImVec2(p - vec2(-w, kKeyBar_Height + 4.0f)),
-			ImVec2(p - vec2(-w, w)),
-			ImVec2(p),
-			ImVec2(p - vec2(w, w)),
-			ImVec2(p - vec2(w, kKeyBar_Height + 4.0f)),
-		};
-		drawList.AddConvexPolyFilled(keyShape, 5, ImColor(color));
-		drawList.AddPolyline(keyShape, 5, IM_COL32_WHITE, true, 1.0f);
-
-	 // tangent in
-		p.y += 5.0f;
-		p.x = m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(m_selectedKeyA).m_in.x);
-		w = kKey_HalfWidth * 0.5f;
-		drawList.AddTriangleFilled(p, p + vec2(-w, w), p + vec2(w, w), IM_COL32_WHITE);
-
-	 // tangent out
-		p.x = m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(m_selectedKeyA).m_out.x);
+		p.x = gradientToWindow(m_curves[0]->getBezierEndpoint(m_selectedKeyRGB).m_out.x);
 		w = kKey_HalfWidth * 0.5f;
 		drawList.AddTriangleFilled(p, p + vec2(-w, w), p + vec2(w, w), IM_COL32_WHITE);
 	}
@@ -660,42 +605,38 @@ void GradientEditor::drawKeysA()
 
 bool GradientEditor::editKeysRGB()
 {
-	auto& io = ImGui::GetIO();
-	const vec2 mousePos = io.MousePos;
-	
+	if (s_current != this) {
+		return false;
+	}
+		
 	bool ret = false;
 	ImGui::PushID(this);
 
-	const int  keyCount     = m_curves[0]->getBezierEndpointCount();
-	const vec2 keyBarMin    = vec2(m_virtualWindow.getMinW().x, m_virtualWindow.getMaxW().y);
-	const vec2 keyBarMax    = keyBarMin + vec2(m_virtualWindow.getSizeW().x, kKeyBar_Height);
-	const bool insideKeyBar = IsInside(mousePos, keyBarMin, keyBarMax);
+	auto& io = ImGui::GetIO();
+	const vec2 mousePos = io.MousePos;
 
+	const int  keyCount = m_curves[0]->getBezierEndpointCount();
+	
 	if (m_dragKey == Curve::kInvalidIndex) {
-		if (insideKeyBar && (io.MouseClicked[0] || io.MouseClicked[1])) {
+	 // select key
+		if (m_keyBarRGBHovered && io.MouseClicked[0] || io.MouseClicked[1]) {
 		 // left or right click to select/start dragging
 			for (int i = 0; i < keyCount; ++i) {
-				float x = m_virtualWindow.virtualToWindow(m_curves[0]->getBezierEndpoint(i).m_value.x);
+				float x = gradientToWindow(m_curves[0]->getBezierEndpoint(i).m_value.x);
 				if (mousePos.x > x - kKey_HalfWidth && mousePos.x < x + kKey_HalfWidth) {
 					m_selectedKeyRGB = m_dragKey = i;
-					m_dragComponent = Curve::Component_Value;
-					m_dragOffset = x - mousePos.x;
-					ImGui::SetWindowFocus();
+					m_dragComponent  = Curve::Component_Value;
+					m_dragOffset     = x - mousePos.x;
 					break;
 				}
 			}
 		}
-	} else { 
-		if (io.MouseDown[0] && io.MouseDownDuration[0] > 0.0f) {
+	} else {
+	 // drag key
+		if (io.MouseDown[0]) {
 		 // key is being dragged
 			ret = true;
-			float newX = m_virtualWindow.windowToVirtual(mousePos.x + m_dragOffset);
-			newX = APT_CLAMP(newX, m_virtualWindow.getMinV().x, m_virtualWindow.getMaxV().x);
-			int newKeyIndex = m_curves[0]->moveX(m_dragKey, (Curve::Component)m_dragComponent, newX);
-			for (int i = 1; i < 3; ++i) {
-				APT_VERIFY(m_curves[i]->moveX(m_dragKey, (Curve::Component)m_dragComponent, newX) == newKeyIndex);
-			}
-			m_selectedKeyRGB = m_dragKey = newKeyIndex;
+			m_selectedKeyRGB = m_dragKey = moveSelectedKeyRGB(windowToGradient(mousePos.x + m_dragOffset), m_dragKey, m_dragComponent);
 			ImGui::CaptureMouseFromApp();
 
 		} else {
@@ -704,9 +645,9 @@ bool GradientEditor::editKeysRGB()
 		}
 	}
 
-	if (ImGui::IsWindowFocused() && insideKeyBar && io.MouseDoubleClicked[0]) {
+	if (m_keyBarRGBHovered && io.MouseDoubleClicked[0]) {
 	 // double left click to insert a key
-		float x = m_virtualWindow.windowToVirtual(mousePos.x);
+		float x = windowToGradient(mousePos.x);
 		for (int i = 0; i < 3; ++i) {
 			m_selectedKeyRGB = m_curves[i]->insert(x, m_curves[i]->evaluate(x));
 		}
@@ -714,18 +655,18 @@ bool GradientEditor::editKeysRGB()
 
 	if (ImGui::IsWindowFocused() && m_selectedKeyRGB != Curve::kInvalidIndex) {
 		const Curve::Endpoint& key = m_curves[0]->getBezierEndpoint(m_selectedKeyRGB);
-		float keyValW = m_virtualWindow.virtualToWindow(key.m_value.x);
-		float keyInW  = m_virtualWindow.virtualToWindow(key.m_in.x);
-		float keyOutW = m_virtualWindow.virtualToWindow(key.m_out.x);
+		float keyValW = gradientToWindow(key.m_value.x);
+		float keyInW  = gradientToWindow(key.m_in.x);
+		float keyOutW = gradientToWindow(key.m_out.x);
 
 		const vec2 keyMin = vec2(keyValW - kKey_HalfWidth, m_virtualWindow.getMaxW().y);
 		const vec2 keyMax = keyMin + vec2(kKey_Width, kKeyBar_Height);
 
-		if (insideKeyBar) {
+		if (m_keyBarRGBHovered) {
 			if (io.MouseClicked[1]) {
 			 // right-click to edit the selected key			
 				if (mousePos.x > keyValW - kKey_HalfWidth && mousePos.x < keyValW + kKey_HalfWidth) {
-					ImGui::OpenPopup("GradientEditorKeyPopup");				
+					ImGui::OpenPopup(kColorEdit_PopupName);
 				}
 			} else if (io.MouseClicked[0]) {
 			 // left-click to select tangents
@@ -739,7 +680,8 @@ bool GradientEditor::editKeysRGB()
 			}
 		}
 
-		if (s_current == this) {
+	 // keboard input
+		if (!io.WantCaptureKeyboard && s_current == this) { // !io.WantCaptureKeybaord = ignore key presses when interacting with adjacent widgets (e.g. float edit)
 			if (ImGui::IsKeyPressed(Keyboard::Key_Delete)) {
 			 // delete to remove a key
 				for (int i = 0; i < 3; ++i) {
@@ -747,23 +689,35 @@ bool GradientEditor::editKeysRGB()
 					ret = true;
 				}
 				m_selectedKeyRGB = m_dragKey = Curve::kInvalidIndex;
+				ImGui::CaptureKeyboardFromApp();
 			}
 
-		 // left/right arrows to navigate key selection
-			if (ImGui::IsKeyPressed(Keyboard::Key_Right)) {
-				m_selectedKeyRGB = (m_selectedKeyRGB + 1) % keyCount;
-				ImGui::CaptureKeyboardFromApp();
-			} else if (ImGui::IsKeyPressed(Keyboard::Key_Left)) {
-				if (--m_selectedKeyRGB < 0) {
-					m_selectedKeyRGB = keyCount - 1;
+			if (ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
+			 // lctrl + left/right arrows to 'nudge' selected key by 1 pixel
+				if (ImGui::IsKeyPressed(Keyboard::Key_Right)) {
+					m_selectedKeyRGB = moveSelectedKeyRGB(key.m_value.x + m_virtualWindow.getSizeV().x / m_virtualWindow.getSizeW().x, m_selectedKeyRGB, Curve::Component_Value);
+					ImGui::CaptureKeyboardFromApp();
+				} else if (ImGui::IsKeyPressed(Keyboard::Key_Left)) {
+					m_selectedKeyRGB = moveSelectedKeyRGB(key.m_value.x - m_virtualWindow.getSizeV().x / m_virtualWindow.getSizeW().x, m_selectedKeyRGB, Curve::Component_Value);
+					ImGui::CaptureKeyboardFromApp();
 				}
-				ImGui::CaptureKeyboardFromApp();
+			} else {
+			 // left/right arrows to navigate key selection
+				if (ImGui::IsKeyPressed(Keyboard::Key_Right)) {
+					m_selectedKeyRGB = (m_selectedKeyRGB + 1) % keyCount;
+					ImGui::CaptureKeyboardFromApp();
+				} else if (ImGui::IsKeyPressed(Keyboard::Key_Left)) {
+					if (--m_selectedKeyRGB < 0) {
+						m_selectedKeyRGB = keyCount - 1;
+					}
+					ImGui::CaptureKeyboardFromApp();
+				}
 			}
 		}
 	}
 	
  // key popup
-	if (ImGui::BeginPopup("GradientEditorKeyPopup")) {
+	if (ImGui::BeginPopup(kColorEdit_PopupName)) {
 		APT_ASSERT(m_selectedKeyRGB != Curve::kInvalidIndex);
 		vec3 color(
 			m_curves[0]->getBezierEndpoint(m_selectedKeyRGB).m_value.y,
@@ -792,6 +746,16 @@ bool GradientEditor::editKeysRGB()
 	}
 	
 	ImGui::PopID();
+	return ret;
+}
+
+int GradientEditor::moveSelectedKeyRGB(float _newX, int _keyIndex, int _keyComponent)
+{
+	_newX = APT_CLAMP(_newX, m_virtualWindow.getMinV().x, m_virtualWindow.getMaxV().x);
+	int ret = m_curves[0]->moveX(_keyIndex, (Curve::Component)_keyComponent, _newX);
+	for (int i = 1; i < 3; ++i) {
+		APT_VERIFY(m_curves[i]->moveX(_keyIndex, (Curve::Component)_keyComponent, _newX) == ret);
+	}
 	return ret;
 }
 
