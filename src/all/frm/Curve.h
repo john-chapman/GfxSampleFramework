@@ -85,6 +85,9 @@ public:
 	int   getBezierEndpointCount() const              { return (int)m_bezier.size(); }
 	const Endpoint& getBezierEndpoint(int _i) const   { return m_bezier[_i]; }
 
+	const vec2& getValueMin() const                   { return m_valueMin; }
+	const vec2& getValueMax() const                   { return m_valueMax; }
+
  // Piecewise
 	// Evaluate the piecewise representation at _t (which is implicitly wrapped).
 	float evaluate(float _t) const;
