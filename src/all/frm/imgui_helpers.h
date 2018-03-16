@@ -39,7 +39,7 @@ inline bool IsInside(const vec2& _point, const vec2& _min, const vec2& _max)
 //      // render to drawList here, use s_virtualWindow.virtualToWindow()
 //    s_virtualWindow.end();
 //
-// Todo
+// \todo
 // - Need to handle dragging to pan when mouse is outside of the window.
 // - Fade in/out fine grid lines during zoom.
 ////////////////////////////////////////////////////////////////////////////////
@@ -65,8 +65,8 @@ public:
 		Color_Count
 	};
 
-	VirtualWindow(const vec2& _sizeV, const vec2& _originV = vec2(0.0f));
-	VirtualWindow(float _sizeV, float _originV = 0.0f): VirtualWindow(vec2(_sizeV), vec2(_originV)) {}
+	VirtualWindow(const vec2& _sizeV, const vec2& _originV = vec2(0.0f), int _flags = Flags_Default);
+	VirtualWindow(float _sizeV, float _originV = 0.0f, int _flags = Flags_Default): VirtualWindow(vec2(_sizeV), vec2(_originV), Flags_Default) {}
 	~VirtualWindow();
 
 	// Convert window space (pixels) to virtual space.
@@ -85,32 +85,32 @@ public:
 	// If the parent window is focused and the window region is hovered.
 	bool        isActive() const                                         { return m_isActive; }
 
-	// Window size (pixels), 0 to fill the available content region of the current ImGui window.
+	// Window rect size (pixels), 0 to fill the available content region of the current ImGui window.
 	void        setSizeW(float _width, float _height = -1.0f)            { m_requestedSizeW = vec2(_width, _height); }
 	const vec2& getSizeW() const                                         { return m_sizeW; }
 
-	// Window min/max.
+	// Window rect min/max.
 	const vec2& getMinW() const                                          { return m_minW; }
 	const vec2& getMaxW() const                                          { return m_maxW; }
 
-	// Virtual subregion is ± sizeV*0.5, centerd on originV.
+	// Virtual rect is ± sizeV*0.5, centerd on originV.
 	void        setSizeV(float _width, float _height = -1.0f)            { m_sizeV = vec2(_width, _height); }
 	const vec2& getSizeV() const                                         { return m_sizeV; }
 	void        setOriginV(float _x, float _y = 0.0f)                    { m_originV = vec2(_x, _y); }
 	const vec2& getOriginV() const                                       { return m_originV; }
 	void        setRegionV(const vec2& _min, const vec2& _max)           { m_sizeV = _max - _min; m_originV = _min + m_sizeV * 0.5f; }
 
-	// Virtual subregion min/max.
+	// Virtual rect min/max.
 	const vec2  getMinV() const                                          { return m_minV; }
 	const vec2  getMaxV() const                                          { return m_maxV; }
 	
-	// Orientation of the virtual subregion relative to the window, by default positive values in V move down/right in W.
+	// Orientation of the virtual rect relative to the window, by default positive values in V move down/right in W.
 	// E.g. use setOrientationV(vec2(0,-1), vec2(-1,0)) to flip both axes.
 	void        setOrientationV(const vec2& _down, const vec2& _right)   { m_basisV = mat2(_right, _down); }
 	void        setOrientationV(const vec2& _down)                       { setOrientationV(_down, vec2(-_down.y, _down.x)); } // _right is perpendicular to _down
 	const mat2& getOrientationV() const                                  { return m_basisV; }
 
-	// Grid lines subdivide the virtual subregion, aligned on multiples of gridSpacingBase with a minimum spacing in both V and W.
+	// Grid lines subdivide the virtual rect, aligned on multiples of gridSpacingBase with a minimum spacing in both V and W.
 	void        setMinGridSpacingW(float _x, float _y = 0.0f)            { m_minGridSpacingW = vec2(_x, _y == 0.0f ? _x : _y); }
 	void        setMinGridSpacingV(float _x, float _y = 0.0f)            { m_minGridSpacingV = vec2(_x, _y == 0.0f ? _x : _y); }
 	void        setGridSpacingBase(float _x, float _y = 0.0f)            { m_gridSpacingBase = vec2(_x, _y == 0.0f ? _x : _y); }
@@ -161,6 +161,12 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 // GradientEditor
+// \todo:
+// - Make stateless, use ImGuiStorage!
+// - 
+// - Separate tangent modification per curve.
+// - Generalize the key edit/rendering (avoid duplicating code for RGB/A).
+// - Photoshop behavior: drag a key 'down' to delete.
 ////////////////////////////////////////////////////////////////////////////////
 class GradientEditor
 {
@@ -174,38 +180,63 @@ public:
 		Flags_Default    = Flag_Alpha | Flag_Sampler
 	};
 
-	int           m_flags             = Flags_Default;
-	int           m_selectedKeyRGB    = -1;//Curve::kInvalidIndex;
-	int           m_selectedKeyA      = -1;//Curve::kInvalidIndex;
-	int           m_dragKey           = -1;//Curve::kInvalidIndex;
-	int           m_dragComponent     = -1;
-	float         m_dragOffset        = 0.0f;
-	bool          m_keyBarRGBHovered;
-	Curve*        m_curves[4]         = {}; // RGBA
-	VirtualWindow m_virtualWindow;
-	
-	static GradientEditor* s_current; // tracke which GradientEditor has focus when >1 are visible
+	enum Color
+	{
+		Color_Border,
+		Color_BorderActive,
+		Color_AlphaGridDark,
+		Color_AlphaGridLight,
+		
+		Color_Count
+	};
+
+	static bool IsActive(GradientEditor& _instance)                     { return &_instance == s_Active; }
 
 	GradientEditor(int _flags = Flags_Default);
 	~GradientEditor() {}
 
-	void        setCurves(CurveGradient& _curveGradient);
+	void        setGradient(CurveGradient& _curveGradient);
+	bool        drawEdit(const vec2& _sizePixels = vec2(-1.0f, 64.0f), float _t = -1.0f, int _flags = 0);
+	void        reset();
+
+	// Window rect min/max.
+	const vec2& getMinW() const                                          { return m_minW; }
+	const vec2& getMaxW() const                                          { return m_maxW; }
+
+	void        setRange(float _min, float _max)                         { m_virtualWindow.setRegionV(vec2(_min, 0.0f), vec2(_max, 1.0f)); }
+
 	void        setFlags(int _flags)                                     { m_flags = _flags; }
 	void        setFlag(Flag _flag, bool _value)                         { m_flags = _value ? (m_flags | _flag) : (m_flags & ~_flag); }
 	bool        getFlag(Flag _flag) const                                { return (m_flags & _flag) != 0; }
 	
-	bool        drawEdit(const vec2& _sizePixels = vec2(-1.0f, 64.0f), float _t = -1.0f, int _flags = 0);
+	void        setColor(Color _color, ImU32 _value)                     { m_colors[_color] = _value; }
+	ImU32       getColor(Color _color) const                             { return m_colors[_color]; }
 
-	void        reset();
+private:
+	static GradientEditor* s_Active; // track which GradientEditor has focus when >1 are visible
 
-	// Edit settings.
+	int                    m_selectedKeyRGB        = -1;
+	int                    m_selectedKeyA          = -1;
+	int                    m_dragKey               = -1;
+	int                    m_dragComponent         = -1;
+	float                  m_dragOffset            = 0.0f;
+	bool                   m_keyBarRGBHovered;
+	vec2                   m_minW;
+	vec2                   m_maxW;
+	Curve*                 m_curves[4]             = {}; // RGBA
+	VirtualWindow          m_virtualWindow;
+	
+	int                    m_flags                 = Flags_Default;
+	ImU32                  m_colors[Color_Count];
+	
+
 	void        edit();
 
 
 
 	void        drawGradient();
+	void        drawSampler(float _t);
 	void        drawKeysRGB();
-
 	bool        editKeysRGB();
 
 	// Move the currently selected key to _newX, return the new index.
