@@ -248,4 +248,24 @@ private:
 
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// GradientEditor
+// \todo:
+// - Separate tangent modification per curve.
+// - Generalize the key edit/rendering (avoid duplicating code for RGB/A).
+// - Photoshop behavior: drag a key 'down' to delete.
+////////////////////////////////////////////////////////////////////////////////
+enum GradientEditFlags_
+{
+	
+	GradientEditFlags_ZoomPan = 1 << 0, // Enable zoom/pan via the mouse wheel.
+	GradientEditFlags_RGB     = 1 << 1, // Show/edit RGB.
+	GradientEditFlags_Alpha   = 1 << 2, // Show/edit alpha.
+	
+	GradientEditFlags_Default = GradientEditFlags_RGB
+};
+typedef int GradientEditFlags;
+bool GradientEdit(const char* _label, CurveGradient& _gradient_, const ImVec2& _sizePixels = ImVec2(-1, 64), GradientEditFlags _flags = GradientEditFlags_Default);
+
+
 } // namespace frm
