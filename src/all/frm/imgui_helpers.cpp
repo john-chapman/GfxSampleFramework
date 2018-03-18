@@ -768,3 +768,39 @@ void GradientEditor::edit()
 	}
 	ImGui::PopID();
 }
+
+
+/*******************************************************************************
+
+                               GradientEditor
+
+*******************************************************************************/
+namespace GradientEdit
+{
+struct GradientEdit_State
+{
+	int      m_selectedKeyRGB   = -1;
+	int      m_dragKey          = -1;
+	int      m_dragComponent    = -1;
+	float    m_dragOffset       = 0.0f;
+};
+
+// Globally we only interact with 1 gradient at a time, hence static state. Alternative would be to allocate via ImGuiStorage.
+static GradientEdit_State s_activeState;
+static int                s_activeID     = -1;
+
+}
+
+
+bool frm::GradientEdit(const char* _label, CurveGradient& _gradient_, const ImVec2& _sizePixels, GradientEditFlags _flags)
+{
+	ImGuiID id = ImGui::GetID(_label);
+	
+	bool ret = false;
+
+	ImGui::PushID(id);
+	
+	ImGui::PopID();
+
+	return ret;
+}
