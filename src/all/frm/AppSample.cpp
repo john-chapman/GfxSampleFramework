@@ -5,12 +5,12 @@
 #include <frm/Framebuffer.h>
 #include <frm/GlContext.h>
 #include <frm/Input.h>
+#include <frm/Log.h>
 #include <frm/Mesh.h>
 #include <frm/Profiler.h>
 #include <frm/Shader.h>
 #include <frm/Texture.h>
 #include <frm/Window.h>
-#include <frm/ui/Log.h>
 
 #include <apt/ArgList.h>
 #include <apt/File.h>
@@ -24,12 +24,12 @@
 using namespace frm;
 using namespace apt;
 
-static ui::Log    g_log(32, 512);
-static AppSample* g_current;
+static Log        g_Log(100);
+static AppSample* g_Current;
 
 void AppLogCallback(const char* _msg, LogType _type)
 {
-	g_log.addMessage(_msg, _type);
+	g_Log.addMessage(_msg, _type);
 }
 
 /*******************************************************************************
@@ -42,8 +42,8 @@ void AppLogCallback(const char* _msg, LogType _type)
 
 AppSample* AppSample::GetCurrent()
 {
-	APT_ASSERT(g_current);
-	return g_current;
+	APT_ASSERT(g_Current);
+	return g_Current;
 }
 
 bool AppSample::init(const apt::ArgList& _args)
@@ -57,6 +57,8 @@ bool AppSample::init(const apt::ArgList& _args)
 	
 	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
 	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
+	
+	g_Log.setOutput("log.txt"); // need to set after the application root
 
  	m_propsPath.setf("%s.json", (const char*)m_name);
 	readProps((const char*)m_propsPath);
@@ -206,21 +208,21 @@ bool AppSample::update()
 			m_showProfilerViewer = ImGui::IsItemClicked() ? !m_showProfilerViewer : m_showProfilerViewer;
 			
 			ImGui::SameLine();
-			float cursorPosX = ImGui::GetCursorPosX();
+			/*float cursorPosX = ImGui::GetCursorPosX();
 			float logPosX = ImGui::GetContentRegionMax().x - ImGui::GetContentRegionAvailWidth() * 0.3f;
-			const ui::Log::Message* logMsg = g_log.getLastErr();
+			const Log::Message* logMsg = g_Log.getLastMessage(LogType_Error);
 			if (!logMsg) {
-				logMsg = g_log.getLastDbg();
+				logMsg = g_Log.getLastMessage(LogType_Debug);
 			}
 			if (!logMsg) {
-				logMsg = g_log.getLastLog();
+				logMsg = g_Log.getLastMessage(LogType_Log);
 			}
 			ImGui::SetCursorPosX(logPosX);
 			ImGui::TextColored(ImColor(logMsg->m_col), logMsg->m_txt);
 			m_showLog = ImGui::IsItemClicked() ? !m_showLog : m_showLog;
-			
 			ImGui::SameLine();
 			ImGui::SetCursorPosX(cursorPosX);
+			*/
 
 		 // draw app items
 			drawStatusBar();
@@ -228,7 +230,7 @@ bool AppSample::update()
 		ImGui::End();
 		ImGui::PopStyleVar(2);
 
-		if (m_showLog) {
+		/*if (m_showLog) {
 			float logPosY = io.DisplaySize.y * 0.7f;
 			ImGui::SetNextWindowPos(ImVec2(logPosX, logPosY));
 			ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x - logPosX, io.DisplaySize.y - logPosY - kStatusBarHeight));
@@ -240,7 +242,7 @@ bool AppSample::update()
 				);
 			g_log.draw();
 			ImGui::End();
-		}
+		}*/
 	 // main menu
 		if (ImGui::BeginMainMenuBar()) {
 			if (ImGui::BeginMenu("Tools")) {
@@ -312,8 +314,8 @@ AppSample::AppSample(const char* _name)
 	: App()
 	, m_name(_name)
 {
-	APT_ASSERT(g_current == nullptr); // don't support multiple apps (yet)
-	g_current = this;
+	APT_ASSERT(g_Current == nullptr); // don't support multiple apps (yet)
+	g_Current = this;
 
 	PropertyGroup& propGroup = m_props.addGroup("AppSample");
 	//                 name                     default         min     max                          storage
