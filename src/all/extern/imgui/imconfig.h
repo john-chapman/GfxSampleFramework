@@ -8,6 +8,7 @@
 
 #include <frm/def.h>
 #include <frm/math.h>
+#include <extern/IconFontCppHeaders/IconsFontAwesome4.h>
 
 //---- Define assertion handler. Defaults to calling assert().
 #define IM_ASSERT(_EXPR)  APT_ASSERT(_EXPR)

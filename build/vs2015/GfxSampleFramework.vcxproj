@@ -105,6 +105,8 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClInclude Include="..\..\src\all\extern\GL\glew.h" />
     <ClInclude Include="..\..\src\all\extern\GL\glxew.h" />
     <ClInclude Include="..\..\src\all\extern\GL\wglew.h" />
+    <ClInclude Include="..\..\src\all\extern\IconFontCppHeaders\IconsFontAwesome4.h" />
+    <ClInclude Include="..\..\src\all\extern\IconFontCppHeaders\IconsFontAwesome5.h" />
     <ClInclude Include="..\..\src\all\extern\im3d\im3d.h" />
     <ClInclude Include="..\..\src\all\extern\im3d\im3d_config.h" />
     <ClInclude Include="..\..\src\all\extern\im3d\im3d_math.h" />
@@ -170,7 +172,6 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClInclude Include="..\..\src\all\frm\def.h" />
     <ClInclude Include="..\..\src\all\frm\geom.h" />
     <ClInclude Include="..\..\src\all\frm\gl.h" />
-    <ClInclude Include="..\..\src\all\frm\icon_fa.h" />
     <ClInclude Include="..\..\src\all\frm\imgui_helpers.h" />
     <ClInclude Include="..\..\src\all\frm\interpolation.h" />
     <ClInclude Include="..\..\src\all\frm\math.h" />

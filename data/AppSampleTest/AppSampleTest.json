@@ -4,17 +4,20 @@
 		"Anim Path": "models/md5/bob_lamp_update.md5anim"
 	},
 	"AppSample": {
-		"Vsync Mode": 0,
-		"Show Shader Viewer": false,
+		"Font": "",
+		"ShowMenu": false,
+		"FontOversample": 1,
+		"ShowPropertyEditor": false,
+		"ShowProfiler": false,
 		"GlVersion": [-1, -1],
-		"Show Menu": true,
-		"Show Profiler": false,
-		"Show Property Editor": false,
-		"Show Texture Viewer": false,
+		"FontSize": 13.0,
+		"ShowShaderViewer": false,
+		"VsyncMode": 0,
 		"GlCompatibility": false,
-		"Show Log": false,
+		"ShowTextureViewer": false,
 		"WindowSize": [-1, -1],
-		"Resolution": [-1, -1]
+		"Resolution": [-1, -1],
+		"ShowLog": false
 	},
 	"AppSample3d": {
 		"Scene Path": "Scene.json",

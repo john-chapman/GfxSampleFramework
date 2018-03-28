@@ -1,7 +1,5 @@
 #include <frm/Property.h>
 
-#include <frm/icon_fa.h>
-
 #include <apt/memory.h>
 #include <apt/FileSystem.h>
 #include <apt/Json.h>

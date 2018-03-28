@@ -1,6 +1,5 @@
 #include <frm/imgui_helpers.h>
 
-#include <frm/icon_fa.h>
 #include <frm/Curve.h>
 #include <frm/Input.h>
 
