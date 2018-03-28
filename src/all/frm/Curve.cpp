@@ -1,6 +1,5 @@
 #include <frm/Curve.h>
 
-#include <frm/icon_fa.h>
 #include <frm/interpolation.h>
 #include <frm/Input.h>
 

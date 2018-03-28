@@ -1,6 +1,5 @@
 #include <frm/AppSample.h>
 
-#include <frm/icon_fa.h>
 #include <frm/math.h>
 #include <frm/App.h>
 #include <frm/Framebuffer.h>
@@ -317,20 +316,21 @@ AppSample::AppSample(const char* _name)
 	g_current = this;
 
 	PropertyGroup& propGroup = m_props.addGroup("AppSample");
-	//                name                     default         min     max                          storage
-	propGroup.addInt2("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroup.addInt2("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroup.addInt ("Vsync Mode",            0,              0,      (int)GlContext::Vsync_On,    &m_vsyncMode);
-	propGroup.addBool("Show Menu",             false,                                               &m_showMenu);
-	propGroup.addBool("Show Log",              false,                                               &m_showLog);
-	propGroup.addBool("Show Property Editor",  false,                                               &m_showPropertyEditor);
-	propGroup.addBool("Show Profiler",         false,                                               &m_showProfilerViewer);
-	propGroup.addBool("Show Texture Viewer",   false,                                               &m_showTextureViewer);
-	propGroup.addBool("Show Shader Viewer",    false,                                               &m_showShaderViewer);
-	propGroup.addPath("Font",                  "",                                                  nullptr);
-
-	propGroup.addInt2("GlVersion",             ivec2(-1, -1), -1,      99);
-	propGroup.addBool("GlCompatibility",       false);
+	//                 name                     default         min     max                          storage
+	propGroup.addInt2 ("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroup.addInt2 ("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroup.addInt2 ("GlVersion",             ivec2(-1, -1), -1,      99,                          nullptr);
+	propGroup.addBool ("GlCompatibility",       false,                                               nullptr);
+	propGroup.addInt  ("VsyncMode",             0,              0,      GlContext::Vsync_On,         &m_vsyncMode);
+	propGroup.addBool ("ShowMenu",              false,                                               &m_showMenu);
+	propGroup.addBool ("ShowLog",               false,                                               &m_showLog);
+	propGroup.addBool ("ShowPropertyEditor",    false,                                               &m_showPropertyEditor);
+	propGroup.addBool ("ShowProfiler",          false,                                               &m_showProfilerViewer);
+	propGroup.addBool ("ShowTextureViewer",     false,                                               &m_showTextureViewer);
+	propGroup.addBool ("ShowShaderViewer",      false,                                               &m_showShaderViewer);
+	propGroup.addPath ("Font",                  "",                                                  nullptr);
+	propGroup.addFloat("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
+	propGroup.addInt  ("FontOversample",        1,              1,     8,                            nullptr);
 }
 
 AppSample::~AppSample()
@@ -414,23 +414,29 @@ bool AppSample::ImGui_Init()
 	g_txRadar = Texture::Create("textures/radar.tga");
 	g_txRadar->setName("#TextureViewer_radar");
 
- // fonts texture
+ // font
+	auto&       props          = app->getProperties();
+	const auto& fontPath       = *props.findProperty("Font")->asString();
+	float       fontSize       = *props.findProperty("FontSize")->asFloat();
+	int         fontOversample = *props.findProperty("FontOversample")->asInt();
+	ImFontConfig fontCfg;
+	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
+	fontCfg.SizePixels  = fontSize;
+	fontCfg.PixelSnapH  = true;
+	if (fontPath.isEmpty()) {
+		io.Fonts->AddFontDefault(&fontCfg);
+	} else {
+		io.Fonts->AddFontFromFileTTF((const char*)fontPath, fontSize, &fontCfg);
+	}
+	fontCfg.MergeMode = true;
+	const ImWchar glyphRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+	io.Fonts->AddFontFromFileTTF("common/fonts/" FONT_ICON_FILE_NAME_FA, fontSize, &fontCfg, glyphRanges);
+	
 	if (g_txImGui) {
 		Texture::Release(g_txImGui);
 	}
 	unsigned char* buf;
 	int txX, txY;
-	ImFontConfig fontCfg;
-	fontCfg.OversampleH = fontCfg.OversampleV = 1;
-	auto fontProp = app->getProperties().findProperty("Font");
-	if (fontProp && !fontProp->asString()->isEmpty()) {
-		io.Fonts->AddFontFromFileTTF(fontProp->asString()->c_str(), 13.0f, &fontCfg);
-	} else {
-		io.Fonts->AddFontDefault();
-	}
-	fontCfg.MergeMode = true;
-	const ImWchar glyphRanges[] = { 0xf000, 0xf2e0, 0 };
-	io.Fonts->AddFontFromFileTTF("common/fonts/fontawesome-webfont.ttf", 13.0f, &fontCfg, glyphRanges);
 	io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
 	g_txImGui = Texture::Create2d(txX, txY, GL_R8);
 	g_txImGui->setFilter(GL_NEAREST);

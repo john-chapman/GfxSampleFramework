@@ -1,7 +1,6 @@
 #include <frm/Texture.h>
 
 #include <frm/gl.h>
-#include <frm/icon_fa.h>
 #include <frm/Framebuffer.h>
 #include <frm/GlContext.h>
 #include <frm/Resource.h>

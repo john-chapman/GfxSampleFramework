@@ -1,6 +1,5 @@
 #include <frm/Scene.h>
 
-#include <frm/icon_fa.h>
 #include <frm/Camera.h>
 #include <frm/Light.h>
 #include <frm/Profiler.h>
@@ -27,13 +26,6 @@ static const char* kNodeTypeStr[] =
 	"Camera",
 	"Object",
 	"Light"
-};
-static const char* kNodeTypeIconStr[] =
-{
-	ICON_FA_COG,          // root
-	ICON_FA_VIDEO_CAMERA, // camera
-	ICON_FA_CUBE,         // object
-	ICON_FA_LIGHTBULB_O   // light
 };
 static Node::Type NodeTypeFromStr(const char* _str)
 {
@@ -723,6 +715,14 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 
 #include <im3d/Im3d.h>
 #include <imgui/imgui.h>
+
+static const char* kNodeTypeIconStr[] =
+{
+	ICON_FA_COG,          // root
+	ICON_FA_VIDEO_CAMERA, // camera
+	ICON_FA_CUBE,         // object
+	ICON_FA_LIGHTBULB_O   // light
+};
 
 static const Im3d::Color kNodeTypeCol[] = 
 {
