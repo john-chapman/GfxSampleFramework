@@ -12,6 +12,7 @@
 #include <frm/Texture.h>
 #include <frm/Window.h>
 
+#include <apt/platform.h>
 #include <apt/ArgList.h>
 #include <apt/File.h>
 #include <apt/FileSystem.h>
@@ -58,7 +59,9 @@ bool AppSample::init(const apt::ArgList& _args)
 	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
 	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
 	
-	g_Log.setOutput("log.txt"); // need to set after the application root
+	g_Log.setOutput((const char*)String<64>("%s.log", (const char*)m_name)); // need to set after the application root
+	g_Log.addMessage((const char*)String<64>("'%s' %s", (const char*)m_name, Time::GetDateTime().asString()));
+	APT_LOG("System info:\n%s", (const char*)GetPlatformInfoString());
 
  	m_propsPath.setf("%s.json", (const char*)m_name);
 	readProps((const char*)m_propsPath);

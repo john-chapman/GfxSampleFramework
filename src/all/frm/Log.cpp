@@ -49,7 +49,7 @@ struct Log::Buffer
 		}
 
 	 // concatenate message strings, prepended with the type
-		static const char* kTypeStr[apt::LogType_Count] =
+		static const char* kTypeStr[LogType_Count] =
 		{
 			"LOG",
 			"ERR",
@@ -58,7 +58,10 @@ struct Log::Buffer
 		String<0> data;
 		while (m_flushFrom != m_impl.end()) {
 			auto& msg = *m_flushFrom;
-			data.appendf("[%s]  %s\n", kTypeStr[msg.m_type], (const char*)msg.m_str);
+			if (msg.m_type != LogType_Count) {
+				data.appendf("[%s]  ", kTypeStr[msg.m_type]);
+			}
+			data.appendf("%s\n", (const char*)msg.m_str);
 			++m_flushFrom;
 		}
 
@@ -99,7 +102,10 @@ void Log::addMessage(const char* _str, Type _type)
 	msg.m_str.set(_str);
 	msg.m_type = _type;
 	msg.m_time = Time::GetApplicationElapsed();
-	m_lastMessage[_type] = m_buf->push_back(msg);
+	auto ptr = m_buf->push_back(msg);
+	if (_type != LogType_Count) {
+		m_lastMessage[_type] = ptr;
+	}
 }
 
 void Log::flush()

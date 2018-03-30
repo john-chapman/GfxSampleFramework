@@ -31,7 +31,7 @@ public:
 
 	void           setOutput(const char* _output);
 	const Message* getLastMessage(Type _type);
-	void           addMessage(const char* _str, Type _type);
+	void           addMessage(const char* _str, Type _type = apt::LogType_Count);
 	void           flush();
 
 
