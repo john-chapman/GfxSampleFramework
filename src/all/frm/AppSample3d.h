@@ -38,12 +38,12 @@ protected:
 	AppSample3d(const char* _title);
 	virtual ~AppSample3d();
 
-	Camera* m_dbgCullCamera;
-	Scene* m_scene;
+	Camera*      m_dbgCullCamera;
+	Scene*       m_scene;
 
-	bool m_showHelpers;
-	bool m_showSceneEditor;
-	apt::FileSystem::PathStr m_scenePath;
+	bool         m_showHelpers;
+	bool         m_showSceneEditor;
+	apt::PathStr m_scenePath;
 	
 private:
 

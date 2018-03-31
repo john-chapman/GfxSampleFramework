@@ -36,9 +36,9 @@ public:
 	typedef AppSample3d AppBase;
 
 	struct MeshTest {
-		FileSystem::PathStr m_meshPath;
+		PathStr             m_meshPath;
 		Mesh*               m_mesh;
-		FileSystem::PathStr m_animPath;
+		PathStr             m_animPath;
 		SkeletonAnimation*  m_anim;
 		float               m_animTime;
 		float               m_animSpeed;
@@ -50,7 +50,7 @@ public:
 	} m_meshTest;
 
 	struct DepthTest {
-		FileSystem::PathStr m_meshPath;
+		PathStr             m_meshPath;
 		Mesh*               m_mesh;
 		int                 m_meshCount;
 		Buffer*             m_bfInstances;
@@ -337,16 +337,6 @@ public:
 		return true;
 	}
 
-	virtual void drawMainMenuBar() override
-	{
-		AppBase::drawMainMenuBar();
-	}
-
-	virtual void drawStatusBar() override
-	{
-		AppBase::drawStatusBar();
-	}
-
 	virtual void draw() override
 	{
 		GlContext* ctx = GlContext::GetCurrent();
@@ -625,7 +615,7 @@ public:
 		}
 
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
-		if (ImGui::TreeNode("Gradient Editor")) {
+		/*if (ImGui::TreeNode("Gradient Editor")) {
 			static Curve          s_gradient[4];
 			static GradientEditor s_gradientEditor;
 			static CurveEditor    s_curveEditor;
@@ -646,7 +636,7 @@ public:
 			s_gradientEditor.edit();
 
 			ImGui::TreePop();
-		}
+		}*/
 
 		AppBase::draw();
 	}
