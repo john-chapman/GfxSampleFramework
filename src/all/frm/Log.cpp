@@ -1,5 +1,7 @@
 #include <frm/Log.h>
 
+#include <frm/Profiler.h>
+
 #include <apt/FileSystem.h>
 #include <apt/Time.h>
 
@@ -48,6 +50,8 @@ struct Log::Buffer
 			return;
 		}
 
+		PROFILER_MARKER_CPU("Log::flush");
+
 	 // concatenate message strings, prepended with the type
 		static const char* kTypeStr[LogType_Count] =
 		{
@@ -55,7 +59,7 @@ struct Log::Buffer
 			"ERR",
 			"DBG",
 		};
-		String<0> data;
+		apt::String<0> data;
 		while (m_flushFrom != m_impl.end()) {
 			auto& msg = *m_flushFrom;
 			if (msg.m_type != LogType_Count) {
@@ -75,9 +79,9 @@ struct Log::Buffer
 
 // PUBLIC
 
-Log::Log(int _maxMessageCount, const char* _output)
+Log::Log(int _bufferSize, const char* _output)
 {
-	m_buf = new Log::Buffer(_maxMessageCount, _output);
+	m_buf = new Log::Buffer(_bufferSize, _output);
 }
 
 Log::~Log()
@@ -86,27 +90,6 @@ Log::~Log()
 	delete m_buf;
 }
 
-void Log::setOutput(const char* _output)
-{
-	m_buf->setOutput(_output);
-}
-
-const Log::Message* Log::getLastMessage(Type _type) const
-{
-	return m_lastMessage[_type];
-}
-
-void Log::clearLastMessage(Type _type)
-{
-	if (_type == LogType_Count) {
-		for (auto& msg : m_lastMessage) {
-			msg = nullptr;
-		}
-	} else {
-		m_lastMessage[_type] = nullptr;
-	}
-}
-	
 void Log::addMessage(const char* _str, Type _type)
 {
 	Message msg;
@@ -128,6 +111,34 @@ void Log::addMessage(const char* _str, Type _type)
 	}
 }
 
+const Log::Message* Log::getLastMessage(Type _type) const
+{
+	if (_type == LogType_Count) {
+		if (m_buf->m_impl.empty()) {
+			return nullptr;
+		}
+		return &m_buf->m_impl.back();
+	} else {
+		return m_lastMessage[_type];
+	}
+}
+
+void Log::clearLastMessage(Type _type)
+{
+	if (_type == LogType_Count) {
+		for (auto& msg : m_lastMessage) {
+			msg = nullptr;
+		}
+	} else {
+		m_lastMessage[_type] = nullptr;
+	}
+}
+
+void Log::flush()
+{
+	m_buf->flush();
+}
+
 int Log::getMessageCount() const
 {
 	return (int)m_buf->m_impl.size();
@@ -137,7 +148,7 @@ const Log::Message* Log::getMessage(int _i) const
 	return &m_buf->m_impl[_i];
 }
 
-void Log::flush()
+void Log::setOutput(const char* _output)
 {
-	m_buf->flush();
+	m_buf->setOutput(_output);
 }
