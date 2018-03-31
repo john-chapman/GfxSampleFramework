@@ -22,7 +22,7 @@ namespace frm {
 //   - Add an explicit instantiation to Resource.cpp.
 //   - Implement Create(), Destroy(), load(), reload().
 //   - Set a unique id and optional name via one of the Resource ctors.
-//   - Correctly set the resource state during load()/reload().
+//   - Correctly set the resource state during load(), reload().
 ////////////////////////////////////////////////////////////////////////////////
 template <typename tDerived>
 class Resource: private apt::non_copyable<Resource<tDerived> >
@@ -31,12 +31,15 @@ public:
 	typedef tDerived Derived;
 	typedef uint64   Id;
 
-	enum State
+	enum State_
 	{
-		State_Error,      // failed to load
-		State_Unloaded,   // created but not loaded
-		State_Loaded      // successfully loaded
+		State_Error,       // failed to load
+		State_Unloaded,    // created but not loaded
+		State_Loaded,      // successfully loaded
+
+		State_Count
 	};
+	typedef int State;
 	
 	// Increment the reference count for _inst, load if 1.
 	static void     Use(Derived* _inst_);

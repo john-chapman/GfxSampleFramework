@@ -45,6 +45,26 @@ static int   kStatusBarFlags;
 
 *******************************************************************************/
 
+static void FileChangeNotification(const char* _path, FileSystem::FileAction _action)
+{
+ // some applications (e.g. Photoshop) write to a temporary file and then do a delete/rename, hence we need to check both _Modified and _Created actions
+	if (_action == FileSystem::FileAction_Modified || _action == FileSystem::FileAction_Created) {
+	 // shader
+		if (FileSystem::Matches("*.glsl", _path)) {
+			//APT_LOG_DBG("Reload shader '%s'", _path);
+			Shader::FileModified(_path);
+			return;
+		}
+
+	 // texture
+		if (FileSystem::MatchesMulti({"*.bmp", "*.dds", "*.exr", "*.hdr", "*.png", "*.tga", "*.jpg", "*.gif", "*.psd"}, _path)) {
+			//APT_LOG_DBG("Reload texture '%s'", _path);
+			Texture::FileModified(_path);
+			return;
+		}
+	}
+}
+
 // PUBLIC
 
 AppSample* AppSample::GetCurrent()
@@ -64,6 +84,9 @@ bool AppSample::init(const apt::ArgList& _args)
 	
 	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
 	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
+
+	FileSystem::BeginNotifications(FileSystem::GetRoot(FileSystem::RootType_Common), &FileChangeNotification);
+	FileSystem::BeginNotifications(FileSystem::GetRoot(FileSystem::RootType_Application), &FileChangeNotification);
 	
 	g_Log.setOutput((const char*)String<64>("%s.log", (const char*)m_name)); // need to set after the application root
 	g_Log.addMessage((const char*)String<64>("'%s' %s", (const char*)m_name, Time::GetDateTime().asString()));
@@ -144,6 +167,9 @@ bool AppSample::init(const apt::ArgList& _args)
 
 void AppSample::shutdown()
 {	
+	FileSystem::EndNotifications(FileSystem::GetRoot(FileSystem::RootType_Common));
+	FileSystem::EndNotifications(FileSystem::GetRoot(FileSystem::RootType_Application));
+
 	ImGui_Shutdown();
 	
 	if (m_glContext) {
@@ -167,6 +193,7 @@ bool AppSample::update()
 	if (!m_window->pollEvents()) { // dispatches callbacks to ImGui
 		return false;
 	}
+	FileSystem::DispatchNotifications();
 
 	Window* window = getWindow();
 	ImGui::GetIO().MousePos = ImVec2(-1.0f, -1.0f);

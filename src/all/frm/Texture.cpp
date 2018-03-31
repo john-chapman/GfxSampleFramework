@@ -647,6 +647,16 @@ void Texture::Destroy(Texture*& _inst_)
 	delete _inst_;
 }
 
+void Texture::FileModified(const char* _path)
+{
+	for (int i = 0, n = GetInstanceCount(); i < n; ++i) {
+		auto texture = GetInstance(i);
+		if (texture->m_path == _path) {
+			texture->reload();
+		}
+	}
+}
+
 Image* Texture::CreateImage(const Texture* _tx)
 {
 	APT_ASSERT(_tx->getState() == State_Loaded);

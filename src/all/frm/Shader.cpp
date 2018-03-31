@@ -342,6 +342,17 @@ const char* ShaderDesc::getDependency(GLenum _stage, int _i) const
 	APT_ASSERT(_i < stage.m_dependencies.size());
 	return (const char*)stage.m_dependencies[_i];
 }
+bool ShaderDesc::hasDependency(const char* _path) const
+{
+	for (auto& stage : m_stages) {
+		if (stage.isEnabled()) {
+			if (stage.hasDependency(_path)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 template <>
 void ShaderDesc::addDefine<const char*>(GLenum _stage, const char* _name, const char* const& _value)
@@ -714,6 +725,17 @@ Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _loc
 void Shader::Destroy(Shader*& _inst_)
 {
 	delete _inst_;
+}
+
+void Shader::FileModified(const char* _path)
+{
+	for (int i = 0, n = GetInstanceCount(); i < n; ++i) {
+		auto shader = GetInstance(i);
+		if (shader->getDesc().hasDependency(_path)) {
+		 // \todo could potentially avoid reloading all stages
+			shader->reload();
+		}
+	}
 }
 
 bool Shader::reload()
