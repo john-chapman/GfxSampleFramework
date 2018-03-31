@@ -156,9 +156,9 @@ struct TextureViewer
 			}
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_FLOPPY_O " Load")) {
-				FileSystem::PathStr pth;
+				PathStr pth;
 				if (FileSystem::PlatformSelect(pth)) {
-					FileSystem::StripRoot(pth, (const char*)pth);
+					pth = FileSystem::StripRoot((const char*)pth);
 					Texture::Create((const char*)pth);
 				}
 			}
@@ -217,7 +217,7 @@ struct TextureViewer
 			}
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_FLOPPY_O " Save")) {
-				FileSystem::PathStr pth = tx.getPath();
+				PathStr pth = tx.getPath();
 				if (FileSystem::PlatformSelect(pth, { "*.bmp", "*.dds", "*.exr", "*.hdr", "*.png", "*.tga" })) {
 					Image* img = Texture::CreateImage(&tx);
 					Image::Write(*img, (const char*)pth);
@@ -231,9 +231,9 @@ struct TextureViewer
 				}
 				ImGui::SameLine();
 				if (ImGui::Button(ICON_FA_FLOPPY_O " Replace")) {
-					FileSystem::PathStr pth;
+					PathStr pth;
 					if (FileSystem::PlatformSelect(pth)) {
-						FileSystem::StripRoot(pth, (const char*)pth);
+						pth = FileSystem::StripRoot((const char*)pth);
 						tx.setPath((const char*)pth);
 						tx.reload();
 						txView.reset();

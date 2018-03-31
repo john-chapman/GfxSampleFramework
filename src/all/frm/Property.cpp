@@ -295,10 +295,10 @@ static bool EditColor(Property& _prop)
 static bool EditPath(Property& _prop)
 {
 	bool ret = false;
-	FileSystem::PathStr& pth = *((FileSystem::PathStr*)_prop.getData());
+	PathStr& pth = *((PathStr*)_prop.getData());
 	if (ImGui::Button(_prop.getDisplayName())) {
 		if (FileSystem::PlatformSelect(pth)) {
-			FileSystem::MakeRelative(pth);
+			pth = FileSystem::MakeRelative((const char*)pth);
 			ret = true;
 		}
 	}

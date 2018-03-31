@@ -43,9 +43,7 @@ public:
 	const GlContext*    getGlContext() const          { return m_glContext; }
 	uint64              getFrameIndex() const         { return m_frameIndex; }
 
-protected:		
-	typedef apt::FileSystem::PathStr PathStr;
-
+protected:
 	AppSample(const char* _title);
 	virtual ~AppSample();
 
@@ -72,14 +70,13 @@ private:
 	Window*            m_window    = nullptr;
 	GlContext*         m_glContext = nullptr;
 	const Framebuffer* m_fbDefault = nullptr; // where to draw overlays, or default backbuffer if 0
-
-	apt::FileSystem::PathStr m_propsPath;
+	apt::PathStr       m_propsPath;
 
 	void drawMainMenuBar();
 	void drawStatusBar();
 	void drawNotifications();
 
-	apt::FileSystem::PathStr m_imguiIniPath;
+	apt::PathStr m_imguiIniPath;
 	static bool ImGui_Init();
 	static void ImGui_InitStyle();
 	static void ImGui_Shutdown();

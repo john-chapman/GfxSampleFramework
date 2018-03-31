@@ -13,7 +13,7 @@ struct Log::Buffer
 	typedef eastl::ring_buffer<Log::Message> Impl;
 	Impl                 m_impl;
 	Impl::const_iterator m_flushFrom;
-	FileSystem::PathStr  m_output;
+	PathStr              m_output;
 
 	Log::Buffer(int _bufSize, const char* _output)
 		: m_impl(_bufSize)
