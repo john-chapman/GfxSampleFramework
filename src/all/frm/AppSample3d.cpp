@@ -85,6 +85,8 @@ bool AppSample3d::update()
 		}
 	}
 
+	drawMainMenuBar();
+
  // keyboard shortcuts
 	Keyboard* keyb = Input::GetKeyboard();
 	if (keyb->wasPressed(Keyboard::Key_F2)) {
@@ -143,39 +145,6 @@ bool AppSample3d::update()
 	}
 
 	return true;
-}
-
-void AppSample3d::drawMainMenuBar()
-{
-	if (ImGui::BeginMenu("Scene")) {
-		if (ImGui::MenuItem("Load...")) {
-			if (FileSystem::PlatformSelect(m_scenePath, { "*.json" })) {
-				FileSystem::MakeRelative(m_scenePath);
-				Scene::Load((const char*)m_scenePath, *m_scene);
-			}
-		}
-		if (ImGui::MenuItem("Save")) {
-			Scene::Save((const char*)m_scenePath, *m_scene);
-		}
-		if (ImGui::MenuItem("Save As...")) {
-			if (FileSystem::PlatformSelect(m_scenePath, { "*.json" })) {
-				FileSystem::MakeRelative(m_scenePath);
-				Scene::Save((const char*)m_scenePath, *m_scene);
-			}
-		}
-
-		ImGui::Separator();
-
-		ImGui::MenuItem("Scene Editor",      "Ctrl+O",       m_showSceneEditor);
-		ImGui::MenuItem("Show Helpers",      "F2",           m_showHelpers);
-		ImGui::MenuItem("Pause Cull Camera", "Ctrl+Shift+C", m_showSceneEditor);
-
-		ImGui::EndMenu();
-	}
-}
-
-void AppSample3d::drawStatusBar()
-{
 }
 
 void AppSample3d::draw()
@@ -294,6 +263,39 @@ AppSample3d::~AppSample3d()
 }
 
 // PRIVATE
+
+void AppSample3d::drawMainMenuBar()
+{
+	if (m_showMenu && ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("Scene")) {
+			if (ImGui::MenuItem("Load...")) {
+				if (FileSystem::PlatformSelect(m_scenePath, { "*.json" })) {
+					FileSystem::MakeRelative(m_scenePath);
+					Scene::Load((const char*)m_scenePath, *m_scene);
+				}
+			}
+			if (ImGui::MenuItem("Save")) {
+				Scene::Save((const char*)m_scenePath, *m_scene);
+			}
+			if (ImGui::MenuItem("Save As...")) {
+				if (FileSystem::PlatformSelect(m_scenePath, { "*.json" })) {
+					FileSystem::MakeRelative(m_scenePath);
+					Scene::Save((const char*)m_scenePath, *m_scene);
+				}
+			}
+
+			ImGui::Separator();
+
+			ImGui::MenuItem("Scene Editor",      "Ctrl+O",       m_showSceneEditor);
+			ImGui::MenuItem("Show Helpers",      "F2",           m_showHelpers);
+			ImGui::MenuItem("Pause Cull Camera", "Ctrl+Shift+C", m_showSceneEditor);
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
+}
 
 
 /*******************************************************************************

@@ -27,9 +27,6 @@ public:
 	virtual bool update() override;
 	virtual void draw() override;
 
-	virtual void drawMainMenuBar() override;
-	virtual void drawStatusBar() override;
-
 	// Get a world/view space ray corresponding to the cursor position (by default the window-relative mouse position).
 	// By default Scene::GetDrawCamera() is used (if _camera == nullptr).
 	virtual Ray getCursorRayW(const Camera* _camera = nullptr) const;
@@ -47,8 +44,11 @@ protected:
 	bool m_showHelpers;
 	bool m_showSceneEditor;
 	apt::FileSystem::PathStr m_scenePath;
+	
+private:
 
-	Im3d::Context m_im3dCtx;
+	void drawMainMenuBar();
+
 	static bool Im3d_Init();
 	static void Im3d_Shutdown();
 	static void Im3d_Update(AppSample3d* _app);
