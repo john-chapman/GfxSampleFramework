@@ -44,8 +44,8 @@ template <typename tDerived>
 bool Resource<tDerived>::ReloadAll()
 {
 	bool ret = true;
-	for (auto it = s_instances.begin(); it != s_instances.end(); ++it) {
-		ret &= (*it)->reload();
+	for (auto& inst : s_instances) {
+		ret &= inst->reload();
 	}
 	return ret;
 }
@@ -130,7 +130,7 @@ void Resource<tDerived>::init(Id _id, const char* _name)
  // at this point an id collision is an error; reusing existing resources must happen prior to calling the Resource ctor
 	APT_ASSERT_MSG(Find(_id) == 0, "Resource '%s' already exists", _name);
 
-	m_state = State::State_Unloaded;
+	m_state = State_Unloaded;
 	m_id = _id;
 	m_name.set(_name);
 	m_refs = 0;

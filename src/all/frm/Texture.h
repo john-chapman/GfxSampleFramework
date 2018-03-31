@@ -34,6 +34,9 @@ public:
 	static Texture* CreateProxy(GLuint _handle, const char* _name);
 	static void     Destroy(Texture*& _inst_);
 
+	// Reload _path.
+	static void     FileModified(const char* _path);
+
 	// Create an apt::Image (download the GPU data). This a a synchronous operation via glGetTextureImage() and will stall the gpu.
 	static apt::Image* CreateImage(const Texture* _tx);
 	static void        DestroyImage(apt::Image*& _img_);
