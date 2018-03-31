@@ -33,9 +33,7 @@ void AppLogCallback(const char* _msg, LogType _type)
 	g_Log.addMessage(_msg, _type);
 }
 
-static ImU32 kColor_Log;
-static ImU32 kColor_LogErr;
-static ImU32 kColor_LogDbg;
+static ImU32 kColor_Log[LogType_Count];
 static float kStatusBarLogWidth;
 static int   kStatusBarFlags;
 
@@ -116,11 +114,11 @@ bool AppSample::init(const apt::ArgList& _args)
 	m_resolution.x   = resolution.x == -1 ? m_windowSize.x : resolution.x;
 	m_resolution.y   = resolution.y == -1 ? m_windowSize.y : resolution.y;
 
-	kColor_Log         = 0xff999999;
-	kColor_LogErr      = 0xff1943ff;
-	kColor_LogDbg      = 0xffffaa33;
-	kStatusBarLogWidth = 0.4f; // fraction of window width
-	kStatusBarFlags    = 0
+	kColor_Log[LogType_Log]   = 0xff999999;
+	kColor_Log[LogType_Error] = 0xff1943ff;
+	kColor_Log[LogType_Debug] = 0xffffaa33;
+	kStatusBarLogWidth        = 0.4f; // fraction of window width
+	kStatusBarFlags           = 0
 		| ImGuiWindowFlags_NoTitleBar
 		| ImGuiWindowFlags_NoResize
 		| ImGuiWindowFlags_NoMove
@@ -190,10 +188,14 @@ bool AppSample::update()
 
 	PROFILER_MARKER_CPU("#AppSample::update");
 
-	if (!m_window->pollEvents()) { // dispatches callbacks to ImGui
-		return false;
+	{	PROFILER_MARKER_CPU("#Poll Events");
+		if (!m_window->pollEvents()) { // dispatches callbacks to ImGui
+			return false;
+		}
 	}
-	FileSystem::DispatchNotifications();
+	{	PROFILER_MARKER_CPU("#Dispatch File Notifications");
+		FileSystem::DispatchNotifications();
+	}
 
 	Window* window = getWindow();
 	ImGui::GetIO().MousePos = ImVec2(-1.0f, -1.0f);
@@ -366,24 +368,15 @@ void AppSample::drawStatusBar()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0,0));
 	ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, ImGui::GetFrameHeightWithSpacing()));
 	ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - ImGui::GetFrameHeightWithSpacing()));
-	ImGui::Begin("##StatusBar", 0, ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoSavedSettings);
+	ImGui::Begin("##StatusBar", 0, kStatusBarFlags);
 		ImGui::AlignTextToFramePadding();
 		
 		float logPosX = io.DisplaySize.x - io.DisplaySize.x * kStatusBarLogWidth + ImGui::GetStyle().WindowPadding.x;
 		float cursorPosX = ImGui::GetCursorPosX();
-		const Log::Message* logMsg = g_Log.getLastMessage(LogType_Error);
-		ImU32 col = kColor_LogErr;
-		if (!logMsg) {
-			logMsg = g_Log.getLastMessage(LogType_Debug);
-			col = kColor_LogDbg;
-		}
-		if (!logMsg) {
-			logMsg = g_Log.getLastMessage(LogType_Log);
-			col = kColor_Log;
-		}
+		const Log::Message* logMsg = g_Log.getLastMessage();
 		if (logMsg) {
 			ImGui::SetCursorPosX(logPosX);
-			ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(col), (const char*)logMsg->m_str);
+			ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(kColor_Log[logMsg->m_type]), (const char*)logMsg->m_str);
 			if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && ImGui::GetMousePos().x > logPosX) {
 				m_showLog = !m_showLog;
 			}
@@ -416,13 +409,7 @@ void AppSample::drawStatusBar()
 			
 			for (int i = 0, n = g_Log.getMessageCount(); i < n; ++i) {
 				auto msg = g_Log.getMessage(i);
-				auto col = kColor_Log;
-				if (msg->m_type == LogType_Error) {
-					col = kColor_LogErr;
-				} else if (msg->m_type == LogType_Debug) {
-					col = kColor_LogDbg;
-				}
-				ImGui::PushStyleColor(ImGuiCol_Text, col);
+				ImGui::PushStyleColor(ImGuiCol_Text, kColor_Log[msg->m_type]);
 					ImGui::TextWrapped((const char*)msg->m_str);
 				ImGui::PopStyleColor();
 				
@@ -449,16 +436,7 @@ void AppSample::drawNotifications()
 	auto& io = ImGui::GetIO();
 
  // error/debug log notifications
-	auto logMsg = g_Log.getLastMessage(LogType_Error);
-	auto logCol = kColor_LogErr;
-	if (!logMsg) {
-		logMsg = g_Log.getLastMessage(LogType_Debug);
-		logCol = kColor_LogDbg;
-	}
-	if (!logMsg) {
-		logMsg = g_Log.getLastMessage(LogType_Log);
-		logCol = kColor_Log;
-	}
+	auto logMsg = g_Log.getLastMessage();
 	if (logMsg) {
 		float logAge = (float)(Time::GetApplicationElapsed() - logMsg->m_time).asSeconds();
 		if (logAge < 3.0f) {
@@ -473,7 +451,7 @@ void AppSample::drawNotifications()
 			ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * kStatusBarLogWidth, ImGui::GetFrameHeightWithSpacing()));
 			ImGui::Begin("##Notifications", 0, kStatusBarFlags | ImGuiWindowFlags_NoFocusOnAppearing);
 				ImGui::AlignTextToFramePadding();
-				ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(IM_COLOR_ALPHA(logCol, logAlpha)), (const char*)logMsg->m_str);
+				ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(IM_COLOR_ALPHA(kColor_Log[logMsg->m_type], logAlpha)), (const char*)logMsg->m_str);
 				if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered()) {
 					m_showMenu = true;
 					m_showLog = true;
