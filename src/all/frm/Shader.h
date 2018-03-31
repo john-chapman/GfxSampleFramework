@@ -103,7 +103,7 @@ private:
 		bool isEnabled() const;
 		bool hasDependency(const char* _path) const;
 		bool loadSource(const ShaderDesc& _shaderDesc, const char* _path = nullptr);
-		void logInfo() const;
+		apt::String<0> getLogInfo() const;
 	};
 	
 	static VersionStr           s_defaultVersion;
