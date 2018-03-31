@@ -637,24 +637,27 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 	return true;
 }
 
-void ShaderDesc::StageDesc::logInfo() const
+String<0> ShaderDesc::StageDesc::getLogInfo() const
 {
-	APT_LOG("\tstage: %s", internal::GlEnumStr(m_stage));
+	String<0> ret;
+	ret.setCapacity(256);
+	ret.appendf("\tstage: %s\n", internal::GlEnumStr(m_stage));
 	if (!m_path.isEmpty()) {
-		APT_LOG("\tpath: '%s'", (const char*)m_path);
+		ret.appendf("\tpath: '%s'\n", (const char*)m_path);
 	}
 	if (m_dependencies.size() > 0) {
-		APT_LOG("\tdependencies:");
+		ret.appendf("\tdependencies:\n");
 		for (int i = 0, n = (int)m_dependencies.size(); i < n; ++i) {
-			APT_LOG("\t\t(%d) '%s'", i, (const char*)m_dependencies[i]);
+			ret.appendf("\t\t(%d) '%s'\n", i, (const char*)m_dependencies[i]);
 		}
 	}
 	if (m_defines.size() > 0) {
-		APT_LOG("\tdefines:");
+		ret.appendf("\tdefines:\n");
 		for (auto& def : m_defines) {
-			APT_LOG("\t\t%s  %s", (const char*)def.first, (const char*)def.second);
+			ret.appendf("\t\t%s  %s\n", (const char*)def.first, (const char*)def.second);
 		}
 	}
+	return ret;
 }
 
 /*******************************************************************************
@@ -743,25 +746,28 @@ bool Shader::reload()
 		GLint linkStatus = GL_FALSE;
 		glAssert(glGetProgramiv(handle, GL_LINK_STATUS, &linkStatus));
 		if (linkStatus == GL_FALSE) {
-			APT_LOG_ERR("'%d' link failed", getName());
-			APT_LOG("\tstages:");
+			APT_LOG_ERR("'%s' link failed", getName());
+			String<0> log("\tstages:\n");
 			for (int i = 0; i < internal::kShaderStageCount; ++i) {
 				const ShaderDesc::StageDesc& stage = m_desc.m_stages[i];
 				if (stage.isEnabled()) {
-					stage.logInfo();
+					log.append((const char*)stage.getLogInfo());
 				}
 			}
-			const char* log = GetProgramInfoLog(handle);
-			APT_LOG("\tlog:\n%s", log);
-			FreeProgramInfoLog(log);
+			const char* programLog = GetProgramInfoLog(handle);
+			log.append(programLog);
+			FreeProgramInfoLog(programLog);
+			APT_LOG("'%s' link error log:\n%s", getName(), (const char*)log);
 
 			glAssert(glDeleteProgram(handle));
 			if (m_handle == 0) {
 			 // handle is 0, meaning we didn't successfully load a shader previously
 				setState(State_Error);
 			}
+
 			ret = false;
 			//APT_ASSERT(false);
+
 		} else {
 			APT_LOG("'%s' link succeeded", getName());
 			if (m_handle != 0) {
@@ -911,17 +917,20 @@ bool Shader::loadStage(int _i, bool _loadSource)
 	GLint ret = GL_FALSE;
 	glAssert(glGetShaderiv(m_stageHandles[_i], GL_COMPILE_STATUS, &ret));
 	
- // print info log on fail
+ // print error log
 	if (ret == GL_FALSE) {		
-		//APT_LOG_DBG("\tsrc: \n\n%s", (const char*)src);
-		
-		APT_LOG_ERR("'%s' compile failed", apt::internal::StripPath((const char*)stageDesc.m_path));
-		stageDesc.logInfo();
-		const char* log = GetStageInfoLog(m_stageHandles[_i]);
-		APT_LOG("\tlog: %s", log);
-		FreeStageInfoLog(log);
+		const char* pth = apt::internal::StripPath((const char*)stageDesc.m_path);
+		APT_LOG_ERR("'%s' compile failed", pth);
+		auto log = stageDesc.getLogInfo();
+		const char* stageLog = GetStageInfoLog(m_stageHandles[_i]);
+		log.append(stageLog);
+		FreeStageInfoLog(stageLog);
+		APT_LOG("'%s' compilation error log:\n%s", pth, (const char*)log);
 
-		//APT_ASSERT(false);
+		#if 0
+			APT_LOG_DBG("'%s' source:\n%s", pth, (const char*)src);
+			APT_ASSERT(false);
+		#endif
 
 	} else {
 		APT_LOG("'%s' compile succeeded", apt::internal::StripPath((const char*)stageDesc.m_path));

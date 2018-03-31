@@ -116,7 +116,11 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 	APT_ASSERT(err == GLEW_OK);
 	glGetError(); // clear any errors caused by glewInit()
 
-	APT_LOG("OpenGL context:\n\tVersion: %s\n\tGLSL Version: %s\n\tVendor: %s\n\tRenderer: %s",
+	APT_LOG("OpenGL context:"
+		"\n\tVersion:      %s"
+		"\n\tGLSL Version: %s"
+		"\n\tVendor:       %s"
+		"\n\tRenderer:     %s",
 		internal::GlGetString(GL_VERSION),
 		internal::GlGetString(GL_SHADING_LANGUAGE_VERSION),
 		internal::GlGetString(GL_VENDOR),

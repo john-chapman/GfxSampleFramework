@@ -5,7 +5,7 @@
 	},
 	"AppSample": {
 		"Font": "",
-		"ShowMenu": false,
+		"ShowMenu": true,
 		"FontOversample": 1,
 		"ShowPropertyEditor": false,
 		"ShowProfiler": false,
@@ -13,6 +13,7 @@
 		"FontSize": 13.0,
 		"ShowShaderViewer": false,
 		"VsyncMode": 0,
+		"ShowLogNotifications": true,
 		"GlCompatibility": false,
 		"ShowTextureViewer": false,
 		"WindowSize": [-1, -1],
