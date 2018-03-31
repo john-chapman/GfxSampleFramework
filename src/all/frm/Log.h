@@ -30,8 +30,11 @@ public:
 	
 
 	void           setOutput(const char* _output);
-	const Message* getLastMessage(Type _type);
+	const Message* getLastMessage(Type _type) const;
+	void           clearLastMessage(Type _type = apt::LogType_Count);
 	void           addMessage(const char* _str, Type _type = apt::LogType_Count);
+	int            getMessageCount() const;
+	const Message* getMessage(int _i) const;
 	void           flush();
 
 

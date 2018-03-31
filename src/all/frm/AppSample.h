@@ -72,6 +72,7 @@ private:
 	int    m_vsyncMode             = 1;//GlContext::Vsync_On;
 	bool   m_showMenu              = true;
 	bool   m_showLog               = false;
+	bool   m_showLogNotifications  = true;
 	bool   m_showPropertyEditor    = false;
 	bool   m_showProfilerViewer    = false;
 	bool   m_showTextureViewer     = false;

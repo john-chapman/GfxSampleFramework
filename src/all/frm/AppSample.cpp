@@ -184,7 +184,10 @@ bool AppSample::update()
 	}
 	
  // AppSample UI
-	const float kStatusBarHeight = ImGui::GetFrameHeightWithSpacing();// + 4.0f;
+	const ImU32 kColor_Log       = 0xff999999;
+	const ImU32 kColor_LogErr    = 0xff1943ff;
+	const ImU32 kColor_LogDbg    = 0xffffaa33;
+	const float kStatusBarHeight = ImGui::GetFrameHeightWithSpacing();
 	const ImGuiWindowFlags kStatusBarFlags = 
 		ImGuiWindowFlags_NoTitleBar |
 		ImGuiWindowFlags_NoResize |
@@ -199,33 +202,39 @@ bool AppSample::update()
 	if (m_showMenu) {
 	 // status bar
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.0f, 2.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(ImGui::GetStyle().WindowPadding.x, 2.0f));
 		ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - kStatusBarHeight));
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, kStatusBarHeight));
 		ImGui::Begin("Status Bar", 0, kStatusBarFlags);
 			ImGui::AlignTextToFramePadding();
 			
-			float cpuAvgFrameDuration = (float)Timestamp(Profiler::GetCpuAvgFrameDuration()).asMilliseconds();
-			float gpuAvgFrameDuration = (float)Timestamp(Profiler::GetGpuAvgFrameDuration()).asMilliseconds();
-			ImGui::Text("CPU %-4.2fms GPU %-4.2fms", cpuAvgFrameDuration, gpuAvgFrameDuration);
-			m_showProfilerViewer = ImGui::IsItemClicked() ? !m_showProfilerViewer : m_showProfilerViewer;
-			
-			ImGui::SameLine();
-			/*float cursorPosX = ImGui::GetCursorPosX();
-			float logPosX = ImGui::GetContentRegionMax().x - ImGui::GetContentRegionAvailWidth() * 0.3f;
+			//float cpuAvgFrameDuration = (float)Timestamp(Profiler::GetCpuAvgFrameDuration()).asMilliseconds();
+			//float gpuAvgFrameDuration = (float)Timestamp(Profiler::GetGpuAvgFrameDuration()).asMilliseconds();
+			//ImGui::Text("CPU %-4.2fms GPU %-4.2fms", cpuAvgFrameDuration, gpuAvgFrameDuration);
+			//m_showProfilerViewer = ImGui::IsItemClicked() ? !m_showProfilerViewer : m_showProfilerViewer;
+			//ImGui::SameLine();
+
+			float logPosX = io.DisplaySize.x - io.DisplaySize.x * 0.4f + ImGui::GetStyle().WindowPadding.x;
+			float cursorPosX = ImGui::GetCursorPosX();
 			const Log::Message* logMsg = g_Log.getLastMessage(LogType_Error);
+			ImU32 col = kColor_LogErr;
 			if (!logMsg) {
 				logMsg = g_Log.getLastMessage(LogType_Debug);
+				col = kColor_LogDbg;
 			}
 			if (!logMsg) {
 				logMsg = g_Log.getLastMessage(LogType_Log);
+				col = kColor_Log;
 			}
-			ImGui::SetCursorPosX(logPosX);
-			ImGui::TextColored(ImColor(logMsg->m_col), logMsg->m_txt);
-			m_showLog = ImGui::IsItemClicked() ? !m_showLog : m_showLog;
-			ImGui::SameLine();
-			ImGui::SetCursorPosX(cursorPosX);
-			*/
+			if (logMsg) {
+				ImGui::SetCursorPosX(logPosX);
+				ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(col), (const char*)logMsg->m_str);
+				if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && ImGui::GetMousePos().x > logPosX) {
+					m_showLog = !m_showLog;
+				}
+				ImGui::SameLine();
+				ImGui::SetCursorPosX(cursorPosX);
+			}
 
 		 // draw app items
 			drawStatusBar();
@@ -233,19 +242,50 @@ bool AppSample::update()
 		ImGui::End();
 		ImGui::PopStyleVar(2);
 
-		/*if (m_showLog) {
+		if (m_showLog) {
 			float logPosY = io.DisplaySize.y * 0.7f;
 			ImGui::SetNextWindowPos(ImVec2(logPosX, logPosY));
 			ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x - logPosX, io.DisplaySize.y - logPosY - kStatusBarHeight));
-			ImGui::Begin("Log", 0, 
-				ImGuiWindowFlags_NoTitleBar |
-				ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoSavedSettings
+			ImGui::Begin("Log", 0, 0
+				| ImGuiWindowFlags_NoTitleBar
+				| ImGuiWindowFlags_NoResize
+				| ImGuiWindowFlags_NoMove
+				| ImGuiWindowFlags_NoSavedSettings
 				);
-			g_log.draw();
+
+				auto appTime = Time::GetApplicationElapsed().getRaw();
+				auto msgTime = APT_DATA_TYPE_MAX(sint64);
+				for (int i = 0; i < LogType_Count; ++i) {
+					if (g_Log.getLastMessage(i)) {
+						msgTime = APT_MIN(msgTime, appTime - g_Log.getLastMessage(i)->m_time.getRaw());
+					}
+				}
+				bool autoScroll = ImGui::IsWindowAppearing() || Timestamp(msgTime).asSeconds() < 0.1;
+				
+				for (int i = 0, n = g_Log.getMessageCount(); i < n; ++i) {
+					auto msg = g_Log.getMessage(i);
+					auto col = kColor_Log;
+					if (msg->m_type == LogType_Error) {
+						col = kColor_LogErr;
+					} else if (msg->m_type == LogType_Debug) {
+						col = kColor_LogDbg;
+					}
+					ImGui::PushStyleColor(ImGuiCol_Text, col);
+						ImGui::TextWrapped((const char*)msg->m_str);
+					ImGui::PopStyleColor();
+					
+					if (autoScroll && msg == g_Log.getLastMessage(LogType_Error)) {
+						ImGui::SetScrollHere();
+						autoScroll = false;
+					}
+				}
+				if (autoScroll) {
+					ImGui::SetScrollHere();
+				}
+				
+				
 			ImGui::End();
-		}*/
+		}
 	 // main menu
 		if (ImGui::BeginMainMenuBar()) {
 			if (ImGui::BeginMenu("Tools")) {
@@ -271,6 +311,43 @@ bool AppSample::update()
 			drawMainMenuBar();
 			
 			ImGui::EndMainMenuBar();
+		}
+
+	} else if (m_showLogNotifications) {
+	 // error/debug log notifications
+		auto logMsg = g_Log.getLastMessage(LogType_Error);
+		auto logCol = kColor_LogErr;
+		if (!logMsg) {
+			logMsg = g_Log.getLastMessage(LogType_Debug);
+			logCol = kColor_LogDbg;
+		}
+		if (!logMsg) {
+			logMsg = g_Log.getLastMessage(LogType_Log);
+			logCol = kColor_Log;
+		}
+		if (logMsg) {
+			float logAge = (float)(Time::GetApplicationElapsed() - logMsg->m_time).asSeconds();
+			if (logAge < 3.0f) {
+				float logAlpha = 1.0f;
+				if (logAge > 2.5f) {
+					logAlpha = 1.0f - (logAge - 2.5f) / 0.5f;
+				}
+				ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetColorU32(ImGuiCol_WindowBg, 0.8f * logAlpha));
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(ImGui::GetStyle().WindowPadding.x, 2.0f));
+				ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - io.DisplaySize.x * 0.4f, io.DisplaySize.y - kStatusBarHeight));
+				ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.4f, kStatusBarHeight));
+				ImGui::Begin("LogNotification", 0, kStatusBarFlags | ImGuiWindowFlags_NoFocusOnAppearing);
+					ImGui::AlignTextToFramePadding();
+					ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(IM_COLOR_ALPHA(logCol, logAlpha)), (const char*)logMsg->m_str);
+					if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered()) {
+						m_showMenu = true;
+						m_showLog = true;
+					}
+				ImGui::End();
+				ImGui::PopStyleVar(2);
+				ImGui::PopStyleColor();
+			}
 		}
 	}
 
@@ -329,6 +406,7 @@ AppSample::AppSample(const char* _name)
 	propGroup.addInt  ("VsyncMode",             0,              0,      GlContext::Vsync_On,         &m_vsyncMode);
 	propGroup.addBool ("ShowMenu",              false,                                               &m_showMenu);
 	propGroup.addBool ("ShowLog",               false,                                               &m_showLog);
+	propGroup.addBool ("ShowLogNotifications",  false,                                               &m_showLogNotifications);
 	propGroup.addBool ("ShowPropertyEditor",    false,                                               &m_showPropertyEditor);
 	propGroup.addBool ("ShowProfiler",          false,                                               &m_showProfilerViewer);
 	propGroup.addBool ("ShowTextureViewer",     false,                                               &m_showTextureViewer);

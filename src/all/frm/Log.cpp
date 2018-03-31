@@ -91,9 +91,20 @@ void Log::setOutput(const char* _output)
 	m_buf->setOutput(_output);
 }
 
-const Log::Message* Log::getLastMessage(Type _type)
+const Log::Message* Log::getLastMessage(Type _type) const
 {
 	return m_lastMessage[_type];
+}
+
+void Log::clearLastMessage(Type _type)
+{
+	if (_type == LogType_Count) {
+		for (auto& msg : m_lastMessage) {
+			msg = nullptr;
+		}
+	} else {
+		m_lastMessage[_type] = nullptr;
+	}
 }
 	
 void Log::addMessage(const char* _str, Type _type)
@@ -103,9 +114,27 @@ void Log::addMessage(const char* _str, Type _type)
 	msg.m_type = _type;
 	msg.m_time = Time::GetApplicationElapsed();
 	auto ptr = m_buf->push_back(msg);
+	
+ // invalidate m_lastMessage ptrs
+	for (auto& lastMsg : m_lastMessage) {
+		if (ptr == lastMsg) {
+			lastMsg = nullptr;
+			break;
+		}
+	}
+
 	if (_type != LogType_Count) {
 		m_lastMessage[_type] = ptr;
 	}
+}
+
+int Log::getMessageCount() const
+{
+	return (int)m_buf->m_impl.size();
+}
+const Log::Message* Log::getMessage(int _i) const
+{
+	return &m_buf->m_impl[_i];
 }
 
 void Log::flush()
