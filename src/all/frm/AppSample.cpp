@@ -13,6 +13,7 @@
 #include <frm/Window.h>
 
 #include <apt/platform.h>
+#include <apt/memory.h>
 #include <apt/ArgList.h>
 #include <apt/File.h>
 #include <apt/FileSystem.h>
@@ -480,6 +481,9 @@ bool AppSample::ImGui_Init()
 {
 	auto  app = AppSample::GetCurrent();
 	auto& io  = ImGui::GetIO();
+
+	io.MemAllocFn = apt::internal::malloc;
+	io.MemFreeFn  = apt::internal::free;
 	
  // mesh
  	if (g_msImGui) {

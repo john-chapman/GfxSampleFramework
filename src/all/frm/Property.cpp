@@ -52,14 +52,14 @@ Property::Property(
 	m_count = (uint8)_count;
 	int sizeBytes = GetTypeSize(_type) * _count;
 
-	m_default = (char*)malloc_aligned(sizeBytes, 16);
-	m_min     = (char*)malloc_aligned(sizeBytes, 16);
-	m_max     = (char*)malloc_aligned(sizeBytes, 16);
+	m_default = (char*)APT_MALLOC_ALIGNED(sizeBytes, 16);
+	m_min     = (char*)APT_MALLOC_ALIGNED(sizeBytes, 16);
+	m_max     = (char*)APT_MALLOC_ALIGNED(sizeBytes, 16);
 	if (storage_) {
 		m_data = (char*)storage_;
 		m_ownsData = false;
 	} else {
-		m_data = (char*)malloc_aligned(sizeBytes, 16);
+		m_data = (char*)APT_MALLOC_ALIGNED(sizeBytes, 16);
 		m_ownsData = true;
 	}
 
@@ -88,11 +88,11 @@ Property::Property(
 Property::~Property()
 {
 	if (m_ownsData) {
-		free_aligned(m_data);
+		APT_FREE_ALIGNED(m_data);
 	}
-	free_aligned(m_default);
-	free_aligned(m_min);
-	free_aligned(m_max);
+	APT_FREE_ALIGNED(m_default);
+	APT_FREE_ALIGNED(m_min);
+	APT_FREE_ALIGNED(m_max);
 }
 
 Property::Property(Property&& _rhs)
