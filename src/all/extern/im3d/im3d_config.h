@@ -4,13 +4,14 @@
 
 #include <frm/def.h>
 #include <frm/math.h>
+#include <apt/memory.h>
 
 // User-defined assertion handler (default is cassert assert()).
 #define IM3D_ASSERT(e) APT_ASSERT(e)
 
 // User-defined malloc/free. Define both or neither (default is cstdlib malloc()/free()).
-//#define IM3D_MALLOC(size) malloc(size)
-//#define IM3D_FREE(ptr) free(ptr) 
+#define IM3D_MALLOC(size) APT_MALLOC(size)
+#define IM3D_FREE(ptr)    APT_FREE(ptr) 
 
 // Use row-major internal matrix layout. 
 //#define IM3D_MATRIX_ROW_MAJOR 1
