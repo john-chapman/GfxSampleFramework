@@ -50,7 +50,7 @@ struct Log::Buffer
 			return;
 		}
 
-		PROFILER_MARKER_CPU("Log::flush");
+		PROFILER_MARKER_CPU("#Log::flush");
 
 	 // concatenate message strings, prepended with the type
 		static const char* kTypeStr[LogType_Count] =

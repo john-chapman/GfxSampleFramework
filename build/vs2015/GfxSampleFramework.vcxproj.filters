@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="extern">
@@ -55,6 +55,9 @@
       <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\imgui.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\extern\imgui\imgui_ext.h">
       <Filter>extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\extern\imgui\imgui_internal.h">
@@ -163,6 +166,7 @@
     <ClInclude Include="..\..\src\all\frm\GlContext.h" />
     <ClInclude Include="..\..\src\all\frm\Input.h" />
     <ClInclude Include="..\..\src\all\frm\Light.h" />
+    <ClInclude Include="..\..\src\all\frm\Log.h" />
     <ClInclude Include="..\..\src\all\frm\LuaScript.h" />
     <ClInclude Include="..\..\src\all\frm\Mesh.h" />
     <ClInclude Include="..\..\src\all\frm\MeshData.h" />
@@ -181,10 +185,8 @@
     <ClInclude Include="..\..\src\all\frm\def.h" />
     <ClInclude Include="..\..\src\all\frm\geom.h" />
     <ClInclude Include="..\..\src\all\frm\gl.h" />
-    <ClInclude Include="..\..\src\all\frm\imgui_helpers.h" />
     <ClInclude Include="..\..\src\all\frm\interpolation.h" />
     <ClInclude Include="..\..\src\all\frm\math.h" />
-    <ClInclude Include="..\..\src\all\frm\Log.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">
@@ -203,6 +205,9 @@
       <Filter>extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\imgui\imgui_draw.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\extern\imgui\imgui_ext.cpp">
       <Filter>extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\extern\lua\lapi.c">
@@ -314,6 +319,7 @@
     <ClCompile Include="..\..\src\all\frm\GlContext.cpp" />
     <ClCompile Include="..\..\src\all\frm\Input.cpp" />
     <ClCompile Include="..\..\src\all\frm\Light.cpp" />
+    <ClCompile Include="..\..\src\all\frm\Log.cpp" />
     <ClCompile Include="..\..\src\all\frm\LuaScript.cpp" />
     <ClCompile Include="..\..\src\all\frm\Mesh.cpp" />
     <ClCompile Include="..\..\src\all\frm\MeshData.cpp" />
@@ -335,7 +341,6 @@
     <ClCompile Include="..\..\src\all\frm\XForm.cpp" />
     <ClCompile Include="..\..\src\all\frm\geom.cpp" />
     <ClCompile Include="..\..\src\all\frm\gl.cpp" />
-    <ClCompile Include="..\..\src\all\frm\imgui_helpers.cpp" />
     <ClCompile Include="..\..\src\win\frm\GlContextImpl.cpp">
       <Filter>win</Filter>
     </ClCompile>
@@ -345,6 +350,5 @@
     <ClCompile Include="..\..\src\win\frm\WindowImpl.cpp">
       <Filter>win</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\Log.cpp" />
   </ItemGroup>
 </Project>

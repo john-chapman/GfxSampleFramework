@@ -41,7 +41,6 @@ public:
 	const Window*       getWindow() const             { return m_window; }
 	GlContext*          getGlContext()                { return m_glContext; }
 	const GlContext*    getGlContext() const          { return m_glContext; }
-	uint64              getFrameIndex() const         { return m_frameIndex; }
 
 protected:
 	AppSample(const char* _title);
@@ -63,7 +62,6 @@ protected:
 	bool   m_showProfilerViewer;
 	bool   m_showTextureViewer;
 	bool   m_showShaderViewer;
-	uint64 m_frameIndex = 0;
 
 private:
 	apt::String<32>    m_name;

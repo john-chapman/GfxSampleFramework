@@ -155,11 +155,11 @@ public:
 	void clearImageBindings();
 	
 private:
-	const Window*       m_window;
-	Vsync               m_vsync;
-	uint64              m_frameIndex;
-	uint32              m_drawCount;
-	uint32              m_dispatchCount;
+	const Window*       m_window         = nullptr;
+	Vsync               m_vsync          = Vsync_On;
+	uint64              m_frameIndex     = 0;
+	uint32              m_drawCount      = 0;
+	uint32              m_dispatchCount  = 0;
 
 	int                 m_viewportX, m_viewportY, m_viewportWidth, m_viewportHeight;
 

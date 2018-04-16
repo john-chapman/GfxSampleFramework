@@ -30,10 +30,14 @@ void App::shutdown()
 bool App::update()
 {
 	Profiler::NextFrame();
+
+	PROFILER_MARKER_CPU("#App::update");
+
 	Input::PollAllDevices();
 	Timestamp thisUpdate = Time::GetTimestamp();
 	m_deltaTime = (thisUpdate - m_prevUpdate).asSeconds() * m_timeScale;
 	m_prevUpdate = thisUpdate;
+
 	return true;
 }
 

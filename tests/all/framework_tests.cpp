@@ -1,6 +1,5 @@
 #include <frm/def.h>
 
-#include <frm/imgui_helpers.h>
 #include <frm/interpolation.h>
 #include <frm/gl.h>
 #include <frm/AppSample3d.h>
@@ -21,9 +20,10 @@
 #include <frm/XForm.h>
 
 #include <apt/ArgList.h>
+#include <apt/rand.h>
 
 #include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
+#include <imgui/imgui_ext.h>
 
 #include <EASTL/vector.h>
 
@@ -115,6 +115,8 @@ public:
 		if (!AppBase::update()) {
 			return false;
 		}
+
+		PROFILER_MARKER_CPU("App::update");
 		
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Intersection")) {
@@ -333,7 +335,6 @@ public:
 
 			ImGui::TreePop();
 		}
-
 		return true;
 	}
 
@@ -549,6 +550,7 @@ public:
 			}
 			ImGui::SameLine();
 			ImGui::Text("(%d instances)", instCount);
+			PROFILER_VALUE_CPU("Instance Count", instCount, "%1.0f");
 
 			{	PROFILER_MARKER("Depth Only");
 				glAssert(glDepthFunc(drawCam->getProjFlag(Camera::ProjFlag_Reversed) ? GL_GREATER : GL_LESS));
@@ -597,6 +599,50 @@ public:
 
 			ImGui::TreePop();
 		}
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Virtual Window##TreeNode")) {
+			static ivec2 sizeW      = ivec2(300, 300);
+			static vec2  sizeV      = vec2(3, 3);
+			static bool  scrollBars = true;
+			ImGui::InputInt2("SizeW", &sizeW.x);
+			ImGui::DragFloat2("SizeV", &sizeV.x);
+			ImGui::Checkbox("Scroll Bars", &scrollBars);
+
+			ImGui::VirtualWindow::SetNextRegion(vec2(-1.0f), vec2(1.0f), ImGuiCond_Once);
+			ImGui::VirtualWindow::SetNextRegionExtents(sizeV * -0.5f, sizeV * 0.5f, ImGuiCond_Always);
+			if (ImGui::VirtualWindow::Begin(ImGui::GetID("Virtual Window1"), ImVec2((float)sizeW.x, (float)sizeW.y), 0
+				| ImGui::VirtualWindow::Flags_Default 
+				| ImGui::VirtualWindow::Flags_PanZoom
+				| (scrollBars ? ImGui::VirtualWindow::Flags_ScrollBars : 0)
+				)) {
+				ImGui::VirtualWindow::Grid(ImVec2(8, 8), ImVec2(0.01f, 0.01f), ImVec2(10, 10));
+
+				auto& drawList = *ImGui::GetWindowDrawList();
+				drawList.AddRectFilledMultiColor(
+					ImGui::VirtualWindow::ToWindow(vec2(-0.5f)),
+					ImGui::VirtualWindow::ToWindow(vec2(0.5f)),
+					IM_COL32_BLACK,
+					IM_COL32_RED,
+					IM_COL32_YELLOW,
+					IM_COL32_GREEN
+					);
+
+				drawList.AddRect(
+					ImGui::VirtualWindow::ToWindow(sizeV * -0.5f), 
+					ImGui::VirtualWindow::ToWindow(sizeV *  0.5f),
+					IM_COL32_MAGENTA
+					);
+				drawList.AddRect(
+					ImGui::VirtualWindow::ToWindow(sizeV * -0.25f), 
+					ImGui::VirtualWindow::ToWindow(sizeV *  0.25f),
+					IM_COL32_YELLOW
+					);
+
+				ImGui::VirtualWindow::End();
+			}
+
+			ImGui::TreePop();
+		}
 
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Curve Editor")) {
@@ -613,9 +659,9 @@ public:
 
 			ImGui::TreePop();
 		}
-
+#if 0
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
-		/*if (ImGui::TreeNode("Gradient Editor")) {
+		if (ImGui::TreeNode("Gradient Editor")) {
 			static Curve          s_gradient[4];
 			static GradientEditor s_gradientEditor;
 			static CurveEditor    s_curveEditor;
@@ -636,8 +682,8 @@ public:
 			s_gradientEditor.edit();
 
 			ImGui::TreePop();
-		}*/
-
+		}
+#endif
 		AppBase::draw();
 	}
 };
@@ -653,11 +699,13 @@ int main(int _argc, char** _argv)
 	Window* win = app->getWindow();
 	GlContext* ctx = app->getGlContext();
 	while (app->update()) {
-		APT_VERIFY(GlContext::MakeCurrent(ctx));
-		ctx->setFramebuffer(nullptr);
-		ctx->setViewport(0, 0, win->getWidth(), win->getHeight());
-		glAssert(glClearColor(0.3f, 0.3f, 0.3f, 0.0f));
-		glAssert(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+		{	PROFILER_MARKER("#main");
+			APT_VERIFY(GlContext::MakeCurrent(ctx));
+			ctx->setFramebuffer(nullptr);
+			ctx->setViewport(0, 0, win->getWidth(), win->getHeight());
+			glAssert(glClearColor(0.3f, 0.3f, 0.3f, 0.0f));
+			glAssert(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+		}
 
 		app->draw();
 	}

@@ -61,6 +61,9 @@ bool AppSample3d::update()
 	if (!AppSample::update()) {
 		return false;
 	}
+
+	PROFILER_MARKER_CPU("#AppSample3d::update");
+
 	Im3d_Update(this);
 
 	Scene& scene = *Scene::GetCurrent();
@@ -149,8 +152,10 @@ bool AppSample3d::update()
 
 void AppSample3d::draw()
 {
-	getGlContext()->setFramebufferAndViewport(getDefaultFramebuffer());
-	Im3d::Draw();
+	{	PROFILER_MARKER("#AppSample3d::draw");
+		getGlContext()->setFramebufferAndViewport(getDefaultFramebuffer());
+		Im3d::Draw();
+	}
 	AppSample::draw();
 }
 

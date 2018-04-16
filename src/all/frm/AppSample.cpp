@@ -210,8 +210,11 @@ bool AppSample::update()
 
  // keyboard shortcuts
 	Keyboard* keyboard = Input::GetKeyboard();
-    if (keyboard->wasPressed(Keyboard::Key_Escape) && ImGui::IsKeyDown(Keyboard::Key_LShift)) {
+    if (keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_Escape)) {
 		return false;
+	}
+	if (keyboard->isDown(Keyboard::Key_LCtrl) && keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_P)) {
+		Profiler::SetPause(!Profiler::GetPause());	
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F1)) {
 		m_showMenu = !m_showMenu;
@@ -248,7 +251,7 @@ bool AppSample::update()
 		ImGui::End();
 	}
 	if (m_showProfilerViewer) {
-		Profiler::ShowProfilerViewer(&m_showProfilerViewer);
+		Profiler::DrawUi();
 	}
 	if (m_showTextureViewer) {
 		Texture::ShowTextureViewer(&m_showTextureViewer);
@@ -257,20 +260,24 @@ bool AppSample::update()
 		Shader::ShowShaderViewer(&m_showShaderViewer);
 	}
 	
+	ImGui::BeginInvisible("OverlayWindow", vec2(0.0f), vec2((float)m_windowSize.x, (float)m_windowSize.y - (m_showMenu ? ImGui::GetFrameHeightWithSpacing() : 0.0f)));
+		Profiler::DrawPinnedValues();
+	ImGui::EndInvisible();
 
 	return true;
 }
 
 void AppSample::draw()
 {
-	m_glContext->setFramebufferAndViewport(m_fbDefault);
-	ImGui::GetIO().UserData = m_glContext;
-	ImGui::Render();
-	{	PROFILER_MARKER("#GlContext::present");
+	{	PROFILER_MARKER("#AppSample::draw");
+		m_glContext->setFramebufferAndViewport(m_fbDefault);
+		ImGui::GetIO().UserData = m_glContext;
+		ImGui::Render();
+	}
+	{	PROFILER_MARKER("#VSYNC");
 		m_glContext->setFramebufferAndViewport(0); // this is required if you want to use e.g. fraps
 		m_glContext->present();
 	}
-	++m_frameIndex;
 }
 
 void AppSample::drawNdcQuad()
@@ -660,6 +667,8 @@ void AppSample::ImGui_Shutdown()
 
 void AppSample::ImGui_Update(AppSample* _app)
 {
+	PROFILER_MARKER_CPU("#ImGui_Update");
+
 	ImGuiIO& io = ImGui::GetIO();
 
  // extract keyboard/mouse input
@@ -702,7 +711,7 @@ void AppSample::ImGui_Update(AppSample* _app)
 
 void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 {
-	PROFILER_MARKER_CPU("#ImGui::Render");
+	PROFILER_MARKER("#ImGui_RenderDrawLists");
 
 	ImGuiIO& io = ImGui::GetIO();
 	GlContext* ctx = (GlContext*)io.UserData;
