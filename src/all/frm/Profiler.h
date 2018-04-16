@@ -4,131 +4,62 @@
 
 #include <frm/def.h>
 
-#include <apt/static_initializer.h>
-
 //#define frm_Profiler_DISABLE
-#ifdef frm_Profiler_DISABLE
-	#define PROFILER_MARKER_CPU(_name)         APT_UNUSED(_name)
-	#define PROFILER_MARKER_GPU(_name)         APT_UNUSED(_name)
-	#define PROFILER_MARKER(_name)             APT_UNUSED(_name)
+#ifndef frm_Profiler_DISABLE
+	// Profile the current block. Use PROFILER_MARKER_CPU, unless the block contains gl* calls.
+	#define PROFILER_MARKER_CPU(_name)              volatile frm::Profiler::CpuAutoMarker APT_UNIQUE_NAME(_cpuAutoMarker_)(_name)
+	#define PROFILER_MARKER_GPU(_name)              volatile frm::Profiler::GpuAutoMarker APT_UNIQUE_NAME(_gpuAutoMarker_)(_name)
+	#define PROFILER_MARKER(_name)                  PROFILER_MARKER_CPU(_name); PROFILER_MARKER_GPU(_name)
 
-	#define PROFILER_VALUE_CPU(_name, _value)  APT_UNUSED(_name)
-	#define PROFILER_VALUE(_name, _value)      APT_UNUSED(_name)
+	// Track a value (call every frame). Use Profiler::kFormatTimeMs as _fmt if _value represents a time in milliseconds.
+	#define PROFILER_VALUE_CPU(_name, _value, _fmt)  Profiler::CpuValue(_name, (float)_value, _fmt)
 
 #else
-	#define PROFILER_MARKER_CPU(_name)         volatile frm::Profiler::CpuAutoMarker APT_UNIQUE_NAME(_cpuAutoMarker_)(_name)
-	#define PROFILER_MARKER_GPU(_name)         volatile frm::Profiler::GpuAutoMarker APT_UNIQUE_NAME(_gpuAutoMarker_)(_name)
-	#define PROFILER_MARKER(_name)             PROFILER_MARKER_CPU(_name); PROFILER_MARKER_GPU(_name)
+	#define PROFILER_MARKER_CPU(_name)              APT_UNUSED(_name)
+	#define PROFILER_MARKER_GPU(_name)              APT_UNUSED(_name)
+	#define PROFILER_MARKER(_name)                  APT_UNUSED(_name)
 
-	#define PROFILER_VALUE_CPU(_name, _value)  Profiler::CpuValue(_name, (float)_value)
-	#define PROFILER_VALUE(_name, _value)      PROFILER_VALUE_CPU(_name, _value)
+	#define PROFILER_VALUE_CPU(_name, _value, _fmt)  APT_UNUSED(_name); APT_UNUSED(_value); APT_UNUSED(_fmt)
 
+	
 #endif
 
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Profiler
-// - Ring buffers of marker data.
-// - Marker data = name, depth, start time, end time.
-// - Marker depth indicates where the marker is relative to the previous marker
-//   in the buffer (if this depth > prev depth, this is a child of prev).
-// \todo Unify Cpu/Gpu markers (reduce duplicate code, clean interface).
-// \todo Reduce the size of Marker for better coherency; store start/end as 
-//   frame-relative times.
+// \todo Reduce marker size (times relative to the frame start).
 ////////////////////////////////////////////////////////////////////////////////
-class Profiler: private apt::non_copyable<Profiler>
+class Profiler
 {
 public:
-	static const int kMaxFrameCount              = 32; // must be at least 2 (keep 1 frame to write to while visualizing the others)
-	static const int kMaxDepth                   = 255;
-	static const int kMaxTotalCpuMarkersPerFrame = 255;
-	static const int kMaxTotalGpuMarkersPerFrame = 255;
+	static const char* kFormatTimeMs;   // pass as the _format arg to *Value() to indicate that a value represents time in ms, automatically chooses a suffix
 
 	struct Marker
 	{
-		const char*  m_name;
-		uint64       m_startTime;
-		uint64       m_endTime;
-		uint8        m_markerDepth;
-		bool         m_isCpuMarker; // \todo \hack unify Cpu/Gpu markers
+		const char* m_name        = nullptr;
+		uint64      m_issueTime   = 0;        // 0 if not a GPU marker
+		uint64      m_startTime   = 0;
+		uint64      m_stopTime    = 0;
+		uint8       m_stackDepth  = 0;
 	};
-	struct CpuMarker: public Marker
+
+	struct Frame
 	{
-	};
-	struct GpuMarker: public Marker
-	{
-		uint64 m_cpuStart; // when PushGpuMarker() was called
+		uint64      m_id          = 0;
+		uint64      m_startTime   = 0;
+		uint32      m_markerBegin = 0;        // absolute index of first marker in the frame
+		uint32      m_markerEnd   = 0;        // one past the last marker
 	};
 
 	struct Value
 	{
-		const char*             m_name;
-		float                   m_min;
-		float                   m_max;
-		float                   m_avg;
-		float                   m_accum;
-		uint64                  m_count;
-		apt::RingBuffer<float>* m_history;
+		const char* m_name        = nullptr;
+		const char* m_format      = "%.3f";
+		float       m_min         = FLT_MAX;
+		float       m_max         = -FLT_MAX;
+		float       m_avg         = 0.0f;
 	};
-
-
-	struct Frame
-	{
-		uint64 m_id;
-		uint64 m_startTime;
-		uint   m_firstMarker;
-		uint   m_markerCount;
-	};
-	struct CpuFrame: public Frame
-	{
-	};
-	struct GpuFrame: public Frame
-	{
-	};
-	
-	static void NextFrame();
-
-	// Push/pop a named Cpu marker.
-	static void             PushCpuMarker(const char* _name);
-	static void             PopCpuMarker(const char* _name);
-	// Access to profiler frames. 0 is the oldest frame in the history buffer.
-	static const CpuFrame&  GetCpuFrame(uint _i);
-	static uint             GetCpuFrameCount();
-	static const uint64     GetCpuAvgFrameDuration();
-	static uint             GetCpuFrameIndex(const CpuFrame& _frame);
-	// Access to marker data. Unlike access to frame data, the index accesses the internal ring buffer directly.
-	static const CpuMarker& GetCpuMarker(uint _i);
-	// Track a named marker duration.
-	static void             TrackCpuMarker(const char* _name);
-	static void             UntrackCpuMarker(const char* _name);
-	static bool             IsCpuMarkerTracked(const char* _name);
-	// Sample a value.
-	static void             CpuValue(const char* _name, float _value, uint _historySize = 128);
-	static uint             GetCpuValueCount();
-	static const Value&     GetCpuValue(uint _i);
-
-	// Push/pop a named Gpu marker.
-	static void             PushGpuMarker(const char* _name);
-	static void             PopGpuMarker(const char* _name);
-	// Access to profiler frames. 0 is the oldest frame in the history buffer.
-	static const GpuFrame&  GetGpuFrame(uint _i);
-	static uint             GetGpuFrameCount();
-	static uint64           GetGpuAvgFrameDuration();
-	static uint             GetGpuFrameIndex(const GpuFrame& _frame);
-	// Access to marker data. Unlike access to frame data, the index accesses the internal ring buffer directly.
-	static const GpuMarker& GetGpuMarker(uint _i);
-	// Track a named marker duration.
-	static void             TrackGpuMarker(const char* _name);
-	static void             UntrackGpuMarker(const char* _name);
-	static bool             IsGpuMarkerTracked(const char* _name);
-	// Sample a value.
-	static void             GpuValue(const char* _name, float _value, uint _historySize = 128);
-	static uint             GetGpuValueCount();
-	static const Value&     GetGpuValue(uint _i);
-
-	// Reset Cpu->Gpu offset (call if the graphics context changes).
-	static void ResetGpuOffset();
 
 	class CpuAutoMarker
 	{
@@ -145,15 +76,46 @@ public:
 		~GpuAutoMarker()                                  { Profiler::PopGpuMarker(m_name); }
 	};
 
-	static bool s_pause;
+	// Finalize data for the previous frame, reset internal state for the next frame.
+	static void   NextFrame();
 
-	static void Init();
-	static void Shutdown();
+	// Get the index for the current frame (first frame is 1).
+	static uint64 GetFrameIndex() { return s_frameIndex; }
+	
+	// Push/pop a CPU marker. _name must point to a string literal.
+	static void   PushCpuMarker(const char* _name);
+	static void   PopCpuMarker(const char* _name);
 
-	static void ShowProfilerViewer(bool* _open_);
+	// Push/pop a GPU marker. _name must point to a string literal.
+	static void   PushGpuMarker(const char* _name);
+	static void   PopGpuMarker(const char* _name);
+
+	// Track/untrack a CPU marker.
+	static void   TrackCpuMarker(const char* _name);
+	static void   UntrackCpuMarker(const char* _name);
+
+	// Track/untrack a GPU marker.
+	static void   TrackGpuMarker(const char* _name);
+	static void   UntrackGpuMarker(const char* _name);
+
+	// Sample a value. Note that the only difference between CPU and GPU value trackers is the way that they are displayed; in
+	// general, GpuValue() is only useful for tracking GPU marker durations. Use Profiler::kFormatTimeMs as _format if the value
+	// represents time in milliseconds to choose an automatic suffix (s, ms or us).
+	static void   CpuValue(const char* _name, float _value, const char* _format = "%.3f");
+	static void   GpuValue(const char* _name, float _value, const char* _format = "%.3f");
+
+	static void   SetPause(bool _pause);
+	static bool   GetPause() { return s_pause; }
+
+	static void   DrawUi();
+	static void   DrawPinnedValues();
+
+private:
+	static uint64 s_frameIndex;
+	static bool   s_pause;
+	static bool   s_setPause;
 
 }; // class Profiler
-APT_DECLARE_STATIC_INIT(Profiler, Profiler::Init, Profiler::Shutdown);
 
 } // namespace frm
 
