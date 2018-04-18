@@ -11,8 +11,8 @@
 
 #include <shellapi.h>
 
-#include <ShellScalingApi.h>
-#pragma comment(lib, "Shcore")
+//#include <ShellScalingApi.h>
+//#pragma comment(lib, "Shcore")
 
 using namespace frm;
 
@@ -222,7 +222,9 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	ret->m_height = _height;
 	ret->m_title  = _title;
 
- 	APT_VERIFY(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK); // disable the Windows UI scaling
+ // disable the Windows UI scaling
+	APT_VERIFY(SetProcessDPIAware()); // old API, Windows Vista+
+ 	//APT_VERIFY(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK); // new API, Windows 8.1+
 
 	static ATOM wndclassex = 0;
 	if (wndclassex == 0) {
@@ -356,8 +358,10 @@ void Window::getWindowRelativeCursor(int* x_, int* y_) const
 
 float Window::getScaling() const
 {
-	auto monitor = MonitorFromWindow((HWND)m_handle, MONITOR_DEFAULTTONEAREST);
-	UINT dpiX, dpiY;
-	APT_VERIFY(GetDpiForMonitor(monitor, MDT_DEFAULT, &dpiX, &dpiY) == S_OK);
-	return (float)APT_MAX(dpiX, dpiY) / 100.0f;
+	APT_ASSERT(false); // currently the API is only available on Windows 8.1+
+	return 1.0f;
+	//auto monitor = MonitorFromWindow((HWND)m_handle, MONITOR_DEFAULTTONEAREST);
+	//UINT dpiX, dpiY;
+	//APT_VERIFY(GetDpiForMonitor(monitor, MDT_DEFAULT, &dpiX, &dpiY) == S_OK);
+	//return (float)APT_MAX(dpiX, dpiY) / 100.0f;
 }
