@@ -73,10 +73,13 @@ public:
 	typedef eastl::vector<apt::String<64> > FileList;
 	FileList    getFileDropList() const            { return m_fileDropList; }
 
-	int         getWidth()  const                  { return m_width; }
+	// Return the UI scaling factor. Note that this may change if the window moves between monitors. 
+	float       getScaling() const;
+
+	int         getWidth()  const                  { return m_width;  }
 	int         getHeight() const                  { return m_height; }
 	void*       getHandle() const                  { return m_handle; }
-	const char* getTitle()  const                  { return m_title; }
+	const char* getTitle()  const                  { return m_title;  }
 
 private:
 	void*       m_handle        = nullptr;
