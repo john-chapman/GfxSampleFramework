@@ -4,11 +4,15 @@
 #include <frm/Input.h>
 
 #include <apt/log.h>
+#include <apt/math.h>
 #include <apt/platform.h>
 #include <apt/win.h>
 #include <apt/FileSystem.h>
 
 #include <shellapi.h>
+
+#include <ShellScalingApi.h>
+#pragma comment(lib, "Shcore")
 
 using namespace frm;
 
@@ -218,6 +222,8 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	ret->m_height = _height;
 	ret->m_title  = _title;
 
+ 	APT_VERIFY(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK); // disable the Windows UI scaling
+
 	static ATOM wndclassex = 0;
 	if (wndclassex == 0) {
 		WNDCLASSEX wc;
@@ -266,6 +272,7 @@ Window* Window::Create(int _width, int _height, const char* _title)
 		);
 	APT_PLATFORM_ASSERT(ret->m_handle);
 	DragAcceptFiles((HWND)ret->m_handle, TRUE);
+
 	return ret;
 }
 
@@ -337,12 +344,20 @@ bool Window::isMaximized() const
 
 void Window::getWindowRelativeCursor(int* x_, int* y_) const
 {
-	APT_ASSERT(x_);
-	APT_ASSERT(y_);
+	APT_STRICT_ASSERT(x_);
+	APT_STRICT_ASSERT(y_);
 
 	POINT p = {};
 	APT_PLATFORM_VERIFY(GetCursorPos(&p));
 	APT_PLATFORM_VERIFY(ScreenToClient((HWND)m_handle, &p));
 	*x_ = (int)p.x;
 	*y_ = (int)p.y;
+}
+
+float Window::getScaling() const
+{
+	auto monitor = MonitorFromWindow((HWND)m_handle, MONITOR_DEFAULTTONEAREST);
+	UINT dpiX, dpiY;
+	APT_VERIFY(GetDpiForMonitor(monitor, MDT_DEFAULT, &dpiX, &dpiY) == S_OK);
+	return (float)APT_MAX(dpiX, dpiY) / 100.0f;
 }

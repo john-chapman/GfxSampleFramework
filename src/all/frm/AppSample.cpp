@@ -312,6 +312,7 @@ AppSample::AppSample(const char* _name)
 	propGroup.addPath ("Font",                  "",                                                  nullptr);
 	propGroup.addFloat("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
 	propGroup.addInt  ("FontOversample",        1,              1,     8,                            nullptr);
+	propGroup.addBool ("FontEnableScaling",     false,                                               nullptr);
 }
 
 AppSample::~AppSample()
@@ -535,6 +536,9 @@ bool AppSample::ImGui_Init()
 	ImFontConfig fontCfg;
 	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
 	fontCfg.SizePixels  = fontSize;
+	if (*props.findProperty("FontEnableScaling")->asBool()) {
+		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * app->getWindow()->getScaling());
+	}
 	fontCfg.PixelSnapH  = true;
 	if (fontPath.isEmpty()) {
 		io.Fonts->AddFontDefault(&fontCfg);
