@@ -837,6 +837,12 @@ bool Shader::setLocalSize(int _x, int _y, int _z)
 	return loadStage(internal::ShaderStageToIndex(GL_COMPUTE_SHADER), false);
 }
 
+ivec3 Shader::getDispatchSize(int _outWidth, int _outHeight, int _outDepth)
+{
+	ivec3 localSize = getLocalSize();
+	return APT_MAX((ivec3(_outWidth, _outHeight, _outDepth) + localSize - 1) / localSize, ivec3(1));
+}
+
 // PRIVATE
 
 const char* Shader::GetStageInfoLog(GLuint _handle)
