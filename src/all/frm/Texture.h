@@ -187,6 +187,31 @@ struct TextureView
 }; // struct TextureView
 
 
+////////////////////////////////////////////////////////////////////////////////
+// PixelStorei
+// Modify pixel storage mode via glPixelStorei for within the enclosing scope.
+// Use the macro for convenience e.g. FRM_PIXELSTOREI(GL_PACK_ALIGNMENT, 1).
+////////////////////////////////////////////////////////////////////////////////
+struct PixelStorei
+{
+	GLenum m_pname;
+	GLint  m_param;
+
+	PixelStorei(GLenum _pname, GLint _param)
+		: m_pname(_pname)
+	{
+		glAssert(glGetIntegerv(m_pname, &m_param));
+		glAssert(glPixelStorei(m_pname, _param));
+	}
+
+	~PixelStorei()
+	{
+		glAssert(glPixelStorei(m_pname, m_param));
+	}
+};
+#define FRM_PIXELSTOREI(_pname, _param) frm::PixelStorei APT_UNIQUE_NAME(_scopedPixelStorei)(_pname, _param)
+
+
 } // namespace frm
 
 #endif // frm_Texture_h
