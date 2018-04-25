@@ -684,6 +684,83 @@ public:
 			ImGui::TreePop();
 		}
 #endif
+
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Texture Readback")) {
+			static Shader*  shNoise     = nullptr;
+			static Texture* txNoise     = nullptr;
+			static vec2     uBias       = vec2(0.0f);
+			static vec2     uScale      = vec2(8.0f);
+			static float    uFrequency  = 1.0f;
+			static float    uLacunarity = 2.0f;
+			static float    uGain       = 0.5f;
+			static int      uLayers     = 7;
+	
+			static Shader*  shMinMax    = nullptr;
+			static vec2     firstRead   = vec2(-1.0f); // readback after first execute
+			static vec2     thisRead    = vec2(-1.0f);
+
+			APT_ONCE {
+				shMinMax = Shader::CreateCs("shaders/MinMax_cs.glsl",      8, 8, 1);
+				shNoise  = Shader::CreateCs("shaders/Noise/Noise_cs.glsl", 8, 8, 1, "NOISE Noise_fBm\0");
+
+				txNoise  = Texture::Create2d(512, 512, GL_RG32F, 99);
+				txNoise->setName("txNoise");
+				txNoise->setWrap(GL_REPEAT);
+			}
+
+			ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+			if (ImGui::TreeNode("Noise")) {
+				ImGui::DragFloat2("Bias",       &uBias.x,     0.25f);
+				ImGui::DragFloat2("Scale",      &uScale.x,    0.1f);
+				ImGui::DragFloat ("Frequency",  &uFrequency,  0.1f);
+				ImGui::DragFloat ("Lacunarity", &uLacunarity, 0.01f);
+				ImGui::DragFloat ("Gain",       &uGain,       0.01f);
+				ImGui::SliderInt ("Layers",     &uLayers,     1, 12);
+				ImGui::TreePop();
+			}
+			
+			{	PROFILER_MARKER_GPU("Noise");
+				ctx->setShader(shNoise);
+				ctx->setUniform("uBias",       uBias);
+				ctx->setUniform("uScale",      uScale);
+				ctx->setUniform("uFrequency",  uFrequency);
+				ctx->setUniform("uLacunarity", uLacunarity);
+				ctx->setUniform("uGain",       uGain);
+				ctx->setUniform("uLayers",     uLayers);
+				ctx->bindImage("txOut", txNoise, GL_WRITE_ONLY, 0);
+				ctx->dispatch(txNoise);
+				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+			}
+
+			{	PROFILER_MARKER_GPU("MinMax");
+				
+				for (int i = 1; i < txNoise->getMipCount(); ++i) {
+					ctx->setShader(shMinMax);
+					ctx->setUniform("uLevel", i - 1);
+					ctx->bindTexture("txIn", txNoise);
+					ctx->bindImage("txOut", txNoise, GL_WRITE_ONLY, i);
+					auto dispatchSize = shMinMax->getDispatchSize(txNoise, i);
+					ctx->dispatch(dispatchSize.x, dispatchSize.y);
+					glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+				}
+			}
+
+			{	PROFILER_MARKER("Readback");
+
+				FRM_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
+				APT_ONCE { glAssert(glGetTextureImage(txNoise->getHandle(), txNoise->getMipCount() - 1, GL_RG, GL_FLOAT, sizeof(vec2), &firstRead.x)); }
+				glAssert(glGetTextureImage(txNoise->getHandle(), txNoise->getMipCount() - 1, GL_RG, GL_FLOAT, sizeof(vec2), &thisRead.x));
+				ImGui::Value("firstRead", firstRead);
+				ImGui::Value("thisRead ", thisRead);
+			}
+			
+
+
+			ImGui::TreePop();
+		}
+
+
 		AppBase::draw();
 	}
 };
