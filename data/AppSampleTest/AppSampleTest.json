@@ -8,6 +8,7 @@
 		"ShowMenu": true,
 		"FontOversample": 1,
 		"ShowPropertyEditor": false,
+		"FontEnableScaling": false,
 		"ShowProfiler": false,
 		"GlVersion": [-1, -1],
 		"FontSize": 13.0,

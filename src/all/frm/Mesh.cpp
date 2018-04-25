@@ -105,8 +105,7 @@ void Mesh::setVertexData(const void* _data, uint _vertexCount, GLenum _usage)
 		glAssert(glGenBuffers(1, &m_vertexBuffer));
 		glAssert(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
 		
-	 // \note glVertexAttribPointer() calls are where the vao associates the vertex attributes with the currently
-	 //   bound vertex buffer, which is why we bind the vertex buffer first
+	 // glVertexAttribPointer() calls are where the vao associates the vertex attributes with the currently bound vertex buffer, which is why we bind the vertex buffer first
 		for (GLuint i = 0; i < m_desc.m_vertexAttrCount; ++i) {
 			const VertexAttr& attr = m_desc.m_vertexDesc[i];
 			glAssert(glEnableVertexAttribArray(i));
