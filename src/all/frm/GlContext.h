@@ -172,6 +172,7 @@ private:
 	static const int    kBufferSlotCount  = 16;
 	const Buffer*       m_currentBuffers [internal::kBufferTargetCount][kBufferSlotCount];
 	GLint               m_nextBufferSlots[internal::kBufferTargetCount];
+	GLint               kMaxBufferSlots  [internal::kBufferTargetCount];
 
 	static const int    kTextureSlotCount = 24;
 	const Texture*      m_currentTextures[kTextureSlotCount];

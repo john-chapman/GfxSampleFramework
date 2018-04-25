@@ -89,6 +89,15 @@ int frm::internal::BufferTargetToIndex(GLenum _target)
 {
 	return FindIndex(kBufferTargets, _target);
 }
+bool frm::internal::IsBufferTargetIndexed(GLenum _target)
+{
+	return false
+		|| _target == GL_UNIFORM_BUFFER
+		|| _target == GL_SHADER_STORAGE_BUFFER
+		|| _target == GL_ATOMIC_COUNTER_BUFFER
+		|| _target == GL_TRANSFORM_FEEDBACK_BUFFER
+		;
+}
 
 static const GLenum frm::internal::kShaderStages[] =
 {

@@ -41,6 +41,7 @@ int TextureFilterModeToIndex(GLenum _filterMode);
 const int kBufferTargetCount = 14;
 extern const GLenum kBufferTargets[kBufferTargetCount];
 int BufferTargetToIndex(GLenum _stage);
+bool IsBufferTargetIndexed(GLenum _target);
 
 const int kShaderStageCount = 6;
 extern const GLenum kShaderStages[kShaderStageCount];
