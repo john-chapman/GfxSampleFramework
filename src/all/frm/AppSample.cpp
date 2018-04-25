@@ -745,7 +745,6 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 		vec4( 0.0f,                  0.0f,                   1.0f, 0.0f),
 		vec4(-1.0f,                  1.0f,                   0.0f, 1.0f)
 		);
-	ctx->setMesh(g_msImGui);
 
 	for (int i = 0; i < _drawData->CmdListsCount; ++i) {
 		const ImDrawList* drawList = _drawData->CmdLists[i];
@@ -768,7 +767,8 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 				 // select a shader based on the texture type
 					sh = g_shTextureView[internal::TextureTargetToIndex(tx->getTarget())];
 				}
-				ctx->setShader(sh);
+				ctx->setShader  (sh);
+				ctx->setMesh    (g_msImGui);
 				ctx->setUniform ("uProjMatrix", ortho);
 				ctx->setUniform ("uBiasUv",     txView->getNormalizedOffset());
 				ctx->setUniform ("uScaleUv",    txView->getNormalizedSize());
