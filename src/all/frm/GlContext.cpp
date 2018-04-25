@@ -16,9 +16,10 @@
 
 #ifdef APT_DEBUG
  // Debug options, additional validation, troubleshooting etc.
-	//#define GlContext_VALIDATE_MESH_SHADER_ON_DRAW
-	//#define GlContext_ACTUALLY_CLEAR_TEXTURE_BINDINGS
-	//#define GlContext_ACTUALLY_CLEAR_BUFFER_BINDINGS
+	#define GlContext_VALIDATE_MESH_SHADER_ON_DRAW     0
+	#define GlContext_ACTUALLY_CLEAR_BUFFER_BINDINGS   0
+	#define GlContext_ACTUALLY_CLEAR_TEXTURE_BINDINGS  0
+	#define GlContext_ACTUALLY_CLEAR_IMAGE_BINDINGS    0
 #endif
 
 using namespace frm;
@@ -32,7 +33,7 @@ void GlContext::draw(GLsizei _instances)
 	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	APT_ASSERT(m_currentMesh);
 
-#ifdef GlContext_VALIDATE_MESH_SHADER_ON_DRAW
+#if GlContext_VALIDATE_MESH_SHADER_ON_DRAW
  // \todo fully validate the mesh vertex descriptor against the shader
 	GLint activeAttribCount;
 	glAssert(glGetProgramiv(m_currentShader->getHandle(), GL_ACTIVE_ATTRIBUTES, &activeAttribCount));
@@ -67,7 +68,7 @@ void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
 	
 	bindBuffer(_buffer, GL_DRAW_INDIRECT_BUFFER);
 
-#ifdef GlContext_VALIDATE_MESH_SHADER_ON_DRAW
+#if GlContext_VALIDATE_MESH_SHADER_ON_DRAW
  // \todo fully validate the mesh vertex descriptor against the shader
 	GLint activeAttribCount;
 	glAssert(glGetProgramiv(m_currentShader->getHandle(), GL_ACTIVE_ATTRIBUTES, &activeAttribCount));
@@ -351,7 +352,7 @@ void GlContext::bindBufferRange(const char* _location, const Buffer* _buffer, GL
 	GLint loc = m_currentShader->getResourceIndex(_buffer->getTarget() == GL_SHADER_STORAGE_BUFFER ? GL_SHADER_STORAGE_BLOCK : GL_UNIFORM_BLOCK, _location);
 	if (loc != GL_INVALID_INDEX) {
 		int t = internal::BufferTargetToIndex(_buffer->getTarget());
-		APT_ASSERT(m_nextBufferSlots[t] < kBufferSlotCount);
+		APT_ASSERT(m_nextBufferSlots[t] < kMaxBufferSlots[t]);
 		switch (_buffer->getTarget()) {
 			case GL_SHADER_STORAGE_BUFFER: glShaderStorageBlockBinding(m_currentShader->getHandle(), loc, m_nextBufferSlots[t]); break;
 			case GL_UNIFORM_BUFFER:
@@ -399,17 +400,23 @@ void GlContext::clearBufferBindings()
 	memset(m_nextBufferSlots, 0, sizeof(m_nextBufferSlots));
 	memset(m_currentBuffers,  0, sizeof(m_currentBuffers)); // not necessary but nice for debugging
 
-#ifdef GlContext_ACTUALLY_CLEAR_BUFFER_BINDINGS
- // for debugging only: actually unbind the buffers via GL
-	for (int slot = 0; slot < kBufferSlotCount; ++slot) {
-		glAssert(glActiveTexture(GL_TEXTURE0 + slot));
-		for (int t = 0; t < kBufferSlotCount; ++t) {
-			glAssert(glBindBufferBase(kBufferTargets[t], slot, 0));
+#if GlContext_ACTUALLY_CLEAR_BUFFER_BINDINGS
+ // \todo unbinding the VAO and/or zeroing GL_ELEMENT_ARRAY_BUFFER causes subsequent glDraElements* functions to crash? 
+	//glAssert(glBindVertexArray(0)); // ensure we don't modify a bound VAO
+	for (int target = 0; target < internal::kBufferTargetCount; ++target) {
+		if (internal::IsBufferTargetIndexed(internal::kBufferTargets[target])) {
+			for (int slot = 0; slot < kMaxBufferSlots[target]; ++slot) {
+				glAssert(glBindBufferBase(internal::kBufferTargets[target], slot, 0));
+			}
+		} else {
+			GLenum t = internal::kBufferTargets[target];
+			if (t != GL_ARRAY_BUFFER && t != GL_ELEMENT_ARRAY_BUFFER) { // VAO 0 is not an object in core GL hence modifying its state is invalid
+				glAssert(glBindBuffer(internal::kBufferTargets[target], 0));
+			}
 		}
 	}
 #endif
 }
-
 
 void GlContext::bindTexture(const char* _location, const Texture* _texture)
 {
@@ -436,8 +443,7 @@ void GlContext::clearTextureBindings()
 	m_nextTextureSlot = 0;
 	memset(m_currentTextures,  0, sizeof(m_currentTextures)); // not necessary but nice for debugging
 
-#ifdef GlContext_ACTUALLY_CLEAR_TEXTURE_BINDINGS
- // for debugging only: actually unbind the textures via GL
+#if GlContext_ACTUALLY_CLEAR_TEXTURE_BINDINGS
 	for (int slot = 0; slot < kTextureSlotCount; ++slot) {
 		glAssert(glActiveTexture(GL_TEXTURE0 + slot));
 		for (int target = 0; target < internal::kTextureTargetCount; ++target) {
@@ -471,6 +477,12 @@ void GlContext::clearImageBindings()
 {
 	m_nextImageSlot = 0;
 	memset(m_currentImages,  0, sizeof(m_currentImages)); // not necessary but nice for debugging
+
+#if GlContext_ACTUALLY_CLEAR_IMAGE_BINDINGS
+	for (int slot = 0; slot < kImageSlotCount; ++slot) {
+		glAssert(glBindImageTexture(slot, 0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8));
+	}
+#endif
 }
 
 
@@ -515,4 +527,9 @@ void GlContext::queryLimits()
 	glAssert(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &kMaxComputeLocalSize[0]));
 	glAssert(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &kMaxComputeLocalSize[1]));
 	glAssert(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &kMaxComputeLocalSize[2]));
+
+	glAssert(glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS,        &kMaxBufferSlots[internal::BufferTargetToIndex(GL_UNIFORM_BUFFER)]));
+	glAssert(glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &kMaxBufferSlots[internal::BufferTargetToIndex(GL_SHADER_STORAGE_BUFFER)]));
+	glAssert(glGetIntegerv(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &kMaxBufferSlots[internal::BufferTargetToIndex(GL_ATOMIC_COUNTER_BUFFER)]));
+	glAssert(glGetIntegerv(GL_MAX_TRANSFORM_FEEDBACK_BUFFERS,     &kMaxBufferSlots[internal::BufferTargetToIndex(GL_TRANSFORM_FEEDBACK_BUFFER)]));
 }
