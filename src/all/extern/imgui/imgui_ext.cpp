@@ -43,7 +43,7 @@ static ImVec2 ResolveSize(const ImVec2& _size, float _aspect = -1.0f)
 }
 
 // Common logic for handling ImGuiCond. once_ should be init to false.
-static bool ResolveCond(ImGuiCond& _cond_, bool& once_)
+static bool ResolveCond(ImGuiCond& _cond_, bool& _once_)
 {
 	bool ret = false;
 	if (_cond_) {
@@ -52,8 +52,8 @@ static bool ResolveCond(ImGuiCond& _cond_, bool& once_)
 		} else if (GetCurrentWindow()->Appearing && GetFlag(_cond_, ImGuiCond_Appearing)) {
 			ret = true;
 		} else {
-			if (!once_) {
-				once_ = true;
+			if (!_once_) {
+				_once_ = true;
 				ret = true;
 			}
 		}
@@ -295,7 +295,7 @@ bool Begin(ImGuiID _id, const ImVec2& _size, Flags _flags)
 		return false;
 	}
 
- // resolve SetNextVirtualWindowRegion
+ // resolve SetNextVirtualWindowRegion/SetNextVirtualRegionExtents
 	State* state     = StateMap::FindOrInsert<State>(_id);
 	state->m_id      = _id;
 	ImRect& rectW    = state->m_rectW;
