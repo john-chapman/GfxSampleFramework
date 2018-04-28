@@ -187,6 +187,7 @@
     <ClInclude Include="..\..\src\all\frm\gl.h" />
     <ClInclude Include="..\..\src\all\frm\interpolation.h" />
     <ClInclude Include="..\..\src\all\frm\math.h" />
+    <ClInclude Include="..\..\src\all\frm\Quadtree.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\extern\GL\glew.c">

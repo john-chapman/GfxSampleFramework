@@ -12,6 +12,7 @@
 #include <frm/MeshData.h>
 #include <frm/Profiler.h>
 #include <frm/Property.h>
+#include <frm/Quadtree.h>
 #include <frm/Shader.h>
 #include <frm/SkeletonAnimation.h>
 #include <frm/Spline.h>
@@ -19,8 +20,9 @@
 #include <frm/Window.h>
 #include <frm/XForm.h>
 
-#include <apt/ArgList.h>
+#include <apt/log.h>
 #include <apt/rand.h>
+#include <apt/ArgList.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_ext.h>
@@ -757,6 +759,91 @@ public:
 			
 
 
+			ImGui::TreePop();
+		}
+
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Quadtree")) {
+			typedef Quadtree<uint16, uint16> Qt;
+			static Qt qt(5, 0xff);
+			static Qt::Index qtHoveredIndex = Qt::Index_Invalid;
+			static vec2 qtMousePos = vec2(0.0f);
+			ImGui::Text("qtHoveredIndex = %u", qtHoveredIndex);
+			ImGui::Text("qtMousePos = %1.2f,%1.2f", qtMousePos.x, qtMousePos.y);
+
+			Qt::Index qtNeighborIndex = Qt::Index_Invalid;
+			if (qtHoveredIndex != Qt::Index_Invalid) {
+			 // this is how to search the qt for a valid neighbor
+				qtNeighborIndex = qt.FindNeighbor(qtHoveredIndex, qt.FindLevel(qtHoveredIndex), 0, 1); // get neighbor index at the same level 
+				while (qtNeighborIndex != Qt::Index_Invalid && qt[qtNeighborIndex] == 0xff) { // search up the tree until a valid node is found
+					qtNeighborIndex = qt.getParentIndex(qtNeighborIndex, qt.FindLevel(qtNeighborIndex));
+				}
+			}
+
+			ImGui::VirtualWindow::SetNextRegion(vec2(-1.0f), vec2((float)qt.getNodeWidth(0) + 1.0f), ImGuiCond_Once);
+			ImGui::VirtualWindow::Begin(ImGui::GetID("Quadtree"), vec2(-1.0f), ImGui::VirtualWindow::Flags_Square);
+				ImGui::VirtualWindow::Grid(vec2(8.0f), vec2(1.0f), vec2(2.0f));
+				qtMousePos = ImGui::VirtualWindow::ToVirtual(ImGui::GetMousePos());
+				
+			 // draw quadtree
+				auto& drawList = *ImGui::GetWindowDrawList();
+				drawList.AddRect(ImGui::VirtualWindow::ToWindow(vec2(0, 0)), ImGui::VirtualWindow::ToWindow(vec2(qt.getNodeWidth(0))), IM_COL32_WHITE);
+				qt.traverse(
+					[&](Qt::Index _nodeIndex, int _nodeLevel)
+					{
+						auto nodeWidth     = qt.getNodeWidth(_nodeLevel);
+						vec2 nodeRectMin   = vec2(Qt::ToCartesian(_nodeIndex, _nodeLevel) * (uint32)nodeWidth);
+						vec2 nodeRectMax   = nodeRectMin + vec2(nodeWidth);
+						bool isNodeHovered = _nodeIndex == qtHoveredIndex;
+ 	
+						if (isNodeHovered) {
+							drawList.AddRectFilled(ImGui::VirtualWindow::ToWindow(nodeRectMin), ImGui::VirtualWindow::ToWindow(nodeRectMax), IM_COLOR_ALPHA(IM_COL32_MAGENTA, 0.1f)); 
+						}
+						if (_nodeIndex == qtNeighborIndex) {
+							drawList.AddRectFilled(ImGui::VirtualWindow::ToWindow(nodeRectMin), ImGui::VirtualWindow::ToWindow(nodeRectMax), IM_COLOR_ALPHA(IM_COL32_YELLOW, 0.1f)); 
+						}
+
+						auto childIndex = qt.getFirstChildIndex(_nodeIndex, _nodeLevel);
+						if (childIndex == Qt::Index_Invalid) {
+							return false;
+						}
+						if (qt[childIndex] == 0xff) {
+							if (isNodeHovered && ImGui::IsMouseClicked(0)) {
+							 // split
+								qt[childIndex + 0] = 1;
+								qt[childIndex + 1] = 1;
+								qt[childIndex + 2] = 1;
+								qt[childIndex + 3] = 1;
+							}
+							return false;
+						}
+
+						vec2 nodeCenter = nodeRectMin + (nodeRectMax - nodeRectMin) * 0.5f;
+						drawList.AddLine(ImGui::VirtualWindow::ToWindow(vec2(nodeCenter.x, nodeRectMin.y)), ImGui::VirtualWindow::ToWindow(vec2(nodeCenter.x, nodeRectMax.y)), IM_COL32_WHITE);
+						drawList.AddLine(ImGui::VirtualWindow::ToWindow(vec2(nodeRectMin.x, nodeCenter.y)), ImGui::VirtualWindow::ToWindow(vec2(nodeRectMax.x, nodeCenter.y)), IM_COL32_WHITE);
+
+						return true;
+					});
+			ImGui::VirtualWindow::End();
+
+		 // find hovered leaf node
+			qtHoveredIndex = Qt::Index_Invalid;
+			qt.traverse(
+				[&](Qt::Index _nodeIndex, int _nodeLevel)
+				{
+					auto childIndex = qt.getFirstChildIndex(_nodeIndex, _nodeLevel);
+					if (childIndex == Qt::Index_Invalid || qt[childIndex] == 0xff) { // if leaf node
+						auto nodeWidth   = qt.getNodeWidth(_nodeLevel);
+						vec2 nodeRectMin = vec2(qt.ToCartesian(_nodeIndex, _nodeLevel) * (uint32)nodeWidth);
+						vec2 nodeRectMax = nodeRectMin + vec2(nodeWidth);
+						if (ImGui::IsInside(qtMousePos, nodeRectMin, nodeRectMax)) {
+							qtHoveredIndex = _nodeIndex;
+						}
+						return false;
+					}
+					return true;
+				});
+				
 			ImGui::TreePop();
 		}
 

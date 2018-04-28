@@ -17,10 +17,10 @@
 	  easier to manage albeit at the cost of some redundancy.
 
 	\todo
-	- Color class. Store as ImU32, implicit conversion to/from ImVec4. Static helpers e.g. Invert(), Lighten(percent), Darken(percent).
+	- Color class. Store as ImU32, implicit conversion to/from ImVec4. Static helpers e.g. Invert(), Lighten(fraction), Darken(fraction).
 	- Tabs API. Single function, creates a row of buttons + separator, returns the current state.
 	- Table API. Begin(rows, cols, flags), NextCell(), NextRow(), End(). Track row height, column size for auto resize. Force row
-	  height/column size. Accessors for the current cell size (if e.g. use wants to add a child frame).
+	  height/column size. Accessors for the current cell size (if e.g. user wants to add a child frame).
 */
 
 namespace ImGui {

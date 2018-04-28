@@ -161,6 +161,7 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClInclude Include="..\..\src\all\frm\MeshData.h" />
     <ClInclude Include="..\..\src\all\frm\Profiler.h" />
     <ClInclude Include="..\..\src\all\frm\Property.h" />
+    <ClInclude Include="..\..\src\all\frm\Quadtree.h" />
     <ClInclude Include="..\..\src\all\frm\RenderNodes.h" />
     <ClInclude Include="..\..\src\all\frm\Resource.h" />
     <ClInclude Include="..\..\src\all\frm\Scene.h" />
