@@ -12,7 +12,6 @@
 #include <frm/MeshData.h>
 #include <frm/Profiler.h>
 #include <frm/Property.h>
-#include <frm/Quadtree.h>
 #include <frm/Shader.h>
 #include <frm/SkeletonAnimation.h>
 #include <frm/Spline.h>
@@ -23,6 +22,7 @@
 #include <apt/log.h>
 #include <apt/rand.h>
 #include <apt/ArgList.h>
+#include <apt/Quadtree.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_ext.h>
