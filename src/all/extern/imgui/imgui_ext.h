@@ -91,6 +91,14 @@ ImVec2 ToVirtual(const ImVec2& _windowPos);
 float  ToVirtualX(float _windowPosX);
 float  ToVirtualY(float _windowPosY);
 
+// Convert window <-> virtual scale.
+ImVec2 ToWindowScale(const ImVec2& _virtualScale);
+float  ToWindowScaleX(float _virtualScaleX);
+float  ToWindowScaleY(float _virtualScaleY);
+ImVec2 ToVirtualScale(const ImVec2& _windowScale);
+float  ToVirtualScaleX(float _windowScaleX);
+float  ToVirtualScaleY(float _windowScaleY);
+
 } // namespace VirtualWindow
 
 } // namespace ImGui
