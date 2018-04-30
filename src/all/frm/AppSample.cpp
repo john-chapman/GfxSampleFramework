@@ -93,16 +93,19 @@ bool AppSample::init(const apt::ArgList& _args)
 
  	m_propsPath.setf("%s.json", (const char*)m_name);
 	readProps((const char*)m_propsPath);
-	PropertyGroup* propGroup;
-	APT_VERIFY(propGroup = m_props.findGroup("AppSample"));
 
-	ivec2 windowSize     = *propGroup->find("WindowSize")->asInt2();
+	ivec2 windowSize     = *m_props.findProperty("WindowSize")->asInt2();
 	m_window             = Window::Create(windowSize.x, windowSize.y, (const char*)m_name);
 	m_windowSize         = ivec2(m_window->getWidth(), m_window->getHeight());
 		
-	ivec2 glVersion      = *propGroup->find("GlVersion")->asInt2();
-	bool glCompatibility = *propGroup->find("GlCompatibility")->asBool();
-	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, glCompatibility);
+	ivec2 glVersion      = *m_props.findProperty("GlVersion")->asInt2();
+	bool glCompatibility = m_props.findProperty("GlCompatibility")->asBool();
+	bool glDebug         = m_props.findProperty("GlDebug")->asBool();
+	GlContext::CreateFlags ctxFlags = 0
+		| (glCompatibility ? GlContext::CreateFlags_Compatibility : 0)
+		| (glDebug         ? GlContext::CreateFlags_Debug         : 0)
+		;
+	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, ctxFlags);
 	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 
 	m_imguiIniPath       = FileSystem::MakePath("imgui.ini", FileSystem::RootType_Application);
@@ -111,7 +114,7 @@ bool AppSample::init(const apt::ArgList& _args)
 		return false;
 	}
 
-	ivec2 resolution = *propGroup->find("Resolution")->asInt2();
+	ivec2 resolution = *m_props.findProperty("Resolution")->asInt2();
 	m_resolution.x   = resolution.x == -1 ? m_windowSize.x : resolution.x;
 	m_resolution.y   = resolution.y == -1 ? m_windowSize.y : resolution.y;
 
@@ -295,24 +298,30 @@ AppSample::AppSample(const char* _name)
 	APT_ASSERT(g_Current == nullptr); // don't support multiple apps (yet)
 	g_Current = this;
 
-	PropertyGroup& propGroup = m_props.addGroup("AppSample");
+	PropertyGroup& propGroupAppSample = m_props.addGroup("AppSample");
 	//                 name                     default         min     max                          storage
-	propGroup.addInt2 ("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroup.addInt2 ("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroup.addInt2 ("GlVersion",             ivec2(-1, -1), -1,      99,                          nullptr);
-	propGroup.addBool ("GlCompatibility",       false,                                               nullptr);
-	propGroup.addInt  ("VsyncMode",             0,              0,      GlContext::Vsync_On,         &m_vsyncMode);
-	propGroup.addBool ("ShowMenu",              false,                                               &m_showMenu);
-	propGroup.addBool ("ShowLog",               false,                                               &m_showLog);
-	propGroup.addBool ("ShowLogNotifications",  false,                                               &m_showLogNotifications);
-	propGroup.addBool ("ShowPropertyEditor",    false,                                               &m_showPropertyEditor);
-	propGroup.addBool ("ShowProfiler",          false,                                               &m_showProfilerViewer);
-	propGroup.addBool ("ShowTextureViewer",     false,                                               &m_showTextureViewer);
-	propGroup.addBool ("ShowShaderViewer",      false,                                               &m_showShaderViewer);
-	propGroup.addPath ("Font",                  "",                                                  nullptr);
-	propGroup.addFloat("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
-	propGroup.addInt  ("FontOversample",        1,              1,     8,                            nullptr);
-	propGroup.addBool ("FontEnableScaling",     false,                                               nullptr);
+	propGroupAppSample.addInt2 ("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroupAppSample.addInt2 ("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
+	propGroupAppSample.addInt  ("VsyncMode",             0,              0,      GlContext::Vsync_On,         &m_vsyncMode);
+	propGroupAppSample.addBool ("ShowMenu",              false,                                               &m_showMenu);
+	propGroupAppSample.addBool ("ShowLog",               false,                                               &m_showLog);
+	propGroupAppSample.addBool ("ShowLogNotifications",  false,                                               &m_showLogNotifications);
+	propGroupAppSample.addBool ("ShowPropertyEditor",    false,                                               &m_showPropertyEditor);
+	propGroupAppSample.addBool ("ShowProfiler",          false,                                               &m_showProfilerViewer);
+	propGroupAppSample.addBool ("ShowTextureViewer",     false,                                               &m_showTextureViewer);
+	propGroupAppSample.addBool ("ShowShaderViewer",      false,                                               &m_showShaderViewer);
+
+	PropertyGroup& propGroupFont = m_props.addGroup("Font");
+	propGroupFont.addPath      ("Font",                  "",                                                  nullptr);
+	propGroupFont.addFloat     ("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
+	propGroupFont.addInt       ("FontOversample",        1,              1,     8,                            nullptr);
+	propGroupFont.addBool      ("FontEnableScaling",     false,                                               nullptr);
+	
+	PropertyGroup& propGroupGlContext = m_props.addGroup("GlContext");
+	propGroupGlContext.addInt2 ("GlVersion",             ivec2(-1, -1), -1,      99,                          nullptr);
+	propGroupGlContext.addBool ("GlCompatibility",       false,                                               nullptr);
+	propGroupGlContext.addBool ("GlDebug",               false,                                               nullptr);
+	
 }
 
 AppSample::~AppSample()

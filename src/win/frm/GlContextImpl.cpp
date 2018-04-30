@@ -23,6 +23,26 @@ extern "C" {
 
 static APT_THREAD_LOCAL GlContext* g_currentCtx;
 
+static void GlDebugMessageCallback(GLenum _source, GLenum _type, GLuint _id, GLenum _severity, GLsizei _length, const GLchar* _message, const void* _user)
+{
+ // filter messages
+	if (_severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
+		return;
+	}
+
+ // log
+	apt::String<512> msg("[%s] [%s] [%s] (%u): ", internal::GlEnumStr(_source), internal::GlEnumStr(_type), internal::GlEnumStr(_severity), _id);
+	msg.append(_message, _length);
+	switch (_type) {
+		case GL_DEBUG_TYPE_ERROR:
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+			APT_LOG_ERR((const char*)msg);
+			break;
+		default:
+			APT_LOG((const char*)msg);
+	};
+}
 
 /*******************************************************************************
 
@@ -46,7 +66,7 @@ struct GlContext::Impl
 
 // PUBLIC
 
-GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _compatibility)
+GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, CreateFlags _flags)
 {
 	GlContext* ret = new GlContext;
 	APT_ASSERT(ret);
@@ -97,14 +117,13 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 	APT_PLATFORM_VERIFY(wglDeleteContext(hGLRC));
 
  // create true context
-	int profileBit = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
-	if (_compatibility) {
-		profileBit = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
-	}
+	int profileMask = ((_flags & CreateFlags_Compatibility) != 0) ? WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+	int ctxFlags    = ((_flags & CreateFlags_Debug) != 0) ? WGL_CONTEXT_DEBUG_BIT_ARB : 0;
 	int attr[] = {
 		WGL_CONTEXT_MAJOR_VERSION_ARB,	_vmaj,
 		WGL_CONTEXT_MINOR_VERSION_ARB,	_vmin,
-		WGL_CONTEXT_PROFILE_MASK_ARB,	profileBit,
+		WGL_CONTEXT_PROFILE_MASK_ARB,	profileMask,
+		WGL_CONTEXT_FLAGS_ARB,          ctxFlags,
 		0
 	};
 	APT_PLATFORM_VERIFY(impl->m_hglrc = wglCreateContextAttribs(impl->m_hdc, 0, attr));
@@ -116,16 +135,23 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, bool _
 	APT_ASSERT(err == GLEW_OK);
 	glGetError(); // clear any errors caused by glewInit()
 
-	APT_LOG("OpenGL context:"
+	APT_LOG("OpenGL %s%scontext:"
 		"\n\tVersion:      %s"
 		"\n\tGLSL Version: %s"
 		"\n\tVendor:       %s"
 		"\n\tRenderer:     %s",
+		((_flags & CreateFlags_Compatibility) != 0) ? "compatibility " : "",
+		((_flags & CreateFlags_Debug)         != 0) ? "debug " : "",
 		internal::GlGetString(GL_VERSION),
 		internal::GlGetString(GL_SHADING_LANGUAGE_VERSION),
 		internal::GlGetString(GL_VENDOR),
 		internal::GlGetString(GL_RENDERER)
 		);
+	if ((_flags & CreateFlags_Debug) != 0) {
+		glAssert(glDebugMessageCallback(GlDebugMessageCallback, 0));
+		glAssert(glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS));
+		glAssert(glEnable(GL_DEBUG_OUTPUT));
+	}
 
  // set default states
 	ShaderDesc::SetDefaultVersion((const char*)apt::String<8>("%d%d0", _vmaj, _vmin));
