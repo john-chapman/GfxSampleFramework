@@ -1,29 +1,34 @@
 {
+	"Font": {
+		"Font": "",
+		"FontOversample": 1,
+		"FontEnableScaling": false,
+		"FontSize": 13.0
+	},
 	"MeshTest": {
 		"Mesh Path": "models/md5/bob_lamp_update.md5mesh",
 		"Anim Path": "models/md5/bob_lamp_update.md5anim"
 	},
 	"AppSample": {
-		"Font": "",
 		"ShowMenu": true,
-		"FontOversample": 1,
-		"ShowPropertyEditor": false,
-		"FontEnableScaling": false,
+		"ShowPropertyEditor": true,
 		"ShowProfiler": false,
-		"GlVersion": [-1, -1],
-		"FontSize": 13.0,
 		"ShowShaderViewer": false,
 		"VsyncMode": 0,
 		"ShowLogNotifications": true,
-		"GlCompatibility": false,
 		"ShowTextureViewer": false,
 		"WindowSize": [-1, -1],
 		"Resolution": [-1, -1],
 		"ShowLog": false
 	},
+	"GlContext": {
+		"GlVersion": [-1, -1],
+		"GlCompatibility": false,
+		"GlDebug": false
+	},
 	"AppSample3d": {
 		"Scene Path": "Scene.json",
-		"Show Helpers": true,
+		"Show Helpers": false,
 		"Show Scene Editor": false
 	},
 	"DepthTest": {

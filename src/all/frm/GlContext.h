@@ -30,13 +30,22 @@ public:
 		Vsync_On       =  1, // wait 1 interval
 		Vsync_On2,           // wait 2 intervals
 		Vsync_On3,           // wait 3 intervals
+
+		Vsync_Count
 	};
 
-	// Create an OpenGL context of at least version _vmaj._vmin, optionally
-	// with the comptibility profile enabled. The context is bound to _window
-	// and is current on the calling thread when this function returns.
-	// Return 0 if an error occurred.
-	static GlContext* Create(const Window* _window, int _vmaj, int _vmin, bool _compatibility);
+	enum CreateFlags_
+	{
+		CreateFlags_Compatibility = 1 << 0,
+		CreateFlags_Debug         = 1 << 1,
+
+		CreateFlags_Counts
+	};
+	typedef int CreateFlags;
+
+	// Create an OpenGL context of at least version _vmaj._vmin (if available). The context is bound to _window and is current on the calling 
+	// thread when this function returns. Return 0 if an error occurred.
+	static GlContext* Create(const Window* _window, int _vmaj, int _vmin, CreateFlags _flags);
 	
 	// Destroy OpenGL context. This implicitly destroys all associated resources.
 	static void Destroy(GlContext*& _ctx_);
@@ -48,23 +57,20 @@ public:
 	static bool MakeCurrent(GlContext* _ctx);
 
 
-	// Make an instanced draw call via glDrawArraysInstanced/glDrawElementsInstanced
-	// (render the current mesh with the current shader to the current framebuffer).
+	// Make an instanced draw call via glDrawArraysInstanced/glDrawElementsInstanced (render the current mesh with the current shader to the current framebuffer).
 	void draw(GLsizei _instances = 1);
-	// Make an indirect draw call via glDrawArraysIndirect/glDrawElementsIndirect,
-	// with _buffer bound as GL_DRAW_INDIRECT_BUFFER.
+	// Make an indirect draw call via glDrawArraysIndirect/glDrawElementsIndirect, with _buffer bound as GL_DRAW_INDIRECT_BUFFER.
 	void drawIndirect(const Buffer* _buffer, const void* _offset = nullptr);
 	
-	// Draw a quad with vertices in [-1,1]. If _cam is specified, bind the camera buffer
-	// (see shaders/Camera.glsl) or send uniforms if no buffer.
+	// Draw a quad with vertices in [-1,1]. If _cam is specified, bind the camera buffer (see shaders/Camera.glsl) or send uniforms if no buffer.
 	void drawNdcQuad(const Camera* _cam = nullptr);
 
 	// Dispatch a compute shader with the specified number of work groups.
 	void dispatch(GLuint _groupsX, GLuint _groupsY = 1, GLuint _groupsZ = 1);
 	// Make an indirect compute shader dispatch with _buffer bound as GL_DISPATCH_INDIRECT_BUFFER.
 	void dispatchIndirect(const Buffer* _buffer, const void* _offset = nullptr);
-	// Dispatch at least 1 thread per pixel (e.g. ceil(texture size/group size) groups). Note that
-	// _groupsZ can be overriden e.g. to write to a single level of an array or volume texture.
+	// Dispatch at least 1 thread per pixel (e.g. ceil(texture size/group size) groups). Note that _groupsZ can be overriden e.g. to write to a single level of an 
+	// array or volume texture.
 	void dispatch(const Texture* _tx, GLuint _groupsZ = 0);
 
 	// Present the next image in the swapchain, increment the frame index, clear draw call counters.
@@ -112,11 +118,9 @@ public:
 
  // BUFFER
 	
-	// Bind _buffer to a named _location on the current shader. The target
-	// is chosen from the _buffer's target hint; only atomic, tranform-feedback, 
-	// uniform and storage buffers are allowed. Binding indices are managed 
-	// automatically; they are reset only when the current shader changes. 
-	// If _location is not active on the current shader, do nothing.
+	// Bind _buffer to a named _location on the current shader. The target is chosen from the _buffer's target hint; only atomic, tranform-feedback, 
+	// uniform and storage buffers are allowed. Binding indices are managed automatically; they are reset only when the current shader changes. If 
+	// _location is not active on the current shader, do nothing.
 	void bindBuffer(const char* _location, const Buffer* _buffer);
 	void bindBufferRange(const char* _location, const Buffer* _buffer, GLintptr _offset, GLsizeiptr _size);
 
@@ -124,8 +128,7 @@ public:
 	void bindBuffer(const Buffer* _buffer);
 	void bindBufferRange(const Buffer* _buffer, GLintptr _offset, GLsizeiptr _size);
 	
-	// Bind _buffer to _target, or to _buffer's target hint by default.
-	// This is intended for non-indexed targets e.g. GL_DRAW_INDIRECT_BUFFER.
+	// Bind _buffer to _target, or to _buffer's target hint by default. This is intended for non-indexed targets e.g. GL_DRAW_INDIRECT_BUFFER.
 	void bindBuffer(const Buffer* _buffer, GLenum _target);
 
 	// Clear all current buffer bindings. 
@@ -133,10 +136,8 @@ public:
 
  // TEXTURE
 
-	// Bind _texture to a named _location on the current shader. Binding 
-	// indices are managed automatically; they are reset only when the current
-	// shader changes. If _location is not active on the current shader, do 
-	// nothing.
+	// Bind _texture to a named _location on the current shader. Binding indices are managed automatically; they are reset only when the current shader 
+	// changes. If _location is not active on the current shader, do  nothing.
 	void bindTexture(const char* _location, const Texture* _texture);
 
 	// As bindTexture() but use _texture->getName() as the location.
@@ -147,8 +148,7 @@ public:
 
  // IMAGE
 
-	// Bind _texture as an image to a named _location on the current shader. _access
-	// is one of GL_READ_ONLY, GL_WRITE_ONLY or GL_READ_WRITE.
+	// Bind _texture as an image to a named _location on the current shader. _access is one of GL_READ_ONLY, GL_WRITE_ONLY or GL_READ_WRITE.
 	void bindImage(const char* _location, const Texture* _texture, GLenum _access, GLint _level = 0);
 
 	// Clear all image bindings. 
