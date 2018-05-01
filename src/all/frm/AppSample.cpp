@@ -99,8 +99,8 @@ bool AppSample::init(const apt::ArgList& _args)
 	m_windowSize         = ivec2(m_window->getWidth(), m_window->getHeight());
 		
 	ivec2 glVersion      = *m_props.findProperty("GlVersion")->asInt2();
-	bool glCompatibility = m_props.findProperty("GlCompatibility")->asBool();
-	bool glDebug         = m_props.findProperty("GlDebug")->asBool();
+	bool glCompatibility = *m_props.findProperty("GlCompatibility")->asBool();
+	bool glDebug         = *m_props.findProperty("GlDebug")->asBool();
 	GlContext::CreateFlags ctxFlags = 0
 		| (glCompatibility ? GlContext::CreateFlags_Compatibility : 0)
 		| (glDebug         ? GlContext::CreateFlags_Debug         : 0)
