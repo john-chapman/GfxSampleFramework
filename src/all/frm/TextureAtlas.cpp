@@ -60,6 +60,7 @@ void TextureAtlas::Destroy(TextureAtlas*& _inst_)
 	TextureAtlas* inst = _inst_; // make a copy because Unuse will nullify _inst_
 	Release((Texture*&)_inst_);
 	if (inst->getRefCount() == 0) {
+		APT_ASSERT(false); // \todo this is a double delete - Release() is also deleting the object
 		delete inst;
 	}
 }
