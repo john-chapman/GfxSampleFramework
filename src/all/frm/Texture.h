@@ -170,13 +170,14 @@ private:
 struct TextureView
 {
 	Texture* m_texture;
+	Shader*  m_shader;  // use a default if 0
 	vec2     m_offset;
 	vec2     m_size;
 	GLint    m_mip;
 	GLint    m_array;
 	bool     m_rgbaMask[4];
 
-	TextureView(Texture* _texture = 0);
+	TextureView(Texture* _texture = nullptr, Shader* _shader = nullptr);
 	~TextureView();
 
 	void reset();
