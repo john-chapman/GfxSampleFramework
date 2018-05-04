@@ -389,11 +389,11 @@ void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 
 	Im3d::AppData& ad = Im3d::GetAppData();
 
-	glAssert(glEnable(GL_BLEND));
+	FRM_GL_ENABLE(GL_BLEND,              true);
+	FRM_GL_ENABLE(GL_PROGRAM_POINT_SIZE, true);
+	FRM_GL_ENABLE(GL_CULL_FACE,          false);
     glAssert(glBlendEquation(GL_FUNC_ADD));
     glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    glAssert(glDisable(GL_CULL_FACE));
-	glAssert(glEnable(GL_PROGRAM_POINT_SIZE));
     
 	Mesh* ms;
 	Shader* sh;
@@ -422,7 +422,4 @@ void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 	ctx->setUniform("uViewport", vec2((float)ctx->getViewportWidth(), (float)ctx->getViewportHeight()));
 	ctx->setMesh(ms);
 	ctx->draw();
-
-	glAssert(glDisable(GL_PROGRAM_POINT_SIZE));
-	glAssert(glDisable(GL_BLEND));
 }

@@ -148,6 +148,7 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 		internal::GlGetString(GL_RENDERER)
 		);
 	if ((_flags & CreateFlags_Debug) != 0) {
+		APT_ASSERT(glewIsExtensionSupported("GL_ARB_debug_output"));
 		glAssert(glDebugMessageCallback(GlDebugMessageCallback, 0));
 		glAssert(glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS));
 		glAssert(glEnable(GL_DEBUG_OUTPUT));

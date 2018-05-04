@@ -1,6 +1,4 @@
 #pragma once
-#ifndef frm_gl_h
-#define frm_gl_h
 
 #if defined(__gl_h_) || defined(__GL_H__) || defined(_GL_H) || defined(__X_GL_H)
 	#error framework: Don't include GL/gl.h, included frm/gl.h
@@ -53,7 +51,59 @@ apt::AssertBehavior GlAssert(const char* _call, const char* _file, int _line);
 const char* GlEnumStr(GLenum _enum);
 const char* GlGetString(GLenum _name);
 
-
 } } // namespace frm::internal
 
-#endif // frm_gl_h
+
+namespace frm { 
+
+// Scoped state modifiers. These restore the previous state in the dtor.
+
+struct GLPixelStorei
+{
+	GLenum m_pname;
+	GLint  m_param;
+
+	GLPixelStorei(GLenum _pname, GLint _param)
+		: m_pname(_pname)
+	{
+		glAssert(glGetIntegerv(m_pname, &m_param));
+		glAssert(glPixelStorei(m_pname, _param));
+	}
+
+	~GLPixelStorei()
+	{
+		glAssert(glPixelStorei(m_pname, m_param));
+	}
+};
+#define FRM_GL_PIXELSTOREI(_pname, _param) frm::GLPixelStorei APT_UNIQUE_NAME(_GLPixelStorei)(_pname, _param)
+
+
+struct GLEnable
+{
+	GLenum    m_cap;
+	bool      m_val;
+
+	GLEnable(GLenum _cap, bool _val)
+		: m_cap(_cap)
+	{
+		glAssert(m_val = (bool)glIsEnabled(m_cap));
+		apply(_val);
+	}
+
+	~GLEnable()
+	{
+		apply(m_val);
+	}
+
+	void apply(bool _val)
+	{
+		if (_val) {
+			glAssert(glEnable(m_cap));
+		} else {
+			glAssert(glDisable(m_cap));
+		}
+	}
+};
+#define FRM_GL_ENABLE(_cap, _val) frm::GLEnable APT_UNIQUE_NAME(_GLEnable)(_cap, _val)
+
+} // namespace frm
