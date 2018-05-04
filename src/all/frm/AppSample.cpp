@@ -568,7 +568,7 @@ bool AppSample::ImGui_Init()
 	g_txImGui->setFilter(GL_NEAREST);
 	g_txImGui->setName("#ImGuiFont");
 	g_txImGui->setData(buf, GL_RED, GL_UNSIGNED_BYTE);
-	g_txViewImGui = TextureView(g_txImGui);
+	g_txViewImGui = TextureView(g_txImGui, g_shImGui);
 	io.Fonts->TexID = (void*)&g_txViewImGui; // need a TextureView ptr for rendering
 
 	
@@ -770,11 +770,10 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 				pcmd->UserCallback(drawList, pcmd);
 			} else {
 				TextureView* txView = (TextureView*)pcmd->TextureId;
-				const Texture* tx = txView->m_texture;
-				Shader* sh = g_shImGui;
-				if (txView != &g_txViewImGui) {
-				 // select a shader based on the texture type
-					sh = g_shTextureView[internal::TextureTargetToIndex(tx->getTarget())];
+				const Texture* tx   = txView->m_texture;
+				Shader* sh          = txView->m_shader;
+				if (!sh) {
+					sh = g_shTextureView[internal::TextureTargetToIndex(tx->getTarget())]; // select a default shader based on the texture type
 				}
 				ctx->setShader  (sh);
 				ctx->setMesh    (g_msImGui);

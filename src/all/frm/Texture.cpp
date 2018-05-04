@@ -24,8 +24,9 @@ using namespace apt;
                                  TextureView
 
 *******************************************************************************/
-TextureView::TextureView(Texture* _texture)
+TextureView::TextureView(Texture* _texture, Shader* _shader)
 	: m_texture(_texture)
+	, m_shader(_shader)
 	, m_offset(0.0f, 0.0f)
 	, m_size(0.0f, 0.0f)
 	, m_mip(0)
