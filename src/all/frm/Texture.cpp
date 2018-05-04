@@ -496,7 +496,7 @@ Texture* Texture::Create(Texture* _tx, bool _copyData)
 
 	Use(_tx);
 	APT_ASSERT(_tx->getState() == Texture::State_Loaded);
-	FRM_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
+	FRM_GL_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
 	GLenum attachment = GL_COLOR_ATTACHMENT0;
 	switch (_tx->m_format) {
 		case GL_DEPTH_COMPONENT:
@@ -696,7 +696,7 @@ Image* Texture::CreateImage(const Texture* _tx)
 	};
 
 	if (ret) {
-		FRM_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
+		FRM_GL_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
 
 		int arrayCount = ret->isCubemap() ? _tx->getArrayCount() * 6 : _tx->getArrayCount();
 		int mipCount = _tx->getMipCount();
@@ -1277,7 +1277,7 @@ static void Upload3d(Texture& _tx, const Image& _img, GLint _array, GLint _mip, 
 
 bool Texture::loadImage(const Image& _img)
 {
-	FRM_PIXELSTOREI(GL_UNPACK_ALIGNMENT, 1);
+	FRM_GL_PIXELSTOREI(GL_UNPACK_ALIGNMENT, 1);
 
  // metadata
 	m_width      = (GLint)_img.getWidth();

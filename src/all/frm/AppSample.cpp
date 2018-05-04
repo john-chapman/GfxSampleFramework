@@ -739,12 +739,12 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 	}
     _drawData->ScaleClipRects(io.DisplayFramebufferScale);
 
-    glAssert(glEnable(GL_BLEND));
+	FRM_GL_ENABLE(GL_BLEND,        true);
+	FRM_GL_ENABLE(GL_SCISSOR_TEST, true);
+	FRM_GL_ENABLE(GL_CULL_FACE,    false);
+	FRM_GL_ENABLE(GL_DEPTH_TEST,   false);
     glAssert(glBlendEquation(GL_FUNC_ADD));
     glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    glAssert(glDisable(GL_CULL_FACE));
-    glAssert(glDisable(GL_DEPTH_TEST));
-    glAssert(glEnable(GL_SCISSOR_TEST));
     glAssert(glActiveTexture(GL_TEXTURE0));
 
 	glAssert(glViewport(0, 0, (GLsizei)fbX, (GLsizei)fbY));
@@ -795,8 +795,6 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 		}
 	}
 
-	glAssert(glDisable(GL_SCISSOR_TEST));
-	glAssert(glDisable(GL_BLEND));
 	ctx->setShader(0);
 }
 
