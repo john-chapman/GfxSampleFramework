@@ -509,7 +509,7 @@ bool AppSample::ImGui_Init()
 	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 2);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float32, 2);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint8N,  4);
+	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint32,  1);
 	APT_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
 	g_msImGui = Mesh::Create(meshDesc);
 
