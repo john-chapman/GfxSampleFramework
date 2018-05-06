@@ -20,5 +20,10 @@ void main()
 #elif defined(ENVMAP_SPHERE)
 	vec3 ret = textureLod(txEnvmap, Envmap_GetSphereUv(normalize(vFrustumRayW)), 0.0).rgb;
 #endif
+
+#if defined(GAMMA)
+	ret = Gamma_Apply(ret);
+#endif
+
 	fResult = ret;
 }
