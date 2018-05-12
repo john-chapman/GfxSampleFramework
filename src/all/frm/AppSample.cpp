@@ -184,6 +184,8 @@ void AppSample::shutdown()
 	writeProps((const char*)m_propsPath);
 
 	App::shutdown();
+
+	apt::SetLogCallback(nullptr);
 }
 
 bool AppSample::update()
