@@ -2,6 +2,7 @@
 
 #include <apt/log.h>
 #include <apt/hash.h>
+#include <apt/memory.h>
 #include <apt/FileSystem.h>
 #include <apt/TextParser.h>
 #include <apt/Time.h>
@@ -204,7 +205,7 @@ MeshData* MeshData::Create(
 {
 	MeshData* ret = new MeshData(_desc);
 	
-	ret->m_vertexData = (char*)malloc(_desc.getVertexSize() * _vertexCount);
+	ret->m_vertexData = (char*)APT_MALLOC(_desc.getVertexSize() * _vertexCount);
 	ret->m_submeshes[0].m_vertexCount = _vertexCount;
 	if (_vertexData) {
 		ret->setVertexData(_vertexData);
@@ -212,7 +213,7 @@ MeshData* MeshData::Create(
 
 	if (_indexCount > 0) {
 		ret->m_indexDataType = GetIndexDataType(_vertexCount);
-		ret->m_indexData = (char*)malloc(DataTypeSizeBytes(ret->m_indexDataType) * _indexCount);
+		ret->m_indexData = (char*)APT_MALLOC(DataTypeSizeBytes(ret->m_indexDataType) * _indexCount);
 		ret->m_submeshes[0].m_indexCount = _indexCount;
 		if (_indexData) {
 			ret->setIndexData(_indexData);
@@ -321,12 +322,13 @@ void MeshData::Destroy(MeshData*& _meshData_)
 void frm::swap(MeshData& _a, MeshData& _b)
 {
 	using std::swap;
+	swap(_a.m_path,           _b.m_path);
+	swap(_a.m_bindPose,       _b.m_bindPose);
 	swap(_a.m_desc,           _b.m_desc);
 	swap(_a.m_vertexData,     _b.m_vertexData);
 	swap(_a.m_indexData,      _b.m_indexData);
 	swap(_a.m_indexDataType,  _b.m_indexDataType);
 	swap(_a.m_submeshes,      _b.m_submeshes);
-	swap(_a.m_bindPose,       _b.m_bindPose);
 }
 
 void MeshData::setVertexData(const void* _src)
@@ -496,7 +498,7 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	const VertexAttr* colorsAttr      = m_desc.findVertexAttr(VertexAttr::Semantic_Colors);
 	const VertexAttr* boneWeightsAttr = m_desc.findVertexAttr(VertexAttr::Semantic_BoneWeights);
 	const VertexAttr* boneIndicesAttr = m_desc.findVertexAttr(VertexAttr::Semantic_BoneIndices);
-	m_vertexData = (char*)malloc(m_desc.getVertexSize() * _meshBuilder.getVertexCount());
+	m_vertexData = (char*)APT_MALLOC(m_desc.getVertexSize() * _meshBuilder.getVertexCount());
 	for (uint32 i = 0, n = _meshBuilder.getVertexCount(); i < n; ++i) {
 		char* dst = m_vertexData + i * m_desc.getVertexSize();
 		const MeshBuilder::Vertex& src = _meshBuilder.getVertex(i);
@@ -521,7 +523,7 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	}
 
 	m_indexDataType = GetIndexDataType(_meshBuilder.getVertexCount());
-	m_indexData = (char*)malloc(_meshBuilder.getIndexCount() * DataTypeSizeBytes(m_indexDataType));
+	m_indexData = (char*)APT_MALLOC(_meshBuilder.getIndexCount() * DataTypeSizeBytes(m_indexDataType));
 	DataTypeConvert(DataType_Uint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
 
  // submesh 0 represents the whole mesh
@@ -545,8 +547,8 @@ MeshData::~MeshData()
 	if (m_bindPose) {
 		delete m_bindPose;
 	}
-	free(m_vertexData);
-	free(m_indexData);
+	APT_FREE(m_vertexData);
+	APT_FREE(m_indexData);
 }
 
 void MeshData::updateSubmeshBounds(Submesh& _submesh)
@@ -583,6 +585,8 @@ void MeshData::updateSubmeshBounds(Submesh& _submesh)
 // PUBLIC
 
 MeshBuilder::MeshBuilder()
+	: m_boundingBox(vec3(FLT_MAX), vec3(-FLT_MAX))
+	, m_boundingSphere(vec3(0.0f), FLT_MAX)
 {
 }
 
@@ -768,12 +772,13 @@ void MeshBuilder::addVertexData(const MeshDesc& _desc, const void* _data, uint32
 void MeshBuilder::addIndexData(DataType _type, const void* _data, uint32 _count)
 {
  // \todo avoid conversion in case where _type == uint32
-	uint32* tmp = new uint32[_count];
+	uint32* tmp = APT_NEW_ARRAY(uint32, _count);
 	DataTypeConvert(_type, DataType_Uint32, _data, tmp, _count);
+	uint32 off = m_submeshes.back().m_vertexOffset;
 	for (uint32 i = 0; i < _count; i += 3) {
-		m_triangles.push_back(Triangle(tmp[i], tmp[i + 1], tmp[i + 2]));
+		m_triangles.push_back(Triangle(tmp[i] + off, tmp[i + 1] + off, tmp[i + 2] + off));
 	}
-	delete[] tmp;
+	APT_DELETE_ARRAY(tmp);
 }
 
 void MeshBuilder::setVertexCount(uint32 _count)
@@ -811,4 +816,8 @@ void MeshBuilder::endSubmesh()
 		submesh.m_boundingBox.m_max = max(submesh.m_boundingBox.m_max, m_vertices[i].m_position);
 	}
 	submesh.m_boundingSphere = Sphere(submesh.m_boundingBox);
+
+	m_boundingBox.m_min = Min(m_boundingBox.m_min, submesh.m_boundingBox.m_min);
+	m_boundingBox.m_max = Max(m_boundingBox.m_max, submesh.m_boundingBox.m_max);
+	m_boundingSphere    = Sphere(m_boundingBox);
 }
