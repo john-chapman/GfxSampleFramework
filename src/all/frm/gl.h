@@ -86,7 +86,7 @@ struct GLEnable
 	GLEnable(GLenum _cap, bool _val)
 		: m_cap(_cap)
 	{
-		glAssert(m_val = (bool)glIsEnabled(m_cap));
+		glAssert(m_val = (glIsEnabled(m_cap) == GL_TRUE));
 		apply(_val);
 	}
 
