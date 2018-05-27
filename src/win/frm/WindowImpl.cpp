@@ -292,7 +292,7 @@ bool Window::pollEvents()
 	m_fileDropList.clear();
 
 	MSG msg;
-	while (PeekMessage(&msg, (HWND)m_handle, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
