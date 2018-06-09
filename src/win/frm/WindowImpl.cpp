@@ -193,7 +193,7 @@ struct Window::Impl
 				//APT_ASSERT(false); // should be suppressed by calling ValidateRect()
 				break;
 			case WM_CLOSE:
-				PostQuitMessage(0);
+				PostMessage((HWND)window->getHandle(), WM_QUIT, 0, 0);
 				return 0; // prevent DefWindowProc from destroying the window
 			default:
 				break;
@@ -292,7 +292,7 @@ bool Window::pollEvents()
 	m_fileDropList.clear();
 
 	MSG msg;
-	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
+	while (PeekMessage(&msg, (HWND)m_handle, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
