@@ -175,8 +175,8 @@ void Framebuffer::update()
 	}
 	for (int i = kMaxColorAttachments; i < kMaxAttachments; ++i) {
 		if (m_textures[i]) {
-			m_width  = APT_MIN(m_width,  m_textures[i]->getWidth());
-			m_height = APT_MIN(m_height, m_textures[i]->getHeight());
+			m_width  = APT_MIN(m_width,  m_textures[i]->getWidth() >> m_mipLevels[i]);
+			m_height = APT_MIN(m_height, m_textures[i]->getHeight() >> m_mipLevels[i]);
 		}
 	}
 	glAssert(glNamedFramebufferDrawBuffers(m_handle, kMaxColorAttachments, drawBuffers));
