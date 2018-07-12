@@ -85,7 +85,7 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 	pfd.iPixelType   = PFD_TYPE_RGBA;
 	pfd.cColorBits   = 24;
 	pfd.cDepthBits   = 24;
-	pfd.dwDamageMask = 8;
+	pfd.cStencilBits = 8;
 	int pformat = 0;
 	APT_PLATFORM_VERIFY(pformat = ChoosePixelFormat(GetDC(impl->m_hwnd), &pfd));
 	APT_PLATFORM_VERIFY(SetPixelFormat(impl->m_hdc, pformat, &pfd));
