@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_Resource_h
-#define frm_Resource_h
 
-#include <frm/def.h>
+#include <frm/core/def.h>
 #include <apt/String.h>
 #include <EASTL/vector.h>
 
@@ -97,5 +95,3 @@ private:
 }; // class Resource
 
 } // namespace frm
-
-#endif // frm_Resource_h

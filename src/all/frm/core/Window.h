@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_Window_h
-#define frm_Window_h
 
-#include <frm/def.h>
+#include <frm/core/def.h>
 #include <apt/String.h>
 #include <EASTL/vector.h>
 
@@ -98,5 +96,3 @@ private:
 }; // class Window
 
 } // namespace frm
-
-#endif // frm_Window_h

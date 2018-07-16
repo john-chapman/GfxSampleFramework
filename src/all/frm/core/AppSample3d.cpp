@@ -1,18 +1,18 @@
-#include <frm/AppSample3d.h>
+#include "AppSample3d.h"
 
-#include <frm/def.h>
-#include <frm/interpolation.h>
-#include <frm/gl.h>
-#include <frm/geom.h>
-#include <frm/GlContext.h>
-#include <frm/Input.h>
-#include <frm/Mesh.h>
-#include <frm/MeshData.h>
-#include <frm/Profiler.h>
-#include <frm/Shader.h>
-#include <frm/Scene.h>
-#include <frm/Window.h>
-#include <frm/XForm.h>
+#include <frm/core/def.h>
+#include <frm/core/interpolation.h>
+#include <frm/core/gl.h>
+#include <frm/core/geom.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/Input.h>
+#include <frm/core/Mesh.h>
+#include <frm/core/MeshData.h>
+#include <frm/core/Profiler.h>
+#include <frm/core/Shader.h>
+#include <frm/core/Scene.h>
+#include <frm/core/Window.h>
+#include <frm/core/XForm.h>
 
 #include <im3d/im3d.h>
 

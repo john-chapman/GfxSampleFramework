@@ -1,11 +1,9 @@
 #pragma once
-#ifndef frm_Texture_h
-#define frm_Texture_h
 
-#include <frm/def.h>
-#include <frm/gl.h>
-#include <frm/math.h>
-#include <frm/Resource.h>
+#include <frm/core/def.h>
+#include <frm/core/gl.h>
+#include <frm/core/math.h>
+#include <frm/core/Resource.h>
 
 namespace frm {
 
@@ -189,5 +187,3 @@ struct TextureView
 
 
 } // namespace frm
-
-#endif // frm_Texture_h

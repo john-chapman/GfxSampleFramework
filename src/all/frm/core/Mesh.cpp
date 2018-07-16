@@ -1,8 +1,8 @@
-#include <frm/Mesh.h>
+#include "Mesh.h"
 
-#include <frm/gl.h>
-#include <frm/GlContext.h>
-#include <frm/Resource.h>
+#include <frm/core/gl.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/Resource.h>
 
 #include <apt/hash.h>
 #include <apt/log.h>

@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_GlContext_h
-#define frm_GlContext_h
 
-#include <frm/gl.h>
+#include <frm/core/gl.h>
 
 namespace frm {
 
@@ -200,5 +198,3 @@ private:
 }; // class GlContext
 
 } // namespace frm
-
-#endif // frm_GlContext_h

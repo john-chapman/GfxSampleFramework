@@ -1,4 +1,4 @@
-#include <frm/LuaScript.h>
+#include "LuaScript.h"
 
 #include <apt/log.h>
 #include <apt/FileSystem.h>

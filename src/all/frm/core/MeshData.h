@@ -2,9 +2,9 @@
 #ifndef frm_MeshData_h
 #define frm_MeshData_h
 
-#include <frm/def.h>
-#include <frm/geom.h>
-#include <frm/SkeletonAnimation.h>
+#include <frm/core/def.h>
+#include <frm/core/geom.h>
+#include <frm/core/SkeletonAnimation.h>
 
 #include <apt/String.h>
 

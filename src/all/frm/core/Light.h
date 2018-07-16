@@ -1,9 +1,7 @@
 #pragma once
-#ifndef frm_Light_h
-#define frm_Light_h
 
-#include <frm/def.h>
-#include <frm/math.h>
+#include <frm/core/def.h>
+#include <frm/core/math.h>
 
 namespace frm {
 
@@ -38,5 +36,3 @@ private:
 }; // class Light
 
 } // namespace frm
-
-#endif // frm_Light_h

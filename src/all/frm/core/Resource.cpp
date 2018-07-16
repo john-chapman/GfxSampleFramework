@@ -1,4 +1,4 @@
-#include <frm/Resource.h>
+#include "Resource.h"
 
 #include <apt/hash.h>
 #include <apt/log.h>
@@ -156,11 +156,11 @@ Resource<tDerived>::InstanceList::~InstanceList()
 	template class Resource<_name>; \
 	const char* Resource<_name>::s_className = #_name;
 
-#include <frm/Mesh.h>
+#include <frm/core/Mesh.h>
 DECL_RESOURCE(Mesh);
-#include <frm/SkeletonAnimation.h>
+#include <frm/core/SkeletonAnimation.h>
 DECL_RESOURCE(SkeletonAnimation);
-#include <frm/Shader.h>
+#include <frm/core/Shader.h>
 DECL_RESOURCE(Shader);
-#include <frm/Texture.h>
+#include <frm/core/Texture.h>
 DECL_RESOURCE(Texture);

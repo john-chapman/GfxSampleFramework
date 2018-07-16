@@ -1,13 +1,13 @@
-#include <frm/RenderNodes.h>
+#include "RenderNodes.h"
 
-#include <frm/gl.h>
-#include <frm/Property.h>
-#include <frm/Buffer.h>
-#include <frm/Framebuffer.h>
-#include <frm/GlContext.h>
-#include <frm/Profiler.h>
-#include <frm/Shader.h>
-#include <frm/Texture.h>
+#include <frm/core/gl.h>
+#include <frm/core/Property.h>
+#include <frm/core/Buffer.h>
+#include <frm/core/Framebuffer.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/Profiler.h>
+#include <frm/core/Shader.h>
+#include <frm/core/Texture.h>
 
 #include <apt/Json.h>
 

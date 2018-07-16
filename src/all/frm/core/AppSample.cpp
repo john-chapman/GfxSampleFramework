@@ -1,16 +1,16 @@
-#include <frm/AppSample.h>
+#include "AppSample.h"
 
-#include <frm/math.h>
-#include <frm/App.h>
-#include <frm/Framebuffer.h>
-#include <frm/GlContext.h>
-#include <frm/Input.h>
-#include <frm/Log.h>
-#include <frm/Mesh.h>
-#include <frm/Profiler.h>
-#include <frm/Shader.h>
-#include <frm/Texture.h>
-#include <frm/Window.h>
+#include <frm/core/math.h>
+#include <frm/core/App.h>
+#include <frm/core/Framebuffer.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/Input.h>
+#include <frm/core/Log.h>
+#include <frm/core/Mesh.h>
+#include <frm/core/Profiler.h>
+#include <frm/core/Shader.h>
+#include <frm/core/Texture.h>
+#include <frm/core/Window.h>
 
 #include <apt/platform.h>
 #include <apt/memory.h>

@@ -1,7 +1,7 @@
-#include <frm/geom.h>
+#include "geom.h"
 
-#include <frm/math.h>
-#include <frm/interpolation.h>
+#include <frm/core/math.h>
+#include <frm/core/interpolation.h>
 
 #define geom_debug
 #ifdef geom_debug

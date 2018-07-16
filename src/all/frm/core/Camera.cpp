@@ -1,6 +1,7 @@
-#include <frm/Camera.h>
-#include <frm/Buffer.h>
-#include <frm/Scene.h>
+#include "Camera.h"
+
+#include <frm/core/Buffer.h>
+#include <frm/core/Scene.h>
 
 #include <apt/Serializer.h>
 

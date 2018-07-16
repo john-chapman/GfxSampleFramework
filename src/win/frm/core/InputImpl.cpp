@@ -1,7 +1,6 @@
-#include <frm/Input.h>
-
-#include <frm/Window.h>
-#include <frm/Profiler.h>
+#include <frm/core/Input.h>
+#include <frm/core/Window.h>
+#include <frm/core/Profiler.h>
 
 #include <apt/platform.h>
 #include <apt/log.h>

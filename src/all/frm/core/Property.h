@@ -1,7 +1,7 @@
 #pragma once
 
-#include <frm/def.h>
-#include <frm/math.h>
+#include <frm/core/def.h>
+#include <frm/core/math.h>
 
 #include <apt/String.h>
 #include <apt/StringHash.h>

@@ -1,16 +1,16 @@
-#include <frm/GlContext.h>
+#include "GlContext.h"
 
-#include <frm/gl.h>
-#include <frm/math.h>
-#include <frm/Buffer.h>
-#include <frm/Camera.h>
-#include <frm/Framebuffer.h>
-#include <frm/Mesh.h>
-#include <frm/MeshData.h>
-#include <frm/Resource.h>
-#include <frm/Shader.h>
-#include <frm/Texture.h>
-#include <frm/Window.h>
+#include <frm/core/gl.h>
+#include <frm/core/math.h>
+#include <frm/core/Buffer.h>
+#include <frm/core/Camera.h>
+#include <frm/core/Framebuffer.h>
+#include <frm/core/Mesh.h>
+#include <frm/core/MeshData.h>
+#include <frm/core/Resource.h>
+#include <frm/core/Shader.h>
+#include <frm/core/Texture.h>
+#include <frm/core/Window.h>
 
 #include <apt/log.h>
 

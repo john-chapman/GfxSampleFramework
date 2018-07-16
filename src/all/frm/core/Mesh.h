@@ -2,11 +2,11 @@
 #ifndef frm_Mesh_h
 #define frm_Mesh_h
 
-#include <frm/def.h>
-#include <frm/gl.h>
-#include <frm/MeshData.h>
-#include <frm/Resource.h>
-#include <frm/SkeletonAnimation.h>
+#include <frm/core/def.h>
+#include <frm/core/gl.h>
+#include <frm/core/MeshData.h>
+#include <frm/core/Resource.h>
+#include <frm/core/SkeletonAnimation.h>
 
 #include <apt/String.h>
 

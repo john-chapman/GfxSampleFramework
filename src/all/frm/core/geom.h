@@ -2,8 +2,8 @@
 #ifndef frm_geom_h
 #define frm_geom_h
 
-#include <frm/def.h>
-#include <frm/math.h>
+#include <frm/core/def.h>
+#include <frm/core/math.h>
 
 namespace frm {
 

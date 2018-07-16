@@ -1,10 +1,8 @@
 #pragma once
-#ifndef frm_TextureAtlas_h
-#define frm_TextureAtlas_h
 
-#include <frm/def.h>
-#include <frm/gl.h>
-#include <frm/Texture.h>
+#include <frm/core/def.h>
+#include <frm/core/gl.h>
+#include <frm/core/Texture.h>
 
 #include <apt/Pool.h>
 #include <apt/StringHash.h>
@@ -94,5 +92,3 @@ public:
 }; // class TextureAtlas
 
 } // namespace frm
-
-#endif // frm_TextureAtlas_h

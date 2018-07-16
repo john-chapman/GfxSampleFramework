@@ -2,11 +2,11 @@
 #ifndef frm_AppSample3d_h
 #define frm_AppSample3d_h
 
-#include <frm/def.h>
-#include <frm/geom.h>
-#include <frm/AppSample.h>
-#include <frm/Camera.h>
-#include <frm/Scene.h>
+#include <frm/core/def.h>
+#include <frm/core/geom.h>
+#include <frm/core/AppSample.h>
+#include <frm/core/Camera.h>
+#include <frm/core/Scene.h>
 
 #include <apt/FileSystem.h>
 

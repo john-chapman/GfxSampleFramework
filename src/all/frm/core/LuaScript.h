@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_LuaScript_h
-#define frm_LuaScript_h
 
-#include <frm/def.h>
+#include <frm/core/def.h>
 
 struct lua_State;
 
@@ -101,5 +99,3 @@ private:
 }; // class LuaScript
 
 } // namespace frm
-
-#endif // frm_LuaScript_h

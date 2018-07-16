@@ -2,8 +2,8 @@
 #ifndef frm_Buffer_h
 #define frm_Buffer_h
 
-#include <frm/def.h>
-#include <frm/gl.h>
+#include <frm/core/def.h>
+#include <frm/core/gl.h>
 
 namespace frm {
 

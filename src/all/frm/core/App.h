@@ -2,7 +2,7 @@
 #ifndef frm_App_h
 #define frm_App_h
 
-#include <frm/def.h>
+#include <frm/core/def.h>
 
 #include <apt/Time.h>
 

@@ -2,9 +2,9 @@
 #ifndef frm_Camera_h
 #define frm_Camera_h
 
-#include <frm/def.h>
-#include <frm/geom.h>
-#include <frm/math.h>
+#include <frm/core/def.h>
+#include <frm/core/geom.h>
+#include <frm/core/math.h>
 
 namespace frm {
 

@@ -2,8 +2,8 @@
 #ifndef frm_Curve_h
 #define frm_Curve_h
 
-#include <frm/def.h>
-#include <frm/math.h>
+#include <frm/core/def.h>
+#include <frm/core/math.h>
 
 #include <EASTL/vector.h>
 #include <imgui/imgui.h>

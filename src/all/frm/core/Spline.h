@@ -1,9 +1,7 @@
 #pragma once
-#ifndef frm_Spline_h
-#define frm_Spline_h
 
-#include <frm/def.h>
-#include <frm/math.h>
+#include <frm/core/def.h>
+#include <frm/core/math.h>
 
 #include <EASTL/vector.h>
 
@@ -49,5 +47,3 @@ private:
 }; // class Spline
 
 } // namespace frm
-
-#endif // frm_Spline_h

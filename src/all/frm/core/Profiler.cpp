@@ -1,7 +1,7 @@
-#include <frm/Profiler.h>
+#include "Profiler.h"
 
-#include <frm/gl.h>
-#include <frm/GlContext.h>
+#include <frm/core/gl.h>
+#include <frm/core/GlContext.h>
 
 #include <apt/math.h>
 #include <apt/memory.h>

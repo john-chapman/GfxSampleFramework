@@ -1,9 +1,9 @@
-#include <frm/Shader.h>
+#include "Shader.h"
 
-#include <frm/def.h>
-#include <frm/gl.h>
-#include <frm/GlContext.h>
-#include <frm/Texture.h>
+#include <frm/core/def.h>
+#include <frm/core/gl.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/Texture.h>
 
 #include <apt/hash.h>
 #include <apt/log.h>

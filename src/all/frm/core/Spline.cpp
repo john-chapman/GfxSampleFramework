@@ -1,7 +1,7 @@
-#include <frm/Spline.h>
+#include "Spline.h"
 
-#include <frm/interpolation.h>
-#include <frm/math.h>
+#include <frm/core/interpolation.h>
+#include <frm/core/math.h>
 
 #include <apt/Serializer.h>
 #include <apt/Time.h>

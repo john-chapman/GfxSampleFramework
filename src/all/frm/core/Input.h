@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_Input_h
-#define frm_Input_h
 
-#include <frm/def.h>
+#include <frm/core/def.h>
 
 #include <apt/static_initializer.h>
 
@@ -342,6 +340,4 @@ public:
 };
 
 } // namespace frm
-
-#endif // frm_Input_h
 

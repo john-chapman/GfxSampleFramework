@@ -1,12 +1,9 @@
 #pragma once
-#ifndef frm_XForm_h
-#define frm_XForm_h
 
-#include <frm/def.h>
-#include <frm/math.h>
-
-#include <frm/Input.h>
-#include <frm/Scene.h>
+#include <frm/core/def.h>
+#include <frm/core/math.h>
+#include <frm/core/Input.h>
+#include <frm/core/Scene.h>
 
 #include <apt/StringHash.h>
 #include <apt/Factory.h>
@@ -220,7 +217,4 @@ struct XForm_OrbitalPath: public XForm
 	virtual void reset() override;
 };
 
-
 } // namespace frm
-
-#endif // frm_XForm_h

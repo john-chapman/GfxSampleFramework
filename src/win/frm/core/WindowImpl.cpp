@@ -1,7 +1,6 @@
-#include <frm/Window.h>
-
-#include <frm/def.h>
-#include <frm/Input.h>
+#include <frm/core/Window.h>
+#include <frm/core/def.h>
+#include <frm/core/Input.h>
 
 #include <apt/log.h>
 #include <apt/math.h>

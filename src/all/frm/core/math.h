@@ -1,6 +1,4 @@
 #pragma once
-#ifndef frm_math_h
-#define frm_math_h
 
 #include <apt/math.h>
 
@@ -28,5 +26,3 @@ using apt::kPi;
 using apt::kTwoPi;
 
 } // namespace frm
-
-#endif // frm_math_h

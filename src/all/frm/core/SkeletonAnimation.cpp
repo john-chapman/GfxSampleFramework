@@ -1,6 +1,6 @@
-#include <frm/SkeletonAnimation.h>
+#include "SkeletonAnimation.h"
 
-#include <frm/interpolation.h>
+#include <frm/core/interpolation.h>
 
 #include <apt/hash.h>
 #include <apt/log.h>

@@ -1,9 +1,7 @@
 #pragma once
-#ifndef frm_render_Nodes
-#define frm_render_Nodes
 
-#include <frm/def.h>
-#include <frm/math.h>
+#include <frm/core/def.h>
+#include <frm/core/math.h>
 
 namespace frm {
 
@@ -79,5 +77,3 @@ private:
 }; // class ColorCorrection
 
 } // namespace frm
-
-#endif // frm_render_Nodes

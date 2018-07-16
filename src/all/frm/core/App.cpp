@@ -1,7 +1,7 @@
-#include <frm/App.h>
+#include "App.h"
 
-#include <frm/Input.h>
-#include <frm/Profiler.h>
+#include <frm/core/Input.h>
+#include <frm/core/Profiler.h>
 
 #include <apt/platform.h>
 #ifdef APT_PLATFORM_WIN

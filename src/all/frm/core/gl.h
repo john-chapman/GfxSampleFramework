@@ -4,7 +4,7 @@
 	#error framework: Don't include GL/gl.h, included frm/gl.h
 #endif
 
-#include <frm/def.h>
+#include <frm/core/def.h>
 
 #include <GL/glew.h>
 

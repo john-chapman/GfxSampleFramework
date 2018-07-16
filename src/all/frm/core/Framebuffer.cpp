@@ -1,8 +1,8 @@
-#include <frm/Framebuffer.h>
+#include "Framebuffer.h"
 
-#include <frm/gl.h>
-#include <frm/GlContext.h>
-#include <frm/Texture.h>
+#include <frm/core/gl.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/Texture.h>
 
 #include <cstdarg>
 #include <cstring>

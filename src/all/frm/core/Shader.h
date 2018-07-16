@@ -1,11 +1,9 @@
 #pragma once
-#ifndef frm_Shader_h
-#define frm_Shader_h
 
-#include <frm/def.h>
-#include <frm/gl.h>
-#include <frm/math.h>
-#include <frm/Resource.h>
+#include <frm/core/def.h>
+#include <frm/core/gl.h>
+#include <frm/core/math.h>
+#include <frm/core/Resource.h>
 
 #include <apt/String.h>
 #include <EASTL/vector.h>
@@ -187,5 +185,3 @@ private:
 }; // class Shader
 
 } // namespace frm
-
-#endif // frm_Shader_h

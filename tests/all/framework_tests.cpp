@@ -1,31 +1,31 @@
-#include <frm/def.h>
+#include <frm/core/def.h>
 
-#include <frm/interpolation.h>
-#include <frm/gl.h>
-#include <frm/AppSample3d.h>
-#include <frm/Buffer.h>
-#include <frm/Curve.h>
-#include <frm/Framebuffer.h>
-#include <frm/GlContext.h>
-#include <frm/Input.h>
-#include <frm/Mesh.h>
-#include <frm/MeshData.h>
-#include <frm/Profiler.h>
-#include <frm/Property.h>
-#include <frm/Shader.h>
-#include <frm/SkeletonAnimation.h>
-#include <frm/Spline.h>
-#include <frm/Texture.h>
-#include <frm/Window.h>
-#include <frm/XForm.h>
+#include <frm/core/interpolation.h>
+#include <frm/core/gl.h>
+#include <frm/core/AppSample3d.h>
+#include <frm/core/Buffer.h>
+#include <frm/core/Curve.h>
+#include <frm/core/Framebuffer.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/Input.h>
+#include <frm/core/Mesh.h>
+#include <frm/core/MeshData.h>
+#include <frm/core/Profiler.h>
+#include <frm/core/Property.h>
+#include <frm/core/Shader.h>
+#include <frm/core/SkeletonAnimation.h>
+#include <frm/core/Spline.h>
+#include <frm/core/Texture.h>
+#include <frm/core/Window.h>
+#include <frm/core/XForm.h>
 
 #include <apt/log.h>
 #include <apt/rand.h>
 #include <apt/ArgList.h>
 #include <apt/Quadtree.h>
 
-#include <imgui/imgui.h>
-#include <imgui/imgui_ext.h>
+#include <frm/core/extern/imgui/imgui.h>
+#include <frm/core/extern/imgui/imgui_ext.h>
 
 #include <EASTL/vector.h>
 

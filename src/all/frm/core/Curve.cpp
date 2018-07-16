@@ -1,7 +1,7 @@
-#include <frm/Curve.h>
+#include "Curve.h"
 
-#include <frm/interpolation.h>
-#include <frm/Input.h>
+#include <frm/core/interpolation.h>
+#include <frm/core/Input.h>
 
 #include <apt/Serializer.h>
 #include <apt/String.h>

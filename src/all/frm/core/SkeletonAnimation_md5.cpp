@@ -1,8 +1,8 @@
-#include <frm/SkeletonAnimation.h>
+#include "SkeletonAnimation.h"
 
 #include <apt/TextParser.h>
 
-#include <extern/md5mesh.h>
+#include <md5mesh.h>
 
 #include <EASTL/sort.h>
 #include <EASTL/vector.h>

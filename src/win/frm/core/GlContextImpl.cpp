@@ -1,10 +1,9 @@
-#include <frm/GlContext.h>
-
-#include <frm/def.h>
-#include <frm/gl.h>
-#include <frm/Profiler.h>
-#include <frm/Shader.h>
-#include <frm/Window.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/def.h>
+#include <frm/core/gl.h>
+#include <frm/core/Profiler.h>
+#include <frm/core/Shader.h>
+#include <frm/core/Window.h>
 
 #include <apt/log.h>
 #include <apt/platform.h>

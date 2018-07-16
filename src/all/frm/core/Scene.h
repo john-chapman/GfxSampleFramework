@@ -1,9 +1,7 @@
 #pragma once
-#ifndef frm_Scene_h
-#define frm_Scene_h
 
-#include <frm/def.h>
-#include <frm/math.h>
+#include <frm/core/def.h>
+#include <frm/core/math.h>
 
 #include <apt/Pool.h>
 #include <apt/String.h>
@@ -257,5 +255,3 @@ private:
 }; // class Scene
 
 } // namespace frm
-
-#endif // frm_Scene_h

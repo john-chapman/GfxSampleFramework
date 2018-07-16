@@ -1,10 +1,8 @@
 #pragma once
-#ifndef frm_SkeletonAnimation_h
-#define frm_SkeletonAnimation_h
 
-#include <frm/def.h>
-#include <frm/math.h>
-#include <frm/Resource.h>
+#include <frm/core/def.h>
+#include <frm/core/math.h>
+#include <frm/core/Resource.h>
 
 #include <apt/String.h>
 
@@ -133,7 +131,5 @@ private:
 
 }; // class SkeletonAnimation
 
-
 } // namespace frm
 
-#endif // frm_SkeletonAnimation_h

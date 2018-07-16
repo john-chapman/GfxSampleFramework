@@ -1,9 +1,9 @@
-#include <frm/Scene.h>
+#include "Scene.h"
 
-#include <frm/Camera.h>
-#include <frm/Light.h>
-#include <frm/Profiler.h>
-#include <frm/XForm.h>
+#include <frm/core/Camera.h>
+#include <frm/core/Light.h>
+#include <frm/core/Profiler.h>
+#include <frm/core/XForm.h>
 
 #include <apt/log.h>
 #include <apt/Json.h>

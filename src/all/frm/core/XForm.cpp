@@ -1,8 +1,8 @@
-#include <frm/XForm.h>
+#include "XForm.h"
 
-#include <frm/interpolation.h>
-#include <frm/Scene.h>
-#include <frm/Spline.h>
+#include <frm/core/interpolation.h>
+#include <frm/core/Scene.h>
+#include <frm/core/Spline.h>
 
 #include <apt/log.h>
 #include <apt/Serializer.h>

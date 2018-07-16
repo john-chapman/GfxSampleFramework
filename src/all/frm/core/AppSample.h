@@ -2,9 +2,9 @@
 #ifndef frm_AppSample_h
 #define frm_AppSample_h
 
-#include <frm/def.h>
-#include <frm/App.h>
-#include <frm/Property.h>
+#include <frm/core/def.h>
+#include <frm/core/App.h>
+#include <frm/core/Property.h>
 
 #include <apt/FileSystem.h>
 

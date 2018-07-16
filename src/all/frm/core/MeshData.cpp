@@ -1,4 +1,4 @@
-#include <frm/MeshData.h>
+#include "MeshData.h"
 
 #include <apt/log.h>
 #include <apt/hash.h>
@@ -774,7 +774,7 @@ void MeshBuilder::addIndexData(DataType _type, const void* _data, uint32 _count)
  // \todo avoid conversion in case where _type == uint32
 	uint32* tmp = APT_NEW_ARRAY(uint32, _count);
 	DataTypeConvert(_type, DataType_Uint32, _data, tmp, _count);
-	uint32 off = m_submeshes.back().m_vertexOffset;
+	uint32 off = (uint32)m_submeshes.back().m_vertexOffset;
 	for (uint32 i = 0; i < _count; i += 3) {
 		m_triangles.push_back(Triangle(tmp[i] + off, tmp[i + 1] + off, tmp[i + 2] + off));
 	}

@@ -1,8 +1,8 @@
-#include <frm/MeshData.h>
+#include "MeshData.h"
 
 #include <apt/TextParser.h>
 
-#include <extern/md5mesh.h>
+#include <md5mesh.h>
 
 #include <EASTL/sort.h>
 #include <EASTL/vector.h>

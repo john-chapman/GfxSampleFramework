@@ -1,6 +1,6 @@
-#include <frm/Buffer.h>
+#include "Buffer.h"
 
-#include <frm/gl.h>
+#include <frm/core/gl.h>
 
 using namespace frm;
 using namespace apt;

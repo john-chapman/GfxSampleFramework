@@ -1,6 +1,6 @@
-#include <frm/TextureAtlas.h>
+#include "TextureAtlas.h"
 
-#include <frm/Texture.h>
+#include <frm/core/Texture.h>
 
 #include <apt/Image.h>
 

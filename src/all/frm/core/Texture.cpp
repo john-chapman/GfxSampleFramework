@@ -1,10 +1,10 @@
-#include <frm/Texture.h>
+#include "Texture.h"
 
-#include <frm/gl.h>
-#include <frm/Framebuffer.h>
-#include <frm/GlContext.h>
-#include <frm/Resource.h>
-#include <frm/Shader.h>
+#include <frm/core/gl.h>
+#include <frm/core/Framebuffer.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/Resource.h>
+#include <frm/core/Shader.h>
 
 #include <apt/File.h>
 #include <apt/FileSystem.h>

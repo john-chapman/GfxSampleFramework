@@ -2,8 +2,8 @@
 #ifndef frm_Framebuffer_h
 #define frm_Framebuffer_h
 
-#include <frm/def.h>
-#include <frm/gl.h>
+#include <frm/core/def.h>
+#include <frm/core/gl.h>
 
 namespace frm {
 
