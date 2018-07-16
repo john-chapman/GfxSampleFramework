@@ -10,6 +10,7 @@ build/vs*/*.user
 !build/vs*/*.vcxproj
 !build/vs*/*.filters
 !build/vs*/*.props
+!build/vs*/*.config.lua
 
 # User configs, log files
 *.ini
