@@ -9,6 +9,9 @@ workspace "GfxSampleFramework"
 		system "windows"
 		architecture "x86_64"
 	filter {}
+
+	rtti "Off"
+	exceptionhandling "Off"
 	
 	configurations { "Debug", "Release" }
 	filter { "configurations:Debug" }
@@ -28,8 +31,12 @@ workspace "GfxSampleFramework"
 		GfxSampleFramework_Project(
 			"../",     -- root
 			"../lib",  -- libDir
-			"../bin"   -- binDir
-			)
+			"../bin",  -- binDir
+			{ -- config
+				["FRM_MODULE_AUDIO"] = false,
+				["FRM_MODULE_VR"]    = false,
+			})
+		--GfxSampleFramework_ProjectExternal("../")
 	group ""
 
 	project "GfxSampleFramework_Tests"
