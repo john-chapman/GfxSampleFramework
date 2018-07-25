@@ -1,5 +1,7 @@
 OpenGL framework for graphics samples, prototyping, etc. 
 
+**Note that this project is very much WIP and therefore frequently subject to breaking changes!**
+
 See [GfxSamples](https://github.com/john-chapman/GfxSamples) as a reference for the project setup and usage.
 
 Use `git clone --recursive` to init/clone all submodules, as follows:

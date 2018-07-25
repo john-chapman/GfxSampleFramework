@@ -115,6 +115,7 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 	_root   = _root or ""
 	_libDir = _libDir or "../lib"
 	_binDir = _binDir or "../bin"
+	_config = _config or {}
 
 	GfxSampleFramework_Config(_root, _config)
 
