@@ -22,11 +22,9 @@ Submodule dependencies:
 - [ApplicationTools](https://github.com/john-chapman/ApplicationTools)
  
 Embedded dependencies:
-- [EASTL](https://github.com/electronicarts/EASTL)
-- [linalg](https://github.com/john-chapman/linalg)
+- [dr_wav](https://github.com/mackron/dr_libs)
 - [LodePNG](http://lodev.org/lodepng/)
-- [Miniz](https://github.com/richgel999/miniz)
-- [RapidJSON](http://rapidjson.org/)
+- [PortAudio](http://www.portaudio.com/)
 - [stb](https://github.com/nothings/stb)
 - [Im3d](https://github.com/john-chapman/im3d/)
 - [ImGui](https://github.com/ocornut/imgui)
