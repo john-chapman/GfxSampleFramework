@@ -55,7 +55,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;APT_DEBUG;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=0;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;APT_DEBUG;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=0;FRM_MODULE_CORE=1;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\extern\ApplicationTools\src\all;..\..\extern\ApplicationTools\src\all\extern;..\..\extern\ApplicationTools\src\win;..\..\extern\ApplicationTools\src\win\extern;..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
@@ -70,14 +70,16 @@
     </Link>
     <PostBuildEvent>
       <Command>rmdir "$(ProjectDir)../../bin/common"
-mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Command>
+mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"
+rmdir "$(ProjectDir)../../bin/extern"
+mklink /j "$(ProjectDir)../../bin/extern" "$(ProjectDir)../..//extern"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Win64|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=0;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=0;FRM_MODULE_CORE=1;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\extern\ApplicationTools\src\all;..\..\extern\ApplicationTools\src\all\extern;..\..\extern\ApplicationTools\src\win;..\..\extern\ApplicationTools\src\win\extern;..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>None</DebugInformationFormat>
       <Optimization>Full</Optimization>
@@ -98,7 +100,9 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     </Link>
     <PostBuildEvent>
       <Command>rmdir "$(ProjectDir)../../bin/common"
-mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Command>
+mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"
+rmdir "$(ProjectDir)../../bin/extern"
+mklink /j "$(ProjectDir)../../bin/extern" "$(ProjectDir)../..//extern"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -244,8 +248,6 @@ mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"</Com
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\ltable.c" />
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\ltablib.c" />
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\ltm.c" />
-    <ClCompile Include="..\..\src\all\frm\core\extern\lua\lua.c" />
-    <ClCompile Include="..\..\src\all\frm\core\extern\lua\luac.c" />
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\lundump.c" />
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\lutf8lib.c" />
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\lvm.c" />

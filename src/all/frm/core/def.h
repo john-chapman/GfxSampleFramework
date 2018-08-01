@@ -94,4 +94,18 @@ namespace frm {
 	#define FRM_NDC_Z_ZERO_TO_ONE 1
 #endif
 
+#ifndef FRM_MODULE_CORE
+	#define FRM_MODULE_CORE 0
+#endif
+#ifndef FRM_MODULE_AUDIO
+	#define FRM_MODULE_AUDIO 0
+#endif
+#ifndef FRM_MODULE_VR
+	#define FRM_MODULE_VR 0
+#endif
+
+#if !FRM_MODULE_CORE
+	#error FRM_MODULE_CORE was not enabled
+#endif
+
 #endif // frm_def_h

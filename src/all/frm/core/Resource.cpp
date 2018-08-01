@@ -164,3 +164,8 @@ DECL_RESOURCE(SkeletonAnimation);
 DECL_RESOURCE(Shader);
 #include <frm/core/Texture.h>
 DECL_RESOURCE(Texture);
+
+#if FRM_MODULE_AUDIO
+	#include <frm/audio/AudioData.h>
+	DECL_RESOURCE(AudioData);
+#endif

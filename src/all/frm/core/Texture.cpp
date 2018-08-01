@@ -6,6 +6,7 @@
 #include <frm/core/Resource.h>
 #include <frm/core/Shader.h>
 
+#include <apt/memory.h>
 #include <apt/File.h>
 #include <apt/FileSystem.h>
 #include <apt/Image.h>
@@ -95,7 +96,7 @@ struct TextureViewer
 	{
 		if (!findTextureView(_tx)) {
 			//m_txViews.push_back(m_txViewPool.alloc(TextureView(_tx)));
-			m_txViews.push_back(new TextureView(_tx));
+			m_txViews.push_back(APT_NEW(TextureView(_tx)));
 		}
 	}
 
@@ -108,7 +109,7 @@ struct TextureViewer
 				m_selected = -1;
 			}
 			//m_txViewPool.free(*it);
-			delete *it;
+			APT_DELETE(*it);
 			m_txViews.erase_unsorted(it);
 		}
 	}
@@ -449,7 +450,7 @@ Texture* Texture::Create(const char* _path)
 	Id id = GetHashId(_path);
 	Texture* ret = Find(id);
 	if (!ret) {
-		ret = new Texture(id, _path);
+		ret = APT_NEW(Texture(id, _path));
 		ret->m_path.set(_path);
 	}
 	Use(ret);
@@ -464,7 +465,7 @@ Texture* Texture::CreateCubemap2x3(const char* _path)
 	Id id = GetHashId(_path);
 	Texture* ret = Find(id);
 	if (!ret) {
-		ret = new Texture(id, _path);
+		ret = APT_NEW(Texture(id, _path));
 		ret->m_target = GL_TEXTURE_CUBE_MAP; // modifies behavior of reload()
 		ret->m_path.set(_path);
 	}
@@ -479,7 +480,7 @@ Texture* Texture::Create(const Image& _img)
 {
 	Id id = GetUniqueId();
 	NameStr name("image%llu", id);
-	Texture* ret = new Texture(id, (const char*)name);
+	Texture* ret = APT_NEW(Texture(id, (const char*)name));
 	if (!ret->loadImage(_img)) {
 		ret->setState(State_Error);
 		return ret;
@@ -591,7 +592,7 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 		return ret;
 	}
 	
-	ret = new Texture(id, _name);
+	ret = APT_NEW(Texture(id, _name));
 	if (_name[0] == '\0') {
 		ret->setNamef("%llu", id);
 	}
@@ -625,7 +626,7 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 
 void Texture::Destroy(Texture*& _inst_)
 {
-	delete _inst_;
+	APT_DELETE(_inst_);
 }
 
 void Texture::FileModified(const char* _path)
@@ -1168,7 +1169,7 @@ Texture* Texture::Create(
 	)
 {
 	uint64 id = GetUniqueId();
-	Texture* ret = new Texture(id, "", _target, _width, _height, _depth, _arrayCount, _mipCount, _format);
+	Texture* ret = APT_NEW(Texture(id, "", _target, _width, _height, _depth, _arrayCount, _mipCount, _format));
 	ret->setNamef("%llu", id);
 	Use(ret);
 	return ret;

@@ -149,14 +149,19 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 				})
 		end
 		removefiles({
-			_root .. SRC_PATH_ALL .. "frm/core/extern/lua/lua.c", -- standalone lua interpreter
-			_root .. SRC_PATH_ALL .. "frm/core/extern/lua/luac.c"
+			makepath { SRC_PATH_ROOT, SRC_PATH_ALL, "core/extern/lua/lua.c"  }, -- standalone lua interpreter
+			makepath { SRC_PATH_ROOT, SRC_PATH_ALL, "core/extern/lua/luac.c" }
 			})
 
 		filter { "action:vs*" }
 			postbuildcommands({
+			 -- data/common
 				"rmdir \"$(ProjectDir)../" .. _binDir .. "/common\"",
 				"mklink /j \"$(ProjectDir)../" .. _binDir .. "/common\" " .. "\"$(ProjectDir)../" .. _root .. "/data/common\"",
+
+			 -- extern/
+			 	"rmdir \"$(ProjectDir)../" .. _binDir .. "/extern\"",
+				"mklink /j \"$(ProjectDir)../" .. _binDir .. "/extern\" " .. "\"$(ProjectDir)../" .. _root .. "/extern\"",
 				})
 		filter {}
 

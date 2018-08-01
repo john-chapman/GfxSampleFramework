@@ -19,6 +19,8 @@
 #include <frm/core/Window.h>
 #include <frm/core/XForm.h>
 
+#include <frm/audio/Audio.h>
+
 #include <apt/log.h>
 #include <apt/rand.h>
 #include <apt/ArgList.h>
@@ -337,6 +339,39 @@ public:
 
 			ImGui::TreePop();
 		}
+
+		#if FRM_MODULE_AUDIO
+			ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+
+			if (ImGui::TreeNode("Audio")) {
+				Audio::Edit();
+
+				static AudioData* audio = nullptr;
+				static AudioSourceId lastPlaybackId = 0;
+				APT_ONCE {
+					audio = AudioData::Create("audio/hello_16000_mono_s16.wav");
+					Audio::Play(audio);
+				}
+
+				static float volume    = 1.0f;
+				static float pan       = 0.0f;
+				static int   loopCount = 1;
+				if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f)) {
+					Audio::SetSourceVolume(lastPlaybackId, volume);
+				}
+				if (ImGui::SliderFloat("Pan", &pan, -1.0f, 1.0f)) {
+					Audio::SetSourcePan(lastPlaybackId, pan);
+				}
+				ImGui::SliderInt("Loop", &loopCount, 1, 10); 
+
+				if (ImGui::Button(ICON_FA_PLAY)) {
+					lastPlaybackId = Audio::Play(audio, volume, pan, loopCount);
+				}
+
+				ImGui::TreePop();
+			}
+		#endif
+
 		return true;
 	}
 

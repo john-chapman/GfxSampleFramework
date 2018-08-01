@@ -449,12 +449,6 @@
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\ltm.c">
       <Filter>core\extern\lua</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\core\extern\lua\lua.c">
-      <Filter>core\extern\lua</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\core\extern\lua\luac.c">
-      <Filter>core\extern\lua</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\lundump.c">
       <Filter>core\extern\lua</Filter>
     </ClCompile>
