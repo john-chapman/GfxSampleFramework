@@ -1,5 +1,4 @@
 #include <frm/core/Input.h>
-#include <frm/core/Window.h>
 #include <frm/core/Profiler.h>
 
 #include <apt/platform.h>
@@ -245,7 +244,7 @@ struct KeyboardImpl: public ImplBase<Keyboard, KeyboardImpl, Input::kMaxKeyboard
 
 		setIncButton(key, (flags & RI_KEY_BREAK) == 0u);
 
-		//APT_LOG("%s e0=%i, e1=%i, f=0x%x, sc=0x%x", GetButtonName(button), (int)e0, (int)e1, flags, sc);
+		//APT_LOG_DBG("%s e0=%i, e1=%i, f=0x%x, sc=0x%x", GetButtonName(button), (int)e0, (int)e1, flags, sc);
 	}
 
 }; // struct KeyboardImpl
@@ -608,7 +607,6 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 
 // PUBLIC
 
-
 Keyboard* Input::GetKeyboard(int _id)
 {
 	APT_ASSERT(_id < Input::kMaxKeyboardCount);
@@ -666,21 +664,21 @@ void Input::Init()
  // keyboards
 	hids[currentHid].usUsagePage = 0x01;
 	hids[currentHid].usUsage     = 0x06;
-	hids[currentHid].dwFlags     = RIDEV_DEVNOTIFY; // | RIDEV_NOLEGACY
+	hids[currentHid].dwFlags     = RIDEV_DEVNOTIFY;
 	hids[currentHid].hwndTarget  = s_inputWindow;
 	++currentHid;
 
  // mice
 	hids[currentHid].usUsagePage = 0x01;
 	hids[currentHid].usUsage     = 0x02;
-	hids[currentHid].dwFlags     = RIDEV_DEVNOTIFY; // | RIDEV_NOLEGACY
+	hids[currentHid].dwFlags     = RIDEV_DEVNOTIFY;
 	hids[currentHid].hwndTarget  = s_inputWindow;
 	++currentHid;
 	
  // gamepads
 	hids[currentHid].usUsagePage = 0x01;
 	hids[currentHid].usUsage     = 0x05;
-	hids[currentHid].dwFlags     = RIDEV_DEVNOTIFY;// | RIDEV_NOLEGACY;
+	hids[currentHid].dwFlags     = RIDEV_DEVNOTIFY;
 	hids[currentHid].hwndTarget  = s_inputWindow;
 	++currentHid;
 	

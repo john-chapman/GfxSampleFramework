@@ -243,6 +243,7 @@ public:
 	static const int kMaxGamepadCount  = 4;
 
 	static void PollAllDevices();
+	static void ResetAllDevices();
 
 	static Keyboard* GetKeyboard(int _id = 0);
 	static Mouse*    GetMouse(int _id = 0);

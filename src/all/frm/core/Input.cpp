@@ -303,3 +303,16 @@ void Gamepad::InitButtonNames()
 *******************************************************************************/
 
 APT_DEFINE_STATIC_INIT(Input);
+
+void Input::ResetAllDevices()
+{
+	for (int i = 0; i < kMaxKeyboardCount; ++i) {
+		ResetKeyboard(i);
+	}
+	for (int i = 0; i < kMaxMouseCount; ++i) {
+		ResetMouse(i);
+	}
+	for (int i = 0; i < kMaxGamepadCount; ++i) {
+		ResetGamepad(i);
+	}
+}
