@@ -19,7 +19,9 @@
 #include <frm/core/Window.h>
 #include <frm/core/XForm.h>
 
-#include <frm/audio/Audio.h>
+#if FRM_MODULE_AUDIO
+	#include <frm/audio/Audio.h>
+#endif
 
 #include <apt/log.h>
 #include <apt/rand.h>
