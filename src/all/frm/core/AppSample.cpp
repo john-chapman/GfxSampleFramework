@@ -193,6 +193,11 @@ bool AppSample::update()
 	App::update();
 
 	PROFILER_MARKER_CPU("#AppSample::update");
+	if (!m_window->hasFocus()) {
+	 // \todo keyboard/mouse input events aren't received when the window doesn't have focus which leads to an invalid device state
+		Input::ResetKeyboard();
+		Input::ResetMouse();
+	}
 
 	{	PROFILER_MARKER_CPU("#Poll Events");
 		if (!m_window->pollEvents()) { // dispatches callbacks to ImGui
@@ -710,7 +715,6 @@ void AppSample::ImGui_Update(AppSample* _app)
 		Input::ResetMouse();
 	}
 
-
 	io.ImeWindowHandle = _app->getWindow()->getHandle();
 	if (_app->getDefaultFramebuffer()) {
 		io.DisplaySize = ImVec2((float)_app->getDefaultFramebuffer()->getWidth(), (float)_app->getDefaultFramebuffer()->getHeight());
@@ -719,6 +723,13 @@ void AppSample::ImGui_Update(AppSample* _app)
 	}
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 	io.DeltaTime = (float)_app->m_deltaTime;
+
+	if (!_app->getWindow()->hasFocus()) {
+	 // \todo keyboard/mouse input events aren't received when the window doesn't have focus which leads to an invalid device state
+		memset(io.KeysDown, 0, sizeof(io.KeysDown));
+		io.KeyAlt = io.KeyCtrl = io.KeyShift = false;
+	}
+
 	ImGui::NewFrame(); // must call after m_window->pollEvents()
 
 	//ImGui::ShowTestWindow();
