@@ -8,6 +8,7 @@
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Input.h>
+#include <frm/core/LuaScript.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/MeshData.h>
 #include <frm/core/Profiler.h>
@@ -338,6 +339,24 @@ public:
 				avg /= (double)opCount;
 				ImGui::Text("%fus", (float)avg);
 			}
+
+			ImGui::TreePop();
+		}
+
+		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("LuaScript")) {
+			static LuaScript* script = LuaScript::Create("scripts/test.lua", LuaScript::Lib_LuaStandard);
+			if (script) {
+				APT_ONCE script->execute();
+				ImGui::Text("ret = %f", script->getValue<float>("ret"));
+
+				static bool alwaysExecute = false;
+				if (ImGui::Button("Execute") || alwaysExecute) {
+					script->execute();
+				}
+				ImGui::SameLine();
+				ImGui::Checkbox("Always Execute", &alwaysExecute);
+			}	
 
 			ImGui::TreePop();
 		}
