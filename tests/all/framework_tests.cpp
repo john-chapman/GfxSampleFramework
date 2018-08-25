@@ -903,6 +903,53 @@ public:
 			ImGui::TreePop();
 		}
 
+		#define VEC3_TO_COL(v3) Im3d::Color((v3).x, (v3).y, (v3).z)
+		static Texture* txDiagram;
+		static Framebuffer* fbDiagram;
+		APT_ONCE {
+			txDiagram = Texture::Create2d(1920, 1080, GL_RGBA8);
+			fbDiagram = Framebuffer::Create(1, txDiagram);
+		}
+		ctx->setFramebufferAndViewport(fbDiagram);
+		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+		glAssert(glClear(GL_COLOR_BUFFER_BIT));
+		Im3d::PushAlpha(0.99f);
+		Im3d::BeginTriangleStrip();
+			Im3d::Vertex(-1.0f, 0.0f, -1.0f, Im3d::Color_Black);
+			Im3d::Vertex(-1.0f, 0.0f,  1.0f, Im3d::Color_Red);
+			Im3d::Vertex( 1.0f, 0.0f, -1.0f, Im3d::Color_Green);
+			Im3d::Vertex( 1.0f, 0.0f,  1.0f, Im3d::Color_Yellow);
+		Im3d::End();
+		/*Im3d::BeginTriangleStrip();
+			Im3d::Vertex( 1.0f, 0.0f, -1.0f, Im3d::Color_Green);
+			Im3d::Vertex( 1.0f, 2.0f, -1.0f, Im3d::Color_Cyan);
+			Im3d::Vertex( 1.0f, 0.0f,  1.0f, Im3d::Color_Yellow);
+			Im3d::Vertex( 1.0f, 2.0f,  1.0f, Im3d::Color_White);
+		Im3d::End();
+		Im3d::BeginTriangleStrip();
+			Im3d::Vertex( 1.0f, 0.0f,  1.0f, Im3d::Color_Yellow);
+			Im3d::Vertex( 1.0f, 2.0f,  1.0f, Im3d::Color_White);
+			Im3d::Vertex(-1.0f, 0.0f,  1.0f, Im3d::Color_Red);
+			Im3d::Vertex(-1.0f, 2.0f,  1.0f, Im3d::Color_Magenta);
+		Im3d::End();*/
+		Im3d::PopAlpha();
+
+		/*vec3 segBeg = vec3(0.7f, 0.2f, -0.5f);
+		vec3 segEnd = vec3(-0.7f, 1.9f, 0.5f);
+		vec3 colBeg = vec3(0.2f, 1.0f, 0.0f);
+		vec3 colEnd = vec3(0.9f, 0.1f, 0.9f);
+		Im3d::DrawLine(segBeg, segEnd, 8.0f, Im3d::Color(0.8f, 0.8f, 0.8f));
+		const float kPointSize = 20.0f;
+		Im3d::BeginPoints();
+			Im3d::Vertex(segBeg, kPointSize, VEC3_TO_COL(colBeg));
+			Im3d::Vertex(segBeg + (segEnd - segBeg) * 1.0f/3.0f, kPointSize, VEC3_TO_COL(colBeg + (colEnd - colBeg) * 1.0f/3.0f));
+			Im3d::Vertex(segBeg + (segEnd - segBeg) * 2.0f/3.0f, kPointSize, VEC3_TO_COL(colBeg + (colEnd - colBeg) * 2.0f/3.0f));
+			
+			Im3d::Vertex(segEnd, kPointSize, VEC3_TO_COL(colEnd));
+		Im3d::End();*/
+
+		Im3d::Draw();
+
 
 		AppBase::draw();
 	}
