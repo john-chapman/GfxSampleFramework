@@ -212,6 +212,21 @@ const char* LuaScript::getValue<const char*>(int _i) const
 	return ret;
 }
 
+template <>
+void LuaScript::setValue<bool>(bool _value, int _i)
+{
+	bool needPop = gotoIndex(_i);
+	if (!lua_isboolean(m_state, -1)) {
+		APT_LOG_ERR("LuaScript: setValue<bool>(%d) was not a boolean", _i);
+	}
+	lua_pushboolean(m_state, _value ? 1 : 0);
+	//lua_rawset
+	bool ret = lua_toboolean(m_state, -1) != 0;
+	if (needPop) {
+		lua_pop(m_state, 1);
+	}
+}
+
 // PRIVATE
 
 LuaScript::LuaScript(Lib _libs)

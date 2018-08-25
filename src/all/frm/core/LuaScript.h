@@ -110,6 +110,17 @@ public:
 	template <typename tType>
 	tType     getValue(const char* _name) { APT_VERIFY(find(_name)); return getValue<tType>(-1); }
 	
+ // Modification
+	
+	// Set the current value, or the _ith element of the current array if _i > 0.
+	template <typename tType>
+	void       setValue(tType _value, int _i = 0);
+
+	// Set a named value. If the value already exists this modifies the type and value.
+	template <typename tType>
+	void       setValue(tType _value, const char* _name);
+
+
 	bool      execute();
 
 private:
