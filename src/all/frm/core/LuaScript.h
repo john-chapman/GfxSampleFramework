@@ -2,6 +2,8 @@
 
 #include <frm/core/def.h>
 
+#include <apt/String.h>
+
 struct lua_State;
 
 namespace frm {
@@ -31,6 +33,12 @@ namespace frm {
 //  }
 //  
 //  LuaScript::Destroy(script);
+//
+// \todo
+// - Traversing tables with non-integer keys via next() isn't currently 
+//   implemented. It's possible via lua_next - need to detect when not in an
+//   array table (m_tableLength[m_currentTable] == 0). getTableLength() in this
+//   case needs to traverse the whole table via lua_next() to find the length.
 ////////////////////////////////////////////////////////////////////////////////
 class LuaScript
 {
@@ -70,18 +78,18 @@ public:
 	};
 
 	// Load/execute a script file. Return 0 if an error occurred.
-	static LuaScript* CreateAndExecute(const char* _path, Lib _libs = Lib_Defaults);
-
 	static LuaScript* Create(const char* _path, Lib _libs = Lib_Defaults);
+	static LuaScript* CreateAndExecute(const char* _path, Lib _libs = Lib_Defaults);
 
 	static void Destroy(LuaScript*& _script_);
 
  // Traversal
 
-	// Go to a named value in the current table, or a global value if not in a table/not found. Return false if not found.
+	// Go to a named value in the current table, or a global value if not in a table. Return false if not found.
 	bool      find(const char* _name);
 
 	// Go to the next value in the current table. Return true if not the end of the table.
+	// \todo Currently only works for arrays.
 	bool      next();
 	
 	// Enter the current table (call immediately after find() or next()). Return false if the current value is not a table.
@@ -101,45 +109,57 @@ public:
 	int       getTableLength() const { return m_tableLength[m_currentTable]; }
 
 	// Get the current value. tType must match the type of the current value (i.e. getValue<int>() must be called only if the value type is ValueType_Number).
-	// _i permits array access (when in an array). 1 <= _i < getArrayLength().
-	// Note that the ptr returned by getValue<const char*> is only valid until the next call to find() or next().
+	// _i permits array access (when in an array). 1 <= _i < getTableLength().
+	// Note that the ptr returned by getValue<const char*> is only valid until the next call to find(), next() or set().
 	template <typename tType>
 	tType     getValue(int _i = 0) const;
 
-	// Get a named value. Equivalent to find(_name) followed by getValue(-1).
+	// Get a named value. Equivalent to find(_name) followed by getValue().
 	template <typename tType>
-	tType     getValue(const char* _name) { APT_VERIFY(find(_name)); return getValue<tType>(-1); }
+	tType     getValue(const char* _name) { APT_VERIFY(find(_name)); return getValue<tType>(); }
 	
  // Modification
 	
-	// Set the current value, or the _ith element of the current array if _i > 0.
+	// Set the current value, or the _ith element of the current table if _i > 0.
+	// If _i > current table length, push ValueType_Nil elements to force the correct size.
 	template <typename tType>
-	void       setValue(tType _value, int _i = 0);
+	void      setValue(tType _value, int _i = 0);
 
 	// Set a named value. If the value already exists this modifies the type and value.
 	template <typename tType>
-	void       setValue(tType _value, const char* _name);
+	void      setValue(tType _value, const char* _name);
 
+	// Add a new table with the given name.
+	void      addTable(const char* _name);
 
 	bool      execute();
 
+	void      dbgPrintStack();
+
 private:
-	static const int kMaxTableDepth = 8;
-	static const int kInvalidIndex  = -1;
+	static const int kMaxTableDepth = 10;
 	
-	lua_State* m_state                        = nullptr;
-	int        m_err                          = 0;
-	int        m_currentTable                 = kInvalidIndex;     // Subtable level (stack top), -1 if not in a table.
-	int        m_tableIndex[kMaxTableDepth]   = { kInvalidIndex }; // Traversal index stack (per table).
-	int        m_tableLength[kMaxTableDepth]  = { 0 };             // Stored table lengths.
-	bool       m_needPop                      = false;             // Whether the next find() or next() call should pop the stack.
+	lua_State*       m_state                        = nullptr;
+	int              m_err                          = 0;
+
+	int              m_currentTable                 = 0;        // Stack index of the current table.
+	int              m_tableLength[kMaxTableDepth]  = { 0 };    // Length per table.
+	int              m_tableIndex[kMaxTableDepth]   = { 0 };    // Index of the current element per table.
+	apt::String<16>  m_tableField[kMaxTableDepth];
+
 
 	LuaScript(Lib _libs);
 	~LuaScript();
 
 	bool loadLibs(Lib _libs);
 
+	void popToCurrentTable();
+	void popAll();
+	void setValue(int _i);
+	void setValue(const char* _name);
+
 	bool gotoIndex(int _i) const;
+
 
 	bool loadText(const char* _buf, uint _bufSize, const char* _name);
 

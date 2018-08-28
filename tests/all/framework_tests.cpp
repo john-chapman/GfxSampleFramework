@@ -347,15 +347,55 @@ public:
 		if (ImGui::TreeNode("LuaScript")) {
 			static LuaScript* script = LuaScript::Create("scripts/test.lua", LuaScript::Lib_LuaStandard);
 			if (script) {
-				APT_ONCE script->execute();
-				ImGui::Text("ret = %f", script->getValue<float>("ret"));
-
+				APT_ONCE { 
+					script->execute(); 
+					script->dbgPrintStack();
+				}
 				static bool alwaysExecute = false;
 				if (ImGui::Button("Execute") || alwaysExecute) {
 					script->execute();
+					script->dbgPrintStack();
 				}
 				ImGui::SameLine();
 				ImGui::Checkbox("Always Execute", &alwaysExecute);
+
+				ImGui::Spacing(); ImGui::Spacing();
+				static String<64> name = "val";
+				static int i = 0;
+				static int v = 13;
+				ImGui::InputText("name", (char*)name, name.getCapacity());
+				ImGui::InputInt("i", &i);
+				ImGui::InputInt("v", &v);
+				ImGui::Spacing();
+				if (ImGui::Button("next()")) {
+					script->next();
+					script->dbgPrintStack();
+				}
+				if (ImGui::Button("find(name)")) {
+					script->find(name.c_str());
+					script->dbgPrintStack();
+				}
+				if (ImGui::Button("getValue(i)")) {
+					APT_LOG("getValue(%d) = %d", i, script->getValue<int>(i));
+					script->dbgPrintStack();
+				}
+				if (ImGui::Button("setValue(v, i)")) {
+					script->setValue<int>(v, i);
+					script->dbgPrintStack();
+				}
+				if (ImGui::Button("setValue(v, name)")) {
+					script->setValue<int>(v, name.c_str());
+					script->dbgPrintStack();
+				}
+				if (ImGui::Button("enterTable()")) {
+					script->enterTable();
+					script->dbgPrintStack();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("leaveTable()")) {
+					script->leaveTable();
+					script->dbgPrintStack();
+				}
 			}	
 
 			ImGui::TreePop();
@@ -907,46 +947,81 @@ public:
 		static Texture* txDiagram;
 		static Framebuffer* fbDiagram;
 		APT_ONCE {
-			txDiagram = Texture::Create2d(1920, 1080, GL_RGBA8);
+			txDiagram = Texture::Create2d(m_resolution.x * 2, m_resolution.y * 2, GL_RGBA8);
 			fbDiagram = Framebuffer::Create(1, txDiagram);
 		}
 		ctx->setFramebufferAndViewport(fbDiagram);
-		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+		glAssert(glClearColor(0.5f, 0.5f, 0.5f, 0.0f));
 		glAssert(glClear(GL_COLOR_BUFFER_BIT));
-		Im3d::PushAlpha(0.99f);
-		Im3d::BeginTriangleStrip();
-			Im3d::Vertex(-1.0f, 0.0f, -1.0f, Im3d::Color_Black);
-			Im3d::Vertex(-1.0f, 0.0f,  1.0f, Im3d::Color_Red);
-			Im3d::Vertex( 1.0f, 0.0f, -1.0f, Im3d::Color_Green);
-			Im3d::Vertex( 1.0f, 0.0f,  1.0f, Im3d::Color_Yellow);
-		Im3d::End();
-		/*Im3d::BeginTriangleStrip();
-			Im3d::Vertex( 1.0f, 0.0f, -1.0f, Im3d::Color_Green);
-			Im3d::Vertex( 1.0f, 2.0f, -1.0f, Im3d::Color_Cyan);
-			Im3d::Vertex( 1.0f, 0.0f,  1.0f, Im3d::Color_Yellow);
-			Im3d::Vertex( 1.0f, 2.0f,  1.0f, Im3d::Color_White);
-		Im3d::End();
-		Im3d::BeginTriangleStrip();
-			Im3d::Vertex( 1.0f, 0.0f,  1.0f, Im3d::Color_Yellow);
-			Im3d::Vertex( 1.0f, 2.0f,  1.0f, Im3d::Color_White);
-			Im3d::Vertex(-1.0f, 0.0f,  1.0f, Im3d::Color_Red);
-			Im3d::Vertex(-1.0f, 2.0f,  1.0f, Im3d::Color_Magenta);
-		Im3d::End();*/
-		Im3d::PopAlpha();
+	
+		static float cubeAlpha = 1.0f;
+		ImGui::SliderFloat("Cube Alpha", &cubeAlpha, 0.0f, 1.0f);
 
-		/*vec3 segBeg = vec3(0.7f, 0.2f, -0.5f);
-		vec3 segEnd = vec3(-0.7f, 1.9f, 0.5f);
-		vec3 colBeg = vec3(0.2f, 1.0f, 0.0f);
-		vec3 colEnd = vec3(0.9f, 0.1f, 0.9f);
-		Im3d::DrawLine(segBeg, segEnd, 8.0f, Im3d::Color(0.8f, 0.8f, 0.8f));
-		const float kPointSize = 20.0f;
+
+		Im3d::PushAlpha(cubeAlpha);
+			Im3d::BeginTriangleStrip();
+				Im3d::Vertex( 0.0f,  0.0f,  0.0f, Im3d::Color_Black);
+				Im3d::Vertex( 1.0f,  0.0f,  0.0f, Im3d::Color_Red);
+				Im3d::Vertex( 0.0f,  0.0f,  1.0f, Im3d::Color_Green);
+				Im3d::Vertex( 1.0f,  0.0f,  1.0f, Im3d::Color_Yellow);
+			Im3d::End();
+			Im3d::BeginTriangleStrip();
+				Im3d::Vertex( 0.0f,  0.0f,  1.0f, Im3d::Color_Green);
+				Im3d::Vertex( 1.0f,  0.0f,  1.0f, Im3d::Color_Yellow);
+				Im3d::Vertex( 0.0f,  1.0f,  1.0f, Im3d::Color_Cyan);
+				Im3d::Vertex( 1.0f,  1.0f,  1.0f, Im3d::Color_White);
+			Im3d::End();
+			Im3d::BeginTriangleStrip();
+				Im3d::Vertex( 1.0f,  0.0f,  0.0f, Im3d::Color_Red);
+				Im3d::Vertex( 1.0f,  0.0f,  1.0f, Im3d::Color_Yellow);
+				Im3d::Vertex( 1.0f,  1.0f,  0.0f, Im3d::Color_Magenta);
+				Im3d::Vertex( 1.0f,  1.0f,  1.0f, Im3d::Color_White);
+			Im3d::End();
+
+			Im3d::BeginLineLoop();
+				Im3d::Vertex( 0.0f,  0.0f,  0.0f, 3.0f, Im3d::Color_Black);
+				Im3d::Vertex( 1.0f,  0.0f,  0.0f, 3.0f, Im3d::Color_Red);
+				Im3d::Vertex( 1.0f,  0.0f,  1.0f, 3.0f, Im3d::Color_Yellow);
+				Im3d::Vertex( 0.0f,  0.0f,  1.0f, 3.0f, Im3d::Color_Green);
+			Im3d::End();
+			Im3d::BeginLineLoop();
+				Im3d::Vertex( 0.0f,  0.0f,  1.0f, 3.0f, Im3d::Color_Green);
+				Im3d::Vertex( 1.0f,  0.0f,  1.0f, 3.0f, Im3d::Color_Yellow);
+				Im3d::Vertex( 1.0f,  1.0f,  1.0f, 3.0f, Im3d::Color_White);
+				Im3d::Vertex( 0.0f,  1.0f,  1.0f, 3.0f, Im3d::Color_Cyan);
+			Im3d::End();
+			Im3d::BeginLineLoop();
+				Im3d::Vertex( 1.0f,  0.0f,  0.0f, 3.0f, Im3d::Color_Red);
+				Im3d::Vertex( 1.0f,  0.0f,  1.0f, 3.0f, Im3d::Color_Yellow);
+				Im3d::Vertex( 1.0f,  1.0f,  1.0f, 3.0f, Im3d::Color_White);
+				Im3d::Vertex( 1.0f,  1.0f,  0.0f, 3.0f, Im3d::Color_Magenta);
+			Im3d::End();
+		Im3d::PopAlpha();
+		
+
+		static vec3 ep0 = vec3(0.99f, 0.1f, 0.1f);
+		static vec3 ep1 = vec3(0.1f, 0.9f, 0.99f);
+
+		static bool showGizmos = true;
+		ImGui::Checkbox("Show Gizmos", &showGizmos);
+		if (showGizmos) {
+			Im3d::GizmoTranslation("ep0", &ep0.x);
+			Im3d::GizmoTranslation("ep1", &ep1.x);
+		}
+
+		vec3 eps[] = {
+			ep0,
+			ep0 + (ep1 - ep0) * 1.0f/3.0f,
+			ep0 + (ep1 - ep0) * 2.0f/3.0f,
+			ep1
+		};
+
+		Im3d::DrawLine(eps[0], eps[3], 16.0f, Im3d::Color(0.8f, 0.8f, 0.8f));
 		Im3d::BeginPoints();
-			Im3d::Vertex(segBeg, kPointSize, VEC3_TO_COL(colBeg));
-			Im3d::Vertex(segBeg + (segEnd - segBeg) * 1.0f/3.0f, kPointSize, VEC3_TO_COL(colBeg + (colEnd - colBeg) * 1.0f/3.0f));
-			Im3d::Vertex(segBeg + (segEnd - segBeg) * 2.0f/3.0f, kPointSize, VEC3_TO_COL(colBeg + (colEnd - colBeg) * 2.0f/3.0f));
-			
-			Im3d::Vertex(segEnd, kPointSize, VEC3_TO_COL(colEnd));
-		Im3d::End();*/
+			for (auto& p : eps) {
+				Im3d::Vertex(p, 40.0f, VEC3_TO_COL(vec3(p.x, p.z, p.y)));
+			}
+		Im3d::End();
 
 		Im3d::Draw();
 
