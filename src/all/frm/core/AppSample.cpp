@@ -438,7 +438,7 @@ void AppSample::drawStatusBar()
 					ImGui::TextWrapped((const char*)msg->m_str);
 				ImGui::PopStyleColor();
 				
-				if (autoScroll && msg == g_Log.getLastMessage(LogType_Error)) {
+				if (autoScroll && msg == g_Log.getLastMessage(/*LogType_Error*/)) {
 					ImGui::SetScrollHere();
 					autoScroll = false;
 				}
