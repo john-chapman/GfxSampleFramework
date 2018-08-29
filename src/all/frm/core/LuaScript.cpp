@@ -103,13 +103,13 @@ bool LuaScript::find(const char* _name)
 		if (lua_rawget(m_state, m_currentTable) == LUA_TNIL) {
 			return false;
 		}
-		m_tableField[m_currentTable] = _name;
 	} else {
 		popAll();
 		if (lua_getglobal(m_state, _name) == LUA_TNIL) {
 			return false;
 		}
 	}
+	m_tableField[m_currentTable] = _name;
 	return true;
 }
 
@@ -251,20 +251,12 @@ void LuaScript::setValue<const char*>(const char* _value, int _i)
 template <>
 void LuaScript::setValue<bool>(bool _value, const char* _name)
 {
-	if (!m_currentTable) {
-		APT_LOG_ERR("LuaScript::setValue<bool>(%s, %s): not in a table", _value ? "true" : "false", _name);
-		return;
-	}
 	lua_pushboolean(m_state, _value ? 1 : 0);
 	setValue(_name);
 }
 
 #define LuaScript_setValue_Number_name(_type, _enum) \
 	template <> void LuaScript::setValue<_type>(_type _value, const char* _name) { \
-		if (!m_currentTable) { \
-			APT_LOG_ERR("LuaScript::setValue<%s>(%g, %s): not in a table", apt::DataTypeString(_enum), (lua_Number)_value, _name); \
-			return; \
-		} \
 		lua_pushnumber(m_state, (lua_Number)_value); \
 		setValue(_name); \
 	}
@@ -273,10 +265,6 @@ APT_DataType_decl(LuaScript_setValue_Number_name)
 template <>
 void LuaScript::setValue<const char*>(const char* _value, const char* _name)
 {
-	if (!m_currentTable) {
-		APT_LOG_ERR("LuaScript::setValue<const char*>(%s, %s): not in a table", _value, _name);
-		return;
-	}
 	lua_pushstring(m_state, _value);
 	setValue(_name);
 }
@@ -355,6 +343,8 @@ bool LuaScript::loadLibs(Lib _libs)
 
 void LuaScript::popToCurrentTable()
 {
+	APT_ASSERT(m_currentTable); // this function is broken if !m_currentTable, it will pop the script chunk off the stack bottom!
+
 	int n = lua_gettop(m_state) - m_currentTable;
 	APT_STRICT_ASSERT(n >= 0);
 	lua_pop(m_state, n);
@@ -381,13 +371,23 @@ void LuaScript::setValue(int _i)
 
 void LuaScript::setValue(const char* _name)
 {
-	APT_STRICT_ASSERT(m_currentTable);
-	lua_setfield(m_state, m_currentTable, _name);
-	if (m_tableField[m_currentTable] == _name) {
-		popToCurrentTable();
-		lua_pushstring(m_state, _name);
-		APT_VERIFY(lua_rawget(m_state, m_currentTable) != LUA_TNIL);
+	if (m_currentTable) {
+		lua_setfield(m_state, m_currentTable, _name);
+		if (m_tableField[m_currentTable] == _name) {
+			popToCurrentTable();
+			lua_pushstring(m_state, _name);
+			APT_VERIFY(lua_rawget(m_state, m_currentTable) != LUA_TNIL);
+		}
+
+	} else {
+		lua_setglobal(m_state, _name);
+		if (m_tableField[m_currentTable] == _name) {
+			popAll();
+			APT_VERIFY(lua_getglobal(m_state, _name) != LUA_TNIL);
+		}
+
 	}
+
 }
 
 bool LuaScript::gotoIndex(int _i) const

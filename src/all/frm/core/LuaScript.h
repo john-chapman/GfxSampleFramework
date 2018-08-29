@@ -132,7 +132,12 @@ public:
 	// Add a new table with the given name.
 	void      addTable(const char* _name);
 
+ // Execution
+
+	// Execute the script. This may be called multiple times, each time the traversal state is reset.
 	bool      execute();
+
+ // Debug
 
 	void      dbgPrintStack();
 
@@ -145,7 +150,7 @@ private:
 	int              m_currentTable                 = 0;        // Stack index of the current table.
 	int              m_tableLength[kMaxTableDepth]  = { 0 };    // Length per table.
 	int              m_tableIndex[kMaxTableDepth]   = { 0 };    // Index of the current element per table.
-	apt::String<16>  m_tableField[kMaxTableDepth];
+	apt::String<16>  m_tableField[kMaxTableDepth];              // Name of the current field per table (0 is the current global).
 
 
 	LuaScript(Lib _libs);
