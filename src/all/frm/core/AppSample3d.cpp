@@ -393,8 +393,9 @@ void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 	FRM_GL_ENABLE(GL_PROGRAM_POINT_SIZE, true);
 	FRM_GL_ENABLE(GL_CULL_FACE,          false);
     glAssert(glBlendEquation(GL_FUNC_ADD));
-    glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    
+    //glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+	glAssert(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE));
+
 	Mesh* ms;
 	Shader* sh;
 	switch (_drawList.m_primType) {
