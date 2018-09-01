@@ -1,3 +1,12 @@
+include "scripts/def.lua"
+
+LOG_ERR("Err")
+LOG_DBG("Dbg")
+LOG("Log")
+
+strHash = STR_HASH("StringHash")
+LOG(tostring(strHash))
+
 bool        = true
 number      = 13
 str         = "Hello, world!"
@@ -25,6 +34,7 @@ funcTable =
 		return _a + _b
 	end
 }
+
 
 -- The following code illustrates how to make a script which can be called multiple times while maintaining a global state.
 if (globalVal == nil) then
