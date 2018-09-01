@@ -11,9 +11,24 @@ struct =
 	numberArray  = { 1, 2, 3, 4 },
 }
 
+function resetGlobalVal()
+	globalVal = 0
+end
+
+function add(_a, _b)
+	return _a + _b
+end
+
+funcTable = 
+{
+	tableAdd = function(_a, _b)
+		return _a + _b
+	end
+}
+
 -- The following code illustrates how to make a script which can be called multiple times while maintaining a global state.
 if (globalVal == nil) then
-	globalVal = 0; -- init globalVal only during the first execution
+	globalVal = 0 -- init globalVal only during the first execution
 else
 	globalVal = globalVal + 1
 end
