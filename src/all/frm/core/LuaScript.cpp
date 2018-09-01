@@ -5,6 +5,8 @@
 #include <apt/log.h>
 #include <apt/memory.h>
 #include <apt/FileSystem.h>
+#include <apt/StringHash.h>
+#include <apt/Time.h>
 
 #include <lua/lua.hpp>
 #include <lua/lualib.h>
@@ -17,20 +19,18 @@ using namespace frm;
 using namespace apt;
 
 #define luaAssert(_call) \
-	if ((m_err = (_call)) != 0) { \
+	if ((m_err = (_call)) != LUA_OK) { \
 		APT_LOG_ERR("Lua error: %s", lua_tostring(m_state, -1)); \
 		lua_pop(m_state, 1); \
 	}
 
-extern "C" {
-
-static int lua_print(lua_State* _L)
+extern "C" 
 {
-	if (lua_gettop(_L) > 0) {
-		APT_LOG(luaL_optstring(_L, 1, "nil"));
-	}
-	return 0;
-}
+
+int luaopen_FrmCore(lua_State* _L);
+
+int lua_print(lua_State* _L);
+int lua_include(lua_State* _L);
 
 } // extern "C"
 
@@ -94,7 +94,7 @@ LuaScript* LuaScript::Create(const char* _path, Lib _libs)
 		return nullptr;
 	}
 
-	LuaScript* ret = APT_NEW(LuaScript(_libs));
+	LuaScript* ret = APT_NEW(LuaScript(_path, _libs));
 	if (!ret->loadText(f.getData(), f.getDataSize(), f.getPath())) {
 		goto LuaScript_Create_end;
 	}
@@ -290,6 +290,8 @@ void LuaScript::setValue<const char*>(const char* _value, const char* _name)
 
 bool LuaScript::execute()
 {
+	APT_AUTOTIMER_DBG("LuaScript::execute() %s", (const char*)m_name);
+
  // script chunk is kept on the bottom of the stack so that we can call it multiple times
 	popAll();
 	lua_pushvalue(m_state, -1);
@@ -299,6 +301,8 @@ bool LuaScript::execute()
 
 int LuaScript::call()
 {
+	APT_AUTOTIMER_DBG("LuaScript::call() %s", (const char*)m_name);
+
 	int top = lua_gettop(m_state);
 	int nargs = top;
 	if (m_currentTable != 1) {
@@ -414,8 +418,10 @@ void LuaScript::dbgPrintStack()
 
 // PRIVATE
 
-LuaScript::LuaScript(Lib _libs)
+LuaScript::LuaScript(const char* _name, Lib _libs)
 {
+	APT_AUTOTIMER_DBG("LuaScript %s", (const char*)m_name);
+	m_name = _name;
 	m_state = lua_newstate(lua_alloc, nullptr);
 	APT_ASSERT(m_state);
 	lua_atpanic(m_state, lua_panic);
@@ -472,15 +478,17 @@ bool LuaScript::loadLibs(Lib _libs)
  // framework
 
 	if ((_libs & Lib_FrmCore) != 0) {
-		APT_ASSERT(false); // \todo
+		luaL_requiref(m_state, "FrmCore", luaopen_FrmCore, 1);
+		lua_pop(m_state, 1);
 	}
 	if ((_libs & Lib_FrmFileSystem) != 0) {
 		APT_ASSERT(false); // \todo
 	}
 
 
- // register common functions
-	lua_register(m_state, "print", lua_print);
+ // common functions
+	lua_register(m_state, "print",   lua_print);
+	lua_register(m_state, "include", lua_include);
 
 	return ret;
 }
@@ -554,3 +562,89 @@ bool LuaScript::gotoIndex(int _i) const
 	}
 	return false;
 }
+
+
+
+/*******************************************************************************
+
+                                Frm Libs
+
+*******************************************************************************/
+
+extern "C" 
+{
+
+static int FrmCore_Log(lua_State* _L)
+{
+	if (lua_gettop(_L) > 0) {
+		APT_LOG(luaL_optstring(_L, 1, "nil"));
+	}
+	return 0;
+}
+static int FrmCore_LogDbg(lua_State* _L)
+{
+	if (lua_gettop(_L) > 0) {
+		APT_LOG_DBG(luaL_optstring(_L, 1, "nil"));
+	}
+	return 0;
+}
+static int FrmCore_LogErr(lua_State* _L)
+{
+	if (lua_gettop(_L) > 0) {
+		APT_LOG_ERR(luaL_optstring(_L, 1, "nil"));
+	}
+	return 0;
+}
+
+static int FrmCore_StringHash(lua_State* _L)
+{
+	const char* str = luaL_optstring(_L, 1, "");
+	StringHash ret(str);
+	lua_pushinteger(_L, (lua_Integer)ret.getHash());
+	return 1;
+}
+
+static int luaopen_FrmCore(lua_State* _L)
+{
+	static const struct luaL_Reg FrmCore[] = {
+		{ "Log",        FrmCore_Log        },
+		{ "LogDbg",     FrmCore_LogDbg     },
+		{ "LogErr",     FrmCore_LogErr     },
+		{ "StringHash", FrmCore_StringHash },
+		{ NULL,         NULL               }
+	};
+	luaL_newlib(_L, FrmCore);
+	return 1;
+}
+
+static int lua_print(lua_State* _L)
+{
+	if (lua_gettop(_L) > 0) {
+		APT_LOG(luaL_optstring(_L, 1, "nil"));
+	}
+	return 0;
+}
+
+static int lua_include(lua_State* _L)
+{
+	const char* path = luaL_optstring(_L, 1, "");
+	
+	File f;
+	if (!FileSystem::Read(f, path)) {
+		return 1;
+	}
+
+	if (luaL_loadbuffer(_L, f.getData(), f.getDataSize(), path) != LUA_OK) {
+		return 1;
+	}
+	
+	if (lua_pcall(_L, 0, LUA_MULTRET, 0) != LUA_OK) {
+		APT_LOG_ERR("Lua error: %s", lua_tostring(_L, -1));
+		lua_pop(_L, 1);
+		return 1;
+	}
+
+	return 0;
+}
+
+} // extern "C"

@@ -67,7 +67,7 @@ public:
 		ValueType_Count
 	};
 
-	enum Lib
+	enum Lib_
 	{
 	 // Lua standard
 		Lib_LuaTable        = 1 << 0,
@@ -88,6 +88,7 @@ public:
 		Lib_Defaults        = Lib_LuaTable | Lib_LuaString | Lib_LuaUtf8 | Lib_LuaMath | Lib_FrmCore | Lib_FrmFileSystem,
 		Lib_LuaStandard     = Lib_LuaTable | Lib_LuaString | Lib_LuaUtf8 | Lib_LuaMath | Lib_LuaIo | Lib_LuaOs | Lib_LuaPackage | Lib_LuaCoroutine | Lib_LuaDebug, 
 	};
+	typedef int Lib;
 
 	// Load/execute a script file. Return 0 if an error occurred.
 	static LuaScript* Create(const char* _path, Lib _libs = Lib_Defaults);
@@ -163,6 +164,7 @@ public:
 private:
 	static const int kMaxTableDepth = 10;
 	
+	apt::PathStr     m_name;
 	lua_State*       m_state                        = nullptr;
 	int              m_err                          = 0;
 
@@ -171,7 +173,7 @@ private:
 	int              m_tableIndex[kMaxTableDepth]   = { 0 };    // Index of the current element per table.
 	apt::String<16>  m_tableField[kMaxTableDepth];              // Name of the current field per table (0 is the current global).
 
-	LuaScript(Lib _libs);
+	LuaScript(const char* _name, Lib _libs);
 	~LuaScript();
 
 	bool loadLibs(Lib _libs);
