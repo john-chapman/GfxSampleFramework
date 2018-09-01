@@ -12,7 +12,7 @@ namespace frm {
 // LuaScript
 // Traversal of a loaded script is a state machine:
 //
-//  LuaScript* script = LuaScript::Create("script.lua");
+//  LuaScript* script = LuaScript::CreateAndExecute("script.lua");
 //  
 //  if (script->find("Value")) {                                // find a global value
 //     if (script->getType() == LuaScript::ValueType_Number) {  // optionally check it's the right type
@@ -33,6 +33,18 @@ namespace frm {
 //  }
 //  
 //  LuaScript::Destroy(script);
+//
+// A LuaScript may be executed multiple times; calling execute() resets the 
+// traversal state.
+//
+// Use pushValue()/popValue() to pass args to/get retvals from a function:
+//
+//   if (script->find("add")) {              // function 'add' is on the top of the stack
+//      script->pushValue(1);                // push first arg
+//      script->pushValue(2);                // push second arg
+//      APT_VERIFY(script->call() == 1);     // the function only returns 1 value
+//      int onePlusTwo = script->popValue(); // pop the ret val
+//   }
 //
 // \todo
 // - Traversing tables with non-integer keys via next() isn't currently 
@@ -98,7 +110,7 @@ public:
 	void      leaveTable();
 
 	// Reset the traversal state machine.
-	void      reset();
+	void      reset() { popAll(); }
 
  // Introspection
 
@@ -129,13 +141,20 @@ public:
 	template <typename tType>
 	void      setValue(tType _value, const char* _name);
 
-	// Add a new table with the given name.
-	void      addTable(const char* _name);
 
  // Execution
 
 	// Execute the script. This may be called multiple times, each time the traversal state is reset.
 	bool      execute();
+
+	// Call function. Use pushValue() to push function arguments on the stack (left -> right). Return the number of ret vals on the stack, or -1 if error.
+	int       call();
+
+	// Push/pop to/from the internal stack.
+	template <typename tType>
+	void      pushValue(tType _value);
+	template <typename tType>
+	tType     popValue();
 
  // Debug
 
@@ -147,26 +166,22 @@ private:
 	lua_State*       m_state                        = nullptr;
 	int              m_err                          = 0;
 
-	int              m_currentTable                 = 0;        // Stack index of the current table.
+	int              m_currentTable                 = 1;        // Stack index of the current table (start at 1 to account for the script chunk).
 	int              m_tableLength[kMaxTableDepth]  = { 0 };    // Length per table.
 	int              m_tableIndex[kMaxTableDepth]   = { 0 };    // Index of the current element per table.
 	apt::String<16>  m_tableField[kMaxTableDepth];              // Name of the current field per table (0 is the current global).
-
 
 	LuaScript(Lib _libs);
 	~LuaScript();
 
 	bool loadLibs(Lib _libs);
+	bool loadText(const char* _buf, uint _bufSize, const char* _name);
 
 	void popToCurrentTable();
 	void popAll();
 	void setValue(int _i);
 	void setValue(const char* _name);
-
 	bool gotoIndex(int _i) const;
-
-
-	bool loadText(const char* _buf, uint _bufSize, const char* _name);
 
 }; // class LuaScript
 
