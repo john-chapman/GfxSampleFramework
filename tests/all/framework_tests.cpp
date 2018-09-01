@@ -346,7 +346,7 @@ public:
 			ImGui::TreePop();
 		}
 
-		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("LuaScript")) {
 			static LuaScript* script = 
 				LuaScript::Create(
