@@ -27,7 +27,9 @@
 #include <apt/log.h>
 #include <apt/rand.h>
 #include <apt/ArgList.h>
+#include <apt/Image.h>
 #include <apt/Quadtree.h>
+#include <apt/StringHash.h>
 
 #include <frm/core/extern/imgui/imgui.h>
 #include <frm/core/extern/imgui/imgui_ext.h>
@@ -124,6 +126,7 @@ public:
 		}
 
 		PROFILER_MARKER_CPU("App::update");
+
 		
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Intersection")) {
@@ -345,11 +348,20 @@ public:
 
 		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("LuaScript")) {
-			static LuaScript* script = LuaScript::Create("scripts/test.lua", LuaScript::Lib_LuaStandard);
+			static LuaScript* script = 
+				LuaScript::Create(
+					"scripts/test.lua", 0 
+					| LuaScript::Lib_LuaStandard 
+					| LuaScript::Lib_FrmCore
+					);
 			if (script) {
 				APT_ONCE { 
 					script->execute(); 
 					script->dbgPrintStack();
+
+					auto hashCpp = StringHash("StringHash");
+					auto hashLua = script->getValue<StringHash::HashType>("strHash");
+					APT_ASSERT(hashCpp == hashLua); // \todo getValue<> should *not* use lua_Number for ints!
 				}
 				static bool alwaysExecute = false;
 				if (ImGui::Button("Execute") || alwaysExecute) {
@@ -360,7 +372,7 @@ public:
 				ImGui::Checkbox("Always Execute", &alwaysExecute);
 
 				ImGui::Spacing(); ImGui::Spacing();
-				static String<64> name = "val";
+				static String<64> name = "globalVal";
 				static int i = 0;
 				static int v = 13;
 				ImGui::InputText("name", (char*)name, name.getCapacity());
@@ -394,6 +406,19 @@ public:
 				ImGui::SameLine();
 				if (ImGui::Button("leaveTable()")) {
 					script->leaveTable();
+					script->dbgPrintStack();
+				}
+				ImGui::Spacing();
+				if (ImGui::Button("pushValue(v)")) {
+					script->pushValue<int>(v);
+					script->dbgPrintStack();
+				}
+				if (ImGui::Button("call()")) {
+					APT_LOG("call() = %d", script->call());
+					script->dbgPrintStack();
+				}
+				if (ImGui::Button("popValue()")) {
+					APT_LOG("popValue() = %d", script->popValue<int>());
 					script->dbgPrintStack();
 				}
 			}	
@@ -1024,7 +1049,6 @@ public:
 		Im3d::End();
 
 		Im3d::Draw();
-
 
 		AppBase::draw();
 	}
