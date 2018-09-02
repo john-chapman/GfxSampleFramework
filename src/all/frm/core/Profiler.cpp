@@ -947,11 +947,11 @@ static void DrawValueData(ProfilerData& _data, ProfilerData::ValueData& _valueDa
 			drawList.AddText(_beg, _textCol, _textBeg, _textEnd);
 		};	
 	AddTextRect(beg, labelNameSize, labelName.begin(), labelName.end(), _color, kLabelBgColor);
-	if (size.x > (labelNameSize.x + maxWidth + padding.x * 2.0f) && size.y > (labelNameSize.y * 3.0f + padding.y * 2.0f)) {
+	//if (size.x > (labelNameSize.x + maxWidth + padding.x * 2.0f) && size.y > (labelNameSize.y * 3.0f + padding.y * 2.0f)) {
 	 	AddTextRect(vec2(end.x - labelMinSize.x, end.y - labelMinSize.y), labelMinSize, labelMin.begin(), labelMin.end(), kMinMaxAvgColor, kLabelBgColor);
 		AddTextRect(vec2(end.x - labelMaxSize.x, beg.y), labelMaxSize, labelMax.begin(), labelMax.end(), kMinMaxAvgColor, kLabelBgColor);
 		AddTextRect(vec2(end.x - labelAvgSize.x, beg.y + size.y * 0.5f - labelAvgSize.y * 0.5f - padding.y), labelAvgSize, labelAvg.begin(), labelAvg.end(), kMinMaxAvgColor, kLabelBgColor);
-	}
+	//}
 
 	ImGui::PopClipRect();
 	ImGui::PopID();

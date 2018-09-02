@@ -223,7 +223,7 @@ bool AppSample::update()
     if (keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_Escape)) {
 		return false;
 	}
-	if (keyboard->isDown(Keyboard::Key_LCtrl) && keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_P)) {
+	if (keyboard->isDown(Keyboard::Key_LCtrl) && keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_P) || keyboard->wasPressed(Keyboard::Key_Pause)) {
 		Profiler::SetPause(!Profiler::GetPause());	
 	}
 	if (keyboard->wasPressed(Keyboard::Key_F1)) {
@@ -261,12 +261,18 @@ bool AppSample::update()
 		ImGui::End();
 	}
 	if (m_showProfilerViewer) {
+		ImGui::SetNextWindowPos(vec2(0.0f, 16.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(vec2(m_resolution.x * 1.0f, m_resolution.y * 1.0f/3.0f), ImGuiCond_FirstUseEver);
 		Profiler::DrawUi();
 	}
 	if (m_showTextureViewer) {
+		ImGui::SetNextWindowPos(vec2(0.0f, 16.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(vec2(m_resolution.x * 2.0f/3.0f, m_resolution.y * 2.0f/3.0f), ImGuiCond_FirstUseEver);
 		Texture::ShowTextureViewer(&m_showTextureViewer);
 	}
 	if (m_showShaderViewer) {
+		ImGui::SetNextWindowPos(vec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(vec2(m_resolution.x * 2.0f/3.0f, m_resolution.y * 2.0f/3.0f), ImGuiCond_FirstUseEver);
 		Shader::ShowShaderViewer(&m_showShaderViewer);
 	}
 	

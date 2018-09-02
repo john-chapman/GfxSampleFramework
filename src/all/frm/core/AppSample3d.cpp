@@ -95,7 +95,7 @@ bool AppSample3d::update()
 	if (keyb->wasPressed(Keyboard::Key_F2)) {
 		m_showHelpers = !m_showHelpers;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::Key_O) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_0) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
 		m_showSceneEditor = !m_showSceneEditor;
 	}
 	if (ImGui::IsKeyPressed(Keyboard::Key_C) && ImGui::IsKeyDown(Keyboard::Key_LCtrl) && ImGui::IsKeyDown(Keyboard::Key_LShift)) {
