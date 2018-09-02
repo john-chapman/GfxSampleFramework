@@ -50,7 +50,7 @@ struct Log::Buffer
 			return;
 		}
 
-		PROFILER_MARKER_CPU("#Log::flush");
+		//PROFILER_MARKER_CPU("#Log::flush"); \todo this can cause a crash if the Profiler gets shut down before the last flush
 
 	 // concatenate message strings, prepended with the type
 		static const char* kTypeStr[LogType_Count] =
