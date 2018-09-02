@@ -749,7 +749,7 @@ bool Texture::ConvertSphereToCube(Texture& _sphere, GLsizei _width)
 {
 	static Shader* shConvert;
 	if_unlikely (!shConvert) {
-		shConvert = Shader::CreateCs("shaders/ConvertEnvmap_cs.glsl", 1, 1, 1, "SPHERE_TO_CUBE\0");
+		shConvert = Shader::CreateCs("shaders/ConvertEnvmap_cs.glsl", 1, 1, 1, { "SPHERE_TO_CUBE" });
 		if (!shConvert) {
 			return false;
 		}
@@ -806,7 +806,7 @@ bool Texture::ConvertCubeToSphere(Texture& _cube, GLsizei _width)
 {
 	static Shader* shConvert;
 	if_unlikely (!shConvert) {
-		shConvert = Shader::CreateCs("shaders/ConvertEnvmap_cs.glsl", 1, 1, 1, "CUBE_TO_SPHERE\0");
+		shConvert = Shader::CreateCs("shaders/ConvertEnvmap_cs.glsl", 1, 1, 1, { "CUBE_TO_SPHERE" });
 		if (!shConvert) {
 			return false;
 		}

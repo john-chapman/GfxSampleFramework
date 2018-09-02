@@ -314,12 +314,12 @@ static Mesh   *s_msIm3dPoints, *s_msIm3dLines, *s_msIm3dTriangles;
 
 bool AppSample3d::Im3d_Init()
 {
-	s_shIm3dPoints = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", "POINTS\0");
+	s_shIm3dPoints = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", { "POINTS" });
 	s_shIm3dPoints->setName("#Im3d_POINTS");
-	s_shIm3dLines = Shader::CreateVsGsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_gs.glsl", "shaders/Im3d_fs.glsl", "LINES\0");
+	s_shIm3dLines = Shader::CreateVsGsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_gs.glsl", "shaders/Im3d_fs.glsl", { "LINES" });
 	s_shIm3dLines->setName("#Im3d_POINTS");
 	s_shIm3dLines->setName("#Im3d_LINES");
-	s_shIm3dTriangles = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", "TRIANGLES\0");
+	s_shIm3dTriangles = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", { "TRIANGLES" });
 	s_shIm3dTriangles->setName("#Im3d_TRIANGLES");
 
 

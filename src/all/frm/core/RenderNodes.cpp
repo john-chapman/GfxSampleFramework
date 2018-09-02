@@ -160,11 +160,11 @@ void ColorCorrection::setProps(Properties& _props_)
 
 bool ColorCorrection::init()
 {
-	const char* defines = "\0";
+	const char* defines = "";
 	if (m_luminanceMeter) {
-		defines = "AUTO_EXPOSURE\0";
+		defines = "AUTO_EXPOSURE";
 	}
-	m_shColorCorrection = Shader::CreateVsFs("shaders/Basic_vs.glsl", "shaders/ColorCorrection_fs.glsl", defines);
+	m_shColorCorrection = Shader::CreateVsFs("shaders/Basic_vs.glsl", "shaders/ColorCorrection_fs.glsl", { defines });
 	m_shBlit = Shader::CreateVsFs("shaders/Basic_vs.glsl", "shaders/Basic_fs.glsl");
 	m_bfData = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(Data), GL_DYNAMIC_STORAGE_BIT, &m_data);
 	m_bfData->setName("_bfData");

@@ -9,6 +9,8 @@
 #include <EASTL/vector.h>
 #include <EASTL/vector_map.h>
 
+#include <initializer_list>
+
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -65,8 +67,7 @@ public:
 			addDefine(internal::kShaderStages[i], _name);
 		}
 	}
-	// Process a null-separated list of define strings, e.g. "define0 val\0define1 val\0".
-	void        addGlobalDefines(const char* _defines);
+	void        addGlobalDefines(std::initializer_list<const char*> _defines);
 	void        clearDefines();
 	void        clearDefines(GLenum _stage);
 	int         getDefineCount(GLenum _stage) const;
@@ -121,10 +122,10 @@ class Shader: public Resource<Shader>
 public:
 	static Shader* Create(const ShaderDesc& _desc);
 
-	// Load/compile/link directly from a set of paths. _defines is a list of null-separated strings e.g. "DEFINE1 1\0DEFINE2 1\0"
-	static Shader* CreateVsFs(const char* _vsPath, const char* _fsPath, const char* _defines = 0);
-	static Shader* CreateVsGsFs(const char* _vsPath, const char* _gsPath, const char* _fsPath, const char* _defines = 0);
-	static Shader* CreateCs(const char* _csPath, int _localX = 1, int _localY = 1, int _localZ = 1, const char* _defines = 0);
+	// Load/compile/link directly from a set of paths. _defines is a list of strings e.g. { "DEFINE1 1", "DEFINE2 0" }.
+	static Shader* CreateVsFs(const char* _vsPath, const char* _fsPath, std::initializer_list<const char*> _defines = {});
+	static Shader* CreateVsGsFs(const char* _vsPath, const char* _gsPath, const char* _fsPath, std::initializer_list<const char*> _defines = {});
+	static Shader* CreateCs(const char* _csPath, int _localX = 1, int _localY = 1, int _localZ = 1, std::initializer_list<const char*> _defines = {});
 	static void    Destroy(Shader*& _inst_);
 
 	// Reload any shaders dependent on _path.

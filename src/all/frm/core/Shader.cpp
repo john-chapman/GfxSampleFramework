@@ -403,23 +403,24 @@ void ShaderDesc::addDefine(GLenum _stage, const char* _name)
 	addDefine(_stage, _name, 1);
 }
 
-void ShaderDesc::addGlobalDefines(const char* _defines)
+void ShaderDesc::addGlobalDefines(std::initializer_list<const char*> _defines)
 {
-	if (_defines) {
-		while (*_defines != '\0') {
-			for (int i = 0; i < internal::kShaderStageCount; ++i) {
-			 // split the string into name/value at the first whitespace
-				TextParser tp = _defines;
-				Str name, val;
-				tp.advanceToNextWhitespace();
-				name.set(_defines, tp.getCharCount());
-				tp.skipWhitespace();
-				val.set(tp);
-				m_stages[i].m_defines.push_back(eastl::make_pair(name, val));
-			}
-			_defines = strchr(_defines, 0);
-			APT_ASSERT(_defines);
-			++_defines;
+ // split each string into name/value at the first whitespace
+	eastl::vector<eastl::pair<Str, Str> > defPairs;
+	for (auto def : _defines) {
+		TextParser tp = def;
+		Str name, val;
+		tp.advanceToNextWhitespace();
+		name.set(def, tp.getCharCount());
+		tp.skipWhitespace();
+		val.set(tp);
+		defPairs.push_back(eastl::make_pair(name, val));
+	}
+
+ // add to each stage
+	for (int i = 0; i < internal::kShaderStageCount; ++i) {
+		for (auto& def: defPairs) {
+			m_stages[i].m_defines.push_back(def);		
 		}
 	}
 }
@@ -691,7 +692,7 @@ Shader* Shader::Create(const ShaderDesc& _desc)
 	Use(ret);
 	return ret;
 }
-Shader* Shader::CreateVsFs(const char* _vsPath, const char* _fsPath, const char* _defines)
+Shader* Shader::CreateVsFs(const char* _vsPath, const char* _fsPath, std::initializer_list<const char*> _defines)
 {
 	ShaderDesc desc;
 	desc.addGlobalDefines(_defines);
@@ -699,7 +700,7 @@ Shader* Shader::CreateVsFs(const char* _vsPath, const char* _fsPath, const char*
 	desc.setPath(GL_FRAGMENT_SHADER, _fsPath);
 	return Create(desc);
 }
-Shader* Shader::CreateVsGsFs(const char* _vsPath, const char* _gsPath, const char* _fsPath, const char* _defines)
+Shader* Shader::CreateVsGsFs(const char* _vsPath, const char* _gsPath, const char* _fsPath, std::initializer_list<const char*> _defines)
 {
 	ShaderDesc desc;
 	desc.addGlobalDefines(_defines);
@@ -708,7 +709,7 @@ Shader* Shader::CreateVsGsFs(const char* _vsPath, const char* _gsPath, const cha
 	desc.setPath(GL_FRAGMENT_SHADER, _fsPath);
 	return Create(desc);
 }
-Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _localZ, const char* _defines)
+Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _localZ, std::initializer_list<const char*> _defines)
 {
 	APT_ASSERT(_localX <= GlContext::GetCurrent()->kMaxComputeLocalSize[0]);
 	APT_ASSERT(_localY <= GlContext::GetCurrent()->kMaxComputeLocalSize[1]);
