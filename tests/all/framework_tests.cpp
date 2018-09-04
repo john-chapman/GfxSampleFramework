@@ -471,10 +471,10 @@ public:
 		if (ImGui::TreeNode("Mesh/Anim")) {
 			APT_ONCE {
 				if (!m_meshTest.m_shMeshShaded) {
-					m_meshTest.m_shMeshShaded = Shader::CreateVsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_fs.glsl", "SKINNING\0SHADED\0");
+					m_meshTest.m_shMeshShaded = Shader::CreateVsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_fs.glsl", { "SKINNING", "SHADED" } );
 				} 
 				if (!m_meshTest.m_shMeshLines) {
-					m_meshTest.m_shMeshLines = Shader::CreateVsGsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_gs.glsl", "shaders/MeshView_fs.glsl", "SKINNING\0LINES\0");
+					m_meshTest.m_shMeshLines = Shader::CreateVsGsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_gs.glsl", "shaders/MeshView_fs.glsl", { "SKINNING", "LINES" });
 				}
 
 				if (!m_meshTest.m_meshPath.isEmpty()) {
@@ -589,7 +589,7 @@ public:
 					m_depthTest.m_mesh = Mesh::Create((const char*)m_depthTest.m_meshPath);
 				}
 				m_depthTest.m_shDepthOnly = Shader::CreateVsFs("shaders/DepthTest/DepthTest_vs.glsl", "shaders/DepthTest/DepthTest_fs.glsl");
-				m_depthTest.m_shDepthError = Shader::CreateVsFs("shaders/DepthTest/DepthTest_vs.glsl", "shaders/DepthTest/DepthTest_fs.glsl", "DEPTH_ERROR\0");
+				m_depthTest.m_shDepthError = Shader::CreateVsFs("shaders/DepthTest/DepthTest_vs.glsl", "shaders/DepthTest/DepthTest_fs.glsl", { "DEPTH_ERROR" });
 
 				m_depthTest.m_bfInstances = Buffer::Create(GL_SHADER_STORAGE_BUFFER, sizeof(mat4) * (256 * 256 + 1), GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
 			}
@@ -825,7 +825,7 @@ public:
 
 			APT_ONCE {
 				shMinMax = Shader::CreateCs("shaders/MinMax_cs.glsl",      8, 8, 1);
-				shNoise  = Shader::CreateCs("shaders/Noise/Noise_cs.glsl", 8, 8, 1, "NOISE Noise_fBm\0");
+				shNoise  = Shader::CreateCs("shaders/Noise/Noise_cs.glsl", 8, 8, 1, { "NOISE Noise_fBm" });
 
 				txNoise  = Texture::Create2d(512, 512, GL_RG32F, 99);
 				txNoise->setName("txNoise");
