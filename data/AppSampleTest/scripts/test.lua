@@ -4,7 +4,7 @@ LOG_ERR("Err")
 LOG_DBG("Dbg")
 LOG("Log")
 
-strHash = STR_HASH("StringHash")
+strHash = StringHash("StringHash")
 LOG(tostring(strHash))
 
 bool        = true
@@ -20,8 +20,14 @@ struct =
 	numberArray  = { 1, 2, 3, 4 },
 }
 
+emptyTable = {}
+
 function resetGlobalVal()
 	globalVal = 0
+end
+
+function doAssert()
+	ASSERT(false, "Assert was called!")
 end
 
 function add(_a, _b)
