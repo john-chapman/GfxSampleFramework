@@ -138,9 +138,27 @@ bool LuaScript::next()
 		return false;
 	}
 	popToCurrentTable();
-	if (lua_rawgeti(m_state, -1, ++m_tableIndex[m_currentTable]) == LUA_TNIL) {
-		lua_pop(m_state, 1);
-		return false;
+
+	if (lua_rawlen(m_state, -1) == 0) {
+	 // assume table has non-integer keys
+		if (m_tableField[m_currentTable].isEmpty()) {
+			lua_pushnil(m_state);
+		} else {
+			lua_pushstring(m_state, m_tableField[m_currentTable].c_str());
+		}
+		if (lua_next(m_state, m_currentTable) == 0) {
+			return false;
+		}
+		APT_ASSERT(lua_type(m_state, -2) == LUA_TSTRING);
+		m_tableField[m_currentTable] = lua_tostring(m_state, -2);
+		lua_remove(m_state, -2); // remove key from stack, leave the value on top
+
+	} else {
+	 // assume table has integer keys
+		if (lua_rawgeti(m_state, -1, ++m_tableIndex[m_currentTable]) == LUA_TNIL) {
+			lua_pop(m_state, 1);
+			return false;
+		}
 	}
 	return true;
 }
@@ -160,7 +178,7 @@ bool LuaScript::enterTable()
 	
 	m_tableIndex[m_currentTable] = 0;
 	m_tableField[m_currentTable].clear();
-	m_tableLength[m_currentTable] = (int)lua_rawlen(m_state, -1);
+	m_tableLength[m_currentTable] = (int)lua_rawlen(m_state, m_currentTable);
 	return true;
 }
 
@@ -173,12 +191,35 @@ void LuaScript::leaveTable()
 	popToCurrentTable();
 	--m_currentTable;
 	APT_ASSERT(lua_type(m_state, -1) == LUA_TTABLE); // stack top should be a table
-	lua_pop(m_state, 1); // pop table
 }
 
 LuaScript::ValueType LuaScript::getType() const
 {
 	return GetValueType(lua_type(m_state, -1));
+}
+
+const char* LuaScript::getName() const
+{
+	return m_tableField[m_currentTable].c_str();
+}
+
+int LuaScript::getTableLength() const
+{
+	if (m_currentTable == 1) {
+		return -1;
+	}
+
+	if (m_tableLength[m_currentTable] > 0) {
+		return m_tableLength[m_currentTable];
+	}
+
+ // either in an empty table or a table with non-integer keys, compute the size by traversing the table with lua_next
+	lua_pushnil(m_state); // first key
+	while (lua_next(m_state, m_currentTable) != 0) { // pushes key,value on the stack
+		lua_pop(m_state, 1); // pop value
+		++m_tableLength[m_currentTable];
+	}
+	return m_tableLength[m_currentTable];
 }
 
 template <>
@@ -405,7 +446,7 @@ void LuaScript::dbgPrintStack()
 	int top = lua_gettop(m_state);
 	String<128> msg("\n===");
 	if (m_currentTable != 1) {
-		msg.appendf(" current table = %d, index = %d, length = %d", m_currentTable, m_tableIndex[m_currentTable], m_tableLength[m_currentTable]);
+		msg.appendf(" current table = %d, index = %d, field = '%s' length = %d", m_currentTable, m_tableIndex[m_currentTable], m_tableField[m_currentTable].c_str(), m_tableLength[m_currentTable]);
 	}
 	for (int i = 1; i <= top; ++i) {
 		msg.appendf("\n%d: ", i);

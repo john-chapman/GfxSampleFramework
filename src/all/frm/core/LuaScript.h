@@ -46,11 +46,6 @@ namespace frm {
 //      int onePlusTwo = script->popValue(); // pop the ret val
 //   }
 //
-// \todo
-// - Traversing tables with non-integer keys via next() isn't currently 
-//   implemented. It's possible via lua_next - need to detect when not in an
-//   array table (m_tableLength[m_currentTable] == 0). getTableLength() in this
-//   case needs to traverse the whole table via lua_next() to find the length.
 ////////////////////////////////////////////////////////////////////////////////
 class LuaScript
 {
@@ -99,67 +94,69 @@ public:
  // Traversal
 
 	// Go to a named value in the current table, or a global value if not in a table. Return false if not found.
-	bool      find(const char* _name);
+	bool        find(const char* _name);
 
 	// Go to the next value in the current table. Return true if not the end of the table.
-	// \todo Currently only works for arrays.
-	bool      next();
+	bool        next();
 	
 	// Enter the current table (call immediately after find() or next()). Return false if the current value is not a table.
-	bool      enterTable();
+	bool        enterTable();
 	// Leave the current table.
-	void      leaveTable();
+	void        leaveTable();
 
 	// Reset the traversal state machine.
-	void      reset() { popAll(); }
+	void        reset() { popAll(); }
 
  // Introspection
 
 	// Get the type of the current value.
-	ValueType getType() const;
+	ValueType   getType() const;
+
+	// Get the name of the current value (key in the parent table, if in a table).
+	const char* getName() const;
 
 	// Get the number of elements in the current table. Return -1 if not in a table.
-	int       getTableLength() const { return m_tableLength[m_currentTable]; }
+	int         getTableLength() const;
 
 	// Get the current value. tType must match the type of the current value (i.e. getValue<int>() must be called only if the value type is ValueType_Number).
 	// _i permits array access (when in an array). 1 <= _i < getTableLength().
 	// Note that the ptr returned by getValue<const char*> is only valid until the next call to find(), next() or set().
 	template <typename tType>
-	tType     getValue(int _i = 0) const;
+	tType       getValue(int _i = 0) const;
 
 	// Get a named value. Equivalent to find(_name) followed by getValue().
 	template <typename tType>
-	tType     getValue(const char* _name) { APT_VERIFY(find(_name)); return getValue<tType>(); }
+	tType       getValue(const char* _name) { APT_VERIFY(find(_name)); return getValue<tType>(); }
 	
  // Modification
 	
 	// Set the current value, or the _ith element of the current table if _i > 0.
 	// If _i > current table length, push ValueType_Nil elements to force the correct size.
 	template <typename tType>
-	void      setValue(tType _value, int _i = 0);
+	void        setValue(tType _value, int _i = 0);
 
 	// Set a named value. If the value already exists this modifies the type and value.
 	template <typename tType>
-	void      setValue(tType _value, const char* _name);
+	void        setValue(tType _value, const char* _name);
 
 
  // Execution
 
 	// Execute the script. This may be called multiple times, each time the traversal state is reset.
-	bool      execute();
+	bool        execute();
 
 	// Call function. Use pushValue() to push function arguments on the stack (left -> right). Return the number of ret vals on the stack, or -1 if error.
-	int       call();
+	int         call();
 
 	// Push/pop to/from the internal stack.
 	template <typename tType>
-	void      pushValue(tType _value);
+	void        pushValue(tType _value);
 	template <typename tType>
-	tType     popValue();
+	tType       popValue();
 
  // Debug
 
-	void      dbgPrintStack();
+	void        dbgPrintStack();
 
 private:
 	static const int kMaxTableDepth = 10;
@@ -169,7 +166,7 @@ private:
 	int              m_err                          = 0;
 
 	int              m_currentTable                 = 1;        // Stack index of the current table (start at 1 to account for the script chunk).
-	int              m_tableLength[kMaxTableDepth]  = { 0 };    // Length per table.
+	mutable int      m_tableLength[kMaxTableDepth]  = { 0 };    // Length per table.
 	int              m_tableIndex[kMaxTableDepth]   = { 0 };    // Index of the current element per table.
 	apt::String<16>  m_tableField[kMaxTableDepth];              // Name of the current field per table (0 is the current global).
 
