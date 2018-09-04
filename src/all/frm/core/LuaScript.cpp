@@ -194,12 +194,26 @@ bool LuaScript::getValue<bool>(int _i) const
 	}
 	return ret;
 }
+
+namespace {
+ // need to handle int/float types seperately to avoid precision issues e.g. with string hashes
+	template <typename tType>
+	tType getValue(lua_State* _L, apt::internal::IntT)
+	{
+		return (tType)lua_tointeger(_L, -1);	
+	}
+	template <typename tType>
+	tType getValue(lua_State* _L, apt::internal::FloatT)
+	{
+		return (tType)lua_tonumber(_L, -1);	
+	}
+}
 #define LuaScript_getValue_Number(_type, _enum) \
 	template <> _type LuaScript::getValue<_type>(int _i) const { \
 		bool needPop = gotoIndex(_i); \
 		if (!lua_isnumber(m_state, -1)) \
 			APT_LOG_ERR("LuaScript::getValue<%s>(%d): not a number", apt::DataTypeString(_enum), _i); \
-		auto ret = (_type)lua_tonumber(m_state, -1); \
+		auto ret = ::getValue<_type>(m_state, APT_TRAITS_FAMILY(_type)); \
 		if (needPop) \
 			lua_pop(m_state, 1); \
 		return ret; \
@@ -236,6 +250,18 @@ void LuaScript::setValue<bool>(bool _value, int _i)
 	setValue(_i);
 }
 
+namespace {
+	template <typename tType>
+	void setValue(lua_State* _L, tType _value, apt::internal::IntT)
+	{
+		lua_pushinteger(_L, (lua_Integer)_value);	
+	}
+	template <typename tType>
+	void setValue(lua_State* _L, tType _value, apt::internal::FloatT)
+	{
+		lua_pushnumber(_L, (lua_Number)_value);
+	}
+}
 #define LuaScript_setValue_Number_i(_type, _enum) \
 	template <> void LuaScript::setValue<_type>(_type _value, int _i) { \
 		if (m_currentTable == 1) { \
@@ -246,7 +272,7 @@ void LuaScript::setValue<bool>(bool _value, int _i)
 			APT_LOG_ERR("LuaScript::setValue<%s>(%g, %d): stack empty", apt::DataTypeString(_enum), (lua_Number)_value, _i); \
 			return; \
 		} \
-		lua_pushnumber(m_state, (lua_Number)_value); \
+		::setValue<_type>(m_state, _value, APT_TRAITS_FAMILY(_type)); \
 		setValue(_i); \
 	}
 APT_DataType_decl(LuaScript_setValue_Number_i)

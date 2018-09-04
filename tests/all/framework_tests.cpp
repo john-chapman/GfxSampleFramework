@@ -361,7 +361,7 @@ public:
 
 					auto hashCpp = StringHash("StringHash");
 					auto hashLua = script->getValue<StringHash::HashType>("strHash");
-					APT_ASSERT(hashCpp == hashLua); // \todo getValue<> should *not* use lua_Number for ints!
+					APT_ASSERT(hashCpp == hashLua);
 				}
 				static bool alwaysExecute = false;
 				if (ImGui::Button("Execute") || alwaysExecute) {
