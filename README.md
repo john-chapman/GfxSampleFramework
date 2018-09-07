@@ -1,4 +1,4 @@
-OpenGL framework for graphics samples, prototyping, etc. 
+OpenGL-based application framework for graphics samples, prototyping, etc. 
 
 **Note that this project is very much WIP and therefore frequently subject to breaking changes!**
 

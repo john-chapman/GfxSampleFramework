@@ -1,18 +1,65 @@
+--[[
+	Usage #1: External Project File
+	-------------------------------
+	To use one of the prebuilt project files, call dofile() at the top of your premake script:
+
+		dofile("extern/GfxSampleFramework/build/GfxSampleFramework_premake.lua")
+
+	Then call GfxSampleFramework_ProjectExternal() inside your workspace declaration:
+
+		workspace "MyWorkspace"
+			GfxSampleFramework_ProjectExternal("extern/GfxSampleFramework")
+
+	Finally, for each project which needs to link GfxSampleFramework:
+
+		project "MyProject"
+			GfxSampleFramework_Link()
+
+	This is the least flexible of the two options but has the advantage of being able to update GfxSampleFramework without rebuilding your project files.
+
+	Usage #2: Local Project File
+	----------------------------
+	To customize the project, call dofile() at the top of your premake script:
+
+		dofile("extern/GfxSampleFramework/build/GfxSampleFramework_premake.lua")
+
+	Then call GfxSampleFramework_Project() inside your workspace declaration:
+
+		workspace "MyWorkspace"
+			GfxSampleFramework_Project(
+				"extern/GfxSampleFramework", -- lib root
+				"../lib",                    -- library output path
+				"../bin",                    -- binary output path
+				{                            -- config map
+					FRM_MODULE_AUDIO = true,
+					FRM_MODULE_VR    = false
+				})
+
+	See core/def.h for more info about configuring the library.
+	
+	Finally, for each project which needs to link ApplicationTools:
+
+		project "MyProject"
+			GfxSampleFramework_Link()
+
+	This option provides the most flexibility, but don't forget to rebuild your project files after updating.
+--]]
+
 local SRC_PATH_ROOT      = "src"
 local SRC_PATH_EXTERN    = "extern"
 local SRC_PATH_ALL       = "all/frm"
 local SRC_PATH_PLATFORM  = ""
 
-local MODULES            = {}
-local MODULE_PATHS       = {}
-local MODULE_NAMES       =
+local MODULES      = {}
+local MODULE_PATHS = {}
+local MODULE_NAMES =
 {
 	["FRM_MODULE_CORE"]  = "core",
 	["FRM_MODULE_AUDIO"] = "audio",
 	["FRM_MODULE_VR"]    = "vr",
 }
 
-local GLOBAL_DEFINES     =
+local GLOBAL_DEFINES =
 {
 	"GLEW_STATIC=1"
 }
@@ -22,7 +69,7 @@ local function makepath(_elements)
 	for i, v in ipairs(_elements) do
 		ret = ret .. tostring(v) .. "/"
 	end
- -- \todo remove duplicate delimiters
+ -- \todo remove duplicate separators
 	return ret
 end
 
@@ -153,15 +200,14 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 			makepath { SRC_PATH_ROOT, SRC_PATH_ALL, "core/extern/lua/luac.c" }
 			})
 
+	 -- symbolic links in the bin dir for /data/common (for shaders, textures etc) and /extern (for DLLs)
 		filter { "action:vs*" }
+			local projDir = "$(ProjectDir)../"
+			local binDir  = projDir .. _binDir
+			local rootDir = projDir .. _root
 			postbuildcommands({
-			 -- data/common
-				"rmdir \"$(ProjectDir)../" .. _binDir .. "/common\"",
-				"mklink /j \"$(ProjectDir)../" .. _binDir .. "/common\" " .. "\"$(ProjectDir)../" .. _root .. "/data/common\"",
-
-			 -- extern/
-			 	"rmdir \"$(ProjectDir)../" .. _binDir .. "/extern\"",
-				"mklink /j \"$(ProjectDir)../" .. _binDir .. "/extern\" " .. "\"$(ProjectDir)../" .. _root .. "/extern\"",
+			 	"if not exist \"" .. binDir .. "/common\" mklink /j \"" .. binDir .. "/common\" \"" .. rootDir .. "/data/common\"",
+				"if not exist \"" .. binDir .. "/extern\" mklink /j \"" .. binDir .. "/extern\" \"" .. rootDir .. "/extern\"",
 				})
 		filter {}
 

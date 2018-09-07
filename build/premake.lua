@@ -32,9 +32,9 @@ workspace "GfxSampleFramework"
 			"../",     -- root
 			"../lib",  -- libDir
 			"../bin",  -- binDir
-			{ -- config
-				["FRM_MODULE_AUDIO"] = false,
-				["FRM_MODULE_VR"]    = false,
+			{          -- config
+				FRM_MODULE_AUDIO = false,
+				FRM_MODULE_VR    = false,
 			})
 		--GfxSampleFramework_ProjectExternal("../")
 	group ""
@@ -57,14 +57,16 @@ workspace "GfxSampleFramework"
 		ApplicationTools_Link()
 		GfxSampleFramework_Link()
 		
-		local name = "AppSampleTest"
+		local name    = "AppSampleTest"
+		local projDir = "$(ProjectDir)../../"
+		local dataDir = projDir .. "data/" .. name
+		local binDir  = projDir .. "bin/"  .. name
 		filter { "action:vs*" }
 			postbuildcommands({
-			-- make the project data dir
-				"mkdir \"$(ProjectDir)..\\..\\data\\" .. tostring(name) .. "\"",
-	
-			-- make link to project data dir in bin
-				"rmdir \"$(ProjectDir)..\\..\\bin\\" .. tostring(name) .. "\"",
-				"mklink /j \"$(ProjectDir)..\\..\\bin\\" .. tostring(name) .. "\" " .. "\"$(ProjectDir)..\\..\\data\\" .. tostring(name) .. "\"",
+			 -- make the project data dir
+				"if not exist \"" .. dataDir .. "\" mkdir \"" .. dataDir .. "\"",
+
+			 -- make link to project data dir in bin
+				"if not exist \"" .. binDir .. "\" mklink /j \"" .. binDir .. "\" \"" .. dataDir .. "\"",
 				})
 

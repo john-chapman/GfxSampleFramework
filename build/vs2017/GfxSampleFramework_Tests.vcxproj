@@ -72,9 +72,8 @@
       <AdditionalDependencies>shlwapi.lib;hid.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(ProjectDir)..\..\data\AppSampleTest"
-rmdir "$(ProjectDir)..\..\bin\AppSampleTest"
-mklink /j "$(ProjectDir)..\..\bin\AppSampleTest" "$(ProjectDir)..\..\data\AppSampleTest"</Command>
+      <Command>if not exist "$(ProjectDir)../../data/AppSampleTest" mkdir "$(ProjectDir)../../data/AppSampleTest"
+if not exist "$(ProjectDir)../../bin/AppSampleTest" mklink /j "$(ProjectDir)../../bin/AppSampleTest" "$(ProjectDir)../../data/AppSampleTest"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Win64|x64'">
@@ -102,9 +101,8 @@ mklink /j "$(ProjectDir)..\..\bin\AppSampleTest" "$(ProjectDir)..\..\data\AppSam
       <AdditionalDependencies>shlwapi.lib;hid.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(ProjectDir)..\..\data\AppSampleTest"
-rmdir "$(ProjectDir)..\..\bin\AppSampleTest"
-mklink /j "$(ProjectDir)..\..\bin\AppSampleTest" "$(ProjectDir)..\..\data\AppSampleTest"</Command>
+      <Command>if not exist "$(ProjectDir)../../data/AppSampleTest" mkdir "$(ProjectDir)../../data/AppSampleTest"
+if not exist "$(ProjectDir)../../bin/AppSampleTest" mklink /j "$(ProjectDir)../../bin/AppSampleTest" "$(ProjectDir)../../data/AppSampleTest"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
