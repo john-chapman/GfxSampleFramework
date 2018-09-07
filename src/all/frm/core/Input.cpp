@@ -302,7 +302,7 @@ void Gamepad::InitButtonNames()
 
 *******************************************************************************/
 
-APT_DEFINE_STATIC_INIT(Input);
+APT_DEFINE_STATIC_INIT(Input, Input::Init, Input::Shutdown);
 
 void Input::ResetAllDevices()
 {

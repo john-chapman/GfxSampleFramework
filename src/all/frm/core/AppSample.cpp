@@ -81,11 +81,13 @@ bool AppSample::init(const apt::ArgList& _args)
 		return false;
 	}
 	
-	FileSystem::SetRoot(FileSystem::RootType_Common, "common");
-	FileSystem::SetRoot(FileSystem::RootType_Application, (const char*)m_name);
+	FileSystem::AddRoot("");
+	m_rootCommon = FileSystem::AddRoot("common");
+	m_rootApp    = FileSystem::AddRoot((const char*)m_name);
+	FileSystem::SetDefaultRoot(m_rootApp);
 
-	FileSystem::BeginNotifications(FileSystem::GetRoot(FileSystem::RootType_Common), &FileChangeNotification);
-	FileSystem::BeginNotifications(FileSystem::GetRoot(FileSystem::RootType_Application), &FileChangeNotification);
+	FileSystem::BeginNotifications(FileSystem::GetRoot(m_rootCommon), &FileChangeNotification);
+	FileSystem::BeginNotifications(FileSystem::GetRoot(m_rootApp),    &FileChangeNotification);
 	
 	g_Log.setOutput((const char*)String<64>("%s.log", (const char*)m_name)); // need to set after the application root
 	g_Log.addMessage((const char*)String<64>("'%s' %s", (const char*)m_name, Time::GetDateTime().asString()));
@@ -108,7 +110,7 @@ bool AppSample::init(const apt::ArgList& _args)
 	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, ctxFlags);
 	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 
-	m_imguiIniPath       = FileSystem::MakePath("imgui.ini", FileSystem::RootType_Application);
+	m_imguiIniPath       = FileSystem::MakePath("imgui.ini");
 	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
 	if (!ImGui_Init()) {
 		return false;
@@ -169,8 +171,8 @@ bool AppSample::init(const apt::ArgList& _args)
 
 void AppSample::shutdown()
 {	
-	FileSystem::EndNotifications(FileSystem::GetRoot(FileSystem::RootType_Common));
-	FileSystem::EndNotifications(FileSystem::GetRoot(FileSystem::RootType_Application));
+	FileSystem::EndNotifications(FileSystem::GetRoot(m_rootCommon));
+	FileSystem::EndNotifications(FileSystem::GetRoot(m_rootApp));
 
 	ImGui_Shutdown();
 	
@@ -343,24 +345,24 @@ AppSample::~AppSample()
 }
 
 
-bool AppSample::readProps(const char* _path, apt::FileSystem::RootType _rootHint)
+bool AppSample::readProps(const char* _path,  int _root)
 {
 	Json json;
-	if (Json::Read(json, _path, _rootHint)) {
+	if (Json::Read(json, _path, _root)) {
 		SerializerJson serializer(json, SerializerJson::Mode_Read);
 		return Serialize(serializer, m_props);
 	}
 	return false;
 }
 
-bool AppSample::writeProps(const char* _path, apt::FileSystem::RootType _rootHint)
+bool AppSample::writeProps(const char* _path, int _root)
 {
 	Json json;
 	SerializerJson serializer(json, SerializerJson::Mode_Write);
 	if (!Serialize(serializer, m_props)) {
 		return false;
 	}
-	return Json::Write(json, _path, _rootHint);
+	return Json::Write(json, _path, _root);
 }
 
 // PRIVATE
