@@ -408,6 +408,9 @@ void ShaderDesc::addGlobalDefines(std::initializer_list<const char*> _defines)
  // split each string into name/value at the first whitespace
 	eastl::vector<eastl::pair<Str, Str> > defPairs;
 	for (auto def : _defines) {
+		if (*def == '\0') {
+			continue;
+		}
 		TextParser tp = def;
 		Str name, val;
 		tp.advanceToNextWhitespace();
