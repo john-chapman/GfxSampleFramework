@@ -52,7 +52,7 @@ public:
 	// Add a define to _stage. Supported types are int, uint, float, vec2, vec3, vec4, const char*.
 	template <typename T>
 	void addDefine(GLenum _stage, const char* _name, const T& _value);
-	void addDefine(GLenum _stage, const char* _name);
+	void addDefine(GLenum _stage, const char* _nameValue);
 	// Add a define to all stages.
 	template <typename T>
 	void addGlobalDefine(const char* _name, const T& _value)
@@ -61,10 +61,10 @@ public:
 			addDefine(internal::kShaderStages[i], _name, _value);
 		}
 	}
-	void addGlobalDefine(const char* _name)
+	void addGlobalDefine(const char* _nameValue)
 	{
 		for (int i = 0; i < internal::kShaderStageCount; ++i) {
-			addDefine(internal::kShaderStages[i], _name);
+			addDefine(internal::kShaderStages[i], _nameValue);
 		}
 	}
 	void        addGlobalDefines(std::initializer_list<const char*> _defines);

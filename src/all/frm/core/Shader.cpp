@@ -398,32 +398,33 @@ void ShaderDesc::addDefine<vec4>(GLenum _stage, const char* _name, const vec4& _
 	addDefine(_stage, _name, (const char*)String<48>("%vec4(%f,%f,%f,%f)", _value.x, _value.y, _value.z, _value.w));
 }
 
-void ShaderDesc::addDefine(GLenum _stage, const char* _name)
+void ShaderDesc::addDefine(GLenum _stage, const char* _nameValue)
 {
-	addDefine(_stage, _name, 1);
+ // ignore empty strings
+	if (*_nameValue == '\0') {
+		return;
+	}
+
+ // split _nameValue at the first whitespace
+	TextParser tp = _nameValue;
+	Str name, val;
+	tp.advanceToNextWhitespace();
+	name.set(_nameValue, tp.getCharCount());
+	tp.skipWhitespace();
+	val.set(tp);
+
+	if (val.isEmpty()) {
+		addDefine(_stage, _nameValue, 1);
+	} else {
+		addDefine(_stage, name.c_str(), val.c_str());
+	}
 }
 
 void ShaderDesc::addGlobalDefines(std::initializer_list<const char*> _defines)
 {
- // split each string into name/value at the first whitespace
-	eastl::vector<eastl::pair<Str, Str> > defPairs;
-	for (auto def : _defines) {
-		if (*def == '\0') {
-			continue;
-		}
-		TextParser tp = def;
-		Str name, val;
-		tp.advanceToNextWhitespace();
-		name.set(def, tp.getCharCount());
-		tp.skipWhitespace();
-		val.set(tp);
-		defPairs.push_back(eastl::make_pair(name, val));
-	}
-
- // add to each stage
 	for (int i = 0; i < internal::kShaderStageCount; ++i) {
-		for (auto& def: defPairs) {
-			m_stages[i].m_defines.push_back(def);		
+		for (auto def : _defines) {
+			addDefine(internal::kShaderStages[i], def);
 		}
 	}
 }
