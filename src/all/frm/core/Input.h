@@ -2,7 +2,7 @@
 
 #include <frm/core/def.h>
 
-#include <apt/static_initializer.h>
+#include <apt/StaticInitializer.h>
 
 namespace frm {
 
