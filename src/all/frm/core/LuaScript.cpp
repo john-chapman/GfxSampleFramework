@@ -525,6 +525,10 @@ bool LuaScript::loadLibs(Lib _libs)
 		luaL_requiref(m_state, LUA_MATHLIBNAME, luaopen_math, 1);
 		lua_pop(m_state, 1);
 	}
+	if ((_libs & Lib_LuaIo) != 0) {
+		luaL_requiref(m_state, LUA_IOLIBNAME, luaopen_io, 1);
+		lua_pop(m_state, 1);
+	}
 	if ((_libs & Lib_LuaOs) != 0) {
 		luaL_requiref(m_state, LUA_OSLIBNAME, luaopen_os, 1);
 		lua_pop(m_state, 1);
