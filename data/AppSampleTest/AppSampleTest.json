@@ -11,7 +11,7 @@
 	},
 	"AppSample": {
 		"ShowMenu": true,
-		"ShowPropertyEditor": true,
+		"ShowPropertyEditor": false,
 		"ShowProfiler": false,
 		"ShowShaderViewer": false,
 		"VsyncMode": 0,
@@ -28,7 +28,7 @@
 	},
 	"AppSample3d": {
 		"Scene Path": "Scene.json",
-		"Show Helpers": false,
+		"Show Helpers": true,
 		"Show Scene Editor": false
 	},
 	"DepthTest": {

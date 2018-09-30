@@ -2,7 +2,7 @@
 
 #include <frm/core/def.h>
 
-#include <apt/static_initializer.h>
+#include <apt/StaticInitializer.h>
 
 namespace frm {
 
@@ -254,12 +254,14 @@ public:
 	static void ResetKeyboard(int _id = 0)   { GetKeyboard(_id)->reset(); }
 	static void ResetMouse(int _id = 0)      { GetMouse(_id)->reset(); }
 	static void ResetGamepad(int _id = 0)    { GetGamepad(_id)->reset(); }
-	
+
+private:
+	APT_DECLARE_STATIC_INIT_FRIEND(Input);	
 	static void Init();
 	static void Shutdown();
 
 }; // class Input
-APT_DECLARE_STATIC_INIT(Input, Input::Init, Input::Shutdown);
+APT_DECLARE_STATIC_INIT(Input);
 
 class ProxyDevice
 {

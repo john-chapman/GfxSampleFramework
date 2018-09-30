@@ -49,8 +49,8 @@ protected:
 	virtual void overrideInput() {}
 
 	Properties m_props;
-	bool readProps(const char* _path, apt::FileSystem::RootType _rootHint = apt::FileSystem::RootType_Application);
-	bool writeProps(const char* _path, apt::FileSystem::RootType _rootHint = apt::FileSystem::RootType_Application);
+	bool readProps(const char* _path,  int _root = apt::FileSystem::GetDefaultRoot());
+	bool writeProps(const char* _path, int _root = apt::FileSystem::GetDefaultRoot());
 
 	ivec2  m_resolution;
 	ivec2  m_windowSize;
@@ -69,6 +69,8 @@ private:
 	GlContext*         m_glContext = nullptr;
 	const Framebuffer* m_fbDefault = nullptr; // where to draw overlays, or default backbuffer if 0
 	apt::PathStr       m_propsPath;
+	int                m_rootCommon;
+	int                m_rootApp;
 
 	void drawMainMenuBar();
 	void drawStatusBar();
