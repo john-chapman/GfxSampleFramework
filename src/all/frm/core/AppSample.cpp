@@ -760,10 +760,10 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 	}
     _drawData->ScaleClipRects(io.DisplayFramebufferScale);
 
-	FRM_GL_ENABLE(GL_BLEND,        true);
-	FRM_GL_ENABLE(GL_SCISSOR_TEST, true);
-	FRM_GL_ENABLE(GL_CULL_FACE,    false);
-	FRM_GL_ENABLE(GL_DEPTH_TEST,   false);
+	glScopedEnable(GL_BLEND,        GL_TRUE);
+	glScopedEnable(GL_SCISSOR_TEST, GL_TRUE);
+	glScopedEnable(GL_CULL_FACE,    GL_FALSE);
+	glScopedEnable(GL_DEPTH_TEST,   GL_FALSE);
     glAssert(glBlendEquation(GL_FUNC_ADD));
     glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     glAssert(glActiveTexture(GL_TEXTURE0));

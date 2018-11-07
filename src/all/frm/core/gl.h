@@ -58,39 +58,39 @@ namespace frm {
 
 // Scoped state modifiers. These restore the previous state in the dtor.
 
-struct GLPixelStorei
+struct GLScopedPixelStorei
 {
 	GLenum m_pname;
 	GLint  m_param;
 
-	GLPixelStorei(GLenum _pname, GLint _param)
+	GLScopedPixelStorei(GLenum _pname, GLint _param)
 		: m_pname(_pname)
 	{
 		glAssert(glGetIntegerv(m_pname, &m_param));
 		glAssert(glPixelStorei(m_pname, _param));
 	}
 
-	~GLPixelStorei()
+	~GLScopedPixelStorei()
 	{
 		glAssert(glPixelStorei(m_pname, m_param));
 	}
 };
-#define FRM_GL_PIXELSTOREI(_pname, _param) frm::GLPixelStorei APT_UNIQUE_NAME(_GLPixelStorei)(_pname, _param)
+#define glScopedPixelStorei(_pname, _param) frm::GLScopedPixelStorei APT_UNIQUE_NAME(_GLScopedPixelStorei)(_pname, _param)
 
 
-struct GLEnable
+struct GLScopedEnable
 {
 	GLenum    m_cap;
 	bool      m_val;
 
-	GLEnable(GLenum _cap, bool _val)
+	GLScopedEnable(GLenum _cap, bool _val)
 		: m_cap(_cap)
 	{
 		glAssert(m_val = (glIsEnabled(m_cap) == GL_TRUE));
 		apply(_val);
 	}
 
-	~GLEnable()
+	~GLScopedEnable()
 	{
 		apply(m_val);
 	}
@@ -104,6 +104,6 @@ struct GLEnable
 		}
 	}
 };
-#define FRM_GL_ENABLE(_cap, _val) frm::GLEnable APT_UNIQUE_NAME(_GLEnable)(_cap, _val)
+#define glScopedEnable(_cap, _val) frm::GLScopedEnable APT_UNIQUE_NAME(_GLScopedEnable)(_cap, _val)
 
 } // namespace frm

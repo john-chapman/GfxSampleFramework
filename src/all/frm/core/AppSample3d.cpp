@@ -389,9 +389,9 @@ void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 
 	Im3d::AppData& ad = Im3d::GetAppData();
 
-	FRM_GL_ENABLE(GL_BLEND,              true);
-	FRM_GL_ENABLE(GL_PROGRAM_POINT_SIZE, true);
-	FRM_GL_ENABLE(GL_CULL_FACE,          false);
+	glScopedEnable(GL_BLEND,              true);
+	glScopedEnable(GL_PROGRAM_POINT_SIZE, true);
+	glScopedEnable(GL_CULL_FACE,          false);
     glAssert(glBlendEquation(GL_FUNC_ADD));
     //glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 	glAssert(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE));
