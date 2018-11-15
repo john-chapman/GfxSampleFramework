@@ -885,8 +885,9 @@ public:
 
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Quadtree")) {
+
 			typedef Quadtree<uint16, uint16> Qt;
-			static Qt qt(5, 0xff);
+			static Qt qt(8, 0xff);
 			static Qt::Index qtHoveredIndex = Qt::Index_Invalid;
 			static vec2 qtMousePos = vec2(0.0f);
 			ImGui::Text("qtHoveredIndex = %u", qtHoveredIndex);
@@ -894,11 +895,7 @@ public:
 
 			Qt::Index qtNeighborIndex = Qt::Index_Invalid;
 			if (qtHoveredIndex != Qt::Index_Invalid) {
-			 // this is how to search the qt for a valid neighbor
-				qtNeighborIndex = qt.FindNeighbor(qtHoveredIndex, qt.FindLevel(qtHoveredIndex), 0, 1); // get neighbor index at the same level 
-				while (qtNeighborIndex != Qt::Index_Invalid && qt[qtNeighborIndex] == 0xff) { // search up the tree until a valid node is found
-					qtNeighborIndex = qt.getParentIndex(qtNeighborIndex, qt.FindLevel(qtNeighborIndex));
-				}
+				qtNeighborIndex = qt.findValidNeighbor(qtHoveredIndex, qt.FindLevel(qtHoveredIndex), 0, 2, 0xff);
 			}
 
 			ImGui::VirtualWindow::SetNextRegion(vec2(-1.0f), vec2((float)qt.getNodeWidth(0) + 1.0f), ImGuiCond_Once);
