@@ -22,7 +22,7 @@
 
 namespace frm { namespace internal {
 
-const int kTextureTargetCount = 10;
+const int kTextureTargetCount = 11;
 extern const GLenum kTextureTargets[kTextureTargetCount];
 int TextureTargetToIndex(GLenum _target);
 

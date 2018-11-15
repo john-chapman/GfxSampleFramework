@@ -582,6 +582,10 @@ Texture* Texture::CreateCubemap(GLsizei _width, GLenum _format, GLint _mipCount)
 {
 	return Create(GL_TEXTURE_CUBE_MAP, _width, _width, _width, 1, _mipCount, _format);
 }
+Texture* Texture::CreateCubemapArray(GLsizei _width, GLsizei _arrayCount, GLenum _format, GLint _mipCount)
+{
+	return Create(GL_TEXTURE_CUBE_MAP_ARRAY, _width, _width, 1, _arrayCount, _mipCount, _format);
+}
 
 Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 {
@@ -1106,7 +1110,10 @@ Texture::Texture(
 		case GL_TEXTURE_2D_ARRAY:       glAssert(glTextureStorage3D(m_handle, m_mipCount, m_format, m_width, m_height, m_arrayCount)); break;
 		case GL_TEXTURE_3D:             glAssert(glTextureStorage3D(m_handle, m_mipCount, m_format, m_width, m_height, m_depth)); break;
 		case GL_TEXTURE_CUBE_MAP:       glAssert(glTextureStorage2D(m_handle, m_mipCount, m_format, m_width, m_height)); break;
-		case GL_TEXTURE_CUBE_MAP_ARRAY: glAssert(glTextureStorage3D(m_handle, m_mipCount, m_format, m_width, m_height, m_arrayCount)); break;
+		case GL_TEXTURE_CUBE_MAP_ARRAY: 
+			m_arrayCount *= 6; // depth arg is layer-faces in this case
+			glAssert(glTextureStorage3D(m_handle, m_mipCount, m_format, m_width, m_height, m_arrayCount)); 
+			break;
 		default:                        APT_ASSERT(false); setState(State_Error); return;
 	};
 	

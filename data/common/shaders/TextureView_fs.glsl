@@ -1,4 +1,5 @@
 #include "shaders/def.glsl"
+#include "shaders/Envmap.glsl"
 
 noperspective in vec2 vUv;
 noperspective in vec4 vColor;
@@ -22,7 +23,8 @@ uniform int   uIsDepth;
 	#define TextureType sampler3D
 #elif defined(TEXTURE_CUBE_MAP)
 	#define TextureType samplerCube
-	#include "shaders/Envmap.glsl"
+#elif defined(TEXTURE_CUBE_MAP_ARRAY)
+	#define TextureType samplerCubeArray
 #else
 	//#error TextureVis_fs: No texture type defined.
 #endif
@@ -68,6 +70,12 @@ void main()
 		vec3 uvw = Envmap_GetCubeFaceUvw(uv, int(uLayer));
 		uvw.y = -uvw.y;
 		ret = textureLod(txTexture, uvw, uMip);
+		
+	#elif defined(TEXTURE_CUBE_MAP_ARRAY)
+		vec2 uv = texcoord * uScaleUv + uBiasUv;
+		vec3 uvw = Envmap_GetCubeFaceUvw(uv, int(uLayer) / 6);
+		uvw.y = -uvw.y;
+		ret = textureLod(txTexture, vec4(uvw, float(int(uLayer) % 6)), uMip);
 		
 	#else
 		ret = vec4(1.0, 0.0, 0.0, 1.0);

@@ -28,6 +28,7 @@ public:
 	static Texture* Create2dArray(GLsizei _width, GLsizei _height, GLsizei _arrayCount, GLenum _format, GLint _mipCount = 1);
 	static Texture* Create3d(GLsizei _width, GLsizei _height, GLsizei _depth, GLenum _format, GLint _mipCount = 1);
 	static Texture* CreateCubemap(GLsizei _width, GLenum _format, GLint _mipcount);
+	static Texture* CreateCubemapArray(GLsizei _width, GLsizei _arrayCount, GLenum _format, GLint _mipcount);
 	// Create a proxy for an existing texture (i.e. a texture not directly controlled by the application).
 	static Texture* CreateProxy(GLuint _handle, const char* _name);
 	static void     Destroy(Texture*& _inst_);
