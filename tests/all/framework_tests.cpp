@@ -871,7 +871,7 @@ public:
 
 			{	PROFILER_MARKER("Readback");
 
-				FRM_GL_PIXELSTOREI(GL_PACK_ALIGNMENT, 1);
+				glScopedPixelStorei(GL_PACK_ALIGNMENT, 1);
 				APT_ONCE { glAssert(glGetTextureImage(txNoise->getHandle(), txNoise->getMipCount() - 1, GL_RG, GL_FLOAT, sizeof(vec2), &firstRead.x)); }
 				glAssert(glGetTextureImage(txNoise->getHandle(), txNoise->getMipCount() - 1, GL_RG, GL_FLOAT, sizeof(vec2), &thisRead.x));
 				ImGui::Value("firstRead", firstRead);
