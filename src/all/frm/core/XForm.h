@@ -53,7 +53,7 @@ public:
 	void         setNode(Node* _node)          { m_node = _node; }
 
 	virtual void apply(float _dt) = 0;	
-	virtual void edit() = 0;
+	virtual bool edit() = 0;
 	virtual bool serialize(apt::Serializer& _serializer_) = 0;
 	friend bool Serialize(apt::Serializer& _serializer_, XForm& _xform_)
 	{
@@ -82,7 +82,7 @@ struct XForm_PositionOrientationScale: public XForm
 	vec3  m_scale         = vec3(1.0f);
 	
 	virtual void apply(float _dt) override;
-	virtual void edit() override;
+	virtual bool edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
 	
 };
@@ -118,7 +118,7 @@ struct XForm_FreeCamera: public XForm
 	float m_rotationDamp       = 0.0002f;                       // Adhoc damping factor.
 
 	virtual void apply(float _dt) override;
-	virtual void edit() override;
+	virtual bool edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
 };
 
@@ -133,7 +133,7 @@ struct XForm_LookAt: public XForm
 	vec3      m_offset    = vec3(0.0f);       // Offset from target, or world space if target is 0.
 
 	virtual void apply(float _dt) override;
-	virtual void edit() override;
+	virtual bool edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
 };
 
@@ -148,7 +148,7 @@ struct XForm_Spin: public XForm
 	float m_rotation   = 0.0f;
 	
 	virtual void apply(float _dt) override;
-	virtual void edit() override;
+	virtual bool edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
 };
 
@@ -167,7 +167,7 @@ struct XForm_PositionTarget: public XForm
 	OnComplete* m_onComplete;
 	
 	virtual void apply(float _dt) override;
-	virtual void edit() override;
+	virtual bool edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
 
 	virtual void reset() override;
@@ -188,7 +188,7 @@ struct XForm_SplinePath: public XForm
 	OnComplete* m_onComplete;
 
 	virtual void apply(float _dt) override;
-	virtual void edit() override;
+	virtual bool edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
 
 	virtual void reset() override;
@@ -211,7 +211,7 @@ struct XForm_OrbitalPath: public XForm
 	vec4  m_displayColor    = vec4(1.0f, 1.0f, 0.0f, 1.0f);
 
 	virtual void apply(float _dt) override;
-	virtual void edit() override;
+	virtual bool edit() override;
 	virtual bool serialize(apt::Serializer& _serializer_) override;
 
 	virtual void reset() override;

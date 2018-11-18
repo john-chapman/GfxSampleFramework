@@ -99,12 +99,14 @@ void XForm_PositionOrientationScale::apply(float _dt)
 	m_node->setWorldMatrix(m_node->getWorldMatrix() * mat);
 }
 
-void XForm_PositionOrientationScale::edit()
+bool XForm_PositionOrientationScale::edit()
 {
+	bool ret = false;
+
 	ImGui::PushID(this);
 	Im3d::PushId(this);
 	
-	ImGui::DragFloat3("Position", &m_position.x, 0.5f);
+	ret |= ImGui::DragFloat3("Position", &m_position.x, 0.5f);
 	/*vec3 eul = eulerAngles(m_orientation);
 	if (ImGui::DragFloat3("Orientation", &eul.x, 0.1f)) {
 		m_orientation = quat(eul);
@@ -118,6 +120,8 @@ void XForm_PositionOrientationScale::edit()
 
 	Im3d::PopId();
 	ImGui::PopID();
+
+	return ret;
 }
 
 bool XForm_PositionOrientationScale::serialize(Serializer& _serializer_)
@@ -228,23 +232,27 @@ void XForm_FreeCamera::apply(float _dt)
 	
 }
 
-void XForm_FreeCamera::edit()
+bool XForm_FreeCamera::edit()
 {
+	bool ret = false;
+
 	ImGui::PushID(this);
-	ImGui::SliderFloat3("Position", &m_position.x, -1000.0f, 1000.0f);
+	ret |= ImGui::SliderFloat3("Position", &m_position.x, -1000.0f, 1000.0f);
 	ImGui::Text("Speed:          %1.3f",                   m_speed);
 	ImGui::Text("Accel:          %1.3f",                   m_accelCount);
 	ImGui::Text("Velocity:       %1.3f,%1.3f,%1.3f",       m_velocity.x, m_velocity.y, m_velocity.z);
 	ImGui::Spacing();
 	ImGui::Text("Pitch/Yaw/Roll: %1.3f,%1.3f,%1.3f",       m_pitchYawRoll.x, m_pitchYawRoll.y, m_pitchYawRoll.z);
 	ImGui::Spacing();
-	ImGui::SliderFloat("Max Speed",           &m_maxSpeed,         0.0f,  500.0f);
-	ImGui::SliderFloat("Max Speed Mul",       &m_maxSpeedMul,      0.0f,  100.0f);
-	ImGui::SliderFloat("Accel Ramp",          &m_accelTime,        1e-4f, 2.0f);
+	ret |= ImGui::SliderFloat("Max Speed",           &m_maxSpeed,         0.0f,  500.0f);
+	ret |= ImGui::SliderFloat("Max Speed Mul",       &m_maxSpeedMul,      0.0f,  100.0f);
+	ret |= ImGui::SliderFloat("Accel Ramp",          &m_accelTime,        1e-4f, 2.0f);
 	ImGui::Spacing();
-	ImGui::SliderFloat("Rotation Input Mul",  &m_rotationInputMul, 1e-4f, 0.2f, "%1.5f");
-	ImGui::SliderFloat("Rotation Damp",       &m_rotationDamp,     1e-4f, 0.2f, "%1.5f");
+	ret |= ImGui::SliderFloat("Rotation Input Mul",  &m_rotationInputMul, 1e-4f, 0.2f, "%1.5f");
+	ret |= ImGui::SliderFloat("Rotation Damp",       &m_rotationDamp,     1e-4f, 0.2f, "%1.5f");
 	ImGui::PopID();
+
+	return ret;
 }
 
 bool XForm_FreeCamera::serialize(Serializer& _serializer_)
@@ -280,8 +288,10 @@ void XForm_LookAt::apply(float _dt)
 	m_node->setWorldMatrix(LookAt(posW, targetW));
 }
 
-void XForm_LookAt::edit()
+bool XForm_LookAt::edit()
 {
+	bool ret = false;
+
 	ImGui::PushID(this);
 	Im3d::PushId(this);
 	Scene& scene = *Scene::GetCurrent();
@@ -295,10 +305,12 @@ void XForm_LookAt::edit()
 		m_targetId = m_target->getId();
 	}
 	//ImGui::DragFloat3("Offset", &m_offset.x, 0.5f);
-	Im3d::GizmoTranslation("XForm_LookAt", &m_offset.x);	
+	ret |= Im3d::GizmoTranslation("XForm_LookAt", &m_offset.x);	
 
 	Im3d::PopId();
 	ImGui::PopID();
+
+	return ret;
 }
 
 bool XForm_LookAt::serialize(Serializer& _serializer_)
@@ -322,10 +334,12 @@ void XForm_Spin::apply(float _dt)
 	m_node->setWorldMatrix(m_node->getWorldMatrix() * RotationMatrix(m_axis, m_rotation));
 }
 
-void XForm_Spin::edit()
+bool XForm_Spin::edit()
 {
-	ImGui::SliderFloat("Rate (radians/s)", &m_rate, -8.0f, 8.0f);
-	ImGui::SliderFloat3("Axis", &m_axis.x, -1.0f, 1.0f);
+	bool ret = false;
+
+	ret |= ImGui::SliderFloat("Rate (radians/s)", &m_rate, -8.0f, 8.0f);
+	ret |= ImGui::SliderFloat3("Axis", &m_axis.x, -1.0f, 1.0f);
 	m_axis = normalize(m_axis);
 
 	Im3d::PushDrawState();
@@ -338,6 +352,8 @@ void XForm_Spin::edit()
 			Im3d::Vertex(p + m_axis * 9999.0f);
 		Im3d::End();
 	Im3d::PopDrawState();
+
+	return ret;
 }
 
 bool XForm_Spin::serialize(Serializer& _serializer_)
@@ -365,26 +381,31 @@ void XForm_PositionTarget::apply(float _dt)
 	m_node->setWorldPosition(m_node->getWorldPosition() + m_currentPosition);
 }
 
-void XForm_PositionTarget::edit()
+bool XForm_PositionTarget::edit()
 {
+	bool ret = false;
+
 	ImGui::PushID(this);
 	Im3d::PushId(this);
 
-	ImGui::SliderFloat("Duration (s)", &m_duration, 0.0f, 10.0f);
+	ret |= ImGui::SliderFloat("Duration (s)", &m_duration, 0.0f, 10.0f);
 	if (ImGui::Button("Reset")) {
 		reset();
+		ret = true;
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("Relative Reset")) {
 		relativeReset();
+		ret = true;
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("Reverse")) {
 		reverse();
+		ret = true;
 	}
 
-	Im3d::GizmoTranslation("XForm_PositionTarget::m_start", &m_start.x);
-	Im3d::GizmoTranslation("XForm_PositionTarget::m_end",   &m_end.x);
+	ret |= Im3d::GizmoTranslation("XForm_PositionTarget::m_start", &m_start.x);
+	ret |= Im3d::GizmoTranslation("XForm_PositionTarget::m_end",   &m_end.x);
 	Im3d::PushDrawState();
 		Im3d::SetColor(Im3d::Color_Yellow);
 		Im3d::SetSize(2.0f);
@@ -398,6 +419,8 @@ void XForm_PositionTarget::edit()
 
 	Im3d::PopId();
 	ImGui::PopID();
+
+	return ret;
 }
 
 bool XForm_PositionTarget::serialize(Serializer& _serializer_)
@@ -446,18 +469,23 @@ void XForm_SplinePath::apply(float _dt)
 	m_node->setWorldPosition(m_node->getWorldPosition() + position);
 }
 
-void XForm_SplinePath::edit()
+bool XForm_SplinePath::edit()
 {
+	bool ret = false;
+
 	ImGui::PushID(this);
-	ImGui::DragFloat("Duration (s)", &m_duration, 0.1f);
+	ret |= ImGui::DragFloat("Duration (s)", &m_duration, 0.1f);
 	m_duration = APT_MAX(m_duration, 0.0f);
 	m_currentTime = APT_MIN(m_currentTime, m_duration);
 	if (ImGui::Button("Reset")) {
 		reset();
+		ret = true;
 	}
 	ImGui::Text("Current Time: %.3fs", m_currentTime);
 	ImGui::Text("Path hint:    %d",    m_pathHint);
 	ImGui::PopID();
+
+	return ret;
 }
 
 bool XForm_SplinePath::serialize(Serializer& _serializer_)
@@ -521,17 +549,19 @@ void XForm_OrbitalPath::apply(float _dt)
 	}
 }
 
-void XForm_OrbitalPath::edit()
+bool XForm_OrbitalPath::edit()
 {
+	bool ret = false;
+
 	ImGui::PushID(this);
 	Im3d::PushId(this);
 
-	ImGui::SliderFloat("Theta",     &m_theta,      0.0f, 1.0f);
+	ret |= ImGui::SliderFloat("Theta",     &m_theta,      0.0f, 1.0f);
 	ImGui::Spacing();		
-	ImGui::SliderAngle("Azimuth",   &m_azimuth,   -180.0f, 180.0f);
-	ImGui::SliderAngle("Elevation", &m_elevation, -180.0f, 180.0f);
-	ImGui::DragFloat  ("Radius",    &m_radius,     0.1f);
-	ImGui::DragFloat  ("Speed",     &m_speed,      0.01f);
+	ret |= ImGui::SliderAngle("Azimuth",   &m_azimuth,   -180.0f, 180.0f);
+	ret |= ImGui::SliderAngle("Elevation", &m_elevation, -180.0f, 180.0f);
+	ret |= ImGui::DragFloat  ("Radius",    &m_radius,     0.1f);
+	ret |= ImGui::DragFloat  ("Speed",     &m_speed,      0.01f);
 	
 	Im3d::PushAlpha(0.5f);
 	Im3d::PushSize(2.0f);
@@ -543,6 +573,8 @@ void XForm_OrbitalPath::edit()
 
 	Im3d::PopId();
 	ImGui::PopID();
+	
+	return ret;
 }
 
 bool XForm_OrbitalPath::serialize(Serializer& _serializer_)
@@ -633,8 +665,9 @@ struct XForm_VRGamepad: public XForm
 		m_node->setWorldMatrix(TransformationMatrix(m_position, RotationQuaternion(vec3(0.0f, 1.0f, 0.0f), m_orientation)));
 	}
 
-	void XForm_VRGamepad::edit()
+	bool XForm_VRGamepad::edit()
 	{
+		return false;
 	}
 
 	bool serialize(Serializer& _serializer_)
