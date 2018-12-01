@@ -152,13 +152,24 @@ public:
 	
 	const ShaderDesc& getDesc() const { return m_desc; }
 
-	// Set the local size (compute only) and reload.
+	// Set the local size (compute only) and recompile.
 	bool   setLocalSize(int _x, int _y, int _z);
 	ivec3  getLocalSize() const { return m_desc.getLocalSize(); }
 
 	// Given the width/height/depth of an output image, generate an appropriate dispatch size as ceil(texture size/group size).
 	ivec3  getDispatchSize(int _outWidth, int _outHeight, int _outDepth = 1);
 	ivec3  getDispatchSize(const Texture* _tx, int _level);
+
+	// Add (or set) _defines on all stages and recompile. _defines is a list of strings e.g. { "DEFINE1 1", "DEFINE2 0" }.
+	bool   addGlobalDefines(std::initializer_list<const char*> _defines);
+	template <typename T>
+	bool   addGlobalDefine(const char* _name, const T& _value)
+	{
+		for (int i = 0; i < internal::kShaderStageCount; ++i) {
+			m_desc.addDefine(internal::kShaderStages[i], _name, _value);
+		}
+		return loadEnabledStagesAndLinkProgram(false);
+	}
 
 private:
 	GLuint     m_handle;
@@ -179,6 +190,12 @@ private:
 
 	// Load the specified stage, return status.
 	bool loadStage(int _i, bool _loadSource = true);
+
+	// Call loadStage for all enabled stages, call linkProgram() if no compilation errors.
+	bool loadEnabledStagesAndLinkProgram(bool _loadSource = true);
+
+	// Link stages to generate the final program.
+	bool linkProgram();
 
 	// Set the name automatically based on desc.
 	void setAutoName();

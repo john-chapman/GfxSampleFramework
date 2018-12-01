@@ -746,71 +746,10 @@ void Shader::FileModified(const char* _path)
 
 bool Shader::reload()
 {
-	bool ret = true;
-
 	if (getName()[0] == '\0') {
 		setAutoName();
 	}
-
- // load stages
-	for (int i = 0; i < internal::kShaderStageCount; ++i) {
-		if (m_desc.m_stages[i].isEnabled()) {
-			ret &= loadStage(i);
-		}
-	}
-
- // attach/link stages
-	if (ret) {
-		GLuint handle;
-		glAssert(handle = glCreateProgram());
-		for (int i = 0; i < internal::kShaderStageCount; ++i) {
-			if (m_desc.m_stages[i].isEnabled()) {
-				glAssert(glAttachShader(handle, m_stageHandles[i]));
-			}
-		}
-
-		glAssert(glLinkProgram(handle));
-		
-		GLint linkStatus = GL_FALSE;
-		glAssert(glGetProgramiv(handle, GL_LINK_STATUS, &linkStatus));
-		if (linkStatus == GL_FALSE) {
-			APT_LOG_ERR("'%s' link failed", getName());
-			String<0> log("\tstages:\n");
-			for (int i = 0; i < internal::kShaderStageCount; ++i) {
-				const ShaderDesc::StageDesc& stage = m_desc.m_stages[i];
-				if (stage.isEnabled()) {
-					log.append((const char*)stage.getLogInfo());
-				}
-			}
-			const char* programLog = GetProgramInfoLog(handle);
-			log.append(programLog);
-			FreeProgramInfoLog(programLog);
-			APT_LOG("'%s' link error log:\n%s", getName(), (const char*)log);
-
-			glAssert(glDeleteProgram(handle));
-			if (m_handle == 0) {
-			 // handle is 0, meaning we didn't successfully load a shader previously
-				setState(State_Error);
-			}
-
-			ret = false;
-			//APT_ASSERT(false);
-
-		} else {
-			APT_LOG("'%s' link succeeded", getName());
-			if (m_handle != 0) {
-				glAssert(glDeleteProgram(m_handle));
-			}
-			m_handle = handle;
-			ret = true;
-			setState(State_Loaded);
-		}
-	} else {
-		if (m_handle == 0) {
-			setState(State_Error);
-		}
-	}
-	return ret;
+	return loadEnabledStagesAndLinkProgram();
 }
 
 
@@ -840,7 +779,7 @@ bool Shader::setLocalSize(int _x, int _y, int _z)
 {
 	APT_ASSERT(m_desc.hasStage(GL_COMPUTE_SHADER));
 	m_desc.setLocalSize(_x, _y, _z);
-	return loadStage(internal::ShaderStageToIndex(GL_COMPUTE_SHADER), false);
+	return loadEnabledStagesAndLinkProgram(false);
 }
 
 ivec3 Shader::getDispatchSize(int _outWidth, int _outHeight, int _outDepth)
@@ -854,6 +793,12 @@ ivec3 Shader::getDispatchSize(const Texture* _tx, int _level)
 	ivec3 localSize = getLocalSize();
 	ivec3 ret = APT_MAX(ivec3(_tx->getWidth() >> _level, _tx->getHeight() >> _level, _tx->getDepth() >> _level), ivec3(1));
 	return APT_MAX((ret + localSize - 1) / localSize, ivec3(1));
+}
+
+bool Shader::addGlobalDefines(std::initializer_list<const char*> _defines)
+{
+	m_desc.addGlobalDefines(_defines);
+	return loadEnabledStagesAndLinkProgram();
 }
 
 // PRIVATE
@@ -978,6 +923,74 @@ bool Shader::loadStage(int _i, bool _loadSource)
 	}
 	
 	return ret == GL_TRUE;
+}
+
+bool Shader::loadEnabledStagesAndLinkProgram(bool _loadSource)
+{
+	bool ret = true;
+	for (int i = 0; i < internal::kShaderStageCount; ++i) {
+		if (m_desc.m_stages[i].isEnabled()) {
+			if (!loadStage(i, _loadSource)) {
+				ret = false;
+				break;
+			}
+		}
+	}
+	if (ret) {
+		ret &= linkProgram();
+	}
+	return ret;
+}
+
+bool Shader::linkProgram()
+{
+	bool ret = true;
+
+	GLuint handle;
+	glAssert(handle = glCreateProgram());
+	for (int i = 0; i < internal::kShaderStageCount; ++i) {
+		if (m_desc.m_stages[i].isEnabled()) {
+			glAssert(glAttachShader(handle, m_stageHandles[i]));
+		}
+	}
+
+	glAssert(glLinkProgram(handle));
+		
+	GLint linkStatus = GL_FALSE;
+	glAssert(glGetProgramiv(handle, GL_LINK_STATUS, &linkStatus));
+	if (linkStatus == GL_FALSE) {
+		APT_LOG_ERR("'%s' link failed", getName());
+		String<0> log("\tstages:\n");
+		for (int i = 0; i < internal::kShaderStageCount; ++i) {
+			const ShaderDesc::StageDesc& stage = m_desc.m_stages[i];
+			if (stage.isEnabled()) {
+				log.append((const char*)stage.getLogInfo());
+			}
+		}
+		const char* programLog = GetProgramInfoLog(handle);
+		log.append(programLog);
+		FreeProgramInfoLog(programLog);
+		APT_LOG("'%s' link error log:\n%s", getName(), (const char*)log);
+
+		glAssert(glDeleteProgram(handle));
+		if (m_handle == 0) {
+		 // handle is 0, meaning we didn't successfully load a shader previously
+			setState(State_Error);
+		}
+
+		ret = false;
+		//APT_ASSERT(false);
+
+	} else {
+		APT_LOG("'%s' link succeeded", getName());
+		if (m_handle != 0) {
+			glAssert(glDeleteProgram(m_handle));
+		}
+		m_handle = handle;
+		ret = true;
+		setState(State_Loaded);
+	}
+	return ret;
 }
 
 void Shader::setAutoName()
