@@ -26,7 +26,8 @@ vec3 Envmap_GetCubeFaceUvw(in vec2 _uv, in int _face)
 }
 
 // Given a direction _dir, return the uv required to sample 
-vec2 Envmap_GetSphereUv(in vec3 _dir) {
+vec2 Envmap_GetSphereUv(in vec3 _dir) 
+{
 	float theta = atan(_dir.z, _dir.x) / kPi * 0.5 + 0.5;
 	float phi = 1.0 - acos(_dir.y) / kPi; // assume length(_dir) = 1
 	return vec2(theta, phi);
