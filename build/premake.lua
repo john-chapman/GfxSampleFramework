@@ -4,14 +4,14 @@ dofile "../extern/ApplicationTools/build/ApplicationTools_premake.lua"
 workspace "GfxSampleFramework"
 	location(_ACTION)
 	platforms { "Win64" }
-	flags { "StaticRuntime" }
 	filter { "platforms:Win64" }
-		system "windows"
-		architecture "x86_64"
+	system "windows"
+	architecture "x86_64"
 	filter {}
-
+	
 	rtti "Off"
 	exceptionhandling "Off"
+	staticruntime "On"
 	
 	configurations { "Debug", "Release" }
 	filter { "configurations:Debug" }
