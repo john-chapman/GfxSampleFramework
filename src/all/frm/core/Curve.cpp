@@ -561,34 +561,23 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 		ImGui::SetScrollX(scroll.x);
 		ImGui::SetScrollY(scroll.y);
 
-		if (io.KeyCtrl) {
-		 // zoom Y (value)
-			float wy = ImGui::GetWindowContentRegionMax().y;
-			float zoom = (io.MouseWheel * m_regionSize.y * 0.1f);
-			float before = (io.MousePos.y - ImGui::GetWindowPos().y) / wy * m_regionSize.y;
-			m_regionSize.y = APT_MAX(m_regionSize.y - zoom, 0.01f);
-			float after = (io.MousePos.y - ImGui::GetWindowPos().y) / wy * m_regionSize.y;
-			m_regionBeg.y += (before - after);
-
-		} else {
-		 // zoom X (time)
-			float wx = ImGui::GetWindowContentRegionMax().x;
-			float zoom = (io.MouseWheel * m_regionSize.x * 0.1f);
-			float before = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize.x;
-			m_regionSize.x = APT_MAX(m_regionSize.x - zoom, 0.01f);
-			float after = (io.MousePos.x - ImGui::GetWindowPos().x) / wx * m_regionSize.x;
-			m_regionBeg.x += (before - after);
-
+		if (io.MouseWheel != 0)
+		{
+			if (io.KeyCtrl) {
+			 // zoom Y (value)
+				float wy = ImGui::GetWindowContentRegionMax().y;
+				float zoom = io.MouseWheel * m_regionSize.y * 0.1f;
+				m_regionSize.y = APT_MAX(m_regionSize.y - zoom, 0.01f);
+				m_regionBeg.y += ((m_windowEnd.y - m_windowBeg.y) - (io.MousePos.y - m_windowBeg.y)) / (m_windowEnd.y - m_windowBeg.y) * zoom;
+			} else {
+			 // zoom X (time)
+				float wx = ImGui::GetWindowContentRegionMax().x;
+				float zoom = io.MouseWheel * m_regionSize.x * 0.1f;
+				m_regionSize.x = APT_MAX(m_regionSize.x - zoom, 0.01f);
+				m_regionBeg.x += (1 - ((m_windowEnd.x - m_windowBeg.x) - (io.MousePos.x - m_windowBeg.x)) / (m_windowEnd.x - m_windowBeg.x)) * zoom;
+			}
 		}
 		
-		vec2 zoom = vec2(0.0f);
-		if (io.KeyCtrl) {
-		 // zoom Y (value)
-			zoom.y += (io.MouseWheel * m_regionSize.y * 0.1f);
-		} else {
-		 // zoom X (time)
-			zoom.x += (io.MouseWheel * m_regionSize.x * 0.1f);
-		}
 		if (checkEditFlag(Flags_ShowRuler)) {
 		 // zoom X/Y via ruler drag
 			if (!m_isDragging && io.MouseDown[2] && isInside(mousePos, m_windowBeg, vec2(m_windowEnd.x, m_windowBeg.y + kSizeRuler))) {
@@ -598,20 +587,24 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 				m_dragRuler.y = true;
 			}
 			if (m_dragRuler.x) {
-				m_dragRuler.x = io.MouseDown[2];
-				zoom.x += io.MouseDelta.x * m_regionSize.x * 0.03f;
+			 // zoom X (time)
+				float zoom = io.MouseDelta.x * m_regionSize.x * 0.03f;
+				m_regionSize.x = APT_MAX(m_regionSize.x - zoom, 0.1f);
+				m_regionBeg.x += (1 - ((m_windowEnd.x - m_windowBeg.x) - (io.MousePos.x - m_windowBeg.x)) / (m_windowEnd.x - m_windowBeg.x)) * zoom;
+				if (!io.MouseDown[2]){
+					m_dragRuler.x = false;
+				}
 			}
 			if (m_dragRuler.y) {
-				m_dragRuler.y = io.MouseDown[2];
-				zoom.y += io.MouseDelta.y * m_regionSize.y * 0.03f;
+			 // zoom Y (value)
+				float zoom = - io.MouseDelta.y * m_regionSize.y * 0.03f;
+				m_regionSize.y = APT_MAX(m_regionSize.y - zoom, 0.1f);
+				m_regionBeg.y += ((m_windowEnd.y - m_windowBeg.y) - (io.MousePos.y - m_windowBeg.y)) / (m_windowEnd.y - m_windowBeg.y) * zoom;
+				if (!io.MouseDown[2]) {
+					m_dragRuler.y = false;
+				}
 			}
 		}
-
-		vec2 before = (vec2(io.MousePos) - vec2(ImGui::GetWindowPos())) / m_windowSize * m_regionSize;
-		m_regionSize.x = APT_MAX(m_regionSize.x - zoom.x, 0.1f);
-		m_regionSize.y = APT_MAX(m_regionSize.y - zoom.y, 0.1f);
-		vec2 after = (vec2(io.MousePos) - vec2(ImGui::GetWindowPos())) / m_windowSize * m_regionSize;
-		m_regionBeg += (before - after);
 
 	 // pan
 		if (!any(m_dragRuler) && io.MouseDown[2]) {
