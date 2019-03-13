@@ -55,6 +55,8 @@ public:
 		vec2 m_value;
 		vec2 m_out;
 
+        bool m_free_handles;
+
 		vec2& operator[](Component _component) { return (&m_in)[_component]; }
 		vec2& operator[](int _component)       { return (&m_in)[_component]; }
 	};
