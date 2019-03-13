@@ -171,6 +171,7 @@ public:
 	void selectCurve(const Curve* _curve_);
 	void reset();
 	bool drawEdit(const vec2& _sizePixels, float _t, int _flags);
+	void fit() { fit(0); fit(1); }
 
 private:
 
