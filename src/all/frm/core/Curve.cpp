@@ -98,6 +98,7 @@ int Curve::insert(float _valueX, float _valueY)
 	int ret = findInsertIndex(_valueX);
 	Endpoint ep;
 	ep.m_value = vec2(_valueX, _valueY);
+	ep.m_free_handles = false;
 
  // tangent estimation
 	if (ret > 0 && ret < (int)m_bezier.size()) {
@@ -170,13 +171,14 @@ int Curve::move(int _endpoint, Component _component, const vec2& _value)
 			ep[_component].x = APT_MAX(ep[_component].x, ep[Component_Value].x);
 		}
 
-	 // CPs are locked so we must update the other
-	 // \todo unlocked CPs?
-		Component other = _component == Component_In ? Component_Out : Component_In;
-		int i = other == Component_In ? 0 : 1;
-		vec2 v = ep[Component_Value] - ep[_component];
-		ep[other] = ep[Component_Value] + v;
-
+		if (!ep.m_free_handles)
+		{
+			// CPs are locked so we must update the other
+			Component other = _component == Component_In ? Component_Out : Component_In;
+			int i = other == Component_In ? 0 : 1;
+			vec2 v = ep[Component_Value] - ep[_component];
+			ep[other] = ep[Component_Value] + v;
+		}
 	}
 
 	updateExtentsAndConstrain(ret);
@@ -653,9 +655,15 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 		}
 	ImGui::PopClipRect();
 
-	if (!m_editEndpoint && mouseInWindow && windowActive && io.MouseClicked[1]) {
+	Curve& curve = *m_curves[m_selectedCurve];
+
+	if (!m_editEndpoint && mouseInWindow && windowActive && io.MouseClicked[1]
+			   && m_selectedEndpoint != -1 && isInside(mousePos, curveToWindow(curve.m_bezier[m_selectedEndpoint].m_value), kSizeSelectPoint)) {
+		ImGui::OpenPopup("EndpointEditorPopup");
+	} else if (!m_editEndpoint && mouseInWindow && windowActive && io.MouseClicked[1]) {
 		ImGui::OpenPopup("CurveEditorPopup");
 	}
+
 	if (ImGui::BeginPopup("CurveEditorPopup")) {
 		if (ImGui::MenuItem("Fit")) {
 			fit(0);
@@ -670,7 +678,6 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 		if (m_selectedCurve != -1) {
 			ImGui::Separator();
 
-			Curve& curve = *m_curves[m_selectedCurve];
 			if (ImGui::BeginMenu("Wrap")) {
 				Curve::Wrap newWrapMode = curve.m_wrap;
 				for (int i = 0; i < Curve::Wrap_Count; ++i) {
@@ -701,9 +708,46 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 				}
 				ImGui::EndMenu();
 			}
-		}		
-
+		}
 		ImGui::EndPopup();
+	}
+	
+	bool deleteEndpoint = false;
+	if (ImGui::BeginPopup("EndpointEditorPopup")) {
+		Curve::Endpoint& ep = curve.m_bezier[m_selectedEndpoint];
+		if (ImGui::MenuItem("Free handles", nullptr, ep.m_free_handles)) {
+			ep.m_free_handles = true;
+		}
+		if (ImGui::MenuItem("Constrained handles", nullptr, !ep.m_free_handles)) {
+			ep.m_free_handles = false;
+			curve.move(m_selectedEndpoint, Curve::Component_Out, ep.m_out);
+		}
+		
+		ImGui::Separator();
+
+		vec2 p = curve.m_bezier[m_selectedEndpoint].m_value;
+		ImGui::PushItemWidth(128.0f);
+		ret |= ImGui::DragFloat("X", &p.x, m_regionSize.x * 0.01f);
+		ImGui::SameLine();
+		ret |= ImGui::DragFloat("Y", &p.y, m_regionSize.y * 0.01f);
+		m_selectedEndpoint = curve.move(m_selectedEndpoint, Curve::Component_Value, p);
+		ImGui::PopItemWidth();
+
+		if (ImGui::Button("Delete")) {
+			deleteEndpoint = true;
+			m_editEndpoint = false;
+		}
+
+		if (!ImGui::IsWindowFocused()) {
+			m_editEndpoint = false;
+		}
+		ImGui::EndPopup();
+	}
+
+	if (deleteEndpoint) {
+		curve.erase(m_selectedEndpoint);
+		m_selectedEndpoint = Curve::kInvalidIndex;
+		ret = true;
 	}
 
 	return ret;
@@ -838,48 +882,7 @@ bool CurveEditor::editCurve()
 	}
 
 	if (m_selectedEndpoint != Curve::kInvalidIndex) {
-		bool deleteEndpoint = false;
-
 		if (ImGui::IsKeyPressed(Keyboard::Key_Delete)) {
-			deleteEndpoint = true;
-
-		} else {
-			ImGui::PushID(&curve.m_bezier[m_selectedEndpoint]);
-				if (!m_editEndpoint && io.MouseClicked[1] && isInside(mousePos, curveToWindow(curve.m_bezier[m_selectedEndpoint].m_value), kSizeSelectPoint)) {
-					m_editEndpoint = true;
-					m_dragOffset = io.MousePos; // store the mouse pos for window positioning
-				}
-				if (m_editEndpoint) {
-					ImGui::SetNextWindowPos(m_dragOffset);
-					ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetStyleColorVec4(ImGuiCol_PopupBg));
-					ImGui::Begin("EndpointEdit", nullptr,
-						ImGuiWindowFlags_NoTitleBar |
-						ImGuiWindowFlags_AlwaysAutoResize |
-						ImGuiWindowFlags_NoSavedSettings
-						);
-						vec2 p = curve.m_bezier[m_selectedEndpoint].m_value;
-						ImGui::PushItemWidth(128.0f);
-						ret |= ImGui::DragFloat("X", &p.x, m_regionSize.x * 0.01f);
-						ImGui::SameLine();
-						ret |= ImGui::DragFloat("Y", &p.y, m_regionSize.y * 0.01f);
-						m_selectedEndpoint = curve.move(m_selectedEndpoint, Curve::Component_Value, p);
-						ImGui::PopItemWidth();
-						
-						if (ImGui::Button("Delete")) {
-							deleteEndpoint = true;
-							m_editEndpoint = false;
-						}
-
-						if (!ImGui::IsWindowFocused()) {
-							m_editEndpoint = false;
-						}
-					ImGui::End();
-					ImGui::PopStyleColor();
-				}
-			ImGui::PopID();
-		}
-
-		if (deleteEndpoint) {
 			curve.erase(m_selectedEndpoint);
 			m_selectedEndpoint = Curve::kInvalidIndex;
 			ret = true;
@@ -1045,6 +1048,7 @@ void CurveEditor::drawCurve(int _curveIndex)
 
 	for (int i = 0, n = (int)curve.m_bezier.size(); i < n; ++i) {
 		Curve::Endpoint& ep = curve.m_bezier[i];
+		vec2 p = curveToWindow(ep.m_value);
 		vec2 pin = curveToWindow(ep.m_in);
 		vec2 pout = curveToWindow(ep.m_out);
 		if (pin.x > m_windowEnd.x && pout.x > m_windowEnd.x) {
@@ -1056,7 +1060,8 @@ void CurveEditor::drawCurve(int _curveIndex)
 		ImU32 col = i == m_selectedEndpoint ? kColorControlPoint : curveColor;
 		drawList->AddCircleFilled(pin, kSizeControlPoint, col, 8);
 		drawList->AddCircleFilled(pout, kSizeControlPoint, col, 8);
-		drawList->AddLine(pin, pout, col, 1.0f);
+		drawList->AddLine(pin, p, col, 1.0f);
+		drawList->AddLine(p, pout, col, 1.0f);
 
 		#if Curve_DEBUG
 		 // visualize CP constraint
