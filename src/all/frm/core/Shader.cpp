@@ -560,7 +560,7 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 
  // add to dependencies (keep depCount as the file number for the #line pragma)
 	int depCount = (int)m_dependencies.size();
-	m_dependencies.push_back(_path);
+	m_dependencies.push_back(f.getPath()); // use f.getPath() to include the root - this is required for reload to work correctly
 
  // line pragma starts new file
 	m_source.appendf("// -------- %s\n", _path);

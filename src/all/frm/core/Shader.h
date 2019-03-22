@@ -5,7 +5,9 @@
 #include <frm/core/math.h>
 #include <frm/core/Resource.h>
 
+#include <apt/FileSystem.h>
 #include <apt/String.h>
+
 #include <EASTL/vector.h>
 #include <EASTL/vector_map.h>
 
@@ -95,10 +97,10 @@ private:
 	struct StageDesc
 	{
 		GLenum                      m_stage;
-		Str                         m_path;         // Only if from a file.
+		apt::PathStr                m_path;         // Only if from a file.
 		apt::String<0>              m_source;       // Excluding defines or virtual includes.
 		eastl::vector_map<Str, Str> m_defines;      // Name, value.	
-		eastl::vector<Str>          m_dependencies;
+		eastl::vector<apt::PathStr> m_dependencies;
 
 		bool isEnabled() const;
 		bool hasDependency(const char* _path) const;
