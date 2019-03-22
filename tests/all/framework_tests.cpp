@@ -827,7 +827,7 @@ public:
 				shMinMax = Shader::CreateCs("shaders/MinMax_cs.glsl",      8, 8, 1);
 				shNoise  = Shader::CreateCs("shaders/Noise/Noise_cs.glsl", 8, 8, 1, { "NOISE Noise_fBm" });
 
-				txNoise  = Texture::Create2d(512, 512, GL_RG32F, 99);
+				txNoise  = Texture::Create2d(512, 512, GL_RGBA8, 99);
 				txNoise->setName("txNoise");
 				txNoise->setWrap(GL_REPEAT);
 			}

@@ -1,7 +1,17 @@
 #ifndef Noise_glsl
 #define Noise_glsl
 
-// \todo the _Iq variants exhibit a lot of precision artefacts as _P increases, potential fix is to pass the integer and fraction coordinates separately
+TODO
+// webgl simplex noise doesnt give normalized values? need to multiply by 0.6? TEST this
+
+#if 0
+ // suffers precision artefacts as the magnitude of _P increases
+	#define Noise_Gradient(_P) Noise_Gradient_Iq(_P)
+#else
+ // more robust as the magniture of _P increases
+	#include "shaders/webgl-noise.glsl"
+	#define Noise_Gradient(_P) _webglnoise_snoise(_P)
+#endif
 
 // https://www.shadertoy.com/view/XdXGW8
 vec2 _Noise_Hash2(in vec2 _P)
@@ -46,32 +56,54 @@ float Noise_Gradient_Iq(in vec3 _P)
 	                   dot(_Noise_Hash3(i + vec3(1.0, 1.0, 1.0)), f - vec3(1.0, 1.0, 1.0)), u.x), u.y), u.z);
 }
 
-#define Noise_Gradient(_P) Noise_Gradient_Iq(_P)
-
 // https://code.google.com/archive/p/fractalterraingeneration/wikis/Fractional_Brownian_Motion.wiki
 // Use _lacunarity = 2, _gain = .5 for the standard 1/f noise.
-float Noise_fBm_Base(in vec2 _P, in float _freq, in float _lacunarity, in float _gain, in int _layers) // in [-1,1]
-{
-	float ret  = 0.0;
-	float ampl = 1.0;
-	for (int i = 0; i < _layers; ++i) {
-		ret   += Noise_Gradient(_P * _freq) * ampl;
-		_freq *= _lacunarity;
-		ampl  *= _gain;
+#define _Noise_fBm_pre \
+	float ret  = 0.0; \
+	float ampl = 1.0; \
+	for (int i = 0; i < _layers; ++i) \
+	{
+
+#define _Noise_fBm_post \
+		_frequency *= _lacunarity; \
+		ampl  *= _gain; \
 	}
+float Noise_fBm(in vec2 _P, in float _frequency, in float _lacunarity, in float _gain, in int _layers) // in [-1,1]
+{
+	_Noise_fBm_pre
+		ret += Noise_Gradient(_P * _frequency) * ampl;
+	_Noise_fBm_post
+	return ret * 0.5 + 0.5;
+}
+float Noise_Turbulence(in vec2 _P, in float _frequency, in float _lacunarity, in float _gain, in int _layers) // in [-1,1]
+{
+	_Noise_fBm_pre
+		ret += abs(Noise_Gradient(_P * _frequency)) * ampl;
+	_Noise_fBm_post
 	return ret;
 }
-float Noise_fBm(in vec2 _P, in float _freq, in float _lacunarity, in float _gain, in int _layers) // in [0,1]
+float Noise_Ridge(in vec2 _P, in float _frequency, in float _lacunarity, in float _gain, in int _layers) // in [-1,1]
 {
-	return Noise_fBm_Base(_P, _freq, _lacunarity, _gain, _layers) * 0.5 + 0.5;
+	return 1.0 - Noise_Turbulence(_P, _frequency, _lacunarity, _gain, _layers);
 }
-float Noise_Turbulence(in vec2 _P, in float _freq, in float _lacunarity, in float _gain, in int _layers) // in [0,1]
+
+float Noise_fBm(in vec3 _P, in float _frequency, in float _lacunarity, in float _gain, in int _layers) // in [-1,1]
 {
-	return abs(Noise_fBm_Base(_P, _freq, _lacunarity, _gain, _layers));
+	_Noise_fBm_pre
+		ret += Noise_Gradient(_P * _frequency) * ampl;
+	_Noise_fBm_post
+	return ret * 0.5 + 0.5;
 }
-float Noise_Ridge(in vec2 _P, in float _freq, in float _lacunarity, in float _gain, in int _layers) // in [0,1]
+float Noise_Turbulence(in vec3 _P, in float _frequency, in float _lacunarity, in float _gain, in int _layers) // in [-1,1]
 {
-	return 1.0 - abs(Noise_fBm_Base(_P, _freq, _lacunarity, _gain, _layers));
+	_Noise_fBm_pre
+		ret += abs(Noise_Gradient(_P * _frequency)) * ampl;
+	_Noise_fBm_post
+	return ret;
+}
+float Noise_Ridge(in vec3 _P, in float _frequency, in float _lacunarity, in float _gain, in int _layers) // in [-1,1]
+{
+	return 1.0 - Noise_Turbulence(_P, _frequency, _lacunarity, _gain, _layers);
 }
 
 // Interleaved gradient noise.
