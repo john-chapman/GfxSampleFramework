@@ -8,6 +8,7 @@
 #include <apt/hash.h>
 #include <apt/log.h>
 #include <apt/math.h>
+#include <apt/memory.h>
 #include <apt/FileSystem.h>
 #include <apt/String.h>
 #include <apt/TextParser.h>
@@ -690,7 +691,7 @@ Shader* Shader::Create(const ShaderDesc& _desc)
 	Id id = _desc.getHash();
 	Shader* ret = Find(id);
 	if (!ret) {
-		ret = new Shader(id, ""); // "" forces an auto generated name during reload()
+		ret = APT_NEW(Shader(id, "")); // "" forces an auto generated name during reload()
 		ret->m_desc = _desc;
 	}
 	Use(ret);
@@ -730,7 +731,12 @@ Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _loc
 
 void Shader::Destroy(Shader*& _inst_)
 {
-	delete _inst_;
+	auto ctx = GlContext::GetCurrent();
+	if (ctx && ctx->getShader() == _inst_) {
+		ctx->setShader(nullptr);
+	}
+	APT_DELETE(_inst_);
+	_inst_ = nullptr;
 }
 
 void Shader::FileModified(const char* _path)
@@ -807,13 +813,13 @@ const char* Shader::GetStageInfoLog(GLuint _handle)
 {
 	GLint len;
 	glAssert(glGetShaderiv(_handle, GL_INFO_LOG_LENGTH, &len));
-	char* ret = new GLchar[len];
+	char* ret = APT_NEW_ARRAY(GLchar, len);
 	glAssert(glGetShaderInfoLog(_handle, len, 0, ret));
 	return ret;
 }
 void Shader::FreeStageInfoLog(const char*& _log_)
 {
-	delete[] _log_;
+	APT_DELETE_ARRAY(_log_);
 	_log_ = "";
 }
 
@@ -821,14 +827,14 @@ const char* Shader::GetProgramInfoLog(GLuint _handle)
 {
 	GLint len;
 	glAssert(glGetProgramiv(_handle, GL_INFO_LOG_LENGTH, &len));
-	GLchar* ret = new GLchar[len];
+	GLchar* ret = APT_NEW_ARRAY(GLchar, len);
 	glAssert(glGetProgramInfoLog(_handle, len, 0, ret));
 	return ret;
 
 }
 void Shader::FreeProgramInfoLog(const char*& _log_)
 {
-	delete[] _log_;
+	APT_DELETE_ARRAY(_log_);
 	_log_ = "";
 }
 
