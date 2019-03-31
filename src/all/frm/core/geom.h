@@ -267,7 +267,8 @@ float        Distance2(const AlignedBox& _box, const vec3& _point);
 inline float Distance (const AlignedBox& _box, const vec3& _point)                   { return sqrt(Distance2(_box, _point)); }
 
 // Line-primitive intersection.
-// t0_/t1_ return the first/second intersections along the line relative to the origin (|t0_| < |t1_|).
+// t0_,t1_ return the first,second intersections along the line relative to the origin (|t0_| < |t1_|).
+// If no intersection is found then t0_,t1_ are unmodified.
 // Intersects() may be cheaper than Intersect() if t0_/t1_ aren't required.
 bool Intersects(const Line& _line, const Sphere& _sphere);
 bool Intersect (const Line& _line, const Sphere& _sphere, float& t0_, float& t1_);
