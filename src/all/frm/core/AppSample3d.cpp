@@ -26,7 +26,7 @@ bool AppSample3d::init(const apt::ArgList& _args)
 	if (!AppSample::init(_args)) {
 		return false;
 	}
-	if (!Im3d_Init()) {
+	if (!Im3d_Init(this)) {
 		return false;
 	}
 
@@ -52,7 +52,7 @@ void AppSample3d::shutdown()
 	Scene::SetCurrent(nullptr);
 	delete m_scene;
 
-	Im3d_Shutdown();
+	Im3d_Shutdown(this);
 	AppSample::shutdown();
 }
 
@@ -152,7 +152,8 @@ bool AppSample3d::update()
 
 void AppSample3d::draw()
 {
-	{	PROFILER_MARKER("#AppSample3d::draw");
+	if (!m_hiddenMode) {	
+		PROFILER_MARKER("#AppSample3d::draw");
 		getGlContext()->setFramebufferAndViewport(getDefaultFramebuffer());
 		Im3d::Draw();
 	}
@@ -312,8 +313,14 @@ void AppSample3d::drawMainMenuBar()
 static Shader *s_shIm3dPoints, *s_shIm3dLines, *s_shIm3dTriangles;
 static Mesh   *s_msIm3dPoints, *s_msIm3dLines, *s_msIm3dTriangles;
 
-bool AppSample3d::Im3d_Init()
+bool AppSample3d::Im3d_Init(AppSample3d* _app)
 {
+	Im3d::GetAppData().drawCallback = Im3d_Draw;
+
+	if (_app->m_hiddenMode) {
+		return true;
+	}
+
 	s_shIm3dPoints = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", { "POINTS" });
 	s_shIm3dPoints->setName("#Im3d_POINTS");
 	s_shIm3dLines = Shader::CreateVsGsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_gs.glsl", "shaders/Im3d_fs.glsl", { "LINES" });
@@ -321,7 +328,6 @@ bool AppSample3d::Im3d_Init()
 	s_shIm3dLines->setName("#Im3d_LINES");
 	s_shIm3dTriangles = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", { "TRIANGLES" });
 	s_shIm3dTriangles->setName("#Im3d_TRIANGLES");
-
 
 	MeshDesc meshDesc(MeshDesc::Primitive_Points);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 4);
@@ -333,12 +339,10 @@ bool AppSample3d::Im3d_Init()
 	meshDesc.setPrimitive(MeshDesc::Primitive_Triangles);
 	s_msIm3dTriangles= Mesh::Create(meshDesc);
 
-	Im3d::GetAppData().drawCallback = Im3d_Draw;
-
 	return s_shIm3dPoints && s_msIm3dPoints;
 }
 
-void AppSample3d::Im3d_Shutdown()
+void AppSample3d::Im3d_Shutdown(AppSample3d* _app)
 {
 	Shader::Release(s_shIm3dPoints);
 	Shader::Release(s_shIm3dLines);

@@ -80,7 +80,9 @@ bool AppSample::init(const apt::ArgList& _args)
 	if (!App::init(_args)) {
 		return false;
 	}
-	
+
+	m_hiddenMode = _args.find("hidden") != nullptr;
+
 	FileSystem::AddRoot("");
 	m_rootCommon = FileSystem::AddRoot("common");
 	m_rootApp    = FileSystem::AddRoot((const char*)m_name);
@@ -96,7 +98,7 @@ bool AppSample::init(const apt::ArgList& _args)
  	m_propsPath.setf("%s.json", (const char*)m_name);
 	readProps((const char*)m_propsPath);
 
-	ivec2 windowSize     = *m_props.findProperty("WindowSize")->asInt2();
+	ivec2 windowSize     = m_hiddenMode ? ivec2(1) : *m_props.findProperty("WindowSize")->asInt2();
 	m_window             = Window::Create(windowSize.x, windowSize.y, (const char*)m_name);
 	m_windowSize         = ivec2(m_window->getWidth(), m_window->getHeight());
 		
@@ -112,7 +114,7 @@ bool AppSample::init(const apt::ArgList& _args)
 
 	m_imguiIniPath       = FileSystem::MakePath("imgui.ini");
 	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
-	if (!ImGui_Init()) {
+	if (!ImGui_Init(this)) {
 		return false;
 	}
 
@@ -144,27 +146,29 @@ bool AppSample::init(const apt::ArgList& _args)
 	cb.m_OnChar          = ImGui_OnChar;
 	m_window->setCallbacks(cb);
 
-	m_window->show();
-
- // splash screen
-	APT_VERIFY(AppSample::update());
-	m_glContext->setFramebufferAndViewport(0);
-	glAssert(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
-	glAssert(glClear(GL_COLOR_BUFFER_BIT));
-	ImGui::SetNextWindowSize(ImVec2(sizeof("Loading") * ImGui::GetFontSize(), ImGui::GetFrameHeightWithSpacing()));
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-	ImGui::Begin(
-		"Loading", 0, 0
-		| ImGuiWindowFlags_NoTitleBar
-		| ImGuiWindowFlags_NoResize
-		| ImGuiWindowFlags_NoMove
-		| ImGuiWindowFlags_NoSavedSettings
-		| ImGuiWindowFlags_AlwaysAutoResize
-		);
-	ImGui::Text("Loading");
-	ImGui::End();
-	ImGui::PopStyleColor();
-	AppSample::draw();
+	if (!m_hiddenMode) {
+		m_window->show();
+	
+	 // splash screen
+		APT_VERIFY(AppSample::update());
+		m_glContext->setFramebufferAndViewport(0);
+		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+		glAssert(glClear(GL_COLOR_BUFFER_BIT));
+		ImGui::SetNextWindowSize(ImVec2(sizeof("Loading") * ImGui::GetFontSize(), ImGui::GetFrameHeightWithSpacing()));
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+		ImGui::Begin(
+			"Loading", 0, 0
+			| ImGuiWindowFlags_NoTitleBar
+			| ImGuiWindowFlags_NoResize
+			| ImGuiWindowFlags_NoMove
+			| ImGuiWindowFlags_NoSavedSettings
+			| ImGuiWindowFlags_AlwaysAutoResize
+			);
+		ImGui::Text("Loading");
+		ImGui::End();
+		ImGui::PopStyleColor();
+		AppSample::draw();
+	}
 
 	return true;
 }
@@ -174,7 +178,7 @@ void AppSample::shutdown()
 	FileSystem::EndNotifications(FileSystem::GetRoot(m_rootCommon));
 	FileSystem::EndNotifications(FileSystem::GetRoot(m_rootApp));
 
-	ImGui_Shutdown();
+	ImGui_Shutdown(this);
 	
 	if (m_glContext) {
 		GlContext::Destroy(m_glContext);
@@ -287,11 +291,15 @@ bool AppSample::update()
 
 void AppSample::draw()
 {
-	{	PROFILER_MARKER("#AppSample::draw");
+	if (m_hiddenMode) {
+		ImGui::EndFrame();
+	} else {
+		PROFILER_MARKER("#AppSample::draw");
 		m_glContext->setFramebufferAndViewport(m_fbDefault);
 		ImGui::GetIO().UserData = m_glContext;
 		ImGui::Render();
 	}
+
 	{	PROFILER_MARKER("#VSYNC");
 		m_glContext->setFramebufferAndViewport(0); // this is required if you want to use e.g. fraps
 		m_glContext->present();
@@ -509,13 +517,21 @@ static Texture*    g_txImGui;
 static TextureView g_txViewImGui; // default texture view for the ImGui texture
 static Texture*    g_txRadar;
 
-bool AppSample::ImGui_Init()
+bool AppSample::ImGui_Init(AppSample* _app)
 {
 	auto  app = AppSample::GetCurrent();
 	auto& io  = ImGui::GetIO();
 
 	io.MemAllocFn = apt::internal::malloc;
 	io.MemFreeFn  = apt::internal::free;
+
+	if (_app->m_hiddenMode) {
+		unsigned char* buf;
+		int txX, txY;
+		io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
+		io.Fonts->TexID = nullptr;
+		return true;
+	}
 	
  // mesh
  	if (g_msImGui) {
@@ -680,7 +696,7 @@ void AppSample::ImGui_InitStyle()
 		);
 }
 
-void AppSample::ImGui_Shutdown()
+void AppSample::ImGui_Shutdown(AppSample* _app)
 {
 	for (int i = 0; i < internal::kTextureTargetCount; ++i) {
 		Shader::Release(g_shTextureView[i]);

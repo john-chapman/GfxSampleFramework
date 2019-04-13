@@ -49,8 +49,8 @@ private:
 
 	void drawMainMenuBar();
 
-	static bool Im3d_Init();
-	static void Im3d_Shutdown();
+	static bool Im3d_Init(AppSample3d* _app);
+	static void Im3d_Shutdown(AppSample3d* _app);
 	static void Im3d_Update(AppSample3d* _app);
 	static void Im3d_Draw(const Im3d::DrawList& _drawList);
 	
