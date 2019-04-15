@@ -75,4 +75,6 @@ namespace ImGui
 	// Begin/end an invisible window at origin with the specified size (useful for drawing custom overlays).
 	bool BeginInvisible(const char* name, frm::vec2 origin, frm::vec2 size, bool* p_open = NULL, int flags = 0);
 	void EndInvisible();
+
+	bool ButtonColored(const char* label, const frm::vec4& color, const frm::vec2& size = frm::vec2(0, 0));
 }
