@@ -4,6 +4,8 @@
 #include <frm/core/GlContext.h>
 #include <frm/core/Texture.h>
 
+#include <apt/memory.h>
+
 #include <cstdarg>
 #include <cstring>
 
@@ -36,13 +38,13 @@ static const GLenum kAttachmentEnums[] =
 
 Framebuffer* Framebuffer::Create()
 {
-	Framebuffer* ret = new Framebuffer();
+	Framebuffer* ret = APT_NEW(Framebuffer);
 	return ret;
 }
 
 Framebuffer* Framebuffer::Create(int _count, ...)
 {
-	Framebuffer* ret = new Framebuffer();
+	Framebuffer* ret = APT_NEW(Framebuffer);
 
 	va_list args;
 	va_start(args, _count);
@@ -75,7 +77,11 @@ Framebuffer* Framebuffer::Create(int _count, ...)
 
 void Framebuffer::Destroy(Framebuffer*& _inst_)
 {
-	delete _inst_;
+	auto ctx = GlContext::GetCurrent();
+	if (ctx && _inst_ == ctx->getFramebuffer()) {
+		ctx->setFramebuffer(nullptr);
+	}
+	APT_DELETE(_inst_);
 	_inst_ = 0;
 }
 
