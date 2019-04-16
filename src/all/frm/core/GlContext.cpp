@@ -14,13 +14,11 @@
 
 #include <apt/log.h>
 
-#ifdef APT_DEBUG
- // Debug options, additional validation, troubleshooting etc.
-	#define GlContext_VALIDATE_MESH_SHADER_ON_DRAW     0
-	#define GlContext_ACTUALLY_CLEAR_BUFFER_BINDINGS   0
-	#define GlContext_ACTUALLY_CLEAR_TEXTURE_BINDINGS  0
-	#define GlContext_ACTUALLY_CLEAR_IMAGE_BINDINGS    0
-#endif
+// Debug options, additional validation, troubleshooting etc.
+#define GlContext_VALIDATE_MESH_SHADER_ON_DRAW     0
+#define GlContext_ACTUALLY_CLEAR_BUFFER_BINDINGS   0
+#define GlContext_ACTUALLY_CLEAR_TEXTURE_BINDINGS  0
+#define GlContext_ACTUALLY_CLEAR_IMAGE_BINDINGS    0
 
 using namespace frm;
 using namespace apt;
