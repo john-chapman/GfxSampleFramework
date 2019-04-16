@@ -552,6 +552,7 @@ Texture* Texture::Create(Texture* _tx, bool _copyData)
 				APT_ASSERT(false);
 		};
 	}
+	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT));
 	ctx->setFramebuffer(fbRestore);
 	Framebuffer::Destroy(fbSrc);
 	Release(_tx);
@@ -646,6 +647,8 @@ void Texture::FileModified(const char* _path)
 Image* Texture::CreateImage(const Texture* _tx)
 {
 	APT_ASSERT(_tx->getState() == State_Loaded);
+
+	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT));
 
 	Image::Layout layout;
 	DataType dataType;
@@ -950,6 +953,8 @@ void Texture::setSubData(
 				return;
 		};
 	}
+
+	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT));
 }
 
 void Texture::generateMipmap()
@@ -1403,6 +1408,7 @@ bool Texture::loadImage(const Image& _img)
 		}
 	}
 	updateParams();
+	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT));
 
 	setWrap(GL_REPEAT);
 	setMagFilter(GL_LINEAR);

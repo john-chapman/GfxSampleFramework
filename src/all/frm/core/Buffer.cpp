@@ -26,6 +26,7 @@ void Buffer::setData(GLsizeiptr _size, GLvoid* _data, GLintptr _offset)
 	APT_ASSERT(m_flags & GL_DYNAMIC_STORAGE_BIT);
 	APT_ASSERT(_offset + _size <= m_size);
 	glAssert(glNamedBufferSubData(m_handle, _offset, _size, _data));
+	glAssert(glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT));
 }
 
 template <>
@@ -67,6 +68,7 @@ void Buffer::unmap()
 	APT_ASSERT(m_handle);
 	APT_ASSERT(m_isMapped);
 	glAssert(glUnmapNamedBuffer(m_handle));
+	glAssert(glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT));
 	m_isMapped = false;
 }
 
