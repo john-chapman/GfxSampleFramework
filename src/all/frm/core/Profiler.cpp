@@ -500,7 +500,8 @@ void Profiler::PushGpuMarker(const char* _name)
 		#if Profiler_ALWAYS_GEN_QUERIES
 			glAssert(glGenQueries(1, &g_GpuMarkerStartQueries[g_GpuData.getMarkerIndex(&marker)]));
 		#endif
-		glAssert(glQueryCounter(g_GpuMarkerStartQueries[g_GpuData.getMarkerIndex(&marker)], GL_TIMESTAMP));
+		auto query = g_GpuMarkerStartQueries[g_GpuData.getMarkerIndex(&marker)];
+		glAssert(glQueryCounter(query, GL_TIMESTAMP));
 	}
 }
 
@@ -511,7 +512,8 @@ void Profiler::PopGpuMarker(const char* _name)
 		#if Profiler_ALWAYS_GEN_QUERIES
 			glAssert(glGenQueries(1, &g_GpuMarkerStopQueries[g_GpuData.getMarkerIndex(&marker)]));
 		#endif
-		glAssert(glQueryCounter(g_GpuMarkerStopQueries[g_GpuData.getMarkerIndex(&marker)], GL_TIMESTAMP));
+		auto query = g_GpuMarkerStopQueries[g_GpuData.getMarkerIndex(&marker)];
+		glAssert(glQueryCounter(query, GL_TIMESTAMP));
 	}
 }
 

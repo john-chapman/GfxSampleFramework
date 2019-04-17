@@ -146,11 +146,12 @@ bool AppSample::init(const apt::ArgList& _args)
 	cb.m_OnChar          = ImGui_OnChar;
 	m_window->setCallbacks(cb);
 
+	APT_VERIFY(AppSample::update());
+
 	if (!m_hiddenMode) {
 		m_window->show();
 	
 	 // splash screen
-		APT_VERIFY(AppSample::update());
 		m_glContext->setFramebufferAndViewport(0);
 		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
 		glAssert(glClear(GL_COLOR_BUFFER_BIT));
@@ -196,7 +197,13 @@ void AppSample::shutdown()
 
 bool AppSample::update()
 {
-	App::update();
+	if (!App::update()) {
+		return false;
+	}
+
+	if (m_hiddenMode) {
+		return true;
+	}
 
 	PROFILER_MARKER_CPU("#AppSample::update");
 	if (!m_window->hasFocus()) {

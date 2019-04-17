@@ -318,7 +318,6 @@ void GlContext::setUniformArray<mat4>(const char* _name, const mat4* _val, GLsiz
 
 void GlContext::setMesh(const Mesh* _mesh, int _submeshId)
 {
-	APT_ASSERT(_submeshId < _mesh->getSubmeshCount());
 	m_currentSubmesh = _submeshId;
 	if (_mesh == m_currentMesh) {
 		return;
@@ -326,6 +325,7 @@ void GlContext::setMesh(const Mesh* _mesh, int _submeshId)
 	if (!_mesh || _mesh->getState() != Mesh::State_Loaded) {
 		glAssert(glBindVertexArray(0));
 	} else {
+		APT_ASSERT(_submeshId < _mesh->getSubmeshCount());
 		glAssert(glBindVertexArray(_mesh->getVertexArrayHandle()));
 	}
 	m_currentMesh = _mesh;
