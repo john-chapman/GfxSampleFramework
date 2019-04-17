@@ -330,6 +330,11 @@ void Window::setPositionSize(int _x, int _y, int _width, int _height)
 	APT_PLATFORM_VERIFY(SetWindowPos((HWND)m_handle, NULL, _x, _y, _width, _height, 0));
 }
 
+void Window::setTitle(const char* _title)
+{
+	APT_PLATFORM_VERIFY(SetWindowText((HWND)m_handle, _title));
+}
+
 bool Window::hasFocus() const
 {
 	return (HWND)m_handle == GetFocus();

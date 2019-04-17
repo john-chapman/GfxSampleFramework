@@ -27,6 +27,7 @@ public:
 	void maximize() const;
 	void minimize() const;
 	void setPositionSize(int _x, int _y, int _width, int _height);
+	void setTitle(const char* _title);
 
 	bool hasFocus()    const;
 	bool isMinimized() const;
@@ -88,7 +89,7 @@ private:
 	FileList    m_fileDropList;
 	
 	struct Impl;
-	Impl* m_impl                = nullptr;
+	Impl* m_impl = nullptr;
 
 	Window();
 	~Window();
