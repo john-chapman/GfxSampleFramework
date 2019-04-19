@@ -80,13 +80,14 @@ public:
 	float wrap(float _t) const;
 	// Constraint endpoint values in [_min, _max].
 	void  setValueConstraint(const vec2& _min, const vec2& _max);
-
 	void  setWrap(Wrap _wrap)                         { m_wrap = _wrap; }
 	
 	// Bezier endpoint access.
 	int   getBezierEndpointCount() const              { return (int)m_bezier.size(); }
 	const Endpoint& getBezierEndpoint(int _i) const   { return m_bezier[_i]; }
 
+	const vec2& getValueConstraintMin() const         { return m_constrainMin; }
+	const vec2& getValueConstraintMax() const         { return m_constrainMax; }
 	const vec2& getValueMin() const                   { return m_valueMin; }
 	const vec2& getValueMax() const                   { return m_valueMax; }
 
