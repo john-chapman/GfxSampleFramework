@@ -862,6 +862,7 @@ bool Texture::reload()
 		setState(State_Error);
 		return false;
 	}
+	m_path = f.getPath(); // use f.getPath() to include the root - this is required for reload to work correctly
 
 	Image img;
 	if (!Image::Read(img, f)) {
