@@ -7,7 +7,8 @@ uniform writeonly image2D txOut;
 void main()
 {
 	vec2 txSize = vec2(imageSize(txOut).xy);
-	if (any(greaterThanEqual(ivec2(gl_GlobalInvocationID.xy), ivec2(txSize)))) {
+	if (any(greaterThanEqual(ivec2(gl_GlobalInvocationID.xy), ivec2(txSize)))) 
+	{
 		return;
 	}
 
@@ -58,22 +59,18 @@ void main()
 	imageStore(txOut, iuv, vec4(ret, 0.0, 0.0));
 
 #else
-	ivec2 iuv = ivec2(gl_GlobalInvocationID.x << 1, gl_GlobalInvocationID.y << 1);
 	vec2 ret;
-	if (uLevel == 0) {
-		vec2 s;
-		s = texelFetchOffset(txIn, iuv, uLevel, ivec2(0, 0)).xx;
-		ret = s;
-		s = texelFetchOffset(txIn, iuv, uLevel, ivec2(1, 0)).xx;
-	   	ret.x = min(ret.x, s.x);
-		ret.y = max(ret.y, s.y);
-		s = texelFetchOffset(txIn, iuv, uLevel, ivec2(1, 1)).xx;
-	   	ret.x = min(ret.x, s.x);
-		ret.y = max(ret.y, s.y);
-		s = texelFetchOffset(txIn, iuv, uLevel, ivec2(0, 1)).xx;
-	   	ret.x = min(ret.x, s.x);
-		ret.y = max(ret.y, s.y);
-	} else {
+
+	if (uLevel == -1) 
+	{
+		ivec2 iuv = ivec2(gl_GlobalInvocationID.xy);
+		vec4 s = texelFetch(txIn, iuv, 0);
+		ret.x = min(s.x, min(s.y, min(s.z, s.w)));
+		ret.y = max(s.x, max(s.y, max(s.z, 0.0)));
+	} 
+	else 
+	{
+		ivec2 iuv = ivec2(gl_GlobalInvocationID.x << 1, gl_GlobalInvocationID.y << 1);
 		vec2 s;
 		s = texelFetchOffset(txIn, iuv, uLevel, ivec2(0, 0)).xy;
 		ret = s;
@@ -87,6 +84,8 @@ void main()
 	   	ret.x = min(ret.x, s.x);
 		ret.y = max(ret.y, s.y);
 	}
+	
 	imageStore(txOut, ivec2(gl_GlobalInvocationID.xy), vec4(ret, 0.0, 0.0));
+
 #endif
 }
