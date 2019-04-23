@@ -201,10 +201,6 @@ bool AppSample::update()
 		return false;
 	}
 
-	if (m_hiddenMode) {
-		return true;
-	}
-
 	PROFILER_MARKER_CPU("#AppSample::update");
 	if (!m_window->hasFocus()) {
 	 // \todo keyboard/mouse input events aren't received when the window doesn't have focus which leads to an invalid device state
@@ -219,6 +215,11 @@ bool AppSample::update()
 	}
 	{	PROFILER_MARKER_CPU("#Dispatch File Notifications");
 		FileSystem::DispatchNotifications();
+	}
+
+ // skip the default UI in hidden mode
+	if (m_hiddenMode) {
+		return true;
 	}
 
 	Window* window = getWindow();
