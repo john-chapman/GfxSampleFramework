@@ -81,44 +81,60 @@ void main()
 		ret = vec4(1.0, 0.0, 0.0, 1.0);
 	#endif
 
-	if (bool(uIsDepth)) {
+	if (bool(uIsDepth)) 
+	{
 		ret.rgb = textureLod(txRadar, vec2(fract(ret.r * 1024.0), 0.5), 0.0).rgb;
 	}
-	if (any(isnan(ret))) {
+	if (any(isnan(ret))) 
+	{
 		vec2 nanUv = vec2(gl_FragCoord.xy) / 16.0;
 		nanUv.x = mix(0.5, 1.0, fract(nanUv.x));
 		nanUv.y = 1.0 - nanUv.y;
 		ret = vec4(textureLod(txRadar, nanUv, 0.0).a) + vec4(0.5, 0.0, 0.0, 1.0);
 	}
-	if (any(isinf(ret))) {
+	if (any(isinf(ret))) 
+	{
 		vec2 infUv = vec2(gl_FragCoord.xy) / 16.0;
 		infUv.x = mix(0.0, 0.5, fract(infUv.x));
 		infUv.y = 1.0 - infUv.y;
 		ret = vec4(textureLod(txRadar, infUv, 0.0).a) + vec4(0.5, 0.25, 0.0, 1.0);
 	}
 	
-	fResult = ret;
-	fResult.a = 1.0;
-
 	fResult = vec4(0.0, 0.0, 0.0, 1.0);
-
-	
 	bvec4 mask = bvec4(uRgbaMask);
-	if (mask.a && !any(mask.rgb)) {
-	 // draw alpha channel as monochrome
-		fResult.rgb = vec3(ret.a);
-	} else {
-	 // draw rgb, grid for alpha
-		if (mask.r) {
+	if (mask.r && !any(mask.gba)) 
+	{
+		fResult.rgb = ret.rrr;
+	}
+	else if (mask.g && !any(mask.rba)) 
+	{
+		fResult.rgb = ret.ggg;
+	}
+	else if (mask.b && !any(mask.rga)) 
+	{
+		fResult.rgb = ret.bbb;
+	}
+	else if (mask.a && !any(mask.rgb)) 
+	{
+		fResult.rgb = ret.aaa;
+	} 
+	else 
+	{
+	 // multiple color channels, grid for alpha
+		if (mask.r) 
+		{
 			fResult.r = ret.r;
 		}
-		if (mask.g) {
+		if (mask.g) 
+		{
 			fResult.g = ret.g;
 		}
-		if (mask.b) {
+		if (mask.b) 
+		{
 			fResult.b = ret.b;
 		}
-		if (mask.a) {
+		if (mask.a) 
+		{
 			vec2 gridUv = fract(gl_FragCoord.xy / 24.0);
 			bool gridAlpha = (gridUv.x < 0.5);
 			gridAlpha = (gridUv.y < 0.5) ? gridAlpha : !gridAlpha;
