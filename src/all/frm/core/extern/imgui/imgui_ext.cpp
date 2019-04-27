@@ -456,6 +456,13 @@ void SetRegion(const ImVec2& _rectMin, const ImVec2& _rectMax)
 	state->m_setSubrectV = true;
 }
 
+void GetRegion(ImVec2& rectMin_, ImVec2& rectMax_)
+{
+	auto state = GetCurrentState();
+	rectMin_ = state->m_subrectV.Min;
+	rectMax_ = state->m_subrectV.Max;
+}
+
 void SetRegionExtents(const ImVec2& _rectMin, const ImVec2& _rectMax)
 {
 	auto state = GetCurrentState();

@@ -78,6 +78,8 @@ void   SetNextRegionExtents(const ImVec2& _rectMin, const ImVec2& _rectMax, ImGu
 
 // Set virtual region rect for the current virtual window (takes effect next frame);
 void   SetRegion(const ImVec2& _rectMin, const ImVec2& _rectMax);
+// Get virtual region rect for the current virtual window.
+void   GetRegion(ImVec2& rectMin_, ImVec2& rectMax_);
 
 // Draw a grid with minimum spacing both window and virtual space, with grid lines aligned on multiples of _alignBase.
 // Pass 0 to _windowSpacingMin to disable either dimension.
