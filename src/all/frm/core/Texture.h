@@ -14,9 +14,18 @@ namespace frm {
 class Texture: public Resource<Texture>
 {
 public:
+	// SourceLayout enum provides a hint about the layout for special cases (e.g. 2x3 cubemap).
+	enum SourceLayout
+	{
+		SourceLayout_Default,
+		SourceLayout_Cubemap2x3, // Faces arranged in a 2x3 grid, +x,-x +y,-y, +z,-z.
+		SourceLayout_VolumeNx1,  // Slices are arranged in a nx1 grid.
+		
+		SourceLayout_Count
+	};
+
 	// Load from a file.
-	static Texture* Create(const char* _path);
-	static Texture* CreateCubemap2x3(const char* _path); // faces arranged in a 2x3 grid, +x,-x +y,-y, +z,-z
+	static Texture* Create(const char* _path, SourceLayout _layout = SourceLayout_Default);
 	// From apt::Image.
 	static Texture* Create(const apt::Image& _img);
 	// Init from another texture, optionally copy texture data.
@@ -129,6 +138,7 @@ protected:
 
 private:
 	apt::String<32> m_path;  // Empty if not from a file.
+	SourceLayout    m_sourceLayout = SourceLayout_Default;
 
 	GLuint  m_handle;
 	bool    m_ownsHandle;    // False if this is a proxy.

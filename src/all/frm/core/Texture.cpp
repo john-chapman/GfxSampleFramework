@@ -445,29 +445,14 @@ static bool GlIsTexFormatDepth(GLenum _format)
 
 // PUBLIC
 
-Texture* Texture::Create(const char* _path)
+Texture* Texture::Create(const char* _path, SourceLayout _layout)
 {
 	Id id = GetHashId(_path);
 	Texture* ret = Find(id);
 	if (!ret) {
 		ret = APT_NEW(Texture(id, _path));
 		ret->m_path.set(_path);
-	}
-	Use(ret);
-	if (ret->getState() != State_Loaded) {
-	 // \todo replace with default
-	}
-	return ret;
-}
-
-Texture* Texture::CreateCubemap2x3(const char* _path)
-{
-	Id id = GetHashId(_path);
-	Texture* ret = Find(id);
-	if (!ret) {
-		ret = APT_NEW(Texture(id, _path));
-		ret->m_target = GL_TEXTURE_CUBE_MAP; // modifies behavior of reload()
-		ret->m_path.set(_path);
+		ret->m_sourceLayout = _layout;
 	}
 	Use(ret);
 	if (ret->getState() != State_Loaded) {
@@ -1270,10 +1255,10 @@ static void Upload3d(Texture& _tx, const Image& _img, GLint _array, GLint _mip, 
 		glAssert(glTextureSubImage3D(_tx.getHandle(), _mip, 0, 0, _array, w, h, d, _srcFormat, _srcType, _img.getRawImage(_array, _mip)));
 	}
 }
-/*static void UploadCubemap3x2(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
+static void UploadCubemap2x3(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
 {
 	Texture_COMPUTE_WHD();
-	SCOPED_PIXELSTOREI(GL_UNPACK_ROW_LENGTH, w * 2);
+	glScopedPixelStorei(GL_UNPACK_ROW_LENGTH, w * 2);
 	glAssert(glBindTexture(GL_TEXTURE_CUBE_MAP, _tx.getHandle()));
 
 	int face = 0;
@@ -1286,7 +1271,20 @@ static void Upload3d(Texture& _tx, const Image& _img, GLint _array, GLint _mip, 
 			++face;
 		}
 	}
-}*/
+}
+
+static void UploadVolumeNx1(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
+{
+	Texture_COMPUTE_WHD();
+	glScopedPixelStorei(GL_UNPACK_ROW_LENGTH, w * d);
+	glAssert(glBindTexture(GL_TEXTURE_3D, _tx.getHandle()));
+
+	for (GLsizei i = 0; i < d; ++i) {
+		char* src = _img.getRawImage(_array, _mip);
+		src += i * w * (GLsizei)_img.getBytesPerTexel();
+		glAssert(glTexSubImage3D(GL_TEXTURE_3D, _mip, 0, 0, i, w, h, 1, _srcFormat, _srcType, src));
+	}
+}
 
 #undef Texture_COMPUTE_WHD
 
@@ -1307,25 +1305,37 @@ bool Texture::loadImage(const Image& _img)
 	void (*alloc)(Texture& _tx, const Image& _img);
 	void (*upload)(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType);
 
-	/*if (m_target == GL_TEXTURE_CUBE_MAP) {
-	 // special-case 3x2 cubemaps
-		m_width /= 2;
-		m_height /= 3;
-		m_mipCount = _img.getMipmapCount() == 1 ? (GLint)GetMaxMipCount(m_width, m_height) : (GLint) _img.getMipmapCount();
-		alloc = AllocCubemap;
-		upload = UploadCubemap3x2;
-	} else {*/
-		switch (_img.getType()) {
-			case Image::Type_1d:           m_target = GL_TEXTURE_1D;             alloc = Alloc1d;           upload = Upload1d;       break;
-			case Image::Type_1dArray:      m_target = GL_TEXTURE_1D_ARRAY;       alloc = Alloc1dArray;      upload = Upload1dArray;  break;
-			case Image::Type_2d:           m_target = GL_TEXTURE_2D;             alloc = Alloc2d;           upload = Upload2d;       break;
-			case Image::Type_2dArray:      m_target = GL_TEXTURE_2D_ARRAY;       alloc = Alloc2dArray;      upload = Upload2dArray;  break;
-			case Image::Type_3d:           m_target = GL_TEXTURE_3D;             alloc = Alloc3d;           upload = Upload3d;       break;
-			case Image::Type_Cubemap:      m_target = GL_TEXTURE_CUBE_MAP;       alloc = AllocCubemap;      upload = Upload2dArray;  break;
-			case Image::Type_CubemapArray: m_target = GL_TEXTURE_CUBE_MAP_ARRAY; alloc = AllocCubemapArray; upload = Upload2dArray;  break;
-			default:                       APT_ASSERT(false); return false;
-		};
-	/*}*/
+	switch (m_sourceLayout) {
+		default:
+		case SourceLayout_Default:
+			switch (_img.getType()) {
+				case Image::Type_1d:           m_target = GL_TEXTURE_1D;             alloc = Alloc1d;           upload = Upload1d;       break;
+				case Image::Type_1dArray:      m_target = GL_TEXTURE_1D_ARRAY;       alloc = Alloc1dArray;      upload = Upload1dArray;  break;
+				case Image::Type_2d:           m_target = GL_TEXTURE_2D;             alloc = Alloc2d;           upload = Upload2d;       break;
+				case Image::Type_2dArray:      m_target = GL_TEXTURE_2D_ARRAY;       alloc = Alloc2dArray;      upload = Upload2dArray;  break;
+				case Image::Type_3d:           m_target = GL_TEXTURE_3D;             alloc = Alloc3d;           upload = Upload3d;       break;
+				case Image::Type_Cubemap:      m_target = GL_TEXTURE_CUBE_MAP;       alloc = AllocCubemap;      upload = Upload2dArray;  break;
+				case Image::Type_CubemapArray: m_target = GL_TEXTURE_CUBE_MAP_ARRAY; alloc = AllocCubemapArray; upload = Upload2dArray;  break;
+				default:                       APT_ASSERT(false); return false;
+			};
+			break;
+		case SourceLayout_Cubemap2x3:
+			m_width /= 2;
+			m_height /= 3;
+			m_mipCount = _img.getMipmapCount() == 1 ? (GLint)GetMaxMipCount(m_width, m_height) : (GLint)_img.getMipmapCount();
+			m_target = GL_TEXTURE_CUBE_MAP;
+			alloc = AllocCubemap;
+			upload = UploadCubemap2x3;
+			break;
+		case SourceLayout_VolumeNx1:
+			m_depth = m_width / m_height;
+			m_width = m_height;
+			m_mipCount = _img.getMipmapCount() == 1 ? (GLint)GetMaxMipCount(m_width, m_height) : (GLint)_img.getMipmapCount();
+			m_target = GL_TEXTURE_3D;
+			alloc = Alloc3d;
+			upload = UploadVolumeNx1;
+			break;
+	}
 
  // src format
 	GLenum srcFormat;
