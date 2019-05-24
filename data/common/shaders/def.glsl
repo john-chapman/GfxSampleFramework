@@ -113,6 +113,8 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 #define linearstep(_e0, _e1, _x)     saturate((_x) * (1.0 / ((_e1) - (_e0))) + (-(_e0) / ((_e1) - (_e0))))
 #define max3(_a, _b, _c)             max(_a, max(_b, _c))
 #define min3(_a, _b, _c)             min(_a, min(_b, _c))
+#define max4(_a, _b, _c, _d)         max(_a, max(_b, max(_c, _d)))
+#define min4(_a, _b, _c, _d)         min(_a, min(_b, min(_c, _d)))
 
 // Recover view space depth from a depth buffer value given a perspective projection.
 // This may return INF for infinite perspective projections.
