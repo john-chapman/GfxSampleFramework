@@ -172,7 +172,7 @@ MeshData* MeshData::Create(const char* _path)
 	if (!FileSystem::Read(f, _path)) {
 		return nullptr;
 	}
-	MeshData* ret = new MeshData();
+	MeshData* ret = APT_NEW(MeshData);
 	ret->m_path.set(_path);
 
 	if        (FileSystem::CompareExtension("obj", _path)) {
@@ -191,7 +191,7 @@ MeshData* MeshData::Create(const char* _path)
 	return ret;
 
 MeshData_Create_error:
-	delete ret;
+	APT_DELETE(ret);
 	return nullptr;
 }
 
@@ -203,7 +203,7 @@ MeshData* MeshData::Create(
 	const void*     _indexData
 	)
 {
-	MeshData* ret = new MeshData(_desc);
+	MeshData* ret = APT_NEW(MeshData(_desc));
 	
 	ret->m_vertexData = (char*)APT_MALLOC(_desc.getVertexSize() * _vertexCount);
 	ret->m_submeshes[0].m_vertexCount = _vertexCount;
@@ -228,7 +228,7 @@ MeshData* MeshData::Create(
 	const MeshBuilder& _meshBuilder
 	)
 {
-	MeshData* ret = new MeshData(_desc, _meshBuilder);
+	MeshData* ret = APT_NEW(MeshData(_desc, _meshBuilder));
 	return ret;
 }
 
@@ -315,7 +315,7 @@ MeshData* MeshData::CreateSphere(
 
 void MeshData::Destroy(MeshData*& _meshData_)
 {
-	delete _meshData_;
+	APT_DELETE(_meshData_);
 	_meshData_ = nullptr;
 }
 
@@ -462,7 +462,7 @@ uint64 MeshData::getHash() const
 void MeshData::setBindPose(const Skeleton& _skel)
 {
 	if (!m_bindPose) {
-		m_bindPose = new Skeleton;
+		m_bindPose = APT_NEW(Skeleton);
 	}
 	*m_bindPose = _skel;
 }
@@ -470,26 +470,17 @@ void MeshData::setBindPose(const Skeleton& _skel)
 // PRIVATE
 
 MeshData::MeshData()
-	: m_bindPose(nullptr)
-	, m_vertexData(nullptr)
-	, m_indexData(nullptr)
 {
 }
 
 MeshData::MeshData(const MeshDesc& _desc)
 	: m_desc(_desc)
-	, m_bindPose(nullptr)
-	, m_vertexData(nullptr)
-	, m_indexData(nullptr)
 {
 	m_submeshes.push_back(Submesh());
 }
 
 MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	: m_desc(_desc)
-	, m_bindPose(nullptr)
-	, m_vertexData(nullptr)
-	, m_indexData(nullptr)
 {
 	const VertexAttr* positionsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Positions);
 	const VertexAttr* texcoordsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Texcoords);
@@ -522,9 +513,11 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 		}
 	}
 
-	m_indexDataType = GetIndexDataType(_meshBuilder.getVertexCount());
-	m_indexData = (char*)APT_MALLOC(_meshBuilder.getIndexCount() * DataTypeSizeBytes(m_indexDataType));
-	DataTypeConvert(DataType_Uint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
+	if (_meshBuilder.getIndexCount() > 0) {
+		m_indexDataType = GetIndexDataType(_meshBuilder.getVertexCount());
+		m_indexData = (char*)APT_MALLOC(_meshBuilder.getIndexCount() * DataTypeSizeBytes(m_indexDataType));
+		DataTypeConvert(DataType_Uint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
+	}
 
  // submesh 0 represents the whole mesh
 	m_submeshes.push_back(Submesh());
@@ -545,7 +538,7 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 MeshData::~MeshData()
 {
 	if (m_bindPose) {
-		delete m_bindPose;
+		APT_DELETE(m_bindPose);
 	}
 	APT_FREE(m_vertexData);
 	APT_FREE(m_indexData);

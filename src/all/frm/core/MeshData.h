@@ -93,9 +93,7 @@ public:
 	};
 
 	MeshDesc(Primitive _prim = Primitive_Triangles)
-		: m_vertexAttrCount(0)
-		, m_vertexSize(0)
-		, m_primitive(_prim)
+		: m_primitive(_prim)
 	{
 	}
 
@@ -129,9 +127,9 @@ public:
 private:
 	static const int  kMaxVertexAttrCount = VertexAttr::Semantic_Count + 1;
 	VertexAttr        m_vertexDesc[kMaxVertexAttrCount];
-	uint8             m_vertexAttrCount;
-	uint8             m_vertexSize;
-	uint8             m_primitive;
+	uint8             m_vertexAttrCount = 0;
+	uint8             m_vertexSize      = 0;
+	uint8             m_primitive       = 0;
 
 }; // class MeshDesc
 
@@ -219,12 +217,12 @@ public:
 	void            setBindPose(const Skeleton& _skel);
 
 protected:
-	apt::String<32> m_path; // empty if not from a file
-	Skeleton*       m_bindPose;
+	apt::String<32> m_path            = ""; // empty if not from a file
+	Skeleton*       m_bindPose        = nullptr;
 	MeshDesc        m_desc;
-	char*           m_vertexData;
-	char*           m_indexData;
-	apt::DataType   m_indexDataType;
+	char*           m_vertexData      = nullptr;
+	char*           m_indexData       = nullptr;
+	apt::DataType   m_indexDataType   = apt::DataType_Invalid;
 
 	eastl::vector<Submesh> m_submeshes;
 
