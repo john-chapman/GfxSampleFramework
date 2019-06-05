@@ -172,7 +172,7 @@ public:
 		const MeshBuilder& _meshBuilder
 		);
 
-	// Create a plane in XZ with the given dimensions and tesselation.
+	// Create a plane in XZ.
 	static MeshData* CreatePlane(
 		const MeshDesc& _desc, 
 		float           _sizeX, 
@@ -182,9 +182,22 @@ public:
 		const mat4&     _transform = identity
 		);
 
+	// Create a box with 1 submesh per face.
+	static MeshData* CreateBox(
+		const MeshDesc& _desc,
+		float           _sizeX,
+		float           _sizeY,
+		float           _sizeZ,
+		int             _segsX,
+		int             _segsY,
+		int             _segsZ,
+		const mat4&     _transform = identity
+		);
+
+	// Create a sphere with poles on the Y axis.
 	static MeshData* CreateSphere(
 		const MeshDesc& _desc,
-		float           _radius, 
+		float           _radius,
 		int             _segsLat, 
 		int             _segsLong,
 		const mat4&     _transform = identity
@@ -295,6 +308,7 @@ public:
 	uint32             addTriangle(uint32 _a, uint32 _b, uint32 _c);
 	uint32             addTriangle(const Triangle& _triangle);
 	uint32             addVertex(const Vertex& _vertex);
+	void               addMesh(const MeshBuilder& _mesh);
 	
 	void               addVertexData(const MeshDesc& _desc, const void* _data, uint32 _count);
 	void               addIndexData(apt::DataType _type, const void* _data, uint32 _count);

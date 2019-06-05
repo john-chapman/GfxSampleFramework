@@ -252,19 +252,49 @@ static void BuildPlane(MeshBuilder& mesh_, float _sizeX, float _sizeZ, int _segs
 			mesh_.addVertex(vert);
 		}
 	}
+
+  // indices - given a quad ABCD
+  //  A---B
+  //  |   |
+  //  C---D
+  // There are two orientations for the central diagonal:
+  //  ABD,ADC    BCA,BDC
+  //  A---B      A---B
+  //  | / |      | \ |
+  //  C---D      C---D
+  // We alternate between the orientation per quad in a row, and alternate the starting orientation per row to generate the following:
+  //  +---+---+---+
+  //  | / | \ | / |
+  //  +---+---+---+
+  //  | \ | / | \ |
+  //  +---+---+---+
 	int zoff = _segsZ + 1;
 	for (int x = 0; x < _segsX; ++x) {
 		for (int z = 0; z < _segsZ; ++z) {
-			uint32 a, b, c;
+			uint32 a, b, c, d;
+		
+			#if 1
+				a = x * zoff + z;
+				b = a + 1;
+				c = (x + 1) * zoff + z;
+				d = c + 1;
+				if (x % 2 == z % 2) {
+					mesh_.addTriangle(a, b, d);
+					mesh_.addTriangle(a, d, c);
+				} else {
+					mesh_.addTriangle(b, c, a);
+					mesh_.addTriangle(b, d, c);
+				}
+			#else
+				a = z + x * zoff;
+				b = a + zoff + 1;
+				c = a + zoff;
+				mesh_.addTriangle(a, b, c);
 
-			a = z + x * zoff;
-			b = a + zoff + 1;
-			c = a + zoff;
-			mesh_.addTriangle(a, b, c);
-
-			b = a + 1;
-			c = a + zoff + 1;
-			mesh_.addTriangle(a, b, c);
+				b = a + 1;
+				c = a + zoff + 1;
+				mesh_.addTriangle(a, b, c);
+			#endif
 		}
 	}
 }
@@ -288,6 +318,59 @@ MeshData* MeshData::CreatePlane(
 
 	return Create(_desc, mesh);
 }
+
+MeshData* MeshData::CreateBox(
+	const MeshDesc& _desc,
+	float           _sizeX,
+	float           _sizeY,
+	float           _sizeZ,
+	int             _segsX,
+	int             _segsY,
+	int             _segsZ,
+	const mat4&     _transform
+	)
+{
+	MeshBuilder faceXZ, faceXY, faceYZ;
+	BuildPlane(faceXZ, _sizeX, _sizeZ, _segsX, _segsZ);
+	BuildPlane(faceXY, _sizeX, _sizeY, _segsX, _segsY);
+	BuildPlane(faceYZ, _sizeY, _sizeZ, _segsY, _segsZ);
+
+	vec3 size = vec3(_sizeX, _sizeY, _sizeZ);
+	vec3 halfSize = size / 2.0f;
+
+	MeshBuilder box;
+	faceXZ.transform(TransformationMatrix(vec3(0.0f, halfSize.y, 0.0f), identity));
+	box.beginSubmesh(0);
+		box.addMesh(faceXZ);
+	box.endSubmesh();
+	faceXZ.transform(RotationMatrix(vec3(1.0f, 0.0f, 0.0f), Radians(180.0f)));
+	box.beginSubmesh(1);
+		box.addMesh(faceXZ);
+	box.endSubmesh();
+	faceXY.transform(TransformationMatrix(vec3(0.0f, 0.0f, halfSize.z), RotationQuaternion(vec3(1.0f, 0.0f, 0.0f), Radians(90.0f))));
+	box.beginSubmesh(2);
+		box.addMesh(faceXY);
+	box.endSubmesh();
+	faceXY.transform(RotationMatrix(vec3(1.0f, 0.0f, 0.0f), Radians(180.0f)));
+	box.beginSubmesh(3);
+		box.addMesh(faceXY);
+	box.endSubmesh();
+	faceYZ.transform(TransformationMatrix(vec3(halfSize.x, 0.0f, 0.0f), RotationQuaternion(vec3(0.0f, 0.0f, 1.0f), Radians(-90.0f))));
+	box.beginSubmesh(4);
+		box.addMesh(faceYZ);
+	box.endSubmesh();
+	faceYZ.transform(RotationMatrix(vec3(0.0f, 0.0f, 1.0f), Radians(180.0f)));
+	box.beginSubmesh(5);
+		box.addMesh(faceYZ);
+	box.endSubmesh();
+
+	box.m_boundingBox.m_min = -halfSize;
+	box.m_boundingBox.m_max =  halfSize;
+	box.m_boundingSphere = Sphere(box.m_boundingBox);
+
+	return Create(_desc, box);
+}
+
 MeshData* MeshData::CreateSphere(
 	const MeshDesc& _desc, 
 	float           _radius, 
@@ -715,6 +798,22 @@ uint32 MeshBuilder::addVertex(const Vertex& _vertex)
 	uint32 ret = getVertexCount();
 	m_vertices.push_back(_vertex);
 	return ret;
+}
+
+void MeshBuilder::addMesh(const MeshBuilder& _mesh)
+{
+	uint32 indexOffset = getVertexCount();
+
+	m_vertices.reserve(m_vertices.size() + _mesh.m_vertices.size());
+	m_vertices.insert(m_vertices.end(), _mesh.m_vertices.begin(), _mesh.m_vertices.end());
+
+	for (const Triangle& triangle : _mesh.m_triangles) {
+		Triangle newTriangle = triangle;
+		newTriangle.a += indexOffset;
+		newTriangle.b += indexOffset;
+		newTriangle.c += indexOffset;
+		m_triangles.push_back(newTriangle);
+	}
 }
 
 void MeshBuilder::addVertexData(const MeshDesc& _desc, const void* _data, uint32 _count)
