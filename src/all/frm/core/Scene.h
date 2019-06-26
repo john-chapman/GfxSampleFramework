@@ -90,6 +90,11 @@ public:
 	XForm*       getXForm(int _i)                    { return m_xforms[_i]; }
 	void         moveXForm(const XForm* _xform, int _dir);
 
+	void         addComponent(Component* _component);
+	void         removeComponent(Component* _component);
+	int          getComponentCount() const           { return (int)m_components.size(); }
+	Component*   getComponent(int _i)                { return m_components[_i]; }
+
 	Node*        getParent()                         { return m_parent; }
 	void         setParent(Node* _node);
 	int          getChildCount() const               { return (int)m_children.size(); }
@@ -111,7 +116,10 @@ private:
  // spatial
 	mat4                  m_localMatrix; // Initial (local) transformation.
 	mat4                  m_worldMatrix; // Final transformation with any XForms applied.
-	eastl::vector<XForm*> m_xforms;      // XForm list (applied in order).
+	eastl::vector<XForm*> m_xforms;      // XForm list (applied in order). Node owns the xform memory.
+
+ // components
+	eastl::vector<Component*> m_components; // Component list (updated in order). Node owns the component memory.
 
  // hierarchy
 	Node*                 m_parent;
@@ -214,14 +222,14 @@ private:
 	static Scene*           s_currentScene;
 
  // nodes
-	Node::Id                m_nextNodeId;               // Monotonically increasing id for nodes.
-	Node*                   m_root;                     // Everything is a child of root.              
+	Node::Id                m_nextNodeId = 0;           // Monotonically increasing id for nodes.
+	Node*                   m_root = nullptr;           // Everything is a child of root.              
 	eastl::vector<Node*>    m_nodes[Node::Type_Count];  // Nodes binned by type.
 	apt::Pool<Node>         m_nodePool;
 
  // cameras
-	Camera*                 m_drawCamera;
-	Camera*                 m_cullCamera;
+	Camera*                 m_drawCamera = nullptr;
+	Camera*                 m_cullCamera = nullptr;
 	eastl::vector<Camera*>  m_cameras;
 	apt::Pool<Camera>       m_cameraPool;
 
@@ -230,26 +238,30 @@ private:
 	apt::Pool<Light>        m_lightPool;
 
 #ifdef frm_Scene_ENABLE_EDIT
-	bool      m_showNodeGraph3d;
-	Node*     m_editNode;
-	Node*     m_storedNode;
-	XForm*    m_editXForm;
-	Camera*   m_editCamera;
-	Camera*   m_storedCullCamera;
-	Camera*   m_storedDrawCamera;
-	Light*    m_editLight;
+	bool       m_showNodeGraph3d    = false;
+	Node*      m_editNode           = nullptr;
+	Node*      m_storedNode         = nullptr;
+	XForm*     m_editXForm          = nullptr;
+	Component* m_editComponent      = nullptr;
+	Camera*    m_editCamera         = nullptr;
+	Camera*    m_storedCullCamera   = nullptr;
+	Camera*    m_storedDrawCamera   = nullptr;
+	Light*     m_editLight          = nullptr;
 
-	void      editNodes();
-	void      editCameras();
-	void      editLights();
+	void       editNodes();
+	void       editCameras();
+	void       editLights();
 
-	void      beginCreateNode();
-	Node*     createNode(Node* _current);
+	void       beginCreateNode();
+	Node*      createNode(Node* _current);
 
-	void      beginCreateXForm();
-	XForm*    createXForm(XForm* _current);
+	void       beginCreateXForm();
+	XForm*     createXForm(XForm* _current);
 
-	void      drawHierarchy(Node* _node);
+	void       beginCreateComponent();
+	Component* createComponent(Component* _current);
+
+	void       drawHierarchy(Node* _node);
 #endif
 
 }; // class Scene

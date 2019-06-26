@@ -1,6 +1,7 @@
 #include "Scene.h"
 
 #include <frm/core/Camera.h>
+#include <frm/core/Component.h>
 #include <frm/core/Light.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/XForm.h>
@@ -57,15 +58,12 @@ void Node::addXForm(XForm* _xform)
 
 void Node::removeXForm(XForm* _xform)
 {
-	for (auto it = m_xforms.begin(); it != m_xforms.end(); ++it) {
-		XForm* x = *it;
-		if (x == _xform) {
-			APT_ASSERT(x->getNode() == this);
-			x->setNode(nullptr);
-			m_xforms.erase(it);
-			return;
-		}
-	}
+	auto it = eastl::find(m_xforms.begin(), m_xforms.end(), _xform);
+	APT_ASSERT(it != m_xforms.end());
+	APT_ASSERT(_xform->getNode() == this);
+	
+	m_xforms.erase(it);
+	XForm::Destroy(_xform);
 }
 
 void Node::moveXForm(const XForm* _xform, int _dir)
@@ -77,6 +75,29 @@ void Node::moveXForm(const XForm* _xform, int _dir)
 			return;
 		}
 	}
+}
+
+void Node::addComponent(Component* _component)
+{
+	APT_ASSERT(_component);
+	APT_ASSERT(_component->getNode() == nullptr);
+	_component->setNode(this);
+	if (_component->init()) {
+		m_components.push_back(_component);
+	} else {
+		Component::Destroy(_component);
+	}
+}
+
+void Node::removeComponent(Component* _component)
+{
+	auto it = eastl::find(m_components.begin(), m_components.end(), _component);
+	APT_ASSERT(it != m_components.end());
+	APT_ASSERT(_component->getNode() == this);
+	
+	_component->shutdown();
+	m_components.erase(it);
+	Component::Destroy(_component);
 }
 
 void Node::setParent(Node* _node)
@@ -133,6 +154,11 @@ void Node::Update(Node* _node_, float _dt, uint8 _stateMask)
 
  // reset world matrix
 	_node_->m_worldMatrix = _node_->m_localMatrix;
+
+ // update components
+	for (Component* component : _node_->m_components) {
+		component->update(_dt);
+	}
 
  // apply xforms
 	for (auto& xform : _node_->m_xforms) {
@@ -204,9 +230,16 @@ Node::~Node()
 		m_parent->removeChild(this);
 	}
 
+ // delete components
+	for (Component* component : m_components) {
+		component->shutdown();
+		APT_DELETE(component);
+	}
+	m_components.clear();
+
  // delete xforms
-	for (auto it = m_xforms.begin(); it != m_xforms.end(); ++it) {
-		delete *it;
+	for (XForm* xform : m_xforms) {
+		APT_DELETE(xform);
 	}
 	m_xforms.clear();
 }
@@ -272,22 +305,9 @@ bool Scene::Save(const char* _path, Scene& _scene)
 }
 
 Scene::Scene()
-	: m_nextNodeId(0)
-	, m_nodePool(128)
+	: m_nodePool(128)
 	, m_cameraPool(8)
 	, m_lightPool(16)
-	, m_drawCamera(nullptr)
-	, m_cullCamera(nullptr)
-#ifdef frm_Scene_ENABLE_EDIT
-	, m_showNodeGraph3d(false)
-	, m_editNode(nullptr)
-	, m_storedNode(nullptr)
-	, m_editXForm(nullptr)
-	, m_editCamera(nullptr)
-	, m_storedCullCamera(nullptr)
-	, m_storedDrawCamera(nullptr)
-	, m_editLight(nullptr)
-#endif
 {
 	m_root = m_nodePool.alloc(Node(Node::Type_Root, m_nextNodeId++, Node::State_Any, "ROOT"));
 	m_root->setSceneDataScene(this);
@@ -649,10 +669,28 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 				XForm* xform = XForm::Create(StringHash((const char*)className));
 				if (xform) {
 					xform->serialize(_serializer_);
-					xform->setNode(&_node_);
-					_node_.m_xforms.push_back(xform);
+					_node_.addXForm(xform);
 				} else {
 					APT_LOG_ERR("Scene: Invalid xform '%s'", (const char*)className);
+				}
+				_serializer_.endObject();
+			}
+			_serializer_.endArray();
+		}
+
+		uint componentCount = (uint)_node_.getComponentCount();
+		if (_serializer_.beginArray(componentCount, "Components")) {
+			while (_serializer_.beginObject()) {
+				String<64> className;
+				if (!Serialize(_serializer_, className, "Class")) {
+					return false;
+				}
+				Component* component = Component::Create(StringHash((const char*)className));
+				if (component) {
+					component->serialize(_serializer_);
+					_node_.addComponent(component);
+				} else {
+					APT_LOG_ERR("Scene: Invalid component '%s'", (const char*)className);
 				}
 				_serializer_.endObject();
 			}
@@ -702,6 +740,19 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 						String<64> className = xform->getClassRef()->getName();
 						Serialize(_serializer_, className, "Class");
 						xform->serialize(_serializer_);
+					_serializer_.endObject();
+				}
+			_serializer_.endArray();
+		}
+
+		uint componentCount = (uint)_node_.getComponentCount();
+		if (!_node_.m_components.empty()) {
+			_serializer_.beginArray(componentCount, "Components");
+				for (auto& component : _node_.m_components) {
+					_serializer_.beginObject();
+						String<64> className = component->getClassRef()->getName();
+						Serialize(_serializer_, className, "Class");
+						component->serialize(_serializer_);
 					_serializer_.endObject();
 				}
 			_serializer_.endArray();
@@ -911,7 +962,8 @@ void Scene::editNodes()
 				ImGui::Text("Scale:    %.3f, %.3f, %.3f", scale.x, scale.y, scale.z);
 				ImGui::TreePop();
 			}
-
+	
+		 // XForms
 			if (ImGui::TreeNode("XForms")) {
 				bool destroyXForm = false;
 
@@ -965,13 +1017,78 @@ void Scene::editNodes()
 				}
 
 				if (destroyXForm) {
-					m_editNode->removeXForm(m_editXForm);
-					XForm::Destroy(m_editXForm);
+					m_editNode->removeXForm(m_editXForm); // calls XForm::Destroy
 					newEditXForm = nullptr;
 				}
 
 				if (m_editXForm != newEditXForm) {
 					m_editXForm = newEditXForm;
+				}
+
+				ImGui::TreePop();
+			}
+
+		 // Components
+			if (ImGui::TreeNode("Components"))
+			{
+				bool destroyComponent = false;
+
+				if (ImGui::Button(ICON_FA_FILE_O " Create")) {
+					beginCreateComponent();
+				}
+				Component* newEditComponent = createComponent(m_editComponent);
+				if (newEditComponent != m_editComponent) {
+					m_editNode->addComponent(newEditComponent);
+				}
+				if (m_editComponent != nullptr) {
+					ImGui::SameLine();
+					if (ImGui::Button(ICON_FA_TIMES " Destroy")) {
+						destroyComponent = true;
+					}
+					//ImGui::SameLine();
+					//if (ImGui::Button(ICON_FA_ARROW_UP)) {
+					//	m_editNode->moveComponent(m_editComponent, -1);
+					//}
+					//ImGui::SameLine();
+					//if (ImGui::Button(ICON_FA_ARROW_DOWN)) {
+					//	m_editNode->moveComponent(m_editComponent, 1);
+					//}
+				}
+
+				if (!m_editNode->m_components.empty()) {
+				 // build list for component stack
+					const char* componentList[64];
+					APT_ASSERT(m_editNode->m_components.size() <= 64);
+					int selectedComponent = 0;
+					for (int i = 0; i < (int)m_editNode->m_components.size(); ++i) {
+						Component* component = m_editNode->m_components[i];
+						if (component == m_editComponent) {
+							selectedComponent = i;
+						}
+						componentList[i] = component->getName();
+					}
+					ImGui::Spacing();
+					if (ImGui::ListBox("##Components", &selectedComponent, componentList, (int)m_editNode->m_components.size())) {
+						newEditComponent = m_editNode->m_components[selectedComponent];
+					}
+
+					if (m_editComponent) {
+						ImGui::Separator();
+						ImGui::Spacing();
+						ImGui::PushID(m_editComponent);
+							m_editComponent->edit();
+						ImGui::PopID();
+					}
+
+				}
+
+				if (destroyComponent) {
+					m_editNode->removeComponent(m_editComponent); // calls Component::Destroy
+					newEditComponent = nullptr;
+				}
+
+				if (m_editComponent != newEditComponent) {
+					m_editComponent = newEditComponent;
 				}
 
 				ImGui::TreePop();
@@ -1374,6 +1491,31 @@ XForm* Scene::createXForm(XForm* _current)
 			if (filter.PassFilter(cref->getName())) {
 				if (ImGui::Selectable(cref->getName())) {
 					ret = XForm::Create(cref);
+					break;
+				}
+			}
+		}
+		ImGui::EndPopup();
+	}
+	return ret;
+}
+
+void Scene::beginCreateComponent()
+{
+	ImGui::OpenPopup("Create Component");
+}
+Component* Scene::createComponent(Component* _current)
+{
+	Component* ret = _current;
+	if (ImGui::BeginPopup("Create Component")) {
+		static ImGuiTextFilter filter;
+		filter.Draw("Filter##Component");
+		Component::ClassRef* componentRef = nullptr;
+		for (int i = 0; i < Component::GetClassRefCount(); ++i) {
+			const Component::ClassRef* cref = Component::GetClassRef(i);
+			if (filter.PassFilter(cref->getName())) {
+				if (ImGui::Selectable(cref->getName())) {
+					ret = Component::Create(cref);
 					break;
 				}
 			}
