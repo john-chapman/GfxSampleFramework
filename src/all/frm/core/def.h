@@ -32,8 +32,10 @@ namespace frm {
 	class  App;
 	class  AppSample;
 	class  AppSample3d;
+	class  BasicMaterial;
 	class  Buffer;
 	class  Camera;
+	class  Component;
 	class  Curve;
 	class  CurveEditor;
 	class  CurveGradient;
