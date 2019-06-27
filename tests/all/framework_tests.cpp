@@ -16,6 +16,7 @@
 #include <frm/core/Shader.h>
 #include <frm/core/SkeletonAnimation.h>
 #include <frm/core/Spline.h>
+#include <frm/core/StreamingQudatree.h>
 #include <frm/core/Texture.h>
 #include <frm/core/Window.h>
 #include <frm/core/XForm.h>
@@ -962,6 +963,54 @@ public:
 					return true;
 				});
 				
+			ImGui::TreePop();
+		}
+
+		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Streaming Quadtree"))
+		{
+			static StreamingQuadtree* qt = nullptr;
+			static mat4 world = TransformationMatrix(vec3(0.0f), RotationQuaternion(vec3(1.0f, 0.0f, 0.0f), Radians(90.0f)), vec3(16.0f, 16.0f, 1.0f));
+			static mat4 quadtree = Inverse(world);
+			static int maxLoad = 1;
+			static int maxRelease = 16;
+			APT_ONCE
+			{
+				qt = APT_NEW(StreamingQuadtree(8));
+			}
+			vec3 pivotQ = TransformPosition(quadtree, cullCam->getPosition());
+			pivotQ.z = 0.0f;
+			qt->setPivot(pivotQ);
+			qt->update();
+			qt->drawDebug(world);
+
+			ImGui::SliderInt("Max load", &maxLoad, 0, 32);
+			ImGui::SliderInt("Max release", &maxRelease, 0, 32);
+
+			int releaseCount = 0;
+			while (releaseCount < maxRelease) // could be some unload condition based on available resources
+			{
+				StreamingQuadtree::NodeIndex nodeIndex = qt->popReleaseQueue();
+				if (nodeIndex == StreamingQuadtree::NodeIndex_Invalid)
+				{
+					break;
+				}
+				qt->setNodeData(nodeIndex, nullptr);
+				++releaseCount;
+			}
+
+			int loadCount = 0;
+			while (loadCount < maxLoad)
+			{
+				StreamingQuadtree::NodeIndex nodeIndex = qt->popLoadQueue();
+				if (nodeIndex == StreamingQuadtree::NodeIndex_Invalid)
+				{
+					break;
+				}
+				qt->setNodeData(nodeIndex, (void*)1);
+				++loadCount;
+			}
+
 			ImGui::TreePop();
 		}
 
