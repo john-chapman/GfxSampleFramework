@@ -1069,7 +1069,7 @@ Texture::Texture(uint64 _id, const char* _name)
 	, m_width(0), m_height(0), m_depth(0)
 	, m_mipCount(0)
 {
-	APT_ASSERT(GlContext::GetCurrent());
+	g_textureViewer.addTextureView(this);
 }
 
 Texture::Texture(
@@ -1136,6 +1136,11 @@ bool Texture::isCompressed() const
 bool Texture::isDepth() const
 {
 	return GlIsTexFormatDepth(m_format);
+}
+
+TextureView* Texture::getTextureView() const
+{
+	return g_textureViewer.findTextureView((Texture*)this);
 }
 
 void frm::swap(Texture& _a, Texture& _b)
@@ -1425,6 +1430,12 @@ bool Texture::loadImage(const Image& _img)
 	setMagFilter(GL_LINEAR);
 	setMinFilter(_img.getMipmapCount() > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 	setMipRange(0, (GLint)_img.getMipmapCount() - 1);
+
+	TextureView* txView = g_textureViewer.findTextureView(this);
+	if (txView)
+	{
+		txView->reset();
+	}
 
 	return true;
 }

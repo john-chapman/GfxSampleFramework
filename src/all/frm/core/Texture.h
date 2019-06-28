@@ -119,6 +119,8 @@ public:
 	bool        isCompressed() const;
 	bool        isDepth() const;
 
+	TextureView* getTextureView() const;  // get the internal texture view (owned by the texture viewer)
+
 	friend void swap(Texture& _a, Texture& _b);
 
 protected:
