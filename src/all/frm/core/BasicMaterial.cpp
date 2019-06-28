@@ -94,7 +94,7 @@ bool BasicMaterial::reload()
 	}
 
 	releaseMaps();
-	initMaps();
+	return initMaps();
 }
 
 bool BasicMaterial::edit()
@@ -155,18 +155,18 @@ bool BasicMaterial::edit()
 	return ret;
 }
 
-bool BasicMaterial::serialize(apt::Serializer&_serializer_)
+bool BasicMaterial::serialize(apt::Serializer& _serializer_)
 {	
 	Serialize(_serializer_, m_colorAlpha,  "m_colorAlpha");
 	Serialize(_serializer_, m_rough,       "m_rough");
 	Serialize(_serializer_, m_alphaTest,   "m_alphaTest");
-	if (_serializer_.beginArray("m_mapPaths"))
+	if (_serializer_.beginObject("m_mapPaths"))
 	{
 		for (int i = 0; i < Map_Count; ++i)
 		{
 			Serialize(_serializer_, m_mapPaths[i], kMapStr[i]);
 		}
-		_serializer_.endArray();
+		_serializer_.endObject();
 	}
 	return true;
 }
@@ -177,6 +177,7 @@ bool BasicMaterial::serialize(apt::Serializer&_serializer_)
 BasicMaterial::BasicMaterial(Id _id, const char* _name)
 	: Resource(_id, _name)
 {
+	m_index = GetInstanceCount() - 1;
 	APT_STATIC_ASSERT(APT_ARRAY_COUNT(kMapStr) == Map_Count);
 }
 

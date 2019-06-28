@@ -106,6 +106,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\AppSample.h" />
     <ClInclude Include="..\..\src\all\frm\core\AppSample3d.h" />
     <ClInclude Include="..\..\src\all\frm\core\BasicMaterial.h" />
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer.h" />
     <ClInclude Include="..\..\src\all\frm\core\Buffer.h" />
     <ClInclude Include="..\..\src\all\frm\core\Camera.h" />
     <ClInclude Include="..\..\src\all\frm\core\Component.h" />
@@ -184,6 +185,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\AppSample.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\AppSample3d.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\BasicMaterial.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Buffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Camera.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Component.cpp" />

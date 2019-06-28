@@ -32,6 +32,8 @@ APT_FACTORY_DEFINE(Component);
 
 APT_FACTORY_REGISTER_DEFAULT(Component, Component_BasicRenderable);
 
+eastl::vector<Component_BasicRenderable*> Component_BasicRenderable::s_instances;
+
 bool Component_BasicRenderable::init()
 {
 	shutdown();
@@ -56,11 +58,19 @@ bool Component_BasicRenderable::init()
 		ret &= m_materials[i] != nullptr;
 	}
 
+	s_instances.push_back(this);
+
 	return ret;
 }
 
 void Component_BasicRenderable::shutdown()
 {
+	auto it = eastl::find(s_instances.begin(), s_instances.end(), this);
+	if (it != s_instances.end())
+	{
+		s_instances.erase_unsorted(it);
+	}
+
 	for (BasicMaterial* material : m_materials)
 	{
 		BasicMaterial::Release(material);
@@ -83,7 +93,6 @@ bool Component_BasicRenderable::edit()
 		if (FileSystem::PlatformSelect(path, { "*.obj", "*.md5" }))
 		{
 			path = FileSystem::MakeRelative(path.c_str());
-			path = FileSystem::StripRoot(path.c_str());
 			if (path != m_meshPath)
 			{
 				Mesh* mesh = Mesh::Create(path.c_str());
@@ -97,6 +106,15 @@ bool Component_BasicRenderable::edit()
 					if (m_materialPaths.size() < m_mesh->getSubmeshCount())
 					{
 						m_materialPaths.resize(m_mesh->getSubmeshCount());
+						while (m_materials.size() > m_materialPaths.size())
+						{
+							BasicMaterial::Release(m_materials.back());
+							m_materials.pop_back();
+						}
+						while (m_materials.size() < m_materialPaths.size())
+						{
+							m_materials.push_back(nullptr);
+						}
 					}
 				}
 			}
@@ -115,10 +133,9 @@ bool Component_BasicRenderable::edit()
 		if (ImGui::Button(label.c_str()))
 		{
 			PathStr path = m_materialPaths[i];
-			if (FileSystem::PlatformSelect(path, { "*.obj", "*.md5" }))
+			if (FileSystem::PlatformSelect(path, { "*.json" }))
 			{
 				path = FileSystem::MakeRelative(path.c_str());
-				path = FileSystem::StripRoot(path.c_str());
 				if (path != m_materialPaths[i])
 				{
 					BasicMaterial* material = BasicMaterial::Create(path.c_str());

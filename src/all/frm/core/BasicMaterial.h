@@ -42,12 +42,14 @@ public:
 	Texture*              getMap(Map _mapName) const { return m_maps[_mapName]; }
 	const vec4&           getColorAlpha() const      { return m_colorAlpha; }
 	float                 getRough() const           { return m_rough; }
+	int                   getIndex() const           { return m_index; }
 
 protected:
 
 	BasicMaterial(Id _id, const char* _name);
 	~BasicMaterial();
 
+	int                                   m_index        = -1; // global index (see BasicRenderer)
 	apt::PathStr                          m_path         = "";
 	eastl::array<Texture*, Map_Count>     m_maps         = { nullptr };
 	eastl::array<apt::PathStr, Map_Count> m_mapPaths     = { "" };

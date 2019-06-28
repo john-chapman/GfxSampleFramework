@@ -41,7 +41,7 @@ public:
 	{
 		State_Active   = 1 << 0, // Enable/disable update.
 		State_Dynamic  = 1 << 1, // Update every frame (else static).
-		State_Selected = 1 << 3, // Activates certain xforms (e.g. which receive input).
+		State_Selected = 1 << 3, // Activates certain xforms/components (e.g. which receive input).
 
 		State_Any = 0xff
 	};
@@ -108,14 +108,14 @@ private:
  // meta
 	Id                    m_id;          // Unique id.
 	NameStr               m_name;        // User-friendly name (not necessarily unique).
-	Type                  m_type;
+	Type                  m_type;        // Type.
 	uint8                 m_state;       // State mask.
 	uint64                m_userData;    // Application-defined node data.
 	uint64                m_sceneData;   // Scene-defined data.
 
  // spatial
 	mat4                  m_localMatrix; // Initial (local) transformation.
-	mat4                  m_worldMatrix; // Final transformation with any XForms applied.
+	mat4                  m_worldMatrix; // Final transformation with any xforms/components applied.
 	eastl::vector<XForm*> m_xforms;      // XForm list (applied in order). Node owns the xform memory.
 
  // components

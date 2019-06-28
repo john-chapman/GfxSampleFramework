@@ -1,0 +1,14 @@
+{
+	"m_colorAlpha" : [ 1.0, 1.0, 1.0, 1.0 ],
+	"m_rough"      : 1.0,
+	"m_alphaTest"  : false,
+	"m_mapPaths"   :
+	{
+		"Albedo"    : "textures/BasicMaterial/default_albedo.png",
+		"Normal"    : "textures/BasicMaterial/default_normal.png",
+		"Rough"     : "textures/BasicMaterial/default_rough.png",
+		"Cavity"    : "textures/BasicMaterial/default_cavity.png",
+		"Height"    : "textures/BasicMaterial/default_height.png",
+		"Emissive"  : "textures/BasicMaterial/default_emissive.png",
+	},
+}

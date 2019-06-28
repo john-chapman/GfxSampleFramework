@@ -51,9 +51,16 @@ protected:
 
 ////////////////////////////////////////////////////////////////////////////////
 // Component_BasicRenderable
-// \todo Because all framework resources implicitly call Use() on creation,
-// we're forced to store and serialize the paths separately in order to be able
-// tod effectively defer the loading.
+// Note that by design the component is *passive* - it's agnostic wrt the 
+// renderer implementation. To avoid having the renderer traverse the scene graph
+// every frame we cache all instances of the component in a static array.
+//
+// \todo 
+// - Because all framework resources implicitly call Use() on creation, we're 
+//   forced to store and serialize the paths separately in order to be able to 
+//   defer the loading.
+// - Also cache the world space transform/AABB to avoid dereferencing the node
+//   ptr?
 ////////////////////////////////////////////////////////////////////////////////
 struct Component_BasicRenderable: public Component
 {
@@ -63,6 +70,8 @@ struct Component_BasicRenderable: public Component
 	bool                                   m_castShadows = true;
 	eastl::fixed_vector<BasicMaterial*, 1> m_materials;      // per submesh
 	eastl::fixed_vector<apt::PathStr, 1>   m_materialPaths;  //     "
+
+	static eastl::vector<Component_BasicRenderable*> s_instances;
 
 	virtual bool init() override;
 	virtual void shutdown() override;
