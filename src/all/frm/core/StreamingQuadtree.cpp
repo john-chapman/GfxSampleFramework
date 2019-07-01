@@ -42,25 +42,31 @@ void StreamingQuadtree::update()
 			{
 				PROFILER_MARKER_CPU("Visit Node");
 
-				if (m_stateQuadtree[_nodeIndex] == NodeState_Loaded)
+				#if 0
 				{
-					NodeIndex firstChildIndex = m_nodeQuadtree.getFirstChildIndex(_nodeIndex, _nodeLevel);
-					if (firstChildIndex == NodeIndex_Invalid)
+				 // \todo it's probaly possible to update the draw list during the split/merge traversal but the node selection code below need
+				 // to be merged with the split/merge logic
+					if (m_stateQuadtree[_nodeIndex] == NodeState_Loaded)
 					{
-						m_drawList.push_back(_nodeIndex);
-					}
-					else
-					{
-						for (NodeIndex childIndex = firstChildIndex; childIndex < (firstChildIndex + 4); ++childIndex)
+						NodeIndex firstChildIndex = m_nodeQuadtree.getFirstChildIndex(_nodeIndex, _nodeLevel);
+						if (firstChildIndex == NodeIndex_Invalid)
 						{
-							if (m_stateQuadtree[childIndex] != NodeState_Loaded)
+							m_drawList.push_back(_nodeIndex);
+						}
+						else
+						{
+							for (NodeIndex childIndex = firstChildIndex; childIndex < (firstChildIndex + 4); ++childIndex)
 							{
-								m_drawList.push_back(_nodeIndex);
-								break;
+								if (m_stateQuadtree[childIndex] != NodeState_Loaded)
+								{
+									m_drawList.push_back(_nodeIndex);
+									break;
+								}
 							}
 						}
 					}
 				}
+				#endif
 
 				Node* node = m_nodeQuadtree[_nodeIndex];
 				if (wantSplit(node))
@@ -76,6 +82,38 @@ void StreamingQuadtree::update()
 			},
 			0
 			);
+
+		#if 1
+		{
+		 // \todo see the comment in the first traversal above
+			m_nodeQuadtree.traverse(
+				[&](NodeIndex _nodeIndex, int _nodeLevel)
+				{
+					if (m_stateQuadtree[_nodeIndex] != NodeState_Loaded)
+					{
+						return false;
+					}
+					NodeIndex firstChildIndex = m_nodeQuadtree.getFirstChildIndex(_nodeIndex, _nodeLevel);
+					if (firstChildIndex == NodeIndex_Invalid)
+					{
+						m_drawList.push_back(_nodeIndex);
+						return false;
+					}
+					for (NodeIndex childIndex = firstChildIndex; childIndex < (firstChildIndex + 4); ++childIndex)
+					{
+						if (m_stateQuadtree[childIndex] != NodeState_Loaded)
+						{
+							m_drawList.push_back(_nodeIndex);
+							return false;
+						}
+					}
+					return true;
+				},
+				0
+				);		
+		}
+		#endif
+
 		m_updateDrawList = false;
 	}
 }
@@ -83,8 +121,9 @@ void StreamingQuadtree::update()
 void StreamingQuadtree::drawDebug(const mat4& _world)
 {
 	ImGui::Text("Total node count: %u", m_nodePool.getUsedCount());
-	ImGui::Text("Load Queue:       %u", m_loadQueue.size());
-	ImGui::Text("Release Queue:    %u", m_releaseQueue.size());
+	ImGui::Text("Load queue:       %u", m_loadQueue.size());
+	ImGui::Text("Release queue:    %u", m_releaseQueue.size());
+	ImGui::Text("Draw list:        %u", m_drawList.size());
 	if (ImGui::SliderFloat("LOD Scale", &m_lodScale, 1e-4f, 2.0f))
 	{
 		setLodScale(m_lodScale);
@@ -99,7 +138,7 @@ void StreamingQuadtree::drawDebug(const mat4& _world)
 
 	Im3d::SetSize(2.0f);
 
-	/*m_nodeQuadtree.traverse(
+	m_nodeQuadtree.traverse(
 		[&](NodeIndex _nodeIndex, int _nodeLevel)
 		{
 			const Im3d::Color kLevelColors[] =
@@ -140,7 +179,7 @@ void StreamingQuadtree::drawDebug(const mat4& _world)
 			return false;
 		},
 		0
-		);*/
+		);
 
 	Im3d::SetColor(Im3d::Color_White);
 	Im3d::SetAlpha(0.1f);
@@ -152,7 +191,7 @@ void StreamingQuadtree::drawDebug(const mat4& _world)
 		{
 			continue;
 		}
-		vec3 boxSize = vec3(node->m_widthQ / 2.05f, node->m_widthQ / 2.05f, node->m_heightQ);
+		vec3 boxSize = vec3(node->m_widthQ / 2.0f, node->m_widthQ / 2.0f, node->m_heightQ);
 		vec3 boxMin  = node->m_originQ + vec3(-boxSize.xy(), 0.0f);
 		vec3 boxMax  = node->m_originQ + vec3( boxSize.xy(), boxSize.z);
 		Im3d::DrawAlignedBoxFilled(boxMin, boxMax);	

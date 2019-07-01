@@ -972,7 +972,7 @@ public:
 			static StreamingQuadtree* qt = nullptr;
 			static mat4 world = TransformationMatrix(vec3(0.0f), RotationQuaternion(vec3(1.0f, 0.0f, 0.0f), Radians(90.0f)), vec3(16.0f, 16.0f, 1.0f));
 			static mat4 quadtree = Inverse(world);
-			static int maxLoad = 1;
+			static int maxLoad = 8;
 			static int maxRelease = 16;
 			APT_ONCE
 			{
