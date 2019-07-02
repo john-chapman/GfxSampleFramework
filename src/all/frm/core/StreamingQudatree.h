@@ -53,7 +53,7 @@ public:
 	{
 		NodeIndex m_index   = 0;
 		int       m_level   = 0;
-		vec3      m_originQ	= vec3(0.0f); // XY in [-1,1], Z in [0,1].
+		vec3      m_originQ = vec3(0.0f); // XY in [-1,1], Z in [0,1].
 		float     m_widthQ  = 2.0f;       // XY size.
 		float     m_heightQ = 1.0f;       // Z size.
 	};
