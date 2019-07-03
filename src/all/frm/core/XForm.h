@@ -24,9 +24,9 @@ public:
 	typedef void (OnComplete)(XForm* _xform_);
 	struct Callback
 	{
-		OnComplete*     m_callback;
-		const char*     m_name;
-		apt::StringHash m_nameHash;
+		OnComplete*     m_callback  = nullptr;
+		const char*     m_name      = "";
+		apt::StringHash m_nameHash  = apt::StringHash::kInvalidHash;
 		
 		Callback(const char* _name, OnComplete* _callback);
 	};
@@ -164,7 +164,7 @@ struct XForm_PositionTarget: public XForm
 	float m_duration          = 1.0f;
 	float m_currentTime       = 0.0f;
 
-	OnComplete* m_onComplete;
+	OnComplete* m_onComplete  = nullptr;
 	
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
@@ -185,7 +185,7 @@ struct XForm_SplinePath: public XForm
 	float       m_duration      = 1.0f;
 	float       m_currentTime   = 0.0f;
 
-	OnComplete* m_onComplete;
+	OnComplete* m_onComplete    = nullptr;
 
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
