@@ -5,7 +5,7 @@
 #include <im3d/im3d.h>
 #include <imgui/imgui.h>
 
-#include <algorithm>
+#include <EASTL/sort.h>
 
 namespace frm {
 
@@ -116,6 +116,7 @@ void StreamingQuadtree::update()
 
 		m_updateDrawList = false;
 	}
+	sortLoadQueue();
 }
 
 void StreamingQuadtree::drawDebug(const mat4& _world)
@@ -202,9 +203,10 @@ void StreamingQuadtree::drawDebug(const mat4& _world)
 	Im3d::PopDrawState();
 }
 
-void StreamingQuadtree::setPivot(const vec3& _pivotQ)
+void StreamingQuadtree::setPivot(const vec3& _pivotQ, const vec3& _directionQ)
 {
-	if (length2(_pivotQ - m_pivotQ) < FLT_EPSILON)
+	m_directionQ = _directionQ;
+	if (length2(_pivotQ - m_pivotQ) < FLT_EPSILON) // \todo use leaf node half width instead of FLT_EPSILON
 	{
 		return;
 	}
@@ -369,6 +371,8 @@ void StreamingQuadtree::merge(const Node* _node)
 
 void StreamingQuadtree::queueForLoad(NodeIndex _nodeIndex)
 {
+	PROFILER_MARKER_CPU("StreamingQuadtree::queueForLoad");
+
 	APT_ASSERT(m_nodeQuadtree[_nodeIndex]);
 	NodeState& state = m_stateQuadtree[_nodeIndex];
 	if (state == NodeState_QueuedForLoad || state == NodeState_Loaded)
@@ -395,7 +399,9 @@ void StreamingQuadtree::queueForLoad(NodeIndex _nodeIndex)
 }
 
 void StreamingQuadtree::queueForRelease(NodeIndex _nodeIndex)
-{	
+{
+	PROFILER_MARKER_CPU("StreamingQuadtree::queueForRelease");
+
 	APT_ASSERT(m_nodeQuadtree[_nodeIndex]);
 	NodeState& state = m_stateQuadtree[_nodeIndex];
 	if (state == NodeState_QueuedForRelease|| state == NodeState_Invalid)
@@ -423,11 +429,30 @@ void StreamingQuadtree::queueForRelease(NodeIndex _nodeIndex)
 
 void StreamingQuadtree::releaseNode(NodeIndex _nodeIndex)
 {
+	PROFILER_MARKER_CPU("StreamingQuadtree::releaseNode");
+
 	APT_ASSERT(m_dataQuadtree[_nodeIndex] == nullptr);
 	APT_ASSERT(m_nodeQuadtree[_nodeIndex]);
 	m_nodePool.free(m_nodeQuadtree[_nodeIndex]);
 	m_nodeQuadtree[_nodeIndex] = nullptr;
 	m_stateQuadtree[_nodeIndex] = NodeState_Invalid;
+}
+
+void StreamingQuadtree::sortLoadQueue()
+{
+	PROFILER_MARKER_CPU("StreamingQuadtree::sortLoadQueue");
+
+	if (m_loadQueue.size() > 2) 
+	{
+		eastl::sort(m_loadQueue.begin(), m_loadQueue.end(), 
+			[this](NodeIndex _a, NodeIndex _b)
+			{
+				vec3 da = m_pivotQ - m_nodeQuadtree[_a]->m_originQ;
+				vec3 db = m_pivotQ - m_nodeQuadtree[_b]->m_originQ;
+				return apt::Dot(m_directionQ, db) < apt::Dot(m_directionQ, da);
+			}
+			);
+	}
 }
 
 } // namespace frm

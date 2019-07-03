@@ -27,7 +27,6 @@ namespace frm {
 // of the root node (like NDC).
 //
 // \todo
-// - Sort the load queue.
 // - Don't store Node*/void* in the quadtrees, use a special pool which can be
 //   accessed by a 16 bit index (and just store 16 bits).
 ////////////////////////////////////////////////////////////////////////////////
@@ -64,7 +63,7 @@ public:
 	void      update();
 	void      drawDebug(const mat4& _world);
 
-	void      setPivot(const vec3& _pivotQ);
+	void      setPivot(const vec3& _pivotQ, const vec3& _directionQ = vec3(0.0f, 0.0f, 1.0f));
 	void      setLodScale(float _lodScale);
 
 	void*     getNodeData(NodeIndex _nodeIndex) const { return m_dataQuadtree[_nodeIndex]; }
@@ -87,6 +86,7 @@ protected:
 	Quadtree_Data            m_dataQuadtree;
 	int                      m_maxLevel        = 0;
 	vec3                     m_pivotQ          = vec3(0.0f);
+	vec3                     m_directionQ      = vec3(0.0f, 0.0f, 1.0f);
 	float                    m_lodScale        = 1.0f;
 	eastl::vector<float>     m_lodRadii2;
 	bool                     m_updateDrawList  = true;
@@ -101,6 +101,7 @@ protected:
 	void queueForLoad(NodeIndex _nodeIndex);
 	void queueForRelease(NodeIndex _nodeIndex);
 	void releaseNode(NodeIndex _nodeIndex);
+	void sortLoadQueue();
 
 }; // class StreamingQuadtree
 
