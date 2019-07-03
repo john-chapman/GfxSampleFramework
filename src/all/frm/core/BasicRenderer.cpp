@@ -44,6 +44,8 @@ void BasicRenderer::draw(Camera* _camera)
 	{
 		Mesh*  m_mesh          = nullptr;
 		mat4   m_world         = identity;
+		mat4   m_prevWorld     = identity;
+		vec4   m_colorAlpha    = vec4(1.0f);
 		uint32 m_materialIndex = ~0;
 		uint32 m_submeshIndex  = 0;
 	};
@@ -54,7 +56,12 @@ void BasicRenderer::draw(Camera* _camera)
 
 		for (Component_BasicRenderable* renderable : Component_BasicRenderable::s_instances)
 		{
-			mat4 world = renderable->getNode()->getWorldMatrix();
+			Node* sceneNode = renderable->getNode();
+			if (!sceneNode->isActive())
+			{
+				continue;
+			}
+			mat4 world = sceneNode->getWorldMatrix();
 			Sphere bs = renderable->m_mesh->getBoundingSphere();
 			bs.transform(world);
 			if (_camera->m_worldFrustum.insideIgnoreNear(bs))
@@ -74,6 +81,8 @@ void BasicRenderer::draw(Camera* _camera)
 						DrawInstance& drawInstance   = gbufferInstances[materialIndex].push_back();
 						drawInstance.m_mesh          = renderable->m_mesh;
 						drawInstance.m_world         = world;
+						drawInstance.m_prevWorld     = renderable->m_prevWorld;
+						drawInstance.m_colorAlpha    = renderable->m_colorAlpha;
 						drawInstance.m_materialIndex = materialIndex;
 						drawInstance.m_submeshIndex  = submeshIndex;
 					}
@@ -84,14 +93,14 @@ void BasicRenderer::draw(Camera* _camera)
 
 	GlContext* ctx = GlContext::GetCurrent();
 	
-	{	PROFILER_MARKER("Gbuffer");
+	{	PROFILER_MARKER("GBuffer");
 
-		ctx->setFramebuffer(m_fbGbuffer);
+		ctx->setFramebuffer(m_fbGBuffer);
 	 // \todo set the depth clear value based on the camera's projection mode, clear the color buffer?
 		glAssert(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 		glScopedEnable(GL_CULL_FACE, GL_TRUE); // \todo per material?
-		ctx->setShader(m_shGbuffer);
+		ctx->setShader(m_shGBuffer);
 		ctx->bindBuffer(_camera->m_gpuBuffer);
 		
 	 // \todo sort each DrawInstance list by mesh/submesh for auto batching
@@ -103,11 +112,10 @@ void BasicRenderer::draw(Camera* _camera)
 			}
 
 			BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
-			ctx->setUniform ("uColorAlpha", material->getColorAlpha());
-			ctx->setUniform ("uRough",      material->getRough());
+			ctx->setUniform ("uRoughness",  material->getRoughness());
 			ctx->bindTexture("txAlbedo",    material->getMap(BasicMaterial::Map_Albedo));
 			ctx->bindTexture("txNormal",    material->getMap(BasicMaterial::Map_Normal));
-			ctx->bindTexture("txRough",     material->getMap(BasicMaterial::Map_Rough));
+			ctx->bindTexture("txRoughness", material->getMap(BasicMaterial::Map_Roughness));
 			ctx->bindTexture("txCavity",    material->getMap(BasicMaterial::Map_Cavity));
 			ctx->bindTexture("txHeight",    material->getMap(BasicMaterial::Map_Height));
 			ctx->bindTexture("txEmissive",  material->getMap(BasicMaterial::Map_Emissive));
@@ -115,7 +123,9 @@ void BasicRenderer::draw(Camera* _camera)
 			for (DrawInstance& drawInstance : gbufferInstances[materialIndex])
 			{
 				ctx->setMesh(drawInstance.m_mesh, drawInstance.m_submeshIndex);
-				ctx->setUniform("uWorld", drawInstance.m_world);
+				ctx->setUniform ("uWorld",      drawInstance.m_world);
+				ctx->setUniform ("uPrevWorld",  drawInstance.m_prevWorld);
+				ctx->setUniform ("uColorAlpha", drawInstance.m_colorAlpha * material->getColorAlpha());
 				ctx->draw();
 			}
 		}
@@ -126,40 +136,40 @@ void BasicRenderer::draw(Camera* _camera)
 
 BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY)
 {
-	m_shGbuffer = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBUFFER" });
+	m_shGBuffer = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
 
-	m_txGbuffer0 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
-	m_txGbuffer0->setName("txGbuffer0");
-	m_txGbuffer0->setWrap(GL_CLAMP_TO_EDGE);
+	m_txGBuffer0 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
+	m_txGBuffer0->setName("txGBuffer0");
+	m_txGBuffer0->setWrap(GL_CLAMP_TO_EDGE);
 
-	m_txGbuffer1 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
-	m_txGbuffer1->setName("txGbuffer1");
-	m_txGbuffer1->setWrap(GL_CLAMP_TO_EDGE);
+	m_txGBuffer1 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
+	m_txGBuffer1->setName("txGBuffer1");
+	m_txGBuffer1->setWrap(GL_CLAMP_TO_EDGE);
 
-	m_txGbuffer2 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
-	m_txGbuffer2->setName("txGbuffer2");
-	m_txGbuffer2->setWrap(GL_CLAMP_TO_EDGE);
+	m_txGBuffer2 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
+	m_txGBuffer2->setName("txGBuffer2");
+	m_txGBuffer2->setWrap(GL_CLAMP_TO_EDGE);
 
-	m_txGbufferDepth = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
-	m_txGbufferDepth->setName("txGbufferDepth");
-	m_txGbufferDepth->setWrap(GL_CLAMP_TO_EDGE);
-
-	m_fbGbuffer = Framebuffer::Create(4, m_txGbuffer0, m_txGbuffer1, m_txGbuffer2, m_txGbufferDepth);
+	m_txGBufferDepth = Texture::Create2d(_resolutionX, _resolutionY, GL_DEPTH32F_STENCIL8);
+	m_txGBufferDepth->setName("txGBufferDepth");
+	m_txGBufferDepth->setWrap(GL_CLAMP_TO_EDGE);
 
 	m_txScene = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA16F);
 	m_txScene->setName("txScene");
 	m_txScene->setWrap(GL_CLAMP_TO_EDGE);
 
-	m_fbScene = Framebuffer::Create(2, m_txScene, m_txGbufferDepth);
+	m_fbGBuffer = Framebuffer::Create(5, m_txGBuffer0, m_txGBuffer1, m_txGBuffer2, m_txScene, m_txGBufferDepth);
+
+	m_fbScene = Framebuffer::Create(2, m_txScene, m_txGBufferDepth);
 }
 
 BasicRenderer::~BasicRenderer()
 {
-	Texture::Release(m_txGbuffer0);
-	Texture::Release(m_txGbuffer1);
-	Texture::Release(m_txGbuffer2);
-	Texture::Release(m_txGbufferDepth);
-	Framebuffer::Destroy(m_fbGbuffer);
+	Texture::Release(m_txGBuffer0);
+	Texture::Release(m_txGBuffer1);
+	Texture::Release(m_txGBuffer2);
+	Texture::Release(m_txGBufferDepth);
+	Framebuffer::Destroy(m_fbGBuffer);
 	Texture::Release(m_txScene);
 	Framebuffer::Destroy(m_fbScene);
 }

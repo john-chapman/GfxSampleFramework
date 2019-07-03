@@ -14,7 +14,7 @@
 			"Dynamic": true,
 			"Selected": true,
 			"UserData": 0,
-			"LocalMatrix": [-0.05762166157364845, -0.000002771615982055664, 0.9983335733413696, 0.0, 0.6278740167617798, 0.7774643301963806, 0.03624171018600464, 0.0, -0.7761727571487427, 0.6289190649986267, -0.044797297567129138, 0.0, -17.793344497680665, 13.460227012634278, 0.7152104377746582, 1.0],
+			"LocalMatrix": [-0.06991338729858399, -0.00000268593430519104, -0.9975466132164002, 0.0, -0.03495483845472336, 0.9993794560432434, 0.0024471301585435869, 0.0, 0.9969339966773987, 0.035040393471717837, -0.06987053155899048, 0.0, 9.870867729187012, 2.7725613117218019, 0.10828325897455216, 1.0],
 			"Type": "Camera",
 			"Up": 0.4142135679721832,
 			"Down": -0.4142135679721832,
@@ -22,7 +22,7 @@
 			"Left": -0.801459014415741,
 			"Near": 0.10000000149011612,
 			"Far": 1000.0,
-			"WorldMatrix": [-0.05762166157364845, -0.000002771615982055664, 0.9983335733413696, 0.0, 0.6278740167617798, 0.7774643301963806, 0.03624171018600464, 0.0, -0.7761727571487427, 0.6289190649986267, -0.044797297567129138, 0.0, -17.793344497680665, 13.460227012634278, 0.7152104377746582, 1.0],
+			"WorldMatrix": [-0.06991338729858399, -0.00000268593430519104, -0.9975466132164002, 0.0, -0.03495483845472336, 0.9993794560432434, 0.0024471301585435869, 0.0, 0.9969339966773987, 0.035040393471717837, -0.06987053155899048, 0.0, 9.870867729187012, 2.7725613117218019, 0.10828325897455216, 1.0],
 			"Orthographic": false,
 			"Asymmetrical": false,
 			"Infinite": true,
@@ -30,8 +30,8 @@
 			"HasGpuBuffer": true,
 			"XForms": [{
 					"Class": "XForm_FreeCamera",
-					"Position": [-17.793344497680665, 13.460227012634278, 0.7152104377746582],
-					"Orientation": [0.22896847128868104, 0.6855432987213135, 0.2425670176744461, -0.6471167802810669],
+					"Position": [9.870867729187012, 2.7725613117218019, 0.10828325897455216],
+					"Orientation": [0.011950590647757054, -0.7312928438186646, -0.012815496884286404, -0.6818337440490723],
 					"MaxSpeed": 10.0,
 					"MaxSpeedMultiplier": 5.0,
 					"AccelerationTime": 0.10000000149011612,
@@ -71,17 +71,72 @@
 				}]
 		}, {
 			"Id": 3,
-			"Name": "Object_000",
+			"Name": "Bob",
+			"Active": true,
+			"Dynamic": false,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [-4.371137762859689e-8, 0.0, -0.9999997615814209, 0.0, -0.9999997615814209, -4.371137762859689e-8, 4.371137762859689e-8, 0.0, -4.3711374075883216e-8, 0.9999997019767761, 1.9106848298899947e-15, 0.0, 0.0, 0.0, 0.34293416142463686, 1.0],
+			"Type": "Object",
+			"XForms": [{
+					"Class": "XForm_Spin",
+					"Axis": [0.0, 0.0, 1.0],
+					"Rate": 1.4850000143051148
+				}],
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [0.9999985098838806, 0.9999899864196777, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/md5/bob_lamp_update.md5mesh",
+					"Material": ["", "common/materials/BasicMaterial.json", "common/materials/BasicMaterial.json", "common/materials/BasicMaterial.json", "common/materials/BasicMaterial.json", "common/materials/BasicMaterial.json", "common/materials/BasicMaterial.json"]
+				}]
+		}, {
+			"Id": 4,
+			"Name": "RedTeapot",
 			"Active": true,
 			"Dynamic": true,
-			"Selected": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 2.076662540435791, 1.1862008571624756, 2.1409950256347658, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 0.0, 0.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/teapot.obj",
+					"Material": ["common/materials/BasicMaterial.json"]
+				}]
+		}, {
+			"Id": 5,
+			"Name": "GreenTeapot",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
 			"UserData": 0,
 			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"Type": "Object",
 			"Components": [{
 					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [0.0, 1.0, 0.0, 1.0],
+					"CastShadows": true,
 					"Mesh": "common/models/teapot.obj",
-					"Material": ["materials/BasicMaterial.json"]
+					"Material": ["common/materials/BasicMaterial.json"]
+				}]
+		}, {
+			"Id": 6,
+			"Name": "BlueTeapot",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.646813154220581, -2.470064401626587, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [0.0, 0.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/teapot.obj",
+					"Material": ["common/materials/BasicMaterial.json"]
 				}]
 		}],
 	"DrawCameraId": 1,

@@ -20,7 +20,7 @@ public:
 	{
 		Map_Albedo,
 		Map_Normal,
-		Map_Rough,
+		Map_Roughness,
 		Map_Cavity,
 		Map_Height,
 		Map_Emissive,
@@ -29,8 +29,10 @@ public:
 	};
 	typedef int Map;
 
+	static BasicMaterial* Create();
 	static BasicMaterial* Create(const char* _path);
 	static void           Destroy(BasicMaterial*& _basicMaterial_);
+	static bool           Edit(BasicMaterial*& _basicMaterial_, bool* _open_ = nullptr);
 
 	bool                  load()                     { return reload(); }
 	bool                  reload();
@@ -39,10 +41,13 @@ public:
 
 	friend bool Serialize(apt::Serializer& _serializer_, BasicMaterial& _basicMaterial_) { return _basicMaterial_.serialize(_serializer_); }
 
+	int                   getIndex() const           { return m_index; }
+	const char*           getPath() const            { return m_path.c_str(); }
 	Texture*              getMap(Map _mapName) const { return m_maps[_mapName]; }
 	const vec4&           getColorAlpha() const      { return m_colorAlpha; }
-	float                 getRough() const           { return m_rough; }
-	int                   getIndex() const           { return m_index; }
+	float                 getRoughness() const       { return m_roughness; }
+	
+	void                  setMap(Map, const char* _path);
 
 protected:
 
@@ -54,11 +59,8 @@ protected:
 	eastl::array<Texture*, Map_Count>     m_maps         = { nullptr };
 	eastl::array<apt::PathStr, Map_Count> m_mapPaths     = { "" };
 	vec4                                  m_colorAlpha   = vec4(1.0f);
-	float                                 m_rough        = 1.0f;
+	float                                 m_roughness    = 1.0f;
 	bool                                  m_alphaTest    = false;
-
-	bool initMaps();
-	void releaseMaps();
 
 }; // class BasicMaterial
 
