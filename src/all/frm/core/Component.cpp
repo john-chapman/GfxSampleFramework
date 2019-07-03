@@ -80,6 +80,7 @@ void Component_BasicRenderable::shutdown()
 
 void Component_BasicRenderable::update(float _dt)
 {
+	m_prevWorld = m_node->getWorldMatrix();
 }
 
 bool Component_BasicRenderable::edit()
@@ -87,10 +88,15 @@ bool Component_BasicRenderable::edit()
 	bool ret = false;
 	ImGui::PushID(this);
 
+	ret |= ImGui::ColorEdit3("Color", &m_colorAlpha.x);
+	ret |= ImGui::SliderFloat("Alpha", &m_colorAlpha.w, 0.0f, 1.0f);
+
+	ImGui::Spacing();
+
 	if (ImGui::Button("Mesh"))
 	{
 		PathStr path = m_meshPath;
-		if (FileSystem::PlatformSelect(path, { "*.obj", "*.md5" }))
+		if (FileSystem::PlatformSelect(path, { "*.obj", "*.md5mesh" }))
 		{
 			path = FileSystem::MakeRelative(path.c_str());
 			if (path != m_meshPath)
@@ -123,50 +129,67 @@ bool Component_BasicRenderable::edit()
 	ImGui::SameLine();
 	ImGui::Text(m_meshPath.c_str());
 
-	ImGui::PushID("Materials");
 	ImGui::Spacing();
-	ImGui::Text("Materials");
-	for (size_t i = 0; i < m_materialPaths.size(); ++i)
+	if (ImGui::TreeNode("Materials"))
 	{
-		ImGui::PushID(i);
-		String<16> label(i == 0 ? "Global" : "Submesh %u", i - 1);
-		if (ImGui::Button(label.c_str()))
+		for (size_t i = 0; i < m_materialPaths.size(); ++i)
 		{
-			PathStr path = m_materialPaths[i];
-			if (FileSystem::PlatformSelect(path, { "*.json" }))
+			ImGui::PushID((int)i);
+			String<16> label(i == 0 ? "Global" : "Submesh %u", i - 1);
+			if (ImGui::Button(label.c_str()))
 			{
-				path = FileSystem::MakeRelative(path.c_str());
-				if (path != m_materialPaths[i])
+				PathStr path = m_materialPaths[i];
+				if (FileSystem::PlatformSelect(path, { "*.json" }))
 				{
-					BasicMaterial* material = BasicMaterial::Create(path.c_str());
-					if (material)
+					path = FileSystem::MakeRelative(path.c_str());
+					if (path != m_materialPaths[i])
 					{
-						BasicMaterial::Release(m_materials[i]);
-						m_materials[i] = material;
-						m_materialPaths[i] = path;
-						ret = true;
-					}
-				}	
+						BasicMaterial* material = BasicMaterial::Create(path.c_str());
+						if (material)
+						{
+							BasicMaterial::Release(m_materials[i]);
+							m_materials[i] = material;
+							m_materialPaths[i] = path;
+							ret = true;
+						}
+					}	
+				}
+			}
+			ImGui::SameLine();
+			ImGui::Text(m_materialPaths[i].c_str());
+			if (m_materials[i])
+			{
+				ImGui::SameLine();
+				if (ImGui::Button(ICON_FA_TIMES "##delete"))
+				{
+					BasicMaterial::Release(m_materials[i]);
+					m_materialPaths[i] = "";
+					ret = true;
+				}
+				// \todo material edit
+				//ImGui::SameLine();
+				//static bool editMaterial = false;
+				//if (ImGui::Button(ICON_FA_EXTERNAL_LINK "##edit"))
+				//{
+				//	editMaterial = !editMaterial;
+				//}
+				//if (editMaterial && BasicMaterial::Edit(m_materials[i], &editMaterial))
+				//{
+				//	m_materialPaths[i] = m_materials[i]->getPath();
+				//	ret = true;
+				//}
+			}
+			ImGui::PopID();
+
+		 // if the global material is set don't show the submesh slots
+			if (i == 0 && !m_materialPaths[0].isEmpty())
+			{
+				break;
 			}
 		}
-		ImGui::SameLine();
-		ImGui::Text(m_materialPaths[i].c_str());
-		ImGui::SameLine();
-		if (ImGui::Button(ICON_FA_TIMES))
-		{
-			BasicMaterial::Release(m_materials[i]);
-			m_materialPaths[i] = "";
-			ret = true;
-		}
-		ImGui::PopID();
 
-	 // if the global material is set don't show the submesh slots
-		if (i == 0 && !m_materialPaths[0].isEmpty())
-		{
-			break;
-		}
+		ImGui::TreePop();
 	}
-	ImGui::PopID();
 
 	ImGui::PopID();
 	return ret;
@@ -174,6 +197,8 @@ bool Component_BasicRenderable::edit()
 
 bool Component_BasicRenderable::serialize(apt::Serializer& _serializer_)
 {
+	Serialize(_serializer_, m_colorAlpha, "ColorAlpha");
+	Serialize(_serializer_, m_castShadows, "CastShadows");
 	Serialize(_serializer_, m_meshPath, "Mesh");
 	uint materialCount = m_materialPaths.size();
 	if (_serializer_.beginArray(materialCount, "Material"))

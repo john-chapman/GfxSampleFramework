@@ -64,10 +64,11 @@ protected:
 ////////////////////////////////////////////////////////////////////////////////
 struct Component_BasicRenderable: public Component
 {
-	apt::PathStr                           m_path        = "";
+	vec4                                   m_colorAlpha  = vec4(1.0f);
+	bool                                   m_castShadows = true;
+	mat4                                   m_prevWorld   = identity;
 	Mesh*                                  m_mesh        = nullptr;
 	apt::PathStr                           m_meshPath    = "";
-	bool                                   m_castShadows = true;
 	eastl::fixed_vector<BasicMaterial*, 1> m_materials;      // per submesh
 	eastl::fixed_vector<apt::PathStr, 1>   m_materialPaths;  //     "
 
