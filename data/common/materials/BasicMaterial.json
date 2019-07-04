@@ -1,4 +1,5 @@
 {
 	"ColorAlpha" : [ 1.0, 1.0, 1.0, 1.0 ],
-	"Roughness"   : 1.0,
+	"Rough"      : 1.0,
+	"Metal"      : 1.0,
 }

@@ -20,7 +20,8 @@ public:
 	{
 		Map_Albedo,
 		Map_Normal,
-		Map_Roughness,
+		Map_Rough,
+		Map_Metal,
 		Map_Cavity,
 		Map_Height,
 		Map_Emissive,
@@ -45,7 +46,8 @@ public:
 	const char*           getPath() const            { return m_path.c_str(); }
 	Texture*              getMap(Map _mapName) const { return m_maps[_mapName]; }
 	const vec4&           getColorAlpha() const      { return m_colorAlpha; }
-	float                 getRoughness() const       { return m_roughness; }
+	float                 getRough() const           { return m_rough; }
+	float                 getMetal() const           { return m_metal; }
 	
 	void                  setMap(Map, const char* _path);
 
@@ -59,7 +61,8 @@ protected:
 	eastl::array<Texture*, Map_Count>     m_maps         = { nullptr };
 	eastl::array<apt::PathStr, Map_Count> m_mapPaths     = { "" };
 	vec4                                  m_colorAlpha   = vec4(1.0f);
-	float                                 m_roughness    = 1.0f;
+	float                                 m_rough        = 1.0f;
+	float                                 m_metal        = 0.0f;
 	bool                                  m_alphaTest    = false;
 
 }; // class BasicMaterial

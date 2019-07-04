@@ -112,10 +112,12 @@ void BasicRenderer::draw(Camera* _camera)
 			}
 
 			BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
-			ctx->setUniform ("uRoughness",  material->getRoughness());
+			ctx->setUniform ("uRough",      material->getRough());
+			ctx->setUniform ("uMetal",      material->getMetal());
 			ctx->bindTexture("txAlbedo",    material->getMap(BasicMaterial::Map_Albedo));
 			ctx->bindTexture("txNormal",    material->getMap(BasicMaterial::Map_Normal));
-			ctx->bindTexture("txRoughness", material->getMap(BasicMaterial::Map_Roughness));
+			ctx->bindTexture("txRough",     material->getMap(BasicMaterial::Map_Rough));
+			ctx->bindTexture("txMetal",     material->getMap(BasicMaterial::Map_Metal));
 			ctx->bindTexture("txCavity",    material->getMap(BasicMaterial::Map_Cavity));
 			ctx->bindTexture("txHeight",    material->getMap(BasicMaterial::Map_Height));
 			ctx->bindTexture("txEmissive",  material->getMap(BasicMaterial::Map_Emissive));
@@ -130,6 +132,18 @@ void BasicRenderer::draw(Camera* _camera)
 			}
 		}
 	}
+
+	{	PROFILER_MARKER("Lighting");
+
+		ctx->setShader(m_shLighting);
+		ctx->bindTexture(m_txGBuffer0);
+		ctx->bindTexture(m_txGBuffer1);
+		ctx->bindTexture(m_txGBuffer2);
+		ctx->bindTexture(m_txGBuffer3);
+		ctx->bindTexture(m_txGBufferDepth);
+		ctx->bindImage("txOut", m_txScene, GL_WRITE_ONLY);
+		ctx->dispatch(m_txScene);
+	}
 }
 
 // PRIVATE
@@ -137,6 +151,7 @@ void BasicRenderer::draw(Camera* _camera)
 BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY)
 {
 	m_shGBuffer = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
+	m_shLighting = Shader::CreateCs("shaders/BasicRenderer/Lighting.glsl", 8, 8);
 
 	m_txGBuffer0 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
 	m_txGBuffer0->setName("txGBuffer0");
@@ -149,6 +164,10 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY)
 	m_txGBuffer2 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
 	m_txGBuffer2->setName("txGBuffer2");
 	m_txGBuffer2->setWrap(GL_CLAMP_TO_EDGE);
+
+	m_txGBuffer3 = Texture::Create2d(_resolutionX, _resolutionY, GL_R11F_G11F_B10F);
+	m_txGBuffer3->setName("txGBuffer3");
+	m_txGBuffer3->setWrap(GL_CLAMP_TO_EDGE);
 
 	m_txGBufferDepth = Texture::Create2d(_resolutionX, _resolutionY, GL_DEPTH32F_STENCIL8);
 	m_txGBufferDepth->setName("txGBufferDepth");
@@ -168,10 +187,13 @@ BasicRenderer::~BasicRenderer()
 	Texture::Release(m_txGBuffer0);
 	Texture::Release(m_txGBuffer1);
 	Texture::Release(m_txGBuffer2);
+	Texture::Release(m_txGBuffer3);
 	Texture::Release(m_txGBufferDepth);
 	Framebuffer::Destroy(m_fbGBuffer);
 	Texture::Release(m_txScene);
 	Framebuffer::Destroy(m_fbScene);
+	Shader::Release(m_shGBuffer);
+	Shader::Release(m_shLighting);
 }
 
 } // namespace frm

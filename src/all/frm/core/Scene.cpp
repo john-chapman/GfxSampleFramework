@@ -152,15 +152,13 @@ void Node::Update(Node* _node_, float _dt, uint8 _stateMask)
 		return;
 	}
 
- // reset world matrix
-	_node_->m_worldMatrix = _node_->m_localMatrix;
-
  // update components
 	for (Component* component : _node_->m_components) {
 		component->update(_dt);
 	}
 
  // apply xforms
+	_node_->m_worldMatrix = _node_->m_localMatrix;
 	for (auto& xform : _node_->m_xforms) {
 		xform->apply(_dt);
 	}

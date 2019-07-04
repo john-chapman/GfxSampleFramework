@@ -27,33 +27,38 @@ uniform sampler2D txGBuffer2;
 uniform sampler2D txGBuffer3;
 uniform sampler2D txGBufferDepth;
 
-vec3 GBuffer_FetchAlbedo(in ivec2 _iuv)
+vec3 GBuffer_ReadAlbedo(in ivec2 _iuv)
 {
 	vec4 ret = texelFetch(txGBuffer0, _iuv, 0);
 	return Gamma_Apply(ret.rgb);
 }
 
-vec3 GBuffer_FetchRoughnessMetalAo(in ivec2 _iuv)
+vec3 GBuffer_ReadRoughMetalAo(in ivec2 _iuv)
 {
 	vec3 ret = texelFetch(txGBuffer1, _iuv, 0).xyz;
 	return ret;
 }
 
-vec3 GBuffer_FetchNormal(in ivec2 _iuv)
+vec3 GBuffer_ReadNormal(in ivec2 _iuv)
 {
 	vec2 ret = texelFetch(txGBuffer2, _iuv, 0).xy;
-	normal_ = Normals_DecodeLambertAzimuthal(ret);
+	return Normals_DecodeLambertAzimuthal(ret);
 }
 
-vec2 GBuffer_FetchVelocity(in ivec2 _iuv)
+vec2 GBuffer_ReadVelocity(in ivec2 _iuv)
 {
-	vec2 ret = texelFetch(txGBuffer2, _iuv, 0).zw;
+	vec2 ret = texelFetch(txGBuffer2, _iuv, 0).zw * 2.0 - 1.0;
 	return ret;
 }
-	
-float GBuffer_FetchDepth(in ivec2 _iuv)
+
+vec3 GBuffer_ReadEmissive(in ivec2 _iuv)
 {
-	returntexelFetch(txGBufferDepth, _iuv, 0).x;
+	return texelFetch(txGBuffer3, _iuv, 0).rgb;
+}
+	
+float GBuffer_ReadDepth(in ivec2 _iuv)
+{
+	return texelFetch(txGBufferDepth, _iuv, 0).x;
 }
 
 #endif // GBuffer_IN
@@ -71,7 +76,7 @@ void GBuffer_WriteAlbedo(in vec3 _albedo)
 	GBuffer0 = vec4(_albedo, 0.0);
 }
 
-void GBuffer_WriteRoughnessMetalAo(in float _roughness, in float _metal, in float _ao)
+void GBuffer_WriteRoughMetalAo(in float _roughness, in float _metal, in float _ao)
 {
 	GBuffer1 = vec4(_roughness, _metal, _ao, 0.0);
 }

@@ -20,11 +20,13 @@ struct BasicRenderer
 	Texture*     m_txGBuffer0     = nullptr;
 	Texture*     m_txGBuffer1     = nullptr;
 	Texture*     m_txGBuffer2     = nullptr;
+	Texture*     m_txGBuffer3     = nullptr;
 	Texture*     m_txGBufferDepth = nullptr;
 	Framebuffer* m_fbGBuffer      = nullptr;
 	Shader*      m_shGBuffer      = nullptr;
 	Texture*     m_txScene        = nullptr;
 	Framebuffer* m_fbScene        = nullptr;
+	Shader*      m_shLighting     = nullptr;
 
 private:
 	BasicRenderer(int _resolutionX, int _resolutionY);

@@ -28,8 +28,7 @@ smooth out vec2 vUv;
 smooth out vec3 vNormalV;
 smooth out vec3 vTangentV;
 smooth out vec3 vBitangentV;
-smooth out vec3 vVelocityP;
-smooth out vec3 vVelocityPX;
+smooth out vec2 vVelocityP;
 
 void main()
 {
@@ -37,15 +36,30 @@ void main()
 
 	vec3 positionW = TransformPosition(uWorld, aPosition.xyz);
 	gl_Position = bfCamera.m_viewProj * vec4(positionW, 1.0);
+	#ifdef Shadow_OUT
+	{
+	 // project clipped vertices onto the near plane
+	 	#if FRM_NDC_Z_ZERO_TO_ONE
+			float depthNear = 0.0;
+		#else
+			float depthNear = -1.0;
+		#endif
+		gl_Position.z = max(gl_Position.z, depthNear);
+	}
+	#endif
 
-	vec3 prevPositionW = TransformPosition(uPrevWorld, aPosition.xyz);
-	vec3 prevPositionP = (bfCamera.m_viewProj * vec4(prevPositionW, 1.0)).xyw;
-	vec3 currPositionP = gl_Position.xyw; // \todo already interpolated by default?
-	vVelocityP = currPositionP - prevPositionP;
-	
-	vNormalV = TransformDirection(bfCamera.m_view, TransformDirection(uWorld, aNormal.xyz));
-	vTangentV = TransformDirection(bfCamera.m_view, TransformDirection(uWorld, aTangent.xyz));
-	vBitangentV = cross(vNormalV, vTangentV);
+	#ifdef GBuffer_OUT
+	{
+		vec3 prevPositionW = TransformPosition(uPrevWorld, aPosition.xyz);
+		vec3 prevPositionP = (bfCamera.m_viewProj * vec4(prevPositionW, 1.0)).xyw;
+		vec3 currPositionP = gl_Position.xyw; // \todo already interpolated by default?
+		vVelocityP = (currPositionP.xy / currPositionP.z) - (prevPositionP.xy / prevPositionP.z); // \todo interpolation may be incorrect for large tris
+
+		vNormalV = TransformDirection(bfCamera.m_view, TransformDirection(uWorld, aNormal.xyz));
+		vTangentV = TransformDirection(bfCamera.m_view, TransformDirection(uWorld, aTangent.xyz));
+		vBitangentV = cross(vNormalV, vTangentV);
+	}
+	#endif
 }
 
 #endif // VERTEX_SHADER
@@ -53,11 +67,13 @@ void main()
 #ifdef FRAGMENT_SHADER /////////////////////////////////////////////////////////
 
 uniform vec4  uColorAlpha;
-uniform float uRoughness;
+uniform float uRough;
+uniform float uMetal;
 
 uniform sampler2D txAlbedo;
 uniform sampler2D txNormal;
-uniform sampler2D txRoughness;
+uniform sampler2D txRough;
+uniform sampler2D txMetal;
 uniform sampler2D txCavity;
 uniform sampler2D txHeight;
 uniform sampler2D txEmissive;
@@ -66,8 +82,7 @@ smooth in vec2 vUv;
 smooth in vec3 vNormalV;
 smooth in vec3 vTangentV;
 smooth in vec3 vBitangentV;
-smooth in vec3 vVelocityP;
-smooth in vec3 vVelocityPX;
+smooth in vec2 vVelocityP;
 
 void main()
 {
@@ -77,15 +92,16 @@ void main()
 		colorAlpha *= texture(txAlbedo, vUv);
 		GBuffer_WriteAlbedo(colorAlpha.rgb);
 		
-		float roughness = uRoughness;
-		roughness *= texture(txRoughness, vUv).x;
-		GBuffer_WriteRoughnessMetalAo(roughness, 0.0, 1.0);
+		float rough = uRough * texture(txRough, vUv).x;
+		float metal = uMetal * texture(txMetal, vUv).x;
+		float ao    = texture(txCavity, vUv).x;
+		GBuffer_WriteRoughMetalAo(rough, uMetal, ao);
 
 		vec3 normalT = normalize(texture(txNormal, vUv).xyz * 2.0 - 1.0);
 		vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
 		GBuffer_WriteNormal(normalV);
 
-		vec2 velocity = vVelocityP.xy / vVelocityP.z;
+		vec2 velocity = vVelocityP; // \todo scale to [-127,127] range (pixel space)
 		GBuffer_WriteVelocity(velocity);
 
 		vec3 emissive = Gamma_Apply(texture(txEmissive, vUv).rgb);

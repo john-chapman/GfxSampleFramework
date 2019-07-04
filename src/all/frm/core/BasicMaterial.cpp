@@ -23,7 +23,8 @@ static constexpr const char* kMapStr[] =
 {
 	"Albedo",
 	"Normal",
-	"Roughness",
+	"Rough",
+	"Metal",
 	"Cavity",
 	"Height",
 	"Emissive",
@@ -33,7 +34,8 @@ static constexpr const char* kDefaultMaps[] =
 {
 	"textures/BasicMaterial/default_albedo.png",
 	"textures/BasicMaterial/default_normal.png",
-	"textures/BasicMaterial/default_roughness.png",
+	"textures/BasicMaterial/default_rough.png",
+	"textures/BasicMaterial/default_metal.png",
 	"textures/BasicMaterial/default_cavity.png",
 	"textures/BasicMaterial/default_height.png",
 	"textures/BasicMaterial/default_emissive.png",
@@ -163,9 +165,10 @@ bool BasicMaterial::edit()
 	bool ret = false;
 	ImGui::PushID(this);
 
-	ret |= ImGui::ColorEdit3("Color", &m_colorAlpha.x);
-	ret |= ImGui::SliderFloat("Alpha", &m_colorAlpha.w, 0.0f, 1.0f);
-	ret |= ImGui::SliderFloat("Roughness", &m_roughness, 0.0f, 1.0f);
+	ret |= ImGui::ColorEdit3 ("Color",     &m_colorAlpha.x);
+	ret |= ImGui::SliderFloat("Alpha",     &m_colorAlpha.w, 0.0f, 1.0f);
+	ret |= ImGui::SliderFloat("Roughness", &m_rough,        0.0f, 1.0f);
+	ret |= ImGui::SliderFloat("Metal",     &m_metal,        0.0f, 1.0f);
 	
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Maps"))
@@ -209,7 +212,8 @@ bool BasicMaterial::edit()
 bool BasicMaterial::serialize(apt::Serializer& _serializer_)
 {	
 	Serialize(_serializer_, m_colorAlpha,  "ColorAlpha");
-	Serialize(_serializer_, m_roughness,   "Roughness");
+	Serialize(_serializer_, m_rough,       "Roughn");
+	Serialize(_serializer_, m_metal,       "Metal");
 	Serialize(_serializer_, m_alphaTest,   "AlphaTest");
 	if (_serializer_.beginObject("Maps"))
 	{
