@@ -212,7 +212,7 @@ bool BasicMaterial::edit()
 bool BasicMaterial::serialize(apt::Serializer& _serializer_)
 {	
 	Serialize(_serializer_, m_colorAlpha,  "ColorAlpha");
-	Serialize(_serializer_, m_rough,       "Roughn");
+	Serialize(_serializer_, m_rough,       "Rough");
 	Serialize(_serializer_, m_metal,       "Metal");
 	Serialize(_serializer_, m_alphaTest,   "AlphaTest");
 	if (_serializer_.beginObject("Maps"))
