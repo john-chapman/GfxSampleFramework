@@ -212,5 +212,67 @@ bool Component_BasicRenderable::serialize(apt::Serializer& _serializer_)
 		_serializer_.endArray();
 	}
 
+	return _serializer_.getError() == nullptr;
+}
+
+/*******************************************************************************
+
+                            Component_BasicLight
+
+*******************************************************************************/
+
+APT_FACTORY_REGISTER_DEFAULT(Component, Component_BasicLight);
+
+eastl::vector<Component_BasicLight*> Component_BasicLight::s_instances;
+
+bool Component_BasicLight::init()
+{
+	s_instances.push_back(this);
+
 	return true;
+}
+
+void Component_BasicLight::shutdown()
+{
+	auto it = eastl::find(s_instances.begin(), s_instances.end(), this);
+	if (it != s_instances.end())
+	{
+		s_instances.erase_unsorted(it);
+	}
+}
+
+void Component_BasicLight::update(float _dt)
+{
+}
+
+bool Component_BasicLight::edit()
+{
+	bool ret = false;
+	ImGui::PushID(this);
+
+	ret |= ImGui::Combo("Type", &m_type, "Direct\0Point\0Spot\0");
+	ret |= ImGui::ColorEdit3("Color", &m_colorBrightness.x);
+	ret |= ImGui::DragFloat("Brightness", &m_colorBrightness.w);
+	if (m_type == Type_Point || m_type == Type_Spot)
+	{
+		ret |= ImGui::DragFloat2("Linear Attenuation", &m_linearAttenuation.x);
+	}
+	if (m_type == Type_Spot)
+	{
+		ret |= ImGui::DragFloat2("Radial Attenuation", &m_linearAttenuation.x);
+	}
+
+	ImGui::PopID();
+
+	return ret;
+}
+
+bool Component_BasicLight::serialize(apt::Serializer& _serializer_)
+{
+	const char* kTypeNames[3] = { "Direct", "Point", "Spot" };
+	SerializeEnum(_serializer_, m_type, kTypeNames, "Type");
+	Serialize(_serializer_, m_colorBrightness, "ColorBrightness");
+	Serialize(_serializer_, m_linearAttenuation, "LinearAttenuation");
+	Serialize(_serializer_, m_radialAttenuation, "RadialAttenuation");
+	return _serializer_.getError() == nullptr;
 }

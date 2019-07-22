@@ -6,6 +6,36 @@
 
 uniform writeonly image2D txOut;
 
+struct LightInstance
+{
+ // \todo pack
+	vec4 m_position;
+	vec4 m_direction;
+	vec4 m_color;       // RGB = color * brightness, A = brightness
+	vec4 m_attenuation; // X,Y = linear attenuation start,stop, Z,W = radial attenuation start,stop
+};
+layout(std430) restrict readonly buffer bfLights
+{
+	LightInstance uLights[];
+};
+uniform int uLightCount;
+
+struct Reflectance
+{
+	vec3 m_ambient;
+	vec3 m_diffuse;
+	vec3 m_specular;
+};
+
+void AccumulateLight(
+	in LightInstance _light,
+	in vec3 _normalW,
+	in vec3 _positionW,
+	inout Reflectance _reflectance_
+)
+{
+}
+
 void main()
 {
 	vec2 txSize = vec2(imageSize(txOut).xy);

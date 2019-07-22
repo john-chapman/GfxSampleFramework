@@ -45,7 +45,6 @@ namespace frm {
 	class  GlContext;
 	class  GradientEditor;
 	class  Keyboard;
-	class  Light;
 	class  LuaScript;
 	class  Mesh;
 	class  MeshBuilder;

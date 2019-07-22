@@ -81,4 +81,34 @@ struct Component_BasicRenderable: public Component
 	virtual bool serialize(apt::Serializer& _serializer_) override;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// Component_BasicLight
+////////////////////////////////////////////////////////////////////////////////
+struct Component_BasicLight: public Component
+{
+	enum Type_
+	{
+		Type_Direct,
+		Type_Point,
+		Type_Spot,
+
+		Type_Count
+	};
+	typedef int Type;
+
+	Type m_type                   = Type_Direct;
+	vec4 m_colorBrightness        = vec4(1.0f);
+	bool m_castShadows            = false;
+	vec2 m_linearAttenuation      = vec2(0.0f); // start, stop in meters
+	vec2 m_radialAttenuation      = vec2(0.0f); // start, stop in degrees
+
+	static eastl::vector<Component_BasicLight*> s_instances;
+
+	virtual bool init() override;
+	virtual void shutdown() override;
+	virtual void update(float _dt) override;
+	virtual bool edit() override;
+	virtual bool serialize(apt::Serializer& _serializer_) override;
+};
+
 } // namespace frm

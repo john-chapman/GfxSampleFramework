@@ -114,7 +114,6 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\Framebuffer.h" />
     <ClInclude Include="..\..\src\all\frm\core\GlContext.h" />
     <ClInclude Include="..\..\src\all\frm\core\Input.h" />
-    <ClInclude Include="..\..\src\all\frm\core\Light.h" />
     <ClInclude Include="..\..\src\all\frm\core\Log.h" />
     <ClInclude Include="..\..\src\all\frm\core\LuaScript.h" />
     <ClInclude Include="..\..\src\all\frm\core\Mesh.h" />
@@ -193,7 +192,6 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\Framebuffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\GlContext.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Input.cpp" />
-    <ClCompile Include="..\..\src\all\frm\core\Light.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Log.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\LuaScript.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Mesh.cpp" />

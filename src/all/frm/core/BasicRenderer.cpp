@@ -2,6 +2,7 @@
 
 #include <frm/core/geom.h>
 #include <frm/core/BasicMaterial.h>
+#include <frm/core/Buffer.h>
 #include <frm/core/Camera.h>
 #include <frm/core/Component.h>
 #include <frm/core/Framebuffer.h>
@@ -91,6 +92,53 @@ void BasicRenderer::draw(Camera* _camera)
 		}
 	}
 
+ // lights
+	struct LightInstance
+	{
+	 // \todo pack
+		vec4 m_position     = vec4(0.0f);
+		vec4 m_direction    = vec4(0.0f);
+		vec4 m_color        = vec4(0.0f); // RGB = color * brightness, A = brightness
+		vec4 m_attenuation  = vec4(0.0f); // X,Y = linear attenuation start,stop, Z,W = radial attenuation start,stop
+	};
+	eastl::vector<LightInstance> lightInstances;
+
+	for (Component_BasicLight* light : Component_BasicLight::s_instances)
+	{
+		Node* sceneNode = light->getNode();
+		if (!sceneNode->isActive())
+		{
+			continue;
+		}
+		mat4 world = sceneNode->getWorldMatrix();
+		// \todo cull light volume against camera frustum
+
+		LightInstance& lightInstance = lightInstances.push_back();
+		lightInstance.m_position     = vec4(world[3].xyz(), 1.0f);
+		lightInstance.m_direction    = vec4(normalize(world[2].xyz()), 0.0f);
+		lightInstance.m_color        = vec4(light->m_colorBrightness.xyz() * light->m_colorBrightness.w, light->m_colorBrightness.w);
+		lightInstance.m_attenuation  = vec4(
+			Radians(light->m_linearAttenuation.x), Radians(light->m_linearAttenuation.y),
+			Radians(light->m_radialAttenuation.x), Radians(light->m_radialAttenuation.y)
+			);
+	}
+	GLsizei bfLightsSize = (GLsizei)(sizeof(LightInstance) * lightInstances.size());
+	if (bfLightsSize > 0)
+	{
+		if (m_bfLights && m_bfLights->getSize() != bfLightsSize)
+		{
+			Buffer::Destroy(m_bfLights);
+			m_bfLights = nullptr;
+		}
+
+		if (!m_bfLights)
+		{
+			m_bfLights = Buffer::Create(GL_SHADER_STORAGE_BUFFER, bfLightsSize, GL_DYNAMIC_STORAGE_BIT);
+		}
+
+		m_bfLights->setData(bfLightsSize, lightInstances.data());
+	}
+
 	GlContext* ctx = GlContext::GetCurrent();
 	
 	{	PROFILER_MARKER("GBuffer");
@@ -141,6 +189,11 @@ void BasicRenderer::draw(Camera* _camera)
 		ctx->bindTexture(m_txGBuffer2);
 		ctx->bindTexture(m_txGBuffer3);
 		ctx->bindTexture(m_txGBufferDepth);
+		ctx->setUniform("uLightCount", (int)lightInstances.size());
+		if (m_bfLights)
+		{
+			ctx->bindBuffer("bfLights", m_bfLights);
+		}
 		ctx->bindImage("txOut", m_txScene, GL_WRITE_ONLY);
 		ctx->dispatch(m_txScene);
 	}
@@ -194,6 +247,7 @@ BasicRenderer::~BasicRenderer()
 	Framebuffer::Destroy(m_fbScene);
 	Shader::Release(m_shGBuffer);
 	Shader::Release(m_shLighting);
+	Buffer::Destroy(m_bfLights);
 }
 
 } // namespace frm

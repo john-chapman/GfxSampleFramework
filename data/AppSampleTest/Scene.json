@@ -138,6 +138,22 @@
 					"Mesh": "common/models/teapot.obj",
 					"Material": ["common/materials/BasicMaterial.json"]
 				}]
+		}, {
+			"Id": 7,
+			"Name": "Light",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicLight",
+					"Type": "Direct",
+					"ColorBrightness": [1.0, 0.9999899864196777, 0.9999899864196777, 1.0],
+					"LinearAttenuation": [0.0, 0.0],
+					"RadialAttenuation": [0.0, 0.0]
+				}]
 		}],
 	"DrawCameraId": 1,
 	"CullCameraId": 1

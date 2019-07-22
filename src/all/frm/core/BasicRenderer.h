@@ -27,6 +27,7 @@ struct BasicRenderer
 	Texture*     m_txScene        = nullptr;
 	Framebuffer* m_fbScene        = nullptr;
 	Shader*      m_shLighting     = nullptr;
+	Buffer*      m_bfLights       = nullptr;
 
 private:
 	BasicRenderer(int _resolutionX, int _resolutionY);
