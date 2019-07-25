@@ -255,11 +255,11 @@ bool Component_BasicLight::edit()
 	ret |= ImGui::DragFloat("Brightness", &m_colorBrightness.w);
 	if (m_type == Type_Point || m_type == Type_Spot)
 	{
-		ret |= ImGui::DragFloat2("Linear Attenuation", &m_linearAttenuation.x);
+		ret |= ImGui::DragFloat2("Linear Attenuation", &m_linearAttenuation.x, 0.1f);
 	}
 	if (m_type == Type_Spot)
 	{
-		ret |= ImGui::DragFloat2("Radial Attenuation", &m_linearAttenuation.x);
+		ret |= ImGui::DragFloat2("Radial Attenuation", &m_radialAttenuation.x);
 	}
 
 	ImGui::PopID();

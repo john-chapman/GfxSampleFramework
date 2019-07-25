@@ -96,7 +96,7 @@ void BasicRenderer::draw(Camera* _camera)
 	struct LightInstance
 	{
 	 // \todo pack
-		vec4 m_position     = vec4(0.0f);
+		vec4 m_position     = vec4(0.0f); // A = type.
 		vec4 m_direction    = vec4(0.0f);
 		vec4 m_color        = vec4(0.0f); // RGB = color * brightness, A = brightness
 		vec4 m_attenuation  = vec4(0.0f); // X,Y = linear attenuation start,stop, Z,W = radial attenuation start,stop
@@ -114,11 +114,11 @@ void BasicRenderer::draw(Camera* _camera)
 		// \todo cull light volume against camera frustum
 
 		LightInstance& lightInstance = lightInstances.push_back();
-		lightInstance.m_position     = vec4(world[3].xyz(), 1.0f);
+		lightInstance.m_position     = vec4(world[3].xyz(), (float)light->m_type);
 		lightInstance.m_direction    = vec4(normalize(world[2].xyz()), 0.0f);
 		lightInstance.m_color        = vec4(light->m_colorBrightness.xyz() * light->m_colorBrightness.w, light->m_colorBrightness.w);
 		lightInstance.m_attenuation  = vec4(
-			Radians(light->m_linearAttenuation.x), Radians(light->m_linearAttenuation.y),
+			light->m_linearAttenuation.x, light->m_linearAttenuation.y,
 			Radians(light->m_radialAttenuation.x), Radians(light->m_radialAttenuation.y)
 			);
 	}
