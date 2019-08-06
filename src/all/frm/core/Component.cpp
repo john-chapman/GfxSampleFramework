@@ -252,7 +252,8 @@ bool Component_BasicLight::edit()
 
 	ret |= ImGui::Combo("Type", &m_type, "Direct\0Point\0Spot\0");
 	ret |= ImGui::ColorEdit3("Color", &m_colorBrightness.x);
-	ret |= ImGui::DragFloat("Brightness", &m_colorBrightness.w);
+	ret |= ImGui::DragFloat("Brightness", &m_colorBrightness.w, 0.1f);
+	m_colorBrightness.w = Max(m_colorBrightness.w, 0.0f);
 	if (m_type == Type_Point || m_type == Type_Spot)
 	{
 		ret |= ImGui::DragFloat2("Linear Attenuation", &m_linearAttenuation.x, 0.1f);

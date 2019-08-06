@@ -3,38 +3,77 @@
 */
 #include "shaders/def.glsl"
 #include "shaders/Camera.glsl"
+#include "shaders/BasicRenderer/Lighting.glsl"
+
+#ifdef Scene_OUT
+	#define GBuffer_IN
+#endif
 #include "shaders/BasicRenderer/GBuffer.glsl"
 
-#ifdef VERTEX_SHADER ///////////////////////////////////////////////////////////
-
-layout(location=0) in vec3  aPosition;
-layout(location=1) in vec3  aNormal;
-layout(location=2) in vec3  aTangent;
-layout(location=3) in vec2  aTexcoord;
+_VERTEX_IN(0, vec3, aPosition);
+_VERTEX_IN(1, vec3, aNormal);
+_VERTEX_IN(2, vec3, aTangent);
+_VERTEX_IN(3, vec2, aTexcoord);
 #ifdef SKINNING
-	layout(location=4) in vec4  aBoneWeights;
-	layout(location=5) in uvec4 aBoneIndices;
+	_VERTEX_IN(4, vec4,  aBoneWeights);
+	_VERTEX_IN(5, uvec4, aBoneIndices);
 	
-	layout(std430) restrict readonly buffer _bfSkinning
+	layout(std430) restrict readonly buffer bfSkinning
 	{
-		mat4 bfSkinning[];
+		mat4 uSkinning[];
 	};
 #endif
 
-uniform mat4 uWorld;
-uniform mat4 uPrevWorld;
+_VARYING(smooth, vec2, vUv);
+#ifdef GBuffer_OUT
+	_VARYING(smooth, vec3, vNormalV);
+	_VARYING(smooth, vec3, vTangentV);
+	_VARYING(smooth, vec3, vBitangentV);
+	_VARYING(smooth, vec2, vVelocityP);
+#endif
 
-smooth out vec2 vUv;
-smooth out vec3 vNormalV;
-smooth out vec3 vTangentV;
-smooth out vec3 vBitangentV;
-smooth out vec2 vVelocityP;
+// per-instance uniforms \todo bufferize
+uniform mat4  uWorld;
+uniform mat4  uPrevWorld;
+uniform vec4  uBaseColorAlpha;
+uniform int   uMaterialIndex;
+
+struct MaterialInstance
+{
+	vec4  baseColorAlpha;
+	vec4  emissiveColor;
+	float metallic;
+	float roughness;
+	float reflectance;
+	float height;
+};
+layout(std430) restrict readonly buffer bfMaterials
+{
+	MaterialInstance uMaterials[];
+};
+
+#ifdef Scene_OUT
+	layout(std430) restrict readonly buffer bfLights
+	{
+		Lighting_Light uLights[];
+	};
+	uniform int uLightCount;
+
+	_FRAGMENT_OUT(0, vec4, fResult);
+#endif
+
+#ifdef VERTEX_SHADER ///////////////////////////////////////////////////////////
 
 void main()
 {
 	vUv = aTexcoord.xy;
+	vUv.y = 1.0 - vUv.y;
 
 	vec3 positionW = TransformPosition(uWorld, aPosition.xyz);
+	#ifdef SKINNING
+	{ // \todo
+	}
+	#endif
 	gl_Position = bfCamera.m_viewProj * vec4(positionW, 1.0);
 	#ifdef Shadow_OUT
 	{
@@ -66,46 +105,83 @@ void main()
 
 #ifdef FRAGMENT_SHADER /////////////////////////////////////////////////////////
 
-uniform vec4  uColorAlpha;
-uniform float uRough;
-uniform float uMetal;
-
-uniform sampler2D txAlbedo;
+uniform sampler2D txBaseColor;
+uniform sampler2D txMetallic;
+uniform sampler2D txRoughness;
+uniform sampler2D txReflectance;
+uniform sampler2D txOcclusion;
 uniform sampler2D txNormal;
-uniform sampler2D txRough;
-uniform sampler2D txMetal;
-uniform sampler2D txCavity;
 uniform sampler2D txHeight;
 uniform sampler2D txEmissive;
-
-smooth in vec2 vUv;
-smooth in vec3 vNormalV;
-smooth in vec3 vTangentV;
-smooth in vec3 vBitangentV;
-smooth in vec2 vVelocityP;
 
 void main()
 {
 	#ifdef GBuffer_OUT
 	{
-		vec4 colorAlpha = uColorAlpha;
-		colorAlpha *= texture(txAlbedo, vUv);
-		GBuffer_WriteAlbedo(colorAlpha.rgb);
-		
-		float rough = uRough * texture(txRough, vUv).x;
-		float metal = uMetal * texture(txMetal, vUv).x;
-		float ao    = texture(txCavity, vUv).x;
-		GBuffer_WriteRoughMetalAo(rough, uMetal, ao);
-
 		vec3 normalT = normalize(texture(txNormal, vUv).xyz * 2.0 - 1.0);
 		vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
 		GBuffer_WriteNormal(normalV);
 
 		vec2 velocity = vVelocityP; // \todo scale to [-127,127] range (pixel space)
 		GBuffer_WriteVelocity(velocity);
+	}
+	#endif
 
-		vec3 emissive = Gamma_Apply(texture(txEmissive, vUv).rgb);
-		GBuffer_WriteEmissive(emissive);
+	#ifdef Scene_OUT
+	{
+		const vec2 txSize = vec2(textureSize(txGBufferDepth, 0)); // \todo more efficient to pass as a constant?
+		const vec2 iuv = gl_FragCoord.xy;
+
+		vec3 V = Camera_GetFrustumRayW(iuv / txSize * 2.0 - 1.0);
+		vec3 P = Camera_GetPosition() + V * abs(Camera_GetDepthV(GBuffer_ReadDepth(ivec2(iuv))));
+             V = normalize(-V);	
+		vec3 N = GBuffer_ReadNormal(ivec2(iuv)); // view space
+		     N = normalize(TransformDirection(bfCamera.m_world, N)); // world space
+
+		Lighting_In lightingIn;
+		vec3  baseColor   = texture(txBaseColor,   vUv).rgb * uMaterials[uMaterialIndex].baseColorAlpha.rgb * uBaseColorAlpha.rgb;
+		      baseColor   = Gamma_Apply(baseColor);
+		float metallic    = texture(txMetallic,    vUv).x   * uMaterials[uMaterialIndex].metallic;
+		float roughness   = texture(txRoughness,   vUv).x   * uMaterials[uMaterialIndex].roughness;
+		float reflectance = texture(txReflectance, vUv).x   * uMaterials[uMaterialIndex].reflectance;
+		Lighting_Init(lightingIn, N, V, roughness, baseColor, metallic, reflectance);
+		vec3 ret = vec3(0.0);
+		
+		for (int i = 0; i < uLightCount; ++i)
+		{
+			const int type = int(floor(uLights[i].position.a));
+
+			switch (type)
+			{
+				default:
+				case LightType_Direct:
+				{
+					ret += Lighting_Direct(lightingIn, uLights[i], N, V);
+					break;
+				}
+				case LightType_Point:
+				{
+					ret += Lighting_Point(lightingIn, uLights[i], P, N, V);
+					break;
+				}
+				case LightType_Spot:
+				{	
+					/*float NdotL = dot(_light.m_direction.xyz, _normalW);
+					if (NdotL > 0.0)
+					{
+						vec3 L = _light.m_position.xyz - _positionW;
+						float D = length(L);
+						L /= D;
+						NdotL *= 1.0 - smoothstep(_light.m_attenuation.z, _light.m_attenuation.w, 1.0 - dot(_light.m_direction.xyz, L));
+						NdotL *= 1.0 - smoothstep(_light.m_attenuation.x, _light.m_attenuation.y, D);
+						_reflectance_.m_diffuse += _light.m_color.rgb * max(0.0, NdotL);
+					}
+					break;*/
+				}
+			};
+		}
+
+		fResult = vec4(ret, 1.0);
 	}
 	#endif
 

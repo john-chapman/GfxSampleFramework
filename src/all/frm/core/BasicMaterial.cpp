@@ -21,22 +21,24 @@ namespace frm {
 
 static constexpr const char* kMapStr[] =
 {
-	"Albedo",
+	"BaseColor",
+	"Metallic",
+	"Roughness",
+	"Reflectance",
+	"Occlusion",
 	"Normal",
-	"Rough",
-	"Metal",
-	"Cavity",
 	"Height",
-	"Emissive",
+	"Emissive"
 };
 
 static constexpr const char* kDefaultMaps[] =
 {
-	"textures/BasicMaterial/default_albedo.png",
+	"textures/BasicMaterial/default_basecolor.png",
+	"textures/BasicMaterial/default_metallic.png",
+	"textures/BasicMaterial/default_roughness.png",
+	"textures/BasicMaterial/default_reflectance.png",
+	"textures/BasicMaterial/default_occlusion.png",
 	"textures/BasicMaterial/default_normal.png",
-	"textures/BasicMaterial/default_rough.png",
-	"textures/BasicMaterial/default_metal.png",
-	"textures/BasicMaterial/default_cavity.png",
 	"textures/BasicMaterial/default_height.png",
 	"textures/BasicMaterial/default_emissive.png",
 };
@@ -165,10 +167,12 @@ bool BasicMaterial::edit()
 	bool ret = false;
 	ImGui::PushID(this);
 
-	ret |= ImGui::ColorEdit3 ("Color",     &m_colorAlpha.x);
-	ret |= ImGui::SliderFloat("Alpha",     &m_colorAlpha.w, 0.0f, 1.0f);
-	ret |= ImGui::SliderFloat("Roughness", &m_rough,        0.0f, 1.0f);
-	ret |= ImGui::SliderFloat("Metal",     &m_metal,        0.0f, 1.0f);
+	ret |= ImGui::ColorEdit3 ("Base Color",  &m_baseColor.x);
+	ret |= ImGui::SliderFloat("Alpha",       &m_alpha,       0.0f, 1.0f);
+	ret |= ImGui::SliderFloat("Metallic",    &m_metallic,    0.0f, 1.0f);
+	ret |= ImGui::SliderFloat("Roughness",   &m_roughness,   0.0f, 1.0f);
+	ret |= ImGui::SliderFloat("Reflectance", &m_reflectance, 0.0f, 1.0f);
+	ret |= ImGui::SliderFloat("Height",      &m_height,      0.0f, 1.0f);
 	
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Maps"))
@@ -211,10 +215,14 @@ bool BasicMaterial::edit()
 
 bool BasicMaterial::serialize(apt::Serializer& _serializer_)
 {	
-	Serialize(_serializer_, m_colorAlpha,  "ColorAlpha");
-	Serialize(_serializer_, m_rough,       "Rough");
-	Serialize(_serializer_, m_metal,       "Metal");
-	Serialize(_serializer_, m_alphaTest,   "AlphaTest");
+	Serialize(_serializer_, m_baseColor,     "BaseColor");
+	Serialize(_serializer_, m_emissiveColor, "EmissiveColor");
+	Serialize(_serializer_, m_alpha,         "Alpha");
+	Serialize(_serializer_, m_metallic,      "Metallic");
+	Serialize(_serializer_, m_roughness,     "Roughness");
+	Serialize(_serializer_, m_reflectance,   "Reflectance");
+	Serialize(_serializer_, m_height,        "Height");
+	Serialize(_serializer_, m_alphaTest,     "AlphaTest");
 	if (_serializer_.beginObject("Maps"))
 	{
 		for (int i = 0; i < Map_Count; ++i)

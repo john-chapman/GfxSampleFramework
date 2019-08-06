@@ -973,7 +973,14 @@ public:
 			ImGui::TreePop();
 		}
 
-		m_basicRenderer->draw(m_scene->getDrawCamera());
+		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("BasicRenderer"))
+		{
+			m_basicRenderer->edit();
+			ImGui::TreePop();
+		}
+
+		m_basicRenderer->draw(m_scene->getDrawCamera(), (float)getDeltaTime());
 
 		AppBase::draw();
 	}
