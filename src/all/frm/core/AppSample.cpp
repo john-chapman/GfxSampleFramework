@@ -90,8 +90,10 @@ bool AppSample::init(const apt::ArgList& _args)
 
 	FileSystem::BeginNotifications(FileSystem::GetRoot(m_rootCommon), &FileChangeNotification);
 	FileSystem::BeginNotifications(FileSystem::GetRoot(m_rootApp),    &FileChangeNotification);
-	
-	g_Log.setOutput((const char*)String<64>("%s.log", (const char*)m_name)); // need to set after the application root
+
+	if (!m_hiddenMode) {	
+		g_Log.setOutput((const char*)String<64>("%s.log", (const char*)m_name)); // need to set after the application root
+	}
 	g_Log.addMessage((const char*)String<64>("'%s' %s", (const char*)m_name, Time::GetDateTime().asString()));
 	APT_LOG("System info:\n%s", (const char*)GetPlatformInfoString());
 
@@ -188,7 +190,9 @@ void AppSample::shutdown()
 		Window::Destroy(m_window);
 	}
 	
-	writeProps((const char*)m_propsPath);
+	if (!m_hiddenMode) {
+		writeProps((const char*)m_propsPath);
+	}
 
 	App::shutdown();
 
