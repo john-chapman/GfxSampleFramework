@@ -110,6 +110,7 @@ public:
 	GLsizei     getWidth() const                { return m_width;      }
 	GLsizei     getHeight() const               { return m_height;     }
 	GLsizei     getDepth() const                { return m_depth;      }
+	ivec3       getDimensions() const           { return ivec3(m_width, m_height, m_depth); }
 	GLint       getArrayCount() const           { return m_arrayCount; }
 	GLint       getMipCount() const             { return m_mipCount;   }
 
