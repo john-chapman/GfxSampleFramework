@@ -9,7 +9,7 @@
 #define Camera_ProjFlag_Infinite     (8)
 #define Camera_ProjFlag_Reversed     (16)
 
-struct Camera_GpuBuffer
+struct Camera
 {
 	mat4   m_world;	
 	mat4   m_view;
@@ -28,8 +28,9 @@ struct Camera_GpuBuffer
 };
 layout(std140) uniform _bfCamera
 {
-	Camera_GpuBuffer bfCamera;
+	Camera uCamera;
 };
+#define bfCamera uCamera // legacy name
 
 vec3 Camera_GetPosition()
 {
