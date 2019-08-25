@@ -39,6 +39,7 @@ public:
 	typedef bool (OnShow)       (Window* _window);
 	typedef bool (OnHide)       (Window* _window);
 	typedef bool (OnResize)     (Window* _window, int _width, int _height);
+	typedef bool (OnDpiChange)  (Window* _window, int _dpiX, int _dpiY);
 	
 	typedef bool (OnChar)       (Window* _window, char _key);
 	typedef bool (OnKey)        (Window* _window, unsigned _key, bool _isDown);    // _key is a Keyboard::Button
@@ -53,6 +54,7 @@ public:
 		OnShow*        m_OnShow           = nullptr;
 		OnHide*        m_OnHide           = nullptr;
 		OnResize*      m_OnResize         = nullptr;
+		OnDpiChange*   m_OnDpiChange      = nullptr;
 
 		OnKey*         m_OnKey            = nullptr;
 		OnChar*        m_OnChar           = nullptr;

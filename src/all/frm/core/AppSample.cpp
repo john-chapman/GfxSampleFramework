@@ -142,6 +142,7 @@ bool AppSample::init(const apt::ArgList& _args)
  // set ImGui callbacks
  // \todo poll input directly = easier to use proxy devices
 	Window::Callbacks cb = m_window->getCallbacks();
+	cb.m_OnDpiChange     = ImGui_OnDpiChange;
 	cb.m_OnMouseButton   = ImGui_OnMouseButton;
 	cb.m_OnMouseWheel    = ImGui_OnMouseWheel;
 	cb.m_OnKey           = ImGui_OnKey;
@@ -350,7 +351,7 @@ AppSample::AppSample(const char* _name)
 	propGroupFont.addPath      ("Font",                  "",                                                  nullptr);
 	propGroupFont.addFloat     ("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
 	propGroupFont.addInt       ("FontOversample",        1,              1,     8,                            nullptr);
-	propGroupFont.addBool      ("FontEnableScaling",     false,                                               nullptr);
+	propGroupFont.addBool      ("FontEnableScaling",     true,                                                nullptr);
 	
 	PropertyGroup& propGroupGlContext = m_props.addGroup("GlContext");
 	propGroupGlContext.addInt2 ("GlVersion",             ivec2(-1, -1), -1,      99,                          nullptr);
@@ -531,11 +532,9 @@ static Texture*    g_txRadar;
 
 bool AppSample::ImGui_Init(AppSample* _app)
 {
-	auto  app = AppSample::GetCurrent();
-	auto& io  = ImGui::GetIO();
-
+	ImGuiIO& io = ImGui::GetIO();
 	io.MemAllocFn = apt::internal::malloc;
-	io.MemFreeFn  = apt::internal::free;
+	io.MemFreeFn = apt::internal::free;
 
 	if (_app->m_hiddenMode) {
 		unsigned char* buf;
@@ -581,7 +580,7 @@ bool AppSample::ImGui_Init(AppSample* _app)
 	g_txRadar->setName("#TextureViewer_radar");
 
  // font
-	auto&       props          = app->getProperties();
+	auto&       props          = _app->getProperties();
 	const auto& fontPath       = *props.findProperty("Font")->asString();
 	float       fontSize       = *props.findProperty("FontSize")->asFloat();
 	int         fontOversample = *props.findProperty("FontOversample")->asInt();
@@ -589,7 +588,7 @@ bool AppSample::ImGui_Init(AppSample* _app)
 	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
 	fontCfg.SizePixels  = fontSize;
 	if (*props.findProperty("FontEnableScaling")->asBool()) {
-		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * app->getWindow()->getScaling());
+		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * _app->getWindow()->getScaling());
 	}
 	fontCfg.PixelSnapH  = true;
 	if (fontPath.isEmpty()) {
@@ -708,6 +707,48 @@ void AppSample::ImGui_InitStyle()
 		);
 }
 
+bool AppSample::ImGui_InitFont(AppSample* _app)
+{
+	ImGuiIO& io = ImGui::GetIO();
+
+	auto&       props          = _app->getProperties();
+	const auto& fontPath       = *props.findProperty("Font")->asString();
+	float       fontSize       = *props.findProperty("FontSize")->asFloat();
+	int         fontOversample = *props.findProperty("FontOversample")->asInt();
+	ImFontConfig fontCfg;
+	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
+	fontCfg.SizePixels  = fontSize;
+	if (*props.findProperty("FontEnableScaling")->asBool()) {
+		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * _app->getWindow()->getScaling());
+	}
+	fontCfg.PixelSnapH  = true;
+	
+	io.Fonts->Clear();
+	if (fontPath.isEmpty()) {
+		io.Fonts->AddFontDefault(&fontCfg);
+	} else {
+		io.Fonts->AddFontFromFileTTF((const char*)fontPath, fontSize, &fontCfg);
+	}
+	fontCfg.MergeMode = true;
+	const ImWchar glyphRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+	io.Fonts->AddFontFromFileTTF("common/fonts/" FONT_ICON_FILE_NAME_FA, fontSize, &fontCfg, glyphRanges);
+	
+	if (g_txImGui) {
+		Texture::Release(g_txImGui);
+	}
+	unsigned char* buf;
+	int txX, txY;
+	io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
+	g_txImGui = Texture::Create2d(txX, txY, GL_R8);
+	g_txImGui->setFilter(GL_NEAREST);
+	g_txImGui->setName("#ImGuiFont");
+	g_txImGui->setData(buf, GL_RED, GL_UNSIGNED_BYTE);
+	g_txViewImGui = TextureView(g_txImGui, g_shImGui);
+	io.Fonts->TexID = (void*)&g_txViewImGui; // need a TextureView ptr for rendering
+
+	return true;
+}
+
 void AppSample::ImGui_Shutdown(AppSample* _app)
 {
 	for (int i = 0; i < internal::kTextureTargetCount; ++i) {
@@ -715,8 +756,8 @@ void AppSample::ImGui_Shutdown(AppSample* _app)
 	}
 	Shader::Release(g_shImGui);
 	Mesh::Release(g_msImGui); 
-	Texture::Release(g_txImGui);
 	Texture::Release(g_txRadar);
+	Texture::Release(g_txImGui);
 	
 	ImGui::Shutdown();
 }
@@ -898,5 +939,12 @@ bool AppSample::ImGui_OnChar(Window* _window, char _char)
 	if (_char > 0 && _char < 0x10000) {
 		io.AddInputCharacter((unsigned short)_char);
 	}
+	return true;
+}
+
+
+bool AppSample::ImGui_OnDpiChange(Window* _window, int _dpiX, int _dpiY)
+{
+	ImGui_InitFont(AppSample::GetCurrent());
 	return true;
 }

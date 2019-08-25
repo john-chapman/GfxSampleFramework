@@ -80,6 +80,7 @@ private:
 	apt::PathStr m_imguiIniPath;
 	static bool ImGui_Init(AppSample* _app);
 	static void ImGui_InitStyle();
+	static bool ImGui_InitFont(AppSample* _app);
 	static void ImGui_Shutdown(AppSample* _app);
 	static void ImGui_Update(AppSample* _app);
 	static void ImGui_RenderDrawLists(ImDrawData* _drawData);
@@ -87,6 +88,7 @@ private:
 	static bool ImGui_OnMouseWheel(Window* _window, float _delta);
 	static bool ImGui_OnKey(Window* _window, unsigned _key, bool _isDown);
 	static bool ImGui_OnChar(Window* _window, char _char);
+	static bool ImGui_OnDpiChange(Window* _window, int _dpiX, int _dpiY);
 
 }; // class AppSample
 

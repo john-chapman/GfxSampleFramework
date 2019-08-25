@@ -10,8 +10,14 @@
 
 #include <shellapi.h>
 
-//#include <ShellScalingApi.h>
-//#pragma comment(lib, "Shcore")
+#if _MSC_VER < 1900
+ // \hack old API is necessary for Windows 7, conservatively assume VS2015 means you're compiling for Windows 7
+	#define USE_OLD_DPI_API
+#endif
+#ifndef USE_OLD_DPI_API
+	#include <ShellScalingApi.h>
+	#pragma comment(lib, "Shcore")
+#endif
 
 using namespace frm;
 
@@ -182,6 +188,23 @@ struct Window::Impl
 					return 0;
 				}
 
+				#ifndef USE_OLD_DPI_API
+				case WM_DPICHANGED: {
+					auto dpi = HIWORD(_wparam);
+					RECT* rect = (RECT*)_lparam;
+					SetWindowPos((
+						HWND)window->getHandle(),
+						NULL,
+						rect->left,
+						rect->top,
+						rect->right - rect->left,
+						rect->bottom - rect->top,
+						SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE
+						);
+					WindowImpl_DISPATCH_CALLBACK(OnDpiChange, (int)dpi, (int)dpi);
+				}
+				#endif
+
 				default: break;
 			};
 		}
@@ -222,8 +245,11 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	ret->m_title  = _title;
 
  // disable the Windows UI scaling
-	APT_VERIFY(SetProcessDPIAware()); // old API, Windows Vista+
- 	//APT_VERIFY(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK); // new API, Windows 8.1+
+	#ifdef USE_OLD_DPI_API
+		APT_VERIFY(SetProcessDPIAware());
+	#else
+ 		APT_VERIFY(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK); // new API, Windows 8.1+
+	#endif
 
 	static ATOM wndclassex = 0;
 	if (wndclassex == 0) {
@@ -362,10 +388,13 @@ void Window::getWindowRelativeCursor(int* x_, int* y_) const
 
 float Window::getScaling() const
 {
-	APT_ASSERT(false); // currently the API is only available on Windows 8.1+
+#ifdef USE_OLD_DPI_API
 	return 1.0f;
-	//auto monitor = MonitorFromWindow((HWND)m_handle, MONITOR_DEFAULTTONEAREST);
-	//UINT dpiX, dpiY;
-	//APT_VERIFY(GetDpiForMonitor(monitor, MDT_DEFAULT, &dpiX, &dpiY) == S_OK);
-	//return (float)APT_MAX(dpiX, dpiY) / 100.0f;
+#else
+	auto monitor = MonitorFromWindow((HWND)m_handle, MONITOR_DEFAULTTONEAREST);
+	UINT dpiX, dpiY;
+	APT_VERIFY(GetDpiForMonitor(monitor, MDT_DEFAULT, &dpiX, &dpiY) == S_OK);
+	float ret = (float)APT_MAX(dpiX, dpiY) / USER_DEFAULT_SCREEN_DPI;
+	return ret;
+#endif
 }
