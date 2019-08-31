@@ -77,6 +77,8 @@ private:
 	void drawStatusBar();
 	void drawNotifications();
 
+	bool initRenderdoc();
+
 	apt::PathStr m_imguiIniPath;
 	static bool ImGui_Init(AppSample* _app);
 	static void ImGui_InitStyle();

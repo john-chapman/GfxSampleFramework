@@ -12,6 +12,11 @@
 #include <frm/core/Texture.h>
 #include <frm/core/Window.h>
 
+#ifdef APT_PLATFORM_WIN
+	#include <apt/win.h>
+	#include <frm/core/extern/renderdoc_app.h>
+#endif
+
 #include <apt/platform.h>
 #include <apt/memory.h>
 #include <apt/ArgList.h>
@@ -79,6 +84,10 @@ bool AppSample::init(const apt::ArgList& _args)
 	}
 	if (!App::init(_args)) {
 		return false;
+	}
+
+	if (_args.find("renderdoc")) {
+		initRenderdoc();
 	}
 
 	m_hiddenMode = _args.find("hidden") != nullptr;
@@ -529,6 +538,33 @@ static Mesh*       g_msImGui;
 static Texture*    g_txImGui;
 static TextureView g_txViewImGui; // default texture view for the ImGui texture
 static Texture*    g_txRadar;
+
+bool AppSample::initRenderdoc()
+{
+#ifndef APT_PLATFORM_WIN
+	return false;
+#else
+	HMODULE dll = LoadLibraryA("extern/renderdoc.dll");
+	if (!dll)
+	{
+		APT_LOG_ERR("Failed to load RenderDoc");
+		return false;
+	}
+	pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(dll, "RENDERDOC_GetAPI");
+	RENDERDOC_API_1_4_0* renderdoc = nullptr;
+	if (RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_4_0, (void**)&renderdoc) != 1)
+	{
+		APT_LOG_ERR("Failed to get RenderDoc API");
+		return false;
+	}
+	renderdoc->MaskOverlayBits(0, eRENDERDOC_Overlay_Default);
+	renderdoc->SetCaptureFilePathTemplate("RenderDoc/GfxSampleFramework");
+	RENDERDOC_InputButton captureKey = RENDERDOC_InputButton::eRENDERDOC_Key_F11;
+	renderdoc->SetCaptureKeys(&captureKey, 1);
+
+	return true;
+#endif
+}
 
 bool AppSample::ImGui_Init(AppSample* _app)
 {
