@@ -1,6 +1,9 @@
 dofile "GfxSampleFramework_premake.lua"
 dofile "../extern/ApplicationTools/build/ApplicationTools_premake.lua"
 
+local FRM_ROOT = "../"
+local APT_ROOT = "../extern/ApplicationTools/"
+
 workspace "GfxSampleFramework"
 	location(_ACTION)
 	platforms { "Win64" }
@@ -25,14 +28,18 @@ workspace "GfxSampleFramework"
 	filter {}
 
 	group "libs"
-		ApplicationTools_ProjectExternal("../extern/ApplicationTools")
+		--ApplicationTools_ProjectExternal("../extern/ApplicationTools")
+		ApplicationTools_Project(
+			APT_ROOT,
+			APT_ROOT .. "lib"
+			)
 	group ""
 	group "libs"
 		GfxSampleFramework_Project(
-			"../",     -- root
-			"../lib",  -- libDir
-			"../bin",  -- binDir
-			{          -- config
+			FRM_ROOT .. "",     -- root
+			FRM_ROOT .. "lib",  -- libDir
+			FRM_ROOT .. "bin",  -- binDir
+			{                   -- config
 				FRM_MODULE_AUDIO = false,
 				FRM_MODULE_VR    = false,
 			})

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug Win64|x64">
       <Configuration>Debug Win64</Configuration>
@@ -21,13 +21,13 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Win64|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -57,7 +57,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;APT_DEBUG;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=0;FRM_MODULE_CORE=1;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;APT_DEBUG;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_CORE=1;FRM_MODULE_AUDIO=0;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\extern\ApplicationTools\src\all;..\..\extern\ApplicationTools\src\all\extern;..\..\extern\ApplicationTools\src\win;..\..\extern\ApplicationTools\src\win\extern;..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;..\..\tests\all;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
@@ -80,7 +80,7 @@ if not exist "$(ProjectDir)../../bin/AppSampleTest" mklink /j "$(ProjectDir)../.
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=0;FRM_MODULE_CORE=1;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_CORE=1;FRM_MODULE_AUDIO=0;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\extern\ApplicationTools\src\all;..\..\extern\ApplicationTools\src\all\extern;..\..\extern\ApplicationTools\src\win;..\..\extern\ApplicationTools\src\win\extern;..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;..\..\tests\all;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>None</DebugInformationFormat>
       <Optimization>Full</Optimization>
@@ -109,7 +109,7 @@ if not exist "$(ProjectDir)../../bin/AppSampleTest" mklink /j "$(ProjectDir)../.
     <ClCompile Include="..\..\tests\all\framework_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\extern\ApplicationTools\build\vs2017\ApplicationTools.vcxproj">
+    <ProjectReference Include="ApplicationTools.vcxproj">
       <Project>{6ADD11F4-56D6-3046-7F08-16CB6B601052}</Project>
     </ProjectReference>
     <ProjectReference Include="GfxSampleFramework.vcxproj">
