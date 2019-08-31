@@ -14,6 +14,7 @@
 #ifndef Lighting_glsl
 #define Lighting_glsl
 
+#define Lighting_PREDICATE_NoL  0 // early-out of lighting calculations if NoL == 0
 #define Lighting_EPSILON (1e-4)
 
 struct Lighting_In
@@ -148,6 +149,39 @@ vec3 Lighting_Diffuse_Burley(in Lighting_In _in)
 }
 #define Lighting_Diffuse(_in) Lighting_Diffuse_Lambert(_in)
 
+float Lighting_DistanceAttenuation(in float _distance2, in float _falloff)
+{
+    float d = _distance2 * _falloff;
+          d = saturate(1.0 - d * d);
+    return (d * d) / max(_distance2, 1e-4);
+}
+
+float Lighting_AngularAttenuation(in float _distance2, in float _falloff)
+{
+    float d = _distance2 * _falloff;
+          d = saturate(1.0 - d * d);
+    return (d * d) / max(_distance2, 1e-4);
+}
+
+vec3 Lighting_Common(
+    inout Lighting_In    _in_,
+    in    Lighting_Light _light
+    )
+{
+    if (bool(Lighting_PREDICATE_NoL) && _in_.NoL < 1e-7)
+    {
+        return vec3(0.0);
+    }
+
+    float D  = Lighting_SpecularD(_in_);
+    float G  = Lighting_SpecularG(_in_);
+    vec3  F  = Lighting_SpecularF(_in_);
+    vec3  Fr = (D * G) * F;
+    vec3  Fd = Lighting_Diffuse(_in_);
+
+    return (Fr + Fd) * _light.color.rgb * _in_.NoL;
+}
+
 vec3 Lighting_Direct(
     inout Lighting_In    _in_,
     in    Lighting_Light _light,
@@ -156,13 +190,7 @@ vec3 Lighting_Direct(
     )
 {
     Lighting_InitLight(_in_, _N, _V, _light.direction.xyz);
-    float D  = Lighting_SpecularD(_in_);
-    float G  = Lighting_SpecularG(_in_);
-    vec3  F  = Lighting_SpecularF(_in_);
-    vec3  Fr = (D * G) * F;
-    vec3  Fd = Lighting_Diffuse(_in_);
-
-    return (Fr + Fd) * _light.color.rgb * _in_.NoL;
+    return Lighting_Common(_in_, _light);
 }
 
 vec3 Lighting_Point(
@@ -173,18 +201,30 @@ vec3 Lighting_Point(
     in    vec3           _V
     )
 {
-    vec3  L = _light.position.xyz - _P;
-	float d = length(L);
-	      L /= d;
+    vec3  L   = _light.position.xyz - _P;
+	float d2  = length2(L);
+	      L  /= sqrt(d2);
     Lighting_InitLight(_in_, _N, _V, L);
-	_in_.NoL *= 1.0 - smoothstep(_light.attenuation.x, _light.attenuation.y, d);
-    float D  = Lighting_SpecularD(_in_);
-    float G  = Lighting_SpecularG(_in_);
-    vec3  F  = Lighting_SpecularF(_in_);
-    vec3  Fr = (D * G) * F;
-    vec3  Fd = Lighting_Diffuse(_in_);
-
-    return (Fr + Fd) * _light.color.rgb * _in_.NoL;
+    _in_.NoL *= Lighting_DistanceAttenuation(d2, _light.attenuation.x);
+    return Lighting_Common(_in_, _light);
 }
+
+vec3 Lighting_Spot(
+    inout Lighting_In    _in_,
+    in    Lighting_Light _light,
+    in    vec3           _P,
+    in    vec3           _N,
+    in    vec3           _V
+    )
+{
+    vec3  L   = _light.position.xyz - _P;
+	float d2  = length2(L);
+	      L  /= sqrt(d2);
+    Lighting_InitLight(_in_, _N, _V, L);
+    _in_.NoL *= Lighting_DistanceAttenuation(d2, _light.attenuation.x);
+    _in_.NoL *= 1.0 - smoothstep(_light.attenuation.z, _light.attenuation.w, 1.0 - dot(_light.direction.xyz, L));
+    return Lighting_Common(_in_, _light);
+}
+
 
 #endif // Lighting_glsl

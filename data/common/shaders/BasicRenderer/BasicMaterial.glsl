@@ -1,5 +1,5 @@
 /* 	\todo
-	- Normal mapping http://advances.realtimerendering.com/s2018/Siggraph%202018%20HDRP%20talk_with%20notes.pdf
+	- Gradient framework for normal mapping? http://advances.realtimerendering.com/s2018/Siggraph%202018%20HDRP%20talk_with%20notes.pdf
 */
 #include "shaders/def.glsl"
 #include "shaders/Camera.glsl"
@@ -166,17 +166,8 @@ void main()
 				}
 				case LightType_Spot:
 				{	
-					/*float NdotL = dot(_light.m_direction.xyz, _normalW);
-					if (NdotL > 0.0)
-					{
-						vec3 L = _light.m_position.xyz - _positionW;
-						float D = length(L);
-						L /= D;
-						NdotL *= 1.0 - smoothstep(_light.m_attenuation.z, _light.m_attenuation.w, 1.0 - dot(_light.m_direction.xyz, L));
-						NdotL *= 1.0 - smoothstep(_light.m_attenuation.x, _light.m_attenuation.y, D);
-						_reflectance_.m_diffuse += _light.m_color.rgb * max(0.0, NdotL);
-					}
-					break;*/
+					ret += Lighting_Spot(lightingIn, uLights[i], P, N, V);
+					break;
 				}
 			};
 		}
