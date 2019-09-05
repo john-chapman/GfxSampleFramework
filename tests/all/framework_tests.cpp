@@ -3,6 +3,7 @@
 #include <frm/core/interpolation.h>
 #include <frm/core/gl.h>
 #include <frm/core/AppSample3d.h>
+#include <frm/core/BasicRenderer.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Curve.h>
 #include <frm/core/Framebuffer.h>
@@ -25,6 +26,7 @@
 #endif
 
 #include <apt/log.h>
+#include <apt/memory.h>
 #include <apt/rand.h>
 #include <apt/ArgList.h>
 #include <apt/Image.h>
@@ -72,6 +74,8 @@ public:
 
 	frm::Texture* m_txTest;
 
+	BasicRenderer* m_basicRenderer = nullptr;
+
 	AppSampleTest()
 		: AppBase("AppSampleTest") 
 	{
@@ -98,11 +102,15 @@ public:
 		m_txRadar = Texture::Create("textures/radar.tga");
 		m_txRadar->setWrap(GL_CLAMP_TO_EDGE);
 
+		m_basicRenderer = BasicRenderer::Create(m_resolution.x, m_resolution.y);
+
 		return true;
 	}
 
 	virtual void shutdown() override
 	{
+		BasicRenderer::Destroy(m_basicRenderer);
+
 		Buffer::Destroy(m_meshTest.m_bfSkinning);
 		Mesh::Release(m_meshTest.m_mesh);
 		SkeletonAnimation::Release(m_meshTest.m_anim);
@@ -964,6 +972,15 @@ public:
 				
 			ImGui::TreePop();
 		}
+
+		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("BasicRenderer"))
+		{
+			m_basicRenderer->edit();
+			ImGui::TreePop();
+		}
+
+		m_basicRenderer->draw(m_scene->getDrawCamera(), (float)getDeltaTime());
 
 		AppBase::draw();
 	}

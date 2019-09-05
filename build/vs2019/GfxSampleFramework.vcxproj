@@ -55,7 +55,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;APT_DEBUG;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_CORE=1;FRM_MODULE_AUDIO=0;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;APT_DEBUG;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\extern\ApplicationTools\src\all;..\..\extern\ApplicationTools\src\all\extern;..\..\extern\ApplicationTools\src\win;..\..\extern\ApplicationTools\src\win\extern;..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
@@ -77,7 +77,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_CORE=1;FRM_MODULE_AUDIO=0;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\extern\ApplicationTools\src\all;..\..\extern\ApplicationTools\src\all\extern;..\..\extern\ApplicationTools\src\win;..\..\extern\ApplicationTools\src\win\extern;..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>None</DebugInformationFormat>
       <Optimization>Full</Optimization>
@@ -105,13 +105,15 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\App.h" />
     <ClInclude Include="..\..\src\all\frm\core\AppSample.h" />
     <ClInclude Include="..\..\src\all\frm\core\AppSample3d.h" />
+    <ClInclude Include="..\..\src\all\frm\core\BasicMaterial.h" />
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer.h" />
     <ClInclude Include="..\..\src\all\frm\core\Buffer.h" />
     <ClInclude Include="..\..\src\all\frm\core\Camera.h" />
+    <ClInclude Include="..\..\src\all\frm\core\Component.h" />
     <ClInclude Include="..\..\src\all\frm\core\Curve.h" />
     <ClInclude Include="..\..\src\all\frm\core\Framebuffer.h" />
     <ClInclude Include="..\..\src\all\frm\core\GlContext.h" />
     <ClInclude Include="..\..\src\all\frm\core\Input.h" />
-    <ClInclude Include="..\..\src\all\frm\core\Light.h" />
     <ClInclude Include="..\..\src\all\frm\core\Log.h" />
     <ClInclude Include="..\..\src\all\frm\core\LuaScript.h" />
     <ClInclude Include="..\..\src\all\frm\core\Mesh.h" />
@@ -176,18 +178,21 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\gl.h" />
     <ClInclude Include="..\..\src\all\frm\core\interpolation.h" />
     <ClInclude Include="..\..\src\all\frm\core\math.h" />
+    <ClInclude Include="..\..\src\win\frm\core\extern\renderdoc_app.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\frm\core\App.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\AppSample.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\AppSample3d.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\BasicMaterial.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Buffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Camera.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\Component.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Curve.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Framebuffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\GlContext.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Input.cpp" />
-    <ClCompile Include="..\..\src\all\frm\core\Light.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Log.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\LuaScript.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Mesh.cpp" />

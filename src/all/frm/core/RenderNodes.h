@@ -16,7 +16,7 @@ class LuminanceMeter
 public:
 	struct Data
 	{
-		float m_rate;
+		float m_rate = 0.25f;
 	};
 	Data m_data;
 
@@ -32,12 +32,12 @@ public:
 
 	const Texture* getLuminanceTexture() { return m_txLum[m_current]; }
 private:
-	static const int kHistorySize = 2;
-	Texture* m_txLum[kHistorySize];
-	int      m_current;
-	bool     m_enabled;
-	Shader*  m_shLuminanceMeter;
-	Buffer*  m_bfData;
+	static const int kHistorySize  = 2;
+	Texture* m_txLum[kHistorySize] = { nullptr };
+	int      m_current             = 0;
+	bool     m_enabled             = true;
+	Shader*  m_shLuminanceMeter    = nullptr;
+	Buffer*  m_bfData              = nullptr;
 };
 
 // Final exposure, tonemapping, color correction.
@@ -46,16 +46,16 @@ class ColorCorrection
 public:
 	struct Data
 	{
-		float m_exposure;
-		float m_localExposureMax;
-		float m_localExposureLod;
-		float m_contrast;
-		float m_saturation;
+		float m_exposure          = 0.0f;
+		float m_localExposureMax  = 0.0f;
+		float m_localExposureLod  = 1.0f;
+		float m_contrast          = 1.0f;
+		float m_saturation        = 1.0f;
 		float _pad[3];
-		vec3  m_tint;
+		vec3  m_tint              = vec3(1.0f);
 	};
 	Data m_data;
-	LuminanceMeter *m_luminanceMeter;
+	LuminanceMeter* m_luminanceMeter = nullptr;
 
 	void setProps(Properties& _props_);
 	bool init();
@@ -67,11 +67,11 @@ public:
 	bool isEnabled() const { return m_enabled; }
 
 private:
-	uint32  m_time;
-	bool    m_enabled;
-	Shader* m_shColorCorrection;
-	Shader* m_shBlit;
-	Buffer* m_bfData;
+	uint32  m_time                = 0;
+	bool    m_enabled             = true;
+	Shader* m_shColorCorrection   = nullptr;
+	Shader* m_shBlit              = nullptr;
+	Buffer* m_bfData              = nullptr;
 
 
 }; // class ColorCorrection

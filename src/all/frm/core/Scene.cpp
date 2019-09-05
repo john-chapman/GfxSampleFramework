@@ -1,7 +1,7 @@
 #include "Scene.h"
 
 #include <frm/core/Camera.h>
-#include <frm/core/Light.h>
+#include <frm/core/Component.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/XForm.h>
 
@@ -20,12 +20,11 @@ using namespace apt;
 
 *******************************************************************************/
 
-static const char* kNodeTypeStr[] =
+static const char* kNodeTypeStr[Node::Type_Count] =
 {
 	"Root",
 	"Camera",
-	"Object",
-	"Light"
+	"Object"
 };
 static Node::Type NodeTypeFromStr(const char* _str)
 {
@@ -57,15 +56,12 @@ void Node::addXForm(XForm* _xform)
 
 void Node::removeXForm(XForm* _xform)
 {
-	for (auto it = m_xforms.begin(); it != m_xforms.end(); ++it) {
-		XForm* x = *it;
-		if (x == _xform) {
-			APT_ASSERT(x->getNode() == this);
-			x->setNode(nullptr);
-			m_xforms.erase(it);
-			return;
-		}
-	}
+	auto it = eastl::find(m_xforms.begin(), m_xforms.end(), _xform);
+	APT_ASSERT(it != m_xforms.end());
+	APT_ASSERT(_xform->getNode() == this);
+	
+	m_xforms.erase(it);
+	XForm::Destroy(_xform);
 }
 
 void Node::moveXForm(const XForm* _xform, int _dir)
@@ -77,6 +73,29 @@ void Node::moveXForm(const XForm* _xform, int _dir)
 			return;
 		}
 	}
+}
+
+void Node::addComponent(Component* _component)
+{
+	APT_ASSERT(_component);
+	APT_ASSERT(_component->getNode() == nullptr);
+	_component->setNode(this);
+	if (_component->init()) {
+		m_components.push_back(_component);
+	} else {
+		Component::Destroy(_component);
+	}
+}
+
+void Node::removeComponent(Component* _component)
+{
+	auto it = eastl::find(m_components.begin(), m_components.end(), _component);
+	APT_ASSERT(it != m_components.end());
+	APT_ASSERT(_component->getNode() == this);
+	
+	_component->shutdown();
+	m_components.erase(it);
+	Component::Destroy(_component);
 }
 
 void Node::setParent(Node* _node)
@@ -131,10 +150,13 @@ void Node::Update(Node* _node_, float _dt, uint8 _stateMask)
 		return;
 	}
 
- // reset world matrix
-	_node_->m_worldMatrix = _node_->m_localMatrix;
+ // update components
+	for (Component* component : _node_->m_components) {
+		component->update(_dt);
+	}
 
  // apply xforms
+	_node_->m_worldMatrix = _node_->m_localMatrix;
 	for (auto& xform : _node_->m_xforms) {
 		xform->apply(_dt);
 	}
@@ -204,9 +226,16 @@ Node::~Node()
 		m_parent->removeChild(this);
 	}
 
+ // delete components
+	for (Component* component : m_components) {
+		component->shutdown();
+		APT_DELETE(component);
+	}
+	m_components.clear();
+
  // delete xforms
-	for (auto it = m_xforms.begin(); it != m_xforms.end(); ++it) {
-		delete *it;
+	for (XForm* xform : m_xforms) {
+		APT_DELETE(xform);
 	}
 	m_xforms.clear();
 }
@@ -231,13 +260,11 @@ void frm::swap(Scene& _a, Scene& _b)
 	eastl::swap(_a.m_nextNodeId, _b.m_nextNodeId);
 	eastl::swap(_a.m_root,       _b.m_root);
 	eastl::swap(_a.m_nodes,      _b.m_nodes);
-	apt::swap(_a.m_nodePool,   _b.m_nodePool);
+	apt::swap  (_a.m_nodePool,   _b.m_nodePool);
 	eastl::swap(_a.m_drawCamera, _b.m_drawCamera);
 	eastl::swap(_a.m_cullCamera, _b.m_cullCamera);
 	eastl::swap(_a.m_cameras,    _b.m_cameras);
-	apt::swap(_a.m_cameraPool, _b.m_cameraPool);
-	eastl::swap(_a.m_lights,    _b.m_lights);
-	apt::swap(_a.m_lightPool, _b.m_lightPool);
+	apt::swap  (_a.m_cameraPool, _b.m_cameraPool);
 }
 
 
@@ -272,22 +299,8 @@ bool Scene::Save(const char* _path, Scene& _scene)
 }
 
 Scene::Scene()
-	: m_nextNodeId(0)
-	, m_nodePool(128)
+	: m_nodePool(128)
 	, m_cameraPool(8)
-	, m_lightPool(16)
-	, m_drawCamera(nullptr)
-	, m_cullCamera(nullptr)
-#ifdef frm_Scene_ENABLE_EDIT
-	, m_showNodeGraph3d(false)
-	, m_editNode(nullptr)
-	, m_storedNode(nullptr)
-	, m_editXForm(nullptr)
-	, m_editCamera(nullptr)
-	, m_storedCullCamera(nullptr)
-	, m_storedDrawCamera(nullptr)
-	, m_editLight(nullptr)
-#endif
 {
 	m_root = m_nodePool.alloc(Node(Node::Type_Root, m_nextNodeId++, Node::State_Any, "ROOT"));
 	m_root->setSceneDataScene(this);
@@ -296,10 +309,6 @@ Scene::Scene()
 
 Scene::~Scene()
 {
-	while (!m_lights.empty()) {
-		m_lightPool.free(m_lights.back());
-		m_lights.pop_back();
-	}
 	while (!m_cameras.empty()) {
 		m_cameraPool.free(m_cameras.back());
 		m_cameras.pop_back();
@@ -367,17 +376,6 @@ void Scene::destroyNode(Node*& _node_)
 					m_cameras.erase(it);
 				}
 				m_cameraPool.free(camera);
-			}
-			break;
-		case Node::Type_Light:
-			if (_node_->m_sceneData) {
-				Light* light = _node_->getSceneDataLight();
-				auto it = eastl::find(m_lights.begin(), m_lights.end(), light);
-				if (it != m_lights.end()) {
-					APT_ASSERT(light->m_parent == _node_); // _node_ points to light, but light doesn't point to _node_
-					m_lights.erase(it);
-				}
-				m_lightPool.free(light);
 			}
 			break;
 		default:
@@ -483,31 +481,6 @@ void Scene::destroyCamera(Camera*& _camera_)
 	_camera_ = nullptr;
 }
 
-Light* Scene::createLight(Node* _parent_)
-{
-	PROFILER_MARKER_CPU("#Scene::createLight");
-
-	Light* ret = m_lightPool.alloc();
-	Node* node = createNode(Node::Type_Light, _parent_);
-	node->setSceneDataLight(ret);
-	ret->m_parent = node;
-	m_lights.push_back(ret);
-	return ret;
-}
-
-void Scene::destroyLight(Light*& _light_)
-{
-	PROFILER_MARKER_CPU("#Scene::destroyLight");
-
-	Node* node = _light_->m_parent;
-	APT_ASSERT(node);
-	destroyNode(node); // implicitly destroys light
-	if (m_editLight == _light_) {
-		m_editLight = nullptr;
-	}
-	m_editLight = nullptr;
-}
-
 bool frm::Serialize(Serializer& _serializer_, Scene& _scene_)
 {
 	bool ret = true;
@@ -607,17 +580,6 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 				_node_.setSceneDataCamera(cam);
 				break;
 			}
-			case Node::Type_Light: {
-				Light* light = _scene_.m_lightPool.alloc();
-				light->m_parent = &_node_;
-				if (!Serialize(_serializer_, *light)) {
-					_scene_.m_lightPool.free(light);
-					return false;
-				}
-				_scene_.m_lights.push_back(light);
-				_node_.setSceneDataLight(light);
-				break;
-			}
 			default:
 				break;
 		};
@@ -649,10 +611,28 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 				XForm* xform = XForm::Create(StringHash((const char*)className));
 				if (xform) {
 					xform->serialize(_serializer_);
-					xform->setNode(&_node_);
-					_node_.m_xforms.push_back(xform);
+					_node_.addXForm(xform);
 				} else {
 					APT_LOG_ERR("Scene: Invalid xform '%s'", (const char*)className);
+				}
+				_serializer_.endObject();
+			}
+			_serializer_.endArray();
+		}
+
+		uint componentCount = (uint)_node_.getComponentCount();
+		if (_serializer_.beginArray(componentCount, "Components")) {
+			while (_serializer_.beginObject()) {
+				String<64> className;
+				if (!Serialize(_serializer_, className, "Class")) {
+					return false;
+				}
+				Component* component = Component::Create(StringHash((const char*)className));
+				if (component) {
+					component->serialize(_serializer_);
+					_node_.addComponent(component);
+				} else {
+					APT_LOG_ERR("Scene: Invalid component '%s'", (const char*)className);
 				}
 				_serializer_.endObject();
 			}
@@ -664,13 +644,6 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 			case Node::Type_Camera: {
 				Camera* cam = _node_.getSceneDataCamera();
 				if (!Serialize(_serializer_, *cam)) {
-					return false;
-				}
-				break;
-			}
-			case Node::Type_Light: {
-				Light* light = _node_.getSceneDataLight();
-				if (!Serialize(_serializer_, *light)) {
 					return false;
 				}
 				break;
@@ -706,6 +679,19 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 				}
 			_serializer_.endArray();
 		}
+
+		uint componentCount = (uint)_node_.getComponentCount();
+		if (!_node_.m_components.empty()) {
+			_serializer_.beginArray(componentCount, "Components");
+				for (auto& component : _node_.m_components) {
+					_serializer_.beginObject();
+						String<64> className = component->getClassRef()->getName();
+						Serialize(_serializer_, className, "Class");
+						component->serialize(_serializer_);
+					_serializer_.endObject();
+				}
+			_serializer_.endArray();
+		}
 	}
 
 	return true;
@@ -716,20 +702,18 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 #include <im3d/Im3d.h>
 #include <imgui/imgui.h>
 
-static const char* kNodeTypeIconStr[] =
+static const char* kNodeTypeIconStr[Node::Type_Count] =
 {
-	ICON_FA_COG,          // root
-	ICON_FA_VIDEO_CAMERA, // camera
-	ICON_FA_CUBE,         // object
-	ICON_FA_LIGHTBULB_O   // light
+	ICON_FA_COG,          // Type_Root
+	ICON_FA_VIDEO_CAMERA, // Type_Camera
+	ICON_FA_CUBE,         // Type_Object
 };
 
-static const Im3d::Color kNodeTypeCol[] = 
+static const Im3d::Color kNodeTypeCol[Node::Type_Count] = 
 {
-	Im3d::Color(0.5f, 0.5f, 0.5f, 0.5f), // Type_Root,
-	Im3d::Color(0.5f, 0.5f, 1.0f, 0.5f), // Type_Camera,
-	Im3d::Color(0.5f, 1.0f, 0.5f, 1.0f), // kTypeObject,
-	Im3d::Color(1.0f, 0.5f, 0.0f, 1.0f)  // kTypeLight,
+	Im3d::Color(0.5f, 0.5f, 0.5f, 0.5f), // Type_Root
+	Im3d::Color(0.5f, 0.5f, 1.0f, 0.5f), // Type_Camera
+	Im3d::Color(0.5f, 1.0f, 0.5f, 1.0f), // kTypeObject
 };
 
 void Scene::edit()
@@ -790,9 +774,6 @@ void Scene::edit()
 	
 	ImGui::Spacing();
 	editCameras();
-
-	ImGui::Spacing();
-	editLights();
 
 	ImGui::End(); // Scene
 }
@@ -911,7 +892,8 @@ void Scene::editNodes()
 				ImGui::Text("Scale:    %.3f, %.3f, %.3f", scale.x, scale.y, scale.z);
 				ImGui::TreePop();
 			}
-
+	
+		 // XForms
 			if (ImGui::TreeNode("XForms")) {
 				bool destroyXForm = false;
 
@@ -965,13 +947,78 @@ void Scene::editNodes()
 				}
 
 				if (destroyXForm) {
-					m_editNode->removeXForm(m_editXForm);
-					XForm::Destroy(m_editXForm);
+					m_editNode->removeXForm(m_editXForm); // calls XForm::Destroy
 					newEditXForm = nullptr;
 				}
 
 				if (m_editXForm != newEditXForm) {
 					m_editXForm = newEditXForm;
+				}
+
+				ImGui::TreePop();
+			}
+
+		 // Components
+			if (ImGui::TreeNode("Components"))
+			{
+				bool destroyComponent = false;
+
+				if (ImGui::Button(ICON_FA_FILE_O " Create")) {
+					beginCreateComponent();
+				}
+				Component* newEditComponent = createComponent(m_editComponent);
+				if (newEditComponent != m_editComponent) {
+					m_editNode->addComponent(newEditComponent);
+				}
+				if (m_editComponent != nullptr) {
+					ImGui::SameLine();
+					if (ImGui::Button(ICON_FA_TIMES " Destroy")) {
+						destroyComponent = true;
+					}
+					//ImGui::SameLine();
+					//if (ImGui::Button(ICON_FA_ARROW_UP)) {
+					//	m_editNode->moveComponent(m_editComponent, -1);
+					//}
+					//ImGui::SameLine();
+					//if (ImGui::Button(ICON_FA_ARROW_DOWN)) {
+					//	m_editNode->moveComponent(m_editComponent, 1);
+					//}
+				}
+
+				if (!m_editNode->m_components.empty()) {
+				 // build list for component stack
+					const char* componentList[64];
+					APT_ASSERT(m_editNode->m_components.size() <= 64);
+					int selectedComponent = 0;
+					for (int i = 0; i < (int)m_editNode->m_components.size(); ++i) {
+						Component* component = m_editNode->m_components[i];
+						if (component == m_editComponent) {
+							selectedComponent = i;
+						}
+						componentList[i] = component->getName();
+					}
+					ImGui::Spacing();
+					if (ImGui::ListBox("##Components", &selectedComponent, componentList, (int)m_editNode->m_components.size())) {
+						newEditComponent = m_editNode->m_components[selectedComponent];
+					}
+
+					if (m_editComponent) {
+						ImGui::Separator();
+						ImGui::Spacing();
+						ImGui::PushID(m_editComponent);
+							m_editComponent->edit();
+						ImGui::PopID();
+					}
+
+				}
+
+				if (destroyComponent) {
+					m_editNode->removeComponent(m_editComponent); // calls Component::Destroy
+					newEditComponent = nullptr;
+				}
+
+				if (m_editComponent != newEditComponent) {
+					m_editComponent = newEditComponent;
 				}
 
 				ImGui::TreePop();
@@ -1001,9 +1048,6 @@ void Scene::editNodes()
 			switch (newEditNode->m_type) {
 				case Node::Type_Camera:
 					m_editCamera = newEditNode->getSceneDataCamera();
-					break;
-				case Node::Type_Light:
-					m_editLight = newEditNode->getSceneDataLight();
 					break;
 			};
 			m_editNode = newEditNode;
@@ -1133,60 +1177,6 @@ void Scene::editCameras()
 	}
 }
 
-void Scene::editLights()
-{
-	if (ImGui::CollapsingHeader("Lights")) {
-		ImGui::PushID("SelectLight");
-			if (ImGui::Button(ICON_FA_LIST_UL " Select##Light")) {
-				beginSelectLight();
-			}
-			Light* newEditLight = selectLight(m_editLight);
-		ImGui::PopID();
-
-		ImGui::SameLine();
-		if (ImGui::Button(ICON_FA_FILE_O " Create")) {
-			newEditLight = createLight();
-		}
-
-		if (m_editLight) {
-			bool destroy = false;
-
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_TIMES " Destroy")) {
-				destroy = true;
-			}
-
-			ImGui::Separator();			
-			ImGui::Spacing();
-			
-			static Node::NameStr s_nameBuf;
-			s_nameBuf.set((const char*)m_editLight->m_parent->m_name);
-			if (ImGui::InputText("Name", (char*)s_nameBuf, s_nameBuf.getCapacity(), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue)) {
-				m_editLight->m_parent->m_name.set((const char*)s_nameBuf);
-			}
-
-			m_editLight->edit();
-
-		 // deferred destroy
-			if (destroy) {
-				if (m_editNode == m_editLight->m_parent) {
-					m_editNode = nullptr;
-				}
-				destroyLight(m_editLight);
-				newEditLight = nullptr;
-			}
-		}
-	 // deferred select
-		if (m_editLight != newEditLight) {
-			if (newEditLight->m_parent) {
-				m_editNode = newEditLight->m_parent;
-			}
-			m_editLight = newEditLight;
-		}
-		
-	}
-}
-
 void Scene::beginSelectNode()
 {
 	ImGui::OpenPopup("Select Node");
@@ -1253,35 +1243,6 @@ Camera* Scene::selectCamera(Camera* _current)
 	return ret;
 }
 
-void Scene::beginSelectLight()
-{
-	ImGui::OpenPopup("Select Light");
-}
-Light* Scene::selectLight(Light* _current)
-{
-	Light* ret = _current;
-	if (ImGui::BeginPopup("Select Light")) {
-		static ImGuiTextFilter filter;
-		filter.Draw("Filter##Light");
-		for (auto it = m_lights.begin(); it != m_lights.end(); ++it) {
-			Light* light = *it;
-			if (light == _current) {
-				continue;
-			}
-			APT_ASSERT(light->m_parent);
-			if (filter.PassFilter(light->m_parent->getName())) {
-				if (ImGui::Selectable(light->m_parent->getName())) {
-					ret = light;
-					break;
-				}
-			}
-		}
-		
-		ImGui::EndPopup();
-	}
-	return ret;
-}
-
 void Scene::beginCreateNode()
 {
 	ImGui::OpenPopup("Create Node");
@@ -1290,7 +1251,7 @@ Node* Scene::createNode(Node* _current)
 {
 	Node* ret = _current;
 	if (ImGui::BeginPopup("Create Node")) {
-		static const char* kNodeTypeComboStr = ICON_FA_COG " Root\0" ICON_FA_VIDEO_CAMERA " Camera\0" ICON_FA_CUBE " Object\0" ICON_FA_LIGHTBULB_O " Light\0";
+		static const char* kNodeTypeComboStr = ICON_FA_COG " Root\0" ICON_FA_VIDEO_CAMERA " Camera\0" ICON_FA_CUBE " Object\0";
 		static int s_type = Node::Type_Object;
 		ImGui::Combo("Type", &s_type , kNodeTypeComboStr);
 
@@ -1305,7 +1266,6 @@ Node* Scene::createNode(Node* _current)
 			switch (ret->getType()) {
 				case Node::Type_Root:   ret->setSceneDataScene(this); break;
 				case Node::Type_Camera: APT_ASSERT(false); break; // \todo creata a camera in this case?
-				case Node::Type_Light:  APT_ASSERT(false); break; // \todo creata a light in this case?
 				default:                break;
 			};
 			ImGui::CloseCurrentPopup();
@@ -1374,6 +1334,31 @@ XForm* Scene::createXForm(XForm* _current)
 			if (filter.PassFilter(cref->getName())) {
 				if (ImGui::Selectable(cref->getName())) {
 					ret = XForm::Create(cref);
+					break;
+				}
+			}
+		}
+		ImGui::EndPopup();
+	}
+	return ret;
+}
+
+void Scene::beginCreateComponent()
+{
+	ImGui::OpenPopup("Create Component");
+}
+Component* Scene::createComponent(Component* _current)
+{
+	Component* ret = _current;
+	if (ImGui::BeginPopup("Create Component")) {
+		static ImGuiTextFilter filter;
+		filter.Draw("Filter##Component");
+		Component::ClassRef* componentRef = nullptr;
+		for (int i = 0; i < Component::GetClassRefCount(); ++i) {
+			const Component::ClassRef* cref = Component::GetClassRef(i);
+			if (filter.PassFilter(cref->getName())) {
+				if (ImGui::Selectable(cref->getName())) {
+					ret = Component::Create(cref);
 					break;
 				}
 			}

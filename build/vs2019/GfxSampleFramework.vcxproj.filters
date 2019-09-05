@@ -40,6 +40,9 @@
     <Filter Include="win\frm\core">
       <UniqueIdentifier>{3F7CA357-2BDF-32FC-D464-6BB2C0A6FE7E}</UniqueIdentifier>
     </Filter>
+    <Filter Include="win\frm\core\extern">
+      <UniqueIdentifier>{8463DA1F-F0C4-B72D-7932-FEDFE592EEEC}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\all\frm\core\App.h">
@@ -51,10 +54,19 @@
     <ClInclude Include="..\..\src\all\frm\core\AppSample3d.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\BasicMaterial.h">
+      <Filter>all\frm\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer.h">
+      <Filter>all\frm\core</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Buffer.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Camera.h">
+      <Filter>all\frm\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\Component.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Curve.h">
@@ -67,9 +79,6 @@
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Input.h">
-      <Filter>all\frm\core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\core\Light.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Log.h">
@@ -264,6 +273,9 @@
     <ClInclude Include="..\..\src\all\frm\core\math.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\win\frm\core\extern\renderdoc_app.h">
+      <Filter>win\frm\core\extern</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\all\frm\core\App.cpp">
@@ -275,10 +287,19 @@
     <ClCompile Include="..\..\src\all\frm\core\AppSample3d.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\BasicMaterial.cpp">
+      <Filter>all\frm\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer.cpp">
+      <Filter>all\frm\core</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Buffer.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Camera.cpp">
+      <Filter>all\frm\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\Component.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Curve.cpp">
@@ -291,9 +312,6 @@
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Input.cpp">
-      <Filter>all\frm\core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\core\Light.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Log.cpp">

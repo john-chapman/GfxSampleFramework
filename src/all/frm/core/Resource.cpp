@@ -156,6 +156,8 @@ Resource<tDerived>::InstanceList::~InstanceList()
 	template class Resource<_name>; \
 	const char* Resource<_name>::s_className = #_name;
 
+#include <frm/core/BasicMaterial.h>
+DECL_RESOURCE(BasicMaterial);
 #include <frm/core/Mesh.h>
 DECL_RESOURCE(Mesh);
 #include <frm/core/SkeletonAnimation.h>

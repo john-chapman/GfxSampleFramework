@@ -32,7 +32,6 @@ public:
 		Type_Root,
 		Type_Camera,
 		Type_Object,
-		Type_Light,
 
 		Type_Count
 	};
@@ -41,7 +40,7 @@ public:
 	{
 		State_Active   = 1 << 0, // Enable/disable update.
 		State_Dynamic  = 1 << 1, // Update every frame (else static).
-		State_Selected = 1 << 3, // Activates certain xforms (e.g. which receive input).
+		State_Selected = 1 << 3, // Activates certain xforms/components (e.g. which receive input).
 
 		State_Any = 0xff
 	};
@@ -70,7 +69,6 @@ public:
 
 	uint64       getSceneData() const                { return m_sceneData; }
 	Camera*      getSceneDataCamera() const          { APT_ASSERT(m_type == Type_Camera); return (Camera*)m_sceneData; }
-	Light*       getSceneDataLight() const           { APT_ASSERT(m_type == Type_Light); return (Light*)m_sceneData;   }
 	Scene*       getSceneDataScene() const           { APT_ASSERT(m_type == Type_Root); return (Scene*)m_sceneData;    }
 
 	const mat4&  getLocalMatrix() const              { return m_localMatrix; }
@@ -90,6 +88,11 @@ public:
 	XForm*       getXForm(int _i)                    { return m_xforms[_i]; }
 	void         moveXForm(const XForm* _xform, int _dir);
 
+	void         addComponent(Component* _component);
+	void         removeComponent(Component* _component);
+	int          getComponentCount() const           { return (int)m_components.size(); }
+	Component*   getComponent(int _i)                { return m_components[_i]; }
+
 	Node*        getParent()                         { return m_parent; }
 	void         setParent(Node* _node);
 	int          getChildCount() const               { return (int)m_children.size(); }
@@ -103,15 +106,18 @@ private:
  // meta
 	Id                    m_id;          // Unique id.
 	NameStr               m_name;        // User-friendly name (not necessarily unique).
-	Type                  m_type;
+	Type                  m_type;        // Type.
 	uint8                 m_state;       // State mask.
 	uint64                m_userData;    // Application-defined node data.
 	uint64                m_sceneData;   // Scene-defined data.
 
  // spatial
 	mat4                  m_localMatrix; // Initial (local) transformation.
-	mat4                  m_worldMatrix; // Final transformation with any XForms applied.
-	eastl::vector<XForm*> m_xforms;      // XForm list (applied in order).
+	mat4                  m_worldMatrix; // Final transformation with any xforms/components applied.
+	eastl::vector<XForm*> m_xforms;      // XForm list (applied in order). Node owns the xform memory.
+
+ // components
+	eastl::vector<Component*> m_components; // Component list (updated in order). Node owns the component memory.
 
  // hierarchy
 	Node*                 m_parent;
@@ -134,7 +140,6 @@ private:
 
 
 	void setSceneDataCamera(Camera* _camera) { APT_ASSERT(m_type == Type_Camera); m_sceneData = (uint64)_camera; }
-	void setSceneDataLight(Light* _light)    { APT_ASSERT(m_type == Type_Light);  m_sceneData = (uint64)_light;  }
 	void setSceneDataScene(Scene* _scene)    { APT_ASSERT(m_type == Type_Root);   m_sceneData = (uint64)_scene;  }
 
 }; // class Node
@@ -190,9 +195,6 @@ public:
 	Camera* getCullCamera() const                   { return m_cullCamera; }
 	void    setCullCamera(Camera* _camera)          { m_cullCamera = _camera; }
 
-	Light*  createLight(Node* _parent = nullptr);
-	void    destroyLight(Light*& _camera_);
-
 	// \note Node names beginning with '#' are ignored during serialization (use for any nodes added programmatcially).
 	friend bool Serialize(apt::Serializer& _serializer_, Scene& _scene_);
 	friend bool Serialize(apt::Serializer& _serializer_, Scene& _scene_, Node& _node_);
@@ -204,8 +206,6 @@ public:
 	Node*     selectNode(Node* _current, Node::Type _type = Node::Type_Count);
 	void      beginSelectCamera();
 	Camera*   selectCamera(Camera* _current);
-	void      beginSelectLight();
-	Light*    selectLight(Light* _current);
 #endif
 	
 	friend void swap(Scene& _a, Scene& _b);
@@ -214,42 +214,40 @@ private:
 	static Scene*           s_currentScene;
 
  // nodes
-	Node::Id                m_nextNodeId;               // Monotonically increasing id for nodes.
-	Node*                   m_root;                     // Everything is a child of root.              
+	Node::Id                m_nextNodeId = 0;           // Monotonically increasing id for nodes.
+	Node*                   m_root = nullptr;           // Everything is a child of root.              
 	eastl::vector<Node*>    m_nodes[Node::Type_Count];  // Nodes binned by type.
 	apt::Pool<Node>         m_nodePool;
 
  // cameras
-	Camera*                 m_drawCamera;
-	Camera*                 m_cullCamera;
+	Camera*                 m_drawCamera = nullptr;
+	Camera*                 m_cullCamera = nullptr;
 	eastl::vector<Camera*>  m_cameras;
 	apt::Pool<Camera>       m_cameraPool;
 
- // lights
-	eastl::vector<Light*>   m_lights;
-	apt::Pool<Light>        m_lightPool;
-
 #ifdef frm_Scene_ENABLE_EDIT
-	bool      m_showNodeGraph3d;
-	Node*     m_editNode;
-	Node*     m_storedNode;
-	XForm*    m_editXForm;
-	Camera*   m_editCamera;
-	Camera*   m_storedCullCamera;
-	Camera*   m_storedDrawCamera;
-	Light*    m_editLight;
+	bool       m_showNodeGraph3d    = false;
+	Node*      m_editNode           = nullptr;
+	Node*      m_storedNode         = nullptr;
+	XForm*     m_editXForm          = nullptr;
+	Component* m_editComponent      = nullptr;
+	Camera*    m_editCamera         = nullptr;
+	Camera*    m_storedCullCamera   = nullptr;
+	Camera*    m_storedDrawCamera   = nullptr;
 
-	void      editNodes();
-	void      editCameras();
-	void      editLights();
+	void       editNodes();
+	void       editCameras();
 
-	void      beginCreateNode();
-	Node*     createNode(Node* _current);
+	void       beginCreateNode();
+	Node*      createNode(Node* _current);
 
-	void      beginCreateXForm();
-	XForm*    createXForm(XForm* _current);
+	void       beginCreateXForm();
+	XForm*     createXForm(XForm* _current);
 
-	void      drawHierarchy(Node* _node);
+	void       beginCreateComponent();
+	Component* createComponent(Component* _current);
+
+	void       drawHierarchy(Node* _node);
 #endif
 
 }; // class Scene

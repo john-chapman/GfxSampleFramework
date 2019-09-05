@@ -22,6 +22,16 @@
 	layout(local_size_x = LOCAL_SIZE_X, local_size_y = LOCAL_SIZE_Y, local_size_z = LOCAL_SIZE_Z) in;
 #endif
 
+#if defined(VERTEX_SHADER)
+	#define _VARYING(_interp, _type, _name) _interp out _type _name
+	#define _VERTEX_IN(_location, _type, _name) layout(location=_location) in _type _name
+	#define _FRAGMENT_OUT(_location, _type, _name)
+#elif defined(FRAGMENT_SHADER)
+	#define _VARYING(_interp, _type, _name) _interp in _type _name
+	#define _VERTEX_IN(_location, _type, _name)
+	#define _FRAGMENT_OUT(_location, _type, _name) layout(location=_location) out _type _name
+#endif
+
 struct DrawArraysIndirectCmd
 {
 	uint m_count;
@@ -111,10 +121,14 @@ vec4 Gamma_ApplyInverse(in vec4 _v)
 #define length_safe(_v)              sqrt_safe(dot(_v, _v))
 #define log10(x)                     (log2(x) / log2(10.0))
 #define linearstep(_e0, _e1, _x)     saturate((_x) * (1.0 / ((_e1) - (_e0))) + (-(_e0) / ((_e1) - (_e0))))
-#define max3(_a, _b, _c)             max(_a, max(_b, _c))
-#define min3(_a, _b, _c)             min(_a, min(_b, _c))
-#define max4(_a, _b, _c, _d)         max(_a, max(_b, max(_c, _d)))
-#define min4(_a, _b, _c, _d)         min(_a, min(_b, min(_c, _d)))
+float max3(in float _a, in float _b, in float _c)              { return max(_a, max(_b, _c)); }
+float max3(in vec3 _v)                                         { return max3(_v.x, _v.y, _v.z); }
+float min3(in float _a, in float _b, in float _c)              { return min(_a, min(_b, _c)); }
+float min3(in vec3 _v)                                         { return min3(_v.x, _v.y, _v.z); }
+float max4(in float _a, in float _b, in float _c, in float _d) { return max(_a, max(_b, max(_c, _d))); }
+float max4(in vec4 _v)                                         { return max4(_v.x, _v.y, _v.z, _v.w); }
+float min4(in float _a, in float _b, in float _c, in float _d) { return min(_a, min(_b, min(_c, _d))); }
+float min4(in vec4 _v)                                         { return min4(_v.x, _v.y, _v.z, _v.w); }
 
 // Recover view space depth from a depth buffer value given a perspective projection.
 // This may return INF for infinite perspective projections.
