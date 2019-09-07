@@ -203,6 +203,17 @@ public:
 		const mat4&     _transform = identity
 		);
 
+	// Create a cylinder aligned on the Y axis.
+	static MeshData* CreateCylinder(
+		const MeshDesc& _desc,
+		float           _radius,
+		float           _length,
+		int             _sides,
+		int             _segs,
+		bool            _capped    = true,
+		const mat4&     _transform = identity
+		);
+
 	static void Destroy(MeshData*& _meshData_);
 
 	friend void swap(MeshData& _a, MeshData& _b);

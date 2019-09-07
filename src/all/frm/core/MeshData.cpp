@@ -396,6 +396,37 @@ MeshData* MeshData::CreateSphere(
 	return Create(_desc, mesh);
 }
 
+MeshData* MeshData::CreateCylinder(
+	const MeshDesc& _desc,
+	float           _radius,
+	float           _length,
+	int             _sides,
+	int             _segs,
+	bool            _capped,
+	const mat4&     _transform
+	)
+{
+	MeshBuilder mesh;
+	BuildPlane(mesh, kTwoPi, _length, _sides, _segs);
+	for (uint32 i = 0; i < mesh.getVertexCount(); ++i) {
+		MeshBuilder::Vertex& v = mesh.getVertex(i);
+		float x = sinf(v.m_position.x);
+		float y = cosf(v.m_position.x);
+		float z = v.m_position.z;
+		v.m_position = vec3(x * _radius, -z, y * _radius); // swap yz to align on y
+		v.m_normal = normalize(vec3(v.m_position.x, 0.0f, v.m_position.z));
+	}
+	if (_capped) {
+		APT_ASSERT(false); // \todo
+	}
+
+	if (_desc.findVertexAttr(VertexAttr::Semantic_Tangents)) {
+		mesh.generateTangents();
+	}
+	mesh.updateBounds();
+	return Create(_desc, mesh);
+}
+
 void MeshData::Destroy(MeshData*& _meshData_)
 {
 	APT_DELETE(_meshData_);
