@@ -1,15 +1,12 @@
 #pragma once
-#ifndef frm_Buffer_h
-#define frm_Buffer_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/gl.h>
 
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Buffer
-// \note Buffers are not resources (they don't need to be shared).
 ////////////////////////////////////////////////////////////////////////////////
 class Buffer
 {
@@ -69,6 +66,7 @@ public:
 	void        setName(const char* _name) { m_name = _name; }
 
 private:
+
 	GLuint      m_handle;
 	GLenum      m_target;   // Target passed to Create(), however the buffer is not restricted to this target.
 	GLsizei     m_size;
@@ -82,5 +80,3 @@ private:
 }; // class Buffer
 
 } // namespace frm
-
-#endif // frm_Buffer_h

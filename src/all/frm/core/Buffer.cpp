@@ -3,7 +3,6 @@
 #include <frm/core/gl.h>
 
 using namespace frm;
-using namespace apt;
 
 // PUBLIC
 
@@ -22,9 +21,9 @@ void Buffer::Destroy(Buffer*& _inst_)
 
 void Buffer::setData(GLsizeiptr _size, GLvoid* _data, GLintptr _offset)
 {
-	APT_ASSERT(m_handle);
-	APT_ASSERT(m_flags & GL_DYNAMIC_STORAGE_BIT);
-	APT_ASSERT(_offset + _size <= m_size);
+	FRM_ASSERT(m_handle);
+	FRM_ASSERT(m_flags & GL_DYNAMIC_STORAGE_BIT);
+	FRM_ASSERT(_offset + _size <= m_size);
 	glAssert(glNamedBufferSubData(m_handle, _offset, _size, _data));
 	glAssert(glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT));
 }
@@ -32,21 +31,21 @@ void Buffer::setData(GLsizeiptr _size, GLvoid* _data, GLintptr _offset)
 template <>
 void Buffer::clearDataRange<float>(float _value, GLenum _internalFormat, GLintptr _offset, GLsizei _size)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glClearNamedBufferSubData(m_handle, _internalFormat, _offset, _size, GL_RED, GL_FLOAT, &_value));
 }
 
 template <>
 void Buffer::clearDataRange<int>(int _value, GLenum _internalFormat, GLintptr _offset, GLsizei _size)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glClearNamedBufferSubData(m_handle, _internalFormat, _offset, _size, GL_RED, GL_INT, &_value));
 }
 
 void* Buffer::map(GLenum _access)
 {
-	APT_ASSERT(m_handle);
-	APT_ASSERT(!m_isMapped);
+	FRM_ASSERT(m_handle);
+	FRM_ASSERT(!m_isMapped);
 	void* ret;
 	glAssert(ret = glMapNamedBuffer(m_handle, _access));
 	m_isMapped = true;
@@ -55,8 +54,8 @@ void* Buffer::map(GLenum _access)
 
 void* Buffer::mapRange(GLintptr _offset, GLsizei _size, GLenum _access)
 {
-	APT_ASSERT(m_handle);
-	APT_ASSERT(!m_isMapped);
+	FRM_ASSERT(m_handle);
+	FRM_ASSERT(!m_isMapped);
 	void* ret;
 	glAssert(ret = glMapNamedBufferRange(m_handle, _offset, _size, _access));
 	m_isMapped = true;
@@ -65,8 +64,8 @@ void* Buffer::mapRange(GLintptr _offset, GLsizei _size, GLenum _access)
 
 void Buffer::unmap()
 {
-	APT_ASSERT(m_handle);
-	APT_ASSERT(m_isMapped);
+	FRM_ASSERT(m_handle);
+	FRM_ASSERT(m_isMapped);
 	glAssert(glUnmapNamedBuffer(m_handle));
 	glAssert(glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT));
 	m_isMapped = false;
@@ -87,7 +86,8 @@ Buffer::Buffer(GLenum _target, GLsizei _size, GLbitfield _flags)
 
 Buffer::~Buffer()
 {
-	if (m_handle) {
+	if (m_handle)
+	{
 		glAssert(glDeleteBuffers(1, &m_handle));
 		m_handle = 0;
 	}

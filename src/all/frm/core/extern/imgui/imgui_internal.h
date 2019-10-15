@@ -586,8 +586,8 @@ struct ImGuiContext
     float                   FramerateSecPerFrame[120];          // calculate estimate of framerate for user
     int                     FramerateSecPerFrameIdx;
     float                   FramerateSecPerFrameAccum;
-    int                     WantCaptureMouseNextFrame;          // explicit capture via CaptureInputs() sets those flags
-    int                     WantCaptureKeyboardNextFrame;
+    int                     WantCfrmureMouseNextFrame;          // explicit cfrmure via CfrmureInputs() sets those flags
+    int                     WantCfrmureKeyboardNextFrame;
     int                     WantTextInputNextFrame;
     char                    TempBuffer[1024*3+1];               // temporary text buffer
 
@@ -671,7 +671,7 @@ struct ImGuiContext
         memset(FramerateSecPerFrame, 0, sizeof(FramerateSecPerFrame));
         FramerateSecPerFrameIdx = 0;
         FramerateSecPerFrameAccum = 0.0f;
-        WantCaptureMouseNextFrame = WantCaptureKeyboardNextFrame = WantTextInputNextFrame = -1;
+        WantCfrmureMouseNextFrame = WantCfrmureKeyboardNextFrame = WantTextInputNextFrame = -1;
         memset(TempBuffer, 0, sizeof(TempBuffer));
     }
 };

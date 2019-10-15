@@ -1,35 +1,32 @@
 #include "AppSample.h"
 
+#include <frm/core/platform.h>
 #include <frm/core/math.h>
+#include <frm/core/memory.h>
+#include <frm/core/ArgList.h>
 #include <frm/core/App.h>
+#include <frm/core/File.h>
+#include <frm/core/FileSystem.h>
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Input.h>
+#include <frm/core/Json.h>
 #include <frm/core/Log.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
 #include <frm/core/Window.h>
-
-#ifdef APT_PLATFORM_WIN
-	#include <apt/win.h>
+#ifdef FRM_PLATFORM_WIN
+	#include <frm/core/win.h>
 	#include <frm/core/extern/renderdoc_app.h>
 #endif
-
-#include <apt/platform.h>
-#include <apt/memory.h>
-#include <apt/ArgList.h>
-#include <apt/File.h>
-#include <apt/FileSystem.h>
-#include <apt/Json.h>
 
 #include <imgui/imgui.h>
 
 #include <cstring>
 
 using namespace frm;
-using namespace apt;
 
 static Log        g_Log(100);
 static AppSample* g_Current;
@@ -52,17 +49,20 @@ static int   kStatusBarFlags;
 static void FileChangeNotification(const char* _path, FileSystem::FileAction _action)
 {
  // some applications (e.g. Photoshop) write to a temporary file and then do a delete/rename, hence we need to check both _Modified and _Created actions
-	if (_action == FileSystem::FileAction_Modified || _action == FileSystem::FileAction_Created) {
+	if (_action == FileSystem::FileAction_Modified || _action == FileSystem::FileAction_Created) 
+	{
 	 // shader
-		if (FileSystem::Matches("*.glsl", _path)) {
-			//APT_LOG_DBG("Reload shader '%s'", _path);
+		if (FileSystem::Matches("*.glsl", _path)) 
+		{
+			//FRM_LOG_DBG("Reload shader '%s'", _path);
 			Shader::FileModified(_path);
 			return;
 		}
 
 	 // texture
-		if (FileSystem::MatchesMulti({"*.bmp", "*.dds", "*.exr", "*.hdr", "*.png", "*.tga", "*.jpg", "*.gif", "*.psd"}, _path)) {
-			//APT_LOG_DBG("Reload texture '%s'", _path);
+		if (FileSystem::MatchesMulti({"*.bmp", "*.dds", "*.exr", "*.hdr", "*.png", "*.tga", "*.jpg", "*.gif", "*.psd"}, _path)) 
+		{
+			//FRM_LOG_DBG("Reload texture '%s'", _path);
 			Texture::FileModified(_path);
 			return;
 		}
@@ -73,20 +73,23 @@ static void FileChangeNotification(const char* _path, FileSystem::FileAction _ac
 
 AppSample* AppSample::GetCurrent()
 {
-	APT_ASSERT(g_Current);
+	FRM_ASSERT(g_Current);
 	return g_Current;
 }
 
-bool AppSample::init(const apt::ArgList& _args)
+bool AppSample::init(const frm::ArgList& _args)
 {
-	if (apt::GetLogCallback() == nullptr) { // don't override an existing callback
-		apt::SetLogCallback(AppLogCallback);
+	if (frm::GetLogCallback() == nullptr) // don't override an existing callback
+	{
+		frm::SetLogCallback(AppLogCallback);
 	}
-	if (!App::init(_args)) {
+	if (!App::init(_args)) 
+	{
 		return false;
 	}
 
-	if (_args.find("renderdoc")) {
+	if (_args.find("renderdoc")) 
+	{
 		initRenderdoc();
 	}
 
@@ -100,11 +103,12 @@ bool AppSample::init(const apt::ArgList& _args)
 	FileSystem::BeginNotifications(FileSystem::GetRoot(m_rootCommon), &FileChangeNotification);
 	FileSystem::BeginNotifications(FileSystem::GetRoot(m_rootApp),    &FileChangeNotification);
 
-	if (!m_hiddenMode) {	
+	if (!m_hiddenMode) 
+	{	
 		g_Log.setOutput((const char*)String<64>("%s.log", (const char*)m_name)); // need to set after the application root
 	}
 	g_Log.addMessage((const char*)String<64>("'%s' %s", (const char*)m_name, Time::GetDateTime().asString()));
-	APT_LOG("System info:\n%s", (const char*)GetPlatformInfoString());
+	FRM_LOG("System info:\n%s", (const char*)GetPlatformInfoString());
 
  	m_propsPath.setf("%s.json", (const char*)m_name);
 	readProps((const char*)m_propsPath);
@@ -125,7 +129,8 @@ bool AppSample::init(const apt::ArgList& _args)
 
 	m_imguiIniPath       = FileSystem::MakePath("imgui.ini");
 	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
-	if (!ImGui_Init(this)) {
+	if (!ImGui_Init(this)) 
+	{
 		return false;
 	}
 
@@ -158,9 +163,10 @@ bool AppSample::init(const apt::ArgList& _args)
 	cb.m_OnChar          = ImGui_OnChar;
 	m_window->setCallbacks(cb);
 
-	APT_VERIFY(AppSample::update());
+	FRM_VERIFY(AppSample::update());
 
-	if (!m_hiddenMode) {
+	if (!m_hiddenMode) 
+	{
 		m_window->show();
 	
 	 // splash screen
@@ -193,20 +199,23 @@ void AppSample::shutdown()
 
 	ImGui_Shutdown(this);
 	
-	if (m_glContext) {
+	if (m_glContext) 
+	{
 		GlContext::Destroy(m_glContext);
 	}
-	if (m_window) {
+	if (m_window) 
+	{
 		Window::Destroy(m_window);
 	}
 	
-	if (!m_hiddenMode) {
+	if (!m_hiddenMode) 
+	{
 		writeProps((const char*)m_propsPath);
 	}
 
 	App::shutdown();
 
-	apt::SetLogCallback(nullptr);
+	frm::SetLogCallback(nullptr);
 }
 
 bool AppSample::update()
@@ -216,14 +225,16 @@ bool AppSample::update()
 	}
 
 	PROFILER_MARKER_CPU("#AppSample::update");
-	if (!m_window->hasFocus()) {
+	if (!m_window->hasFocus()) 
+	{
 	 // \todo keyboard/mouse input events aren't received when the window doesn't have focus which leads to an invalid device state
 		Input::ResetKeyboard();
 		Input::ResetMouse();
 	}
 
 	{	PROFILER_MARKER_CPU("#Poll Events");
-		if (!m_window->pollEvents()) { // dispatches callbacks to ImGui
+		if (!m_window->pollEvents()) // dispatches callbacks to ImGui
+		{
 			return false;
 		}
 	}
@@ -232,13 +243,15 @@ bool AppSample::update()
 	}
 
  // skip the default UI in hidden mode
-	if (m_hiddenMode) {
+	if (m_hiddenMode) 
+	{
 		return true;
 	}
 
 	Window* window = getWindow();
 	ImGui::GetIO().MousePos = ImVec2(-1.0f, -1.0f);
-	if (window->hasFocus()) {
+	if (window->hasFocus()) 
+	{
 		int x, y;
 		window->getWindowRelativeCursor(&x, &y);
 		ImGui::GetIO().MousePos = ImVec2((float)x, (float)y);
@@ -248,57 +261,72 @@ bool AppSample::update()
 
  // keyboard shortcuts
 	Keyboard* keyboard = Input::GetKeyboard();
-    if (keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_Escape)) {
+    if (keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_Escape)) 
+	{
 		return false;
 	}
-	if (keyboard->isDown(Keyboard::Key_LCtrl) && keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_P) || keyboard->wasPressed(Keyboard::Key_Pause)) {
+	if (keyboard->isDown(Keyboard::Key_LCtrl) && keyboard->isDown(Keyboard::Key_LShift) && keyboard->wasPressed(Keyboard::Key_P) || keyboard->wasPressed(Keyboard::Key_Pause)) 
+	{
 		Profiler::SetPause(!Profiler::GetPause());	
 	}
-	if (keyboard->wasPressed(Keyboard::Key_F1)) {
+	if (keyboard->wasPressed(Keyboard::Key_F1)) 
+	{
 		m_showMenu = !m_showMenu;
 	}
-	if (keyboard->wasPressed(Keyboard::Key_F8)) {
+	if (keyboard->wasPressed(Keyboard::Key_F8)) 
+	{
 		m_glContext->clearTextureBindings();
 		Texture::ReloadAll();
 	}
-	if (keyboard->wasPressed(Keyboard::Key_F9)) {
+	if (keyboard->wasPressed(Keyboard::Key_F9)) 
+	{
 		m_glContext->setShader(nullptr);
 		Shader::ReloadAll();
 	}
-	if (ImGui::IsKeyPressed(Keyboard::Key_1) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_1) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) 
+	{
 		m_showProfilerViewer = !m_showProfilerViewer;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::Key_2) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_2) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) 
+	{
 		m_showTextureViewer = !m_showTextureViewer;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::Key_3) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_3) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) 
+	{
 		m_showShaderViewer = !m_showShaderViewer;
 	}
 	
 	ImGuiIO& io = ImGui::GetIO();
-	if (m_showMenu) { 
+	if (m_showMenu) 
+	{ 
 		drawMainMenuBar();
 		drawStatusBar();
-	} else {
+	}
+	else 
+	{
 		drawNotifications();	 
 	}
 
-	if (m_showPropertyEditor) {
+	if (m_showPropertyEditor)
+	{
 		ImGui::Begin("Properties", &m_showPropertyEditor);
 			m_props.edit();
 		ImGui::End();
 	}
-	if (m_showProfilerViewer) {
+	if (m_showProfilerViewer) 
+	{
 		ImGui::SetNextWindowPos(vec2(0.0f, 16.0f), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(vec2(m_resolution.x * 1.0f, m_resolution.y * 1.0f/3.0f), ImGuiCond_FirstUseEver);
 		Profiler::DrawUi();
 	}
-	if (m_showTextureViewer) {
+	if (m_showTextureViewer)
+	{
 		ImGui::SetNextWindowPos(vec2(0.0f, 16.0f), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(vec2(m_resolution.x * 2.0f/3.0f, m_resolution.y * 2.0f/3.0f), ImGuiCond_FirstUseEver);
 		Texture::ShowTextureViewer(&m_showTextureViewer);
 	}
-	if (m_showShaderViewer) {
+	if (m_showShaderViewer) 
+	{
 		ImGui::SetNextWindowPos(vec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(vec2(m_resolution.x * 2.0f/3.0f, m_resolution.y * 2.0f/3.0f), ImGuiCond_FirstUseEver);
 		Shader::ShowShaderViewer(&m_showShaderViewer);
@@ -313,9 +341,12 @@ bool AppSample::update()
 
 void AppSample::draw()
 {
-	if (m_hiddenMode) {
+	if (m_hiddenMode) 
+	{
 		ImGui::EndFrame();
-	} else {
+	}
+	else 
+	{
 		PROFILER_MARKER("#AppSample::draw");
 		m_glContext->setFramebufferAndViewport(m_fbDefault);
 		ImGui::GetIO().UserData = m_glContext;
@@ -340,7 +371,7 @@ AppSample::AppSample(const char* _name)
 	: App()
 	, m_name(_name)
 {
-	APT_ASSERT(g_Current == nullptr); // don't support multiple apps (yet)
+	FRM_ASSERT(g_Current == nullptr); // don't support multiple apps (yet)
 	g_Current = this;
 
 	PropertyGroup& propGroupAppSample = m_props.addGroup("AppSample");
@@ -378,7 +409,8 @@ AppSample::~AppSample()
 bool AppSample::readProps(const char* _path,  int _root)
 {
 	Json json;
-	if (Json::Read(json, _path, _root)) {
+	if (Json::Read(json, _path, _root)) 
+	{
 		SerializerJson serializer(json, SerializerJson::Mode_Read);
 		return Serialize(serializer, m_props);
 	}
@@ -389,7 +421,8 @@ bool AppSample::writeProps(const char* _path, int _root)
 {
 	Json json;
 	SerializerJson serializer(json, SerializerJson::Mode_Write);
-	if (!Serialize(serializer, m_props)) {
+	if (!Serialize(serializer, m_props)) 
+	{
 		return false;
 	}
 	return Json::Write(json, _path, _root);
@@ -399,8 +432,10 @@ bool AppSample::writeProps(const char* _path, int _root)
 
 void AppSample::drawMainMenuBar()
 {
-	if (ImGui::BeginMainMenuBar()) {
-		if (ImGui::BeginMenu("Tools")) {
+	if (ImGui::BeginMainMenuBar()) 
+	{
+		if (ImGui::BeginMenu("Tools")) 
+		{
 			if (ImGui::MenuItem("Properties",     nullptr,    m_showPropertyEditor)) m_showPropertyEditor = !m_showPropertyEditor;
 			if (ImGui::MenuItem("Profiler",       "Ctrl+1",   m_showProfilerViewer)) m_showProfilerViewer = !m_showProfilerViewer;
 			if (ImGui::MenuItem("Texture Viewer", "Ctrl+2",   m_showTextureViewer))  m_showTextureViewer  = !m_showTextureViewer;
@@ -408,11 +443,12 @@ void AppSample::drawMainMenuBar()
 			
 			ImGui::EndMenu();
 		}
-		float vsyncWidth = (float)sizeof("Adaptive") * ImGui::GetFontSize();
+		float vsyncWidth = (float)sizeof("Adfrmive") * ImGui::GetFontSize();
 		ImGui::PushItemWidth(vsyncWidth);
 		float cursorX = ImGui::GetCursorPosX();
 		ImGui::SetCursorPosX(ImGui::GetContentRegionAvailWidth() - vsyncWidth);
-		if (ImGui::Combo("VSYNC", &m_vsyncMode, "Adaptive\0Off\0On\0On1\0On2\0On3\0")) {
+		if (ImGui::Combo("VSYNC", &m_vsyncMode, "Adfrmive\0Off\0On\0On1\0On2\0On3\0")) 
+		{
 			getGlContext()->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 		}
 		ImGui::PopItemWidth();
@@ -437,10 +473,12 @@ void AppSample::drawStatusBar()
 		float logPosX = io.DisplaySize.x - io.DisplaySize.x * kStatusBarLogWidth + ImGui::GetStyle().WindowPadding.x;
 		float cursorPosX = ImGui::GetCursorPosX();
 		const Log::Message* logMsg = g_Log.getLastMessage();
-		if (logMsg) {
+		if (logMsg) 
+		{
 			ImGui::SetCursorPosX(logPosX);
 			ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(kColor_Log[logMsg->m_type]), (const char*)logMsg->m_str);
-			if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && ImGui::GetMousePos().x > logPosX) {
+			if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && ImGui::GetMousePos().x > logPosX) 
+			{
 				m_showLog = !m_showLog;
 			}
 			ImGui::SameLine();
@@ -450,7 +488,8 @@ void AppSample::drawStatusBar()
 	ImGui::End();
 	ImGui::PopStyleVar(3);
 	
-	if (m_showLog) {
+	if (m_showLog) 
+	{
 		float logPosY = io.DisplaySize.y * 0.7f;
 		ImGui::SetNextWindowPos(ImVec2(logPosX, logPosY));
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x - logPosX, io.DisplaySize.y - logPosY - ImGui::GetFrameHeightWithSpacing()));
@@ -462,21 +501,25 @@ void AppSample::drawStatusBar()
 			);
 	
 			auto appTime = Time::GetApplicationElapsed().getRaw();
-			auto msgTime = APT_DATA_TYPE_MAX(sint64);
-			for (int i = 0; i < LogType_Count; ++i) {
-				if (g_Log.getLastMessage(i)) {
-					msgTime = APT_MIN(msgTime, appTime - g_Log.getLastMessage(i)->m_time.getRaw());
+			auto msgTime = FRM_DATA_TYPE_MAX(sint64);
+			for (int i = 0; i < LogType_Count; ++i) 
+			{
+				if (g_Log.getLastMessage(i)) 
+				{
+					msgTime = FRM_MIN(msgTime, appTime - g_Log.getLastMessage(i)->m_time.getRaw());
 				}
 			}
 			bool autoScroll = ImGui::IsWindowAppearing() || Timestamp(msgTime).asSeconds() < 0.1;
 			
-			for (int i = 0, n = g_Log.getMessageCount(); i < n; ++i) {
+			for (int i = 0, n = g_Log.getMessageCount(); i < n; ++i) 
+			{
 				auto msg = g_Log.getMessage(i);
 				ImGui::PushStyleColor(ImGuiCol_Text, kColor_Log[msg->m_type]);
 					ImGui::TextWrapped((const char*)msg->m_str);
 				ImGui::PopStyleColor();
 				
-				if (autoScroll && msg == g_Log.getLastMessage(/*LogType_Error*/)) {
+				if (autoScroll && msg == g_Log.getLastMessage(/*LogType_Error*/)) 
+				{
 					ImGui::SetScrollHere();
 					autoScroll = false;
 				}
@@ -492,7 +535,8 @@ void AppSample::drawStatusBar()
 
 void AppSample::drawNotifications()
 {
-	if (!m_showLogNotifications) {
+	if (!m_showLogNotifications)
+	{
 		return;
 	}
 
@@ -500,11 +544,14 @@ void AppSample::drawNotifications()
 
  // error/debug log notifications
 	auto logMsg = g_Log.getLastMessage();
-	if (logMsg) {
+	if (logMsg) 
+	{
 		float logAge = (float)(Time::GetApplicationElapsed() - logMsg->m_time).asSeconds();
-		if (logAge < 3.0f) {
+		if (logAge < 3.0f) 
+		{
 			float logAlpha = 1.0f;
-			if (logAge > 2.5f) {
+			if (logAge > 2.5f) 
+			{
 				logAlpha = 1.0f - (logAge - 2.5f) / 0.5f;
 			}
 			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetColorU32(ImGuiCol_WindowBg, 0.8f * logAlpha));
@@ -515,7 +562,8 @@ void AppSample::drawNotifications()
 			ImGui::Begin("##Notifications", 0, kStatusBarFlags | ImGuiWindowFlags_NoFocusOnAppearing);
 				ImGui::AlignTextToFramePadding();
 				ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(IM_COLOR_ALPHA(kColor_Log[logMsg->m_type], logAlpha)), (const char*)logMsg->m_str);
-				if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered()) {
+				if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered()) 
+				{
 					m_showMenu = true;
 					m_showLog = true;
 				}
@@ -541,26 +589,26 @@ static Texture*    g_txRadar;
 
 bool AppSample::initRenderdoc()
 {
-#ifndef APT_PLATFORM_WIN
+#ifndef FRM_PLATFORM_WIN
 	return false;
 #else
 	HMODULE dll = LoadLibraryA("extern/renderdoc.dll");
 	if (!dll)
 	{
-		APT_LOG_ERR("Failed to load RenderDoc");
+		FRM_LOG_ERR("Failed to load RenderDoc");
 		return false;
 	}
 	pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(dll, "RENDERDOC_GetAPI");
 	RENDERDOC_API_1_4_0* renderdoc = nullptr;
 	if (RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_4_0, (void**)&renderdoc) != 1)
 	{
-		APT_LOG_ERR("Failed to get RenderDoc API");
+		FRM_LOG_ERR("Failed to get RenderDoc API");
 		return false;
 	}
 	renderdoc->MaskOverlayBits(0, eRENDERDOC_Overlay_Default);
 	renderdoc->SetCaptureFilePathTemplate("RenderDoc/GfxSampleFramework");
-	RENDERDOC_InputButton captureKey = RENDERDOC_InputButton::eRENDERDOC_Key_F11;
-	renderdoc->SetCaptureKeys(&captureKey, 1);
+	RENDERDOC_InputButton cfrmureKey = RENDERDOC_InputButton::eRENDERDOC_Key_F11;
+	renderdoc->SetCaptureKeys(&cfrmureKey, 1);
 
 	return true;
 #endif
@@ -569,10 +617,11 @@ bool AppSample::initRenderdoc()
 bool AppSample::ImGui_Init(AppSample* _app)
 {
 	ImGuiIO& io = ImGui::GetIO();
-	io.MemAllocFn = apt::internal::malloc;
-	io.MemFreeFn = apt::internal::free;
+	io.MemAllocFn = frm::internal::malloc;
+	io.MemFreeFn = frm::internal::free;
 
-	if (_app->m_hiddenMode) {
+	if (_app->m_hiddenMode) 
+	{
 		unsigned char* buf;
 		int txX, txY;
 		io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
@@ -581,35 +630,39 @@ bool AppSample::ImGui_Init(AppSample* _app)
 	}
 	
  // mesh
- 	if (g_msImGui) {
+ 	if (g_msImGui) 
+	{
 		Mesh::Release(g_msImGui);
 	}	
 	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 2);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float32, 2);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint32,  1);
-	APT_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
+	FRM_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
 	g_msImGui = Mesh::Create(meshDesc);
 
  // shaders
-	if (g_shImGui) {
+	if (g_shImGui) 
+	{
 		Shader::Release(g_shImGui);
 	}
-	APT_VERIFY(g_shImGui = Shader::CreateVsFs("shaders/ImGui_vs.glsl", "shaders/ImGui_fs.glsl"));
+	FRM_VERIFY(g_shImGui = Shader::CreateVsFs("shaders/ImGui_vs.glsl", "shaders/ImGui_fs.glsl"));
 	g_shImGui->setName("#ImGui");
 
 	ShaderDesc desc;
 	desc.setPath(GL_VERTEX_SHADER,   "shaders/ImGui_vs.glsl");
 	desc.setPath(GL_FRAGMENT_SHADER, "shaders/TextureView_fs.glsl");
-	for (int i = 0; i < internal::kTextureTargetCount; ++i) {
+	for (int i = 0; i < internal::kTextureTargetCount; ++i) 
+	{
 		desc.clearDefines();
 		desc.addDefine(GL_FRAGMENT_SHADER, internal::GlEnumStr(internal::kTextureTargets[i]) + 3); // \hack +3 removes the 'GL_', which is reserved in the shader
-		APT_VERIFY(g_shTextureView[i] = Shader::Create(desc));
+		FRM_VERIFY(g_shTextureView[i] = Shader::Create(desc));
 		g_shTextureView[i]->setNamef("#TextureViewer_%s", internal::GlEnumStr(internal::kTextureTargets[i]) + 3);
 	}
 
  // radar texture
-	if (g_txRadar) {
+	if (g_txRadar) 
+	{
 		Texture::Release(g_txRadar);
 	}
 	g_txRadar = Texture::Create("textures/radar.tga");
@@ -623,20 +676,25 @@ bool AppSample::ImGui_Init(AppSample* _app)
 	ImFontConfig fontCfg;
 	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
 	fontCfg.SizePixels  = fontSize;
-	if (*props.findProperty("FontEnableScaling")->asBool()) {
+	if (*props.findProperty("FontEnableScaling")->asBool()) 
+	{
 		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * _app->getWindow()->getScaling());
 	}
 	fontCfg.PixelSnapH  = true;
-	if (fontPath.isEmpty()) {
+	if (fontPath.isEmpty()) 
+	{
 		io.Fonts->AddFontDefault(&fontCfg);
-	} else {
+	}
+	else 
+	{
 		io.Fonts->AddFontFromFileTTF((const char*)fontPath, fontSize, &fontCfg);
 	}
 	fontCfg.MergeMode = true;
 	const ImWchar glyphRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 	io.Fonts->AddFontFromFileTTF("common/fonts/" FONT_ICON_FILE_NAME_FA, fontSize, &fontCfg, glyphRanges);
 	
-	if (g_txImGui) {
+	if (g_txImGui)
+	{
 		Texture::Release(g_txImGui);
 	}
 	unsigned char* buf;
@@ -736,10 +794,10 @@ void AppSample::ImGui_InitStyle()
     //style.Colors[ImGuiCol_ModalWindowDarkening]
 #endif
 
-	ImGui::SetColorEditOptions(
-		ImGuiColorEditFlags_NoOptions |
-		ImGuiColorEditFlags_AlphaPreview |
-		ImGuiColorEditFlags_AlphaBar
+	ImGui::SetColorEditOptions(0
+		| ImGuiColorEditFlags_NoOptions
+		| ImGuiColorEditFlags_AlphaPreview
+		| ImGuiColorEditFlags_AlphaBar
 		);
 }
 
@@ -754,22 +812,27 @@ bool AppSample::ImGui_InitFont(AppSample* _app)
 	ImFontConfig fontCfg;
 	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
 	fontCfg.SizePixels  = fontSize;
-	if (*props.findProperty("FontEnableScaling")->asBool()) {
+	if (*props.findProperty("FontEnableScaling")->asBool())
+	{
 		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * _app->getWindow()->getScaling());
 	}
 	fontCfg.PixelSnapH  = true;
 	
 	io.Fonts->Clear();
-	if (fontPath.isEmpty()) {
+	if (fontPath.isEmpty())
+	{
 		io.Fonts->AddFontDefault(&fontCfg);
-	} else {
+	}
+	else 
+	{
 		io.Fonts->AddFontFromFileTTF((const char*)fontPath, fontSize, &fontCfg);
 	}
 	fontCfg.MergeMode = true;
 	const ImWchar glyphRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 	io.Fonts->AddFontFromFileTTF("common/fonts/" FONT_ICON_FILE_NAME_FA, fontSize, &fontCfg, glyphRanges);
 	
-	if (g_txImGui) {
+	if (g_txImGui)
+	{
 		Texture::Release(g_txImGui);
 	}
 	unsigned char* buf;
@@ -787,7 +850,8 @@ bool AppSample::ImGui_InitFont(AppSample* _app)
 
 void AppSample::ImGui_Shutdown(AppSample* _app)
 {
-	for (int i = 0; i < internal::kTextureTargetCount; ++i) {
+	for (int i = 0; i < internal::kTextureTargetCount; ++i)
+	{
 		Shader::Release(g_shTextureView[i]);
 	}
 	Shader::Release(g_shImGui);
@@ -812,7 +876,7 @@ void AppSample::ImGui_Update(AppSample* _app)
 	io.MouseWheel   = mouse->getAxisState(Mouse::Axis_Wheel) / 120.0f;
 
 	Keyboard* keyb = Input::GetKeyboard();
-	for (int i = 0, n = APT_MIN((int)APT_ARRAY_COUNT(io.KeysDown), (int)Keyboard::Key_Count); i < n; ++i) {
+	for (int i = 0, n = FRM_MIN((int)FRM_ARRAY_COUNT(io.KeysDown), (int)Keyboard::Key_Count); i < n; ++i) {
 		io.KeysDown[i] = keyb->isDown(i);
 	}
 	io.KeyCtrl  = keyb->isDown(Keyboard::Key_LCtrl) | keyb->isDown(Keyboard::Key_RCtrl);
@@ -821,23 +885,29 @@ void AppSample::ImGui_Update(AppSample* _app)
 	*/
 
  // consume keyboard/mouse input
-	if (io.WantCaptureKeyboard) {
+	if (io.WantCfrmureKeyboard)
+	{
 		Input::ResetKeyboard();
 	}
-	if (io.WantCaptureMouse) {
+	if (io.WantCfrmureMouse)
+	{
 		Input::ResetMouse();
 	}
 
 	io.ImeWindowHandle = _app->getWindow()->getHandle();
-	if (_app->getDefaultFramebuffer()) {
+	if (_app->getDefaultFramebuffer())
+	{
 		io.DisplaySize = ImVec2((float)_app->getDefaultFramebuffer()->getWidth(), (float)_app->getDefaultFramebuffer()->getHeight());
-	} else {
+	}
+	else
+	{
 		io.DisplaySize = ImVec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
 	}
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 	io.DeltaTime = (float)_app->m_deltaTime;
 
-	if (!_app->getWindow()->hasFocus()) {
+	if (!_app->getWindow()->hasFocus())
+	{
 	 // \todo keyboard/mouse input events aren't received when the window doesn't have focus which leads to an invalid device state
 		memset(io.KeysDown, 0, sizeof(io.KeysDown));
 		io.KeyAlt = io.KeyCtrl = io.KeyShift = false;
@@ -855,12 +925,14 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 	ImGuiIO& io = ImGui::GetIO();
 	GlContext* ctx = (GlContext*)io.UserData;
 
-	if (_drawData->CmdListsCount == 0) {
+	if (_drawData->CmdListsCount == 0)
+	{
 		return;
 	}	
 	int fbX = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
     int fbY = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
-    if (fbX == 0 || fbY == 0) {
+    if (fbX == 0 || fbY == 0)
+	{
         return;
 	}
     _drawData->ScaleClipRects(io.DisplayFramebufferScale);
@@ -881,24 +953,30 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 		vec4(-1.0f,                  1.0f,                   0.0f, 1.0f)
 		);
 
-	for (int i = 0; i < _drawData->CmdListsCount; ++i) {
+	for (int i = 0; i < _drawData->CmdListsCount; ++i)
+	{
 		const ImDrawList* drawList = _drawData->CmdLists[i];
 		uint indexOffset = 0;
 
 	 // upload vertex/index data
 		g_msImGui->setVertexData((GLvoid*)&drawList->VtxBuffer.front(), (GLsizeiptr)drawList->VtxBuffer.size(), GL_STREAM_DRAW);
-		APT_STATIC_ASSERT(sizeof(ImDrawIdx) == sizeof(uint16)); // need to change the index data type if this fails
+		FRM_STATIC_ASSERT(sizeof(ImDrawIdx) == sizeof(uint16)); // need to change the index data type if this fails
 		g_msImGui->setIndexData(DataType_Uint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
 	
 	 // dispatch draw commands
-		for (const ImDrawCmd* pcmd = drawList->CmdBuffer.begin(); pcmd != drawList->CmdBuffer.end(); ++pcmd) {
-			if (pcmd->UserCallback) {
+		for (const ImDrawCmd* pcmd = drawList->CmdBuffer.begin(); pcmd != drawList->CmdBuffer.end(); ++pcmd)
+		{
+			if (pcmd->UserCallback)
+			{
 				pcmd->UserCallback(drawList, pcmd);
-			} else {
+			}
+			else
+			{
 				TextureView* txView = (TextureView*)pcmd->TextureId;
 				const Texture* tx   = txView->m_texture;
 				Shader* sh          = txView->m_shader;
-				if (!sh) {
+				if (!sh)
+				{
 					sh = g_shTextureView[internal::TextureTargetToIndex(tx->getTarget())]; // select a default shader based on the texture type
 				}
 				ctx->setShader  (sh);
@@ -926,8 +1004,9 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 bool AppSample::ImGui_OnMouseButton(Window* _window, unsigned _button, bool _isDown)
 {
 	ImGuiIO& io = ImGui::GetIO();
-	APT_ASSERT(_button < APT_ARRAY_COUNT(io.MouseDown)); // button index out of bounds
-	switch ((Mouse::Button)_button) {
+	FRM_ASSERT(_button < FRM_ARRAY_COUNT(io.MouseDown)); // button index out of bounds
+	switch ((Mouse::Button)_button)
+	{
 		case Mouse::Button_Left:    io.MouseDown[0] = _isDown; break;
 		case Mouse::Button_Right:   io.MouseDown[1] = _isDown; break;
 		case Mouse::Button_Middle:  io.MouseDown[2] = _isDown; break;
@@ -945,12 +1024,12 @@ bool AppSample::ImGui_OnMouseWheel(Window* _window, float _delta)
 bool AppSample::ImGui_OnKey(Window* _window, unsigned _key, bool _isDown)
 {
 	ImGuiIO& io = ImGui::GetIO();
-	APT_ASSERT(_key < APT_ARRAY_COUNT(io.KeysDown)); // key index out of bounds
+	FRM_ASSERT(_key < FRM_ARRAY_COUNT(io.KeysDown)); // key index out of bounds
 	io.KeysDown[_key] = _isDown;
 
-
 	// handle modifiers
-	switch ((Keyboard::Key)_key) {
+	switch ((Keyboard::Key)_key)
+	{
 		case Keyboard::Key_LCtrl:
 		case Keyboard::Key_RCtrl:
 			io.KeyCtrl = _isDown;
@@ -972,7 +1051,8 @@ bool AppSample::ImGui_OnKey(Window* _window, unsigned _key, bool _isDown)
 bool AppSample::ImGui_OnChar(Window* _window, char _char)
 {
 	ImGuiIO& io = ImGui::GetIO();
-	if (_char > 0 && _char < 0x10000) {
+	if (_char > 0 && _char < 0x10000)
+	{
 		io.AddInputCharacter((unsigned short)_char);
 	}
 	return true;

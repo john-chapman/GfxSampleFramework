@@ -13478,13 +13478,13 @@ typedef void (GLAPIENTRY * PFNGLVERTEXPOINTERLISTIBMPROC) (GLint size, GLenum ty
 #define GL_LAYOUT_LINEAR_CPU_CACHED_INTEL 2
 #define GL_TEXTURE_MEMORY_LAYOUT_INTEL 0x83FF
 
-typedef void * (GLAPIENTRY * PFNGLMAPTEXTURE2DINTELPROC) (GLuint texture, GLint level, GLbitfield access, GLint* stride, GLenum *layout);
+typedef void * (GLAPIENTRY * PFNGLMfrmEXTURE2DINTELPROC) (GLuint texture, GLint level, GLbitfield access, GLint* stride, GLenum *layout);
 typedef void (GLAPIENTRY * PFNGLSYNCTEXTUREINTELPROC) (GLuint texture);
-typedef void (GLAPIENTRY * PFNGLUNMAPTEXTURE2DINTELPROC) (GLuint texture, GLint level);
+typedef void (GLAPIENTRY * PFNGLUNMfrmEXTURE2DINTELPROC) (GLuint texture, GLint level);
 
-#define glMapTexture2DINTEL GLEW_GET_FUN(__glewMapTexture2DINTEL)
+#define glMfrmexture2DINTEL GLEW_GET_FUN(__glewMfrmexture2DINTEL)
 #define glSyncTextureINTEL GLEW_GET_FUN(__glewSyncTextureINTEL)
-#define glUnmapTexture2DINTEL GLEW_GET_FUN(__glewUnmapTexture2DINTEL)
+#define glUnmfrmexture2DINTEL GLEW_GET_FUN(__glewUnmfrmexture2DINTEL)
 
 #define GLEW_INTEL_map_texture GLEW_GET_VAR(__GLEW_INTEL_map_texture)
 
@@ -14342,7 +14342,7 @@ typedef GLushort (GLAPIENTRY * PFNGLGETSTAGEINDEXNVPROC) (GLenum shadertype);
 typedef GLboolean (GLAPIENTRY * PFNGLISCOMMANDLISTNVPROC) (GLuint list);
 typedef GLboolean (GLAPIENTRY * PFNGLISSTATENVPROC) (GLuint state);
 typedef void (GLAPIENTRY * PFNGLLISTDRAWCOMMANDSSTATESCLIENTNVPROC) (GLuint list, GLuint segment, const void** indirects, const GLsizei* sizes, const GLuint* states, const GLuint* fbos, GLuint count);
-typedef void (GLAPIENTRY * PFNGLSTATECAPTURENVPROC) (GLuint state, GLenum mode);
+typedef void (GLAPIENTRY * PFNGLSTATECfrmURENVPROC) (GLuint state, GLenum mode);
 
 #define glCallCommandListNV GLEW_GET_FUN(__glewCallCommandListNV)
 #define glCommandListSegmentsNV GLEW_GET_FUN(__glewCommandListSegmentsNV)
@@ -14360,7 +14360,7 @@ typedef void (GLAPIENTRY * PFNGLSTATECAPTURENVPROC) (GLuint state, GLenum mode);
 #define glIsCommandListNV GLEW_GET_FUN(__glewIsCommandListNV)
 #define glIsStateNV GLEW_GET_FUN(__glewIsStateNV)
 #define glListDrawCommandsStatesClientNV GLEW_GET_FUN(__glewListDrawCommandsStatesClientNV)
-#define glStateCaptureNV GLEW_GET_FUN(__glewStateCaptureNV)
+#define glStateCfrmureNV GLEW_GET_FUN(__glewStateCfrmureNV)
 
 #define GLEW_NV_command_list GLEW_GET_VAR(__GLEW_NV_command_list)
 
@@ -17328,19 +17328,19 @@ typedef void (GLAPIENTRY * PFNGLVERTEXATTRIBS4UBVNVPROC) (GLuint index, GLsizei 
 
 #endif /* GL_NV_vertex_program4 */
 
-/* -------------------------- GL_NV_video_capture -------------------------- */
+/* -------------------------- GL_NV_video_cfrmure -------------------------- */
 
-#ifndef GL_NV_video_capture
-#define GL_NV_video_capture 1
+#ifndef GL_NV_video_cfrmure
+#define GL_NV_video_cfrmure 1
 
 #define GL_VIDEO_BUFFER_NV 0x9020
 #define GL_VIDEO_BUFFER_BINDING_NV 0x9021
 #define GL_FIELD_UPPER_NV 0x9022
 #define GL_FIELD_LOWER_NV 0x9023
-#define GL_NUM_VIDEO_CAPTURE_STREAMS_NV 0x9024
-#define GL_NEXT_VIDEO_CAPTURE_BUFFER_STATUS_NV 0x9025
-#define GL_VIDEO_CAPTURE_TO_422_SUPPORTED_NV 0x9026
-#define GL_LAST_VIDEO_CAPTURE_STATUS_NV 0x9027
+#define GL_NUM_VIDEO_CfrmURE_STREAMS_NV 0x9024
+#define GL_NEXT_VIDEO_CfrmURE_BUFFER_STATUS_NV 0x9025
+#define GL_VIDEO_CfrmURE_TO_422_SUPPORTED_NV 0x9026
+#define GL_LAST_VIDEO_CfrmURE_STATUS_NV 0x9027
 #define GL_VIDEO_BUFFER_PITCH_NV 0x9028
 #define GL_VIDEO_COLOR_CONVERSION_MATRIX_NV 0x9029
 #define GL_VIDEO_COLOR_CONVERSION_MAX_NV 0x902A
@@ -17357,41 +17357,41 @@ typedef void (GLAPIENTRY * PFNGLVERTEXATTRIBS4UBVNVPROC) (GLuint index, GLsizei 
 #define GL_Z4Y12Z4CB12Z4Y12Z4CR12_422_NV 0x9035
 #define GL_Z4Y12Z4CB12Z4A12Z4Y12Z4CR12Z4A12_4224_NV 0x9036
 #define GL_Z4Y12Z4CB12Z4CR12_444_NV 0x9037
-#define GL_VIDEO_CAPTURE_FRAME_WIDTH_NV 0x9038
-#define GL_VIDEO_CAPTURE_FRAME_HEIGHT_NV 0x9039
-#define GL_VIDEO_CAPTURE_FIELD_UPPER_HEIGHT_NV 0x903A
-#define GL_VIDEO_CAPTURE_FIELD_LOWER_HEIGHT_NV 0x903B
-#define GL_VIDEO_CAPTURE_SURFACE_ORIGIN_NV 0x903C
+#define GL_VIDEO_CfrmURE_FRAME_WIDTH_NV 0x9038
+#define GL_VIDEO_CfrmURE_FRAME_HEIGHT_NV 0x9039
+#define GL_VIDEO_CfrmURE_FIELD_UPPER_HEIGHT_NV 0x903A
+#define GL_VIDEO_CfrmURE_FIELD_LOWER_HEIGHT_NV 0x903B
+#define GL_VIDEO_CfrmURE_SURFACE_ORIGIN_NV 0x903C
 
-typedef void (GLAPIENTRY * PFNGLBEGINVIDEOCAPTURENVPROC) (GLuint video_capture_slot);
-typedef void (GLAPIENTRY * PFNGLBINDVIDEOCAPTURESTREAMBUFFERNVPROC) (GLuint video_capture_slot, GLuint stream, GLenum frame_region, GLintptrARB offset);
-typedef void (GLAPIENTRY * PFNGLBINDVIDEOCAPTURESTREAMTEXTURENVPROC) (GLuint video_capture_slot, GLuint stream, GLenum frame_region, GLenum target, GLuint texture);
-typedef void (GLAPIENTRY * PFNGLENDVIDEOCAPTURENVPROC) (GLuint video_capture_slot);
-typedef void (GLAPIENTRY * PFNGLGETVIDEOCAPTURESTREAMDVNVPROC) (GLuint video_capture_slot, GLuint stream, GLenum pname, GLdouble* params);
-typedef void (GLAPIENTRY * PFNGLGETVIDEOCAPTURESTREAMFVNVPROC) (GLuint video_capture_slot, GLuint stream, GLenum pname, GLfloat* params);
-typedef void (GLAPIENTRY * PFNGLGETVIDEOCAPTURESTREAMIVNVPROC) (GLuint video_capture_slot, GLuint stream, GLenum pname, GLint* params);
-typedef void (GLAPIENTRY * PFNGLGETVIDEOCAPTUREIVNVPROC) (GLuint video_capture_slot, GLenum pname, GLint* params);
-typedef GLenum (GLAPIENTRY * PFNGLVIDEOCAPTURENVPROC) (GLuint video_capture_slot, GLuint* sequence_num, GLuint64EXT *capture_time);
-typedef void (GLAPIENTRY * PFNGLVIDEOCAPTURESTREAMPARAMETERDVNVPROC) (GLuint video_capture_slot, GLuint stream, GLenum pname, const GLdouble* params);
-typedef void (GLAPIENTRY * PFNGLVIDEOCAPTURESTREAMPARAMETERFVNVPROC) (GLuint video_capture_slot, GLuint stream, GLenum pname, const GLfloat* params);
-typedef void (GLAPIENTRY * PFNGLVIDEOCAPTURESTREAMPARAMETERIVNVPROC) (GLuint video_capture_slot, GLuint stream, GLenum pname, const GLint* params);
+typedef void (GLAPIENTRY * PFNGLBEGINVIDEOCfrmURENVPROC) (GLuint video_cfrmure_slot);
+typedef void (GLAPIENTRY * PFNGLBINDVIDEOCfrmURESTREAMBUFFERNVPROC) (GLuint video_cfrmure_slot, GLuint stream, GLenum frame_region, GLintptrARB offset);
+typedef void (GLAPIENTRY * PFNGLBINDVIDEOCfrmURESTREAMTEXTURENVPROC) (GLuint video_cfrmure_slot, GLuint stream, GLenum frame_region, GLenum target, GLuint texture);
+typedef void (GLAPIENTRY * PFNGLENDVIDEOCfrmURENVPROC) (GLuint video_cfrmure_slot);
+typedef void (GLAPIENTRY * PFNGLGETVIDEOCfrmURESTREAMDVNVPROC) (GLuint video_cfrmure_slot, GLuint stream, GLenum pname, GLdouble* params);
+typedef void (GLAPIENTRY * PFNGLGETVIDEOCfrmURESTREAMFVNVPROC) (GLuint video_cfrmure_slot, GLuint stream, GLenum pname, GLfloat* params);
+typedef void (GLAPIENTRY * PFNGLGETVIDEOCfrmURESTREAMIVNVPROC) (GLuint video_cfrmure_slot, GLuint stream, GLenum pname, GLint* params);
+typedef void (GLAPIENTRY * PFNGLGETVIDEOCfrmUREIVNVPROC) (GLuint video_cfrmure_slot, GLenum pname, GLint* params);
+typedef GLenum (GLAPIENTRY * PFNGLVIDEOCfrmURENVPROC) (GLuint video_cfrmure_slot, GLuint* sequence_num, GLuint64EXT *cfrmure_time);
+typedef void (GLAPIENTRY * PFNGLVIDEOCfrmURESTREAMPARAMETERDVNVPROC) (GLuint video_cfrmure_slot, GLuint stream, GLenum pname, const GLdouble* params);
+typedef void (GLAPIENTRY * PFNGLVIDEOCfrmURESTREAMPARAMETERFVNVPROC) (GLuint video_cfrmure_slot, GLuint stream, GLenum pname, const GLfloat* params);
+typedef void (GLAPIENTRY * PFNGLVIDEOCfrmURESTREAMPARAMETERIVNVPROC) (GLuint video_cfrmure_slot, GLuint stream, GLenum pname, const GLint* params);
 
-#define glBeginVideoCaptureNV GLEW_GET_FUN(__glewBeginVideoCaptureNV)
-#define glBindVideoCaptureStreamBufferNV GLEW_GET_FUN(__glewBindVideoCaptureStreamBufferNV)
-#define glBindVideoCaptureStreamTextureNV GLEW_GET_FUN(__glewBindVideoCaptureStreamTextureNV)
-#define glEndVideoCaptureNV GLEW_GET_FUN(__glewEndVideoCaptureNV)
-#define glGetVideoCaptureStreamdvNV GLEW_GET_FUN(__glewGetVideoCaptureStreamdvNV)
-#define glGetVideoCaptureStreamfvNV GLEW_GET_FUN(__glewGetVideoCaptureStreamfvNV)
-#define glGetVideoCaptureStreamivNV GLEW_GET_FUN(__glewGetVideoCaptureStreamivNV)
-#define glGetVideoCaptureivNV GLEW_GET_FUN(__glewGetVideoCaptureivNV)
-#define glVideoCaptureNV GLEW_GET_FUN(__glewVideoCaptureNV)
-#define glVideoCaptureStreamParameterdvNV GLEW_GET_FUN(__glewVideoCaptureStreamParameterdvNV)
-#define glVideoCaptureStreamParameterfvNV GLEW_GET_FUN(__glewVideoCaptureStreamParameterfvNV)
-#define glVideoCaptureStreamParameterivNV GLEW_GET_FUN(__glewVideoCaptureStreamParameterivNV)
+#define glBeginVideoCfrmureNV GLEW_GET_FUN(__glewBeginVideoCfrmureNV)
+#define glBindVideoCfrmureStreamBufferNV GLEW_GET_FUN(__glewBindVideoCfrmureStreamBufferNV)
+#define glBindVideoCfrmureStreamTextureNV GLEW_GET_FUN(__glewBindVideoCfrmureStreamTextureNV)
+#define glEndVideoCfrmureNV GLEW_GET_FUN(__glewEndVideoCfrmureNV)
+#define glGetVideoCfrmureStreamdvNV GLEW_GET_FUN(__glewGetVideoCfrmureStreamdvNV)
+#define glGetVideoCfrmureStreamfvNV GLEW_GET_FUN(__glewGetVideoCfrmureStreamfvNV)
+#define glGetVideoCfrmureStreamivNV GLEW_GET_FUN(__glewGetVideoCfrmureStreamivNV)
+#define glGetVideoCfrmureivNV GLEW_GET_FUN(__glewGetVideoCfrmureivNV)
+#define glVideoCfrmureNV GLEW_GET_FUN(__glewVideoCfrmureNV)
+#define glVideoCfrmureStreamParameterdvNV GLEW_GET_FUN(__glewVideoCfrmureStreamParameterdvNV)
+#define glVideoCfrmureStreamParameterfvNV GLEW_GET_FUN(__glewVideoCfrmureStreamParameterfvNV)
+#define glVideoCfrmureStreamParameterivNV GLEW_GET_FUN(__glewVideoCfrmureStreamParameterivNV)
 
-#define GLEW_NV_video_capture GLEW_GET_VAR(__GLEW_NV_video_capture)
+#define GLEW_NV_video_cfrmure GLEW_GET_VAR(__GLEW_NV_video_cfrmure)
 
-#endif /* GL_NV_video_capture */
+#endif /* GL_NV_video_cfrmure */
 
 /* -------------------------- GL_NV_viewport_array ------------------------- */
 
@@ -18820,7 +18820,7 @@ typedef void (GLAPIENTRY * PFNGLFRAMEZOOMSGIXPROC) (GLint factor);
 
 #define GL_IGLOO_FULLSCREEN_SGIX 0x819E
 #define GL_IGLOO_VIEWPORT_OFFSET_SGIX 0x819F
-#define GL_IGLOO_SWAPTMESH_SGIX 0x81A0
+#define GL_IGLOO_SWfrmMESH_SGIX 0x81A0
 #define GL_IGLOO_COLORNORMAL_SGIX 0x81A1
 #define GL_IGLOO_IRISGL_MODE_SGIX 0x81A2
 #define GL_IGLOO_LMC_COLOR_SGIX 0x81A3
@@ -21917,9 +21917,9 @@ GLEW_FUN_EXPORT PFNGLSECONDARYCOLORPOINTERLISTIBMPROC __glewSecondaryColorPointe
 GLEW_FUN_EXPORT PFNGLTEXCOORDPOINTERLISTIBMPROC __glewTexCoordPointerListIBM;
 GLEW_FUN_EXPORT PFNGLVERTEXPOINTERLISTIBMPROC __glewVertexPointerListIBM;
 
-GLEW_FUN_EXPORT PFNGLMAPTEXTURE2DINTELPROC __glewMapTexture2DINTEL;
+GLEW_FUN_EXPORT PFNGLMfrmEXTURE2DINTELPROC __glewMfrmexture2DINTEL;
 GLEW_FUN_EXPORT PFNGLSYNCTEXTUREINTELPROC __glewSyncTextureINTEL;
-GLEW_FUN_EXPORT PFNGLUNMAPTEXTURE2DINTELPROC __glewUnmapTexture2DINTEL;
+GLEW_FUN_EXPORT PFNGLUNMfrmEXTURE2DINTELPROC __glewUnmfrmexture2DINTEL;
 
 GLEW_FUN_EXPORT PFNGLCOLORPOINTERVINTELPROC __glewColorPointervINTEL;
 GLEW_FUN_EXPORT PFNGLNORMALPOINTERVINTELPROC __glewNormalPointervINTEL;
@@ -22044,7 +22044,7 @@ GLEW_FUN_EXPORT PFNGLGETSTAGEINDEXNVPROC __glewGetStageIndexNV;
 GLEW_FUN_EXPORT PFNGLISCOMMANDLISTNVPROC __glewIsCommandListNV;
 GLEW_FUN_EXPORT PFNGLISSTATENVPROC __glewIsStateNV;
 GLEW_FUN_EXPORT PFNGLLISTDRAWCOMMANDSSTATESCLIENTNVPROC __glewListDrawCommandsStatesClientNV;
-GLEW_FUN_EXPORT PFNGLSTATECAPTURENVPROC __glewStateCaptureNV;
+GLEW_FUN_EXPORT PFNGLSTATECfrmURENVPROC __glewStateCfrmureNV;
 
 GLEW_FUN_EXPORT PFNGLBEGINCONDITIONALRENDERNVPROC __glewBeginConditionalRenderNV;
 GLEW_FUN_EXPORT PFNGLENDCONDITIONALRENDERNVPROC __glewEndConditionalRenderNV;
@@ -22511,18 +22511,18 @@ GLEW_FUN_EXPORT PFNGLVERTEXATTRIBS4FVNVPROC __glewVertexAttribs4fvNV;
 GLEW_FUN_EXPORT PFNGLVERTEXATTRIBS4SVNVPROC __glewVertexAttribs4svNV;
 GLEW_FUN_EXPORT PFNGLVERTEXATTRIBS4UBVNVPROC __glewVertexAttribs4ubvNV;
 
-GLEW_FUN_EXPORT PFNGLBEGINVIDEOCAPTURENVPROC __glewBeginVideoCaptureNV;
-GLEW_FUN_EXPORT PFNGLBINDVIDEOCAPTURESTREAMBUFFERNVPROC __glewBindVideoCaptureStreamBufferNV;
-GLEW_FUN_EXPORT PFNGLBINDVIDEOCAPTURESTREAMTEXTURENVPROC __glewBindVideoCaptureStreamTextureNV;
-GLEW_FUN_EXPORT PFNGLENDVIDEOCAPTURENVPROC __glewEndVideoCaptureNV;
-GLEW_FUN_EXPORT PFNGLGETVIDEOCAPTURESTREAMDVNVPROC __glewGetVideoCaptureStreamdvNV;
-GLEW_FUN_EXPORT PFNGLGETVIDEOCAPTURESTREAMFVNVPROC __glewGetVideoCaptureStreamfvNV;
-GLEW_FUN_EXPORT PFNGLGETVIDEOCAPTURESTREAMIVNVPROC __glewGetVideoCaptureStreamivNV;
-GLEW_FUN_EXPORT PFNGLGETVIDEOCAPTUREIVNVPROC __glewGetVideoCaptureivNV;
-GLEW_FUN_EXPORT PFNGLVIDEOCAPTURENVPROC __glewVideoCaptureNV;
-GLEW_FUN_EXPORT PFNGLVIDEOCAPTURESTREAMPARAMETERDVNVPROC __glewVideoCaptureStreamParameterdvNV;
-GLEW_FUN_EXPORT PFNGLVIDEOCAPTURESTREAMPARAMETERFVNVPROC __glewVideoCaptureStreamParameterfvNV;
-GLEW_FUN_EXPORT PFNGLVIDEOCAPTURESTREAMPARAMETERIVNVPROC __glewVideoCaptureStreamParameterivNV;
+GLEW_FUN_EXPORT PFNGLBEGINVIDEOCfrmURENVPROC __glewBeginVideoCfrmureNV;
+GLEW_FUN_EXPORT PFNGLBINDVIDEOCfrmURESTREAMBUFFERNVPROC __glewBindVideoCfrmureStreamBufferNV;
+GLEW_FUN_EXPORT PFNGLBINDVIDEOCfrmURESTREAMTEXTURENVPROC __glewBindVideoCfrmureStreamTextureNV;
+GLEW_FUN_EXPORT PFNGLENDVIDEOCfrmURENVPROC __glewEndVideoCfrmureNV;
+GLEW_FUN_EXPORT PFNGLGETVIDEOCfrmURESTREAMDVNVPROC __glewGetVideoCfrmureStreamdvNV;
+GLEW_FUN_EXPORT PFNGLGETVIDEOCfrmURESTREAMFVNVPROC __glewGetVideoCfrmureStreamfvNV;
+GLEW_FUN_EXPORT PFNGLGETVIDEOCfrmURESTREAMIVNVPROC __glewGetVideoCfrmureStreamivNV;
+GLEW_FUN_EXPORT PFNGLGETVIDEOCfrmUREIVNVPROC __glewGetVideoCfrmureivNV;
+GLEW_FUN_EXPORT PFNGLVIDEOCfrmURENVPROC __glewVideoCfrmureNV;
+GLEW_FUN_EXPORT PFNGLVIDEOCfrmURESTREAMPARAMETERDVNVPROC __glewVideoCfrmureStreamParameterdvNV;
+GLEW_FUN_EXPORT PFNGLVIDEOCfrmURESTREAMPARAMETERFVNVPROC __glewVideoCfrmureStreamParameterfvNV;
+GLEW_FUN_EXPORT PFNGLVIDEOCfrmURESTREAMPARAMETERIVNVPROC __glewVideoCfrmureStreamParameterivNV;
 
 GLEW_FUN_EXPORT PFNGLDEPTHRANGEARRAYFVNVPROC __glewDepthRangeArrayfvNV;
 GLEW_FUN_EXPORT PFNGLDEPTHRANGEINDEXEDFNVPROC __glewDepthRangeIndexedfNV;
@@ -23466,7 +23466,7 @@ GLEW_VAR_EXPORT GLboolean __GLEW_NV_vertex_program2;
 GLEW_VAR_EXPORT GLboolean __GLEW_NV_vertex_program2_option;
 GLEW_VAR_EXPORT GLboolean __GLEW_NV_vertex_program3;
 GLEW_VAR_EXPORT GLboolean __GLEW_NV_vertex_program4;
-GLEW_VAR_EXPORT GLboolean __GLEW_NV_video_capture;
+GLEW_VAR_EXPORT GLboolean __GLEW_NV_video_cfrmure;
 GLEW_VAR_EXPORT GLboolean __GLEW_NV_viewport_array;
 GLEW_VAR_EXPORT GLboolean __GLEW_NV_viewport_array2;
 GLEW_VAR_EXPORT GLboolean __GLEW_NV_viewport_swizzle;

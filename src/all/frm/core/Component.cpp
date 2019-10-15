@@ -1,19 +1,17 @@
 #include "Component.h"
 
+#include <frm/core/log.h>
 #include <frm/core/BasicMaterial.h>
+#include <frm/core/FileSystem.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/Scene.h>
+#include <frm/core/Serializer.h>
 #include <frm/core/Texture.h>
-
-#include <apt/log.h>
-#include <apt/FileSystem.h>
-#include <apt/Serializer.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
 
 using namespace frm;
-using namespace apt;
 
 /*******************************************************************************
 
@@ -21,7 +19,7 @@ using namespace apt;
 
 *******************************************************************************/
 
-APT_FACTORY_DEFINE(Component);
+FRM_FACTORY_DEFINE(Component);
 
 
 /*******************************************************************************
@@ -30,7 +28,7 @@ APT_FACTORY_DEFINE(Component);
 
 *******************************************************************************/
 
-APT_FACTORY_REGISTER_DEFAULT(Component, Component_BasicRenderable);
+FRM_FACTORY_REGISTER_DEFAULT(Component, Component_BasicRenderable);
 
 eastl::vector<Component_BasicRenderable*> Component_BasicRenderable::s_instances;
 
@@ -195,7 +193,7 @@ bool Component_BasicRenderable::edit()
 	return ret;
 }
 
-bool Component_BasicRenderable::serialize(apt::Serializer& _serializer_)
+bool Component_BasicRenderable::serialize(frm::Serializer& _serializer_)
 {
 	Serialize(_serializer_, m_colorAlpha, "ColorAlpha");
 	Serialize(_serializer_, m_castShadows, "CastShadows");
@@ -221,7 +219,7 @@ bool Component_BasicRenderable::serialize(apt::Serializer& _serializer_)
 
 *******************************************************************************/
 
-APT_FACTORY_REGISTER_DEFAULT(Component, Component_BasicLight);
+FRM_FACTORY_REGISTER_DEFAULT(Component, Component_BasicLight);
 
 eastl::vector<Component_BasicLight*> Component_BasicLight::s_instances;
 
@@ -268,7 +266,7 @@ bool Component_BasicLight::edit()
 	return ret;
 }
 
-bool Component_BasicLight::serialize(apt::Serializer& _serializer_)
+bool Component_BasicLight::serialize(frm::Serializer& _serializer_)
 {
 	const char* kTypeNames[3] = { "Direct", "Point", "Spot" };
 	SerializeEnum(_serializer_, m_type, kTypeNames, "Type");

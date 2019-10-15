@@ -1,17 +1,16 @@
 #include "Shader.h"
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/gl.h>
+#include <frm/core/hash.h>
+#include <frm/core/log.h>
+#include <frm/core/math.h>
+#include <frm/core/memory.h>
+#include <frm/core/FileSystem.h>
 #include <frm/core/GlContext.h>
+#include <frm/core/String.h>
+#include <frm/core/TextParser.h>
 #include <frm/core/Texture.h>
-
-#include <apt/hash.h>
-#include <apt/log.h>
-#include <apt/math.h>
-#include <apt/memory.h>
-#include <apt/FileSystem.h>
-#include <apt/String.h>
-#include <apt/TextParser.h>
 
 #include <EASTL/vector.h>
 #include <EASTL/vector_map.h>
@@ -19,7 +18,6 @@
 #include <imgui/imgui.h>
 
 using namespace frm;
-using namespace apt;
 
 /*******************************************************************************
 
@@ -315,7 +313,7 @@ void ShaderDesc::setPath(GLenum _stage, const char* _path)
 const char* ShaderDesc::getPath(GLenum _stage) const
 {
 	int i = internal::ShaderStageToIndex(_stage);
-	APT_ASSERT(m_stages[i].isEnabled());
+	FRM_ASSERT(m_stages[i].isEnabled());
 	return (const char*)m_stages[i].m_path;
 }
 
@@ -341,7 +339,7 @@ int ShaderDesc::getDependencyCount(GLenum _stage) const
 const char* ShaderDesc::getDependency(GLenum _stage, int _i) const
 {
 	auto& stage = m_stages[internal::ShaderStageToIndex(_stage)];
-	APT_ASSERT(_i < stage.m_dependencies.size());
+	FRM_ASSERT(_i < stage.m_dependencies.size());
 	return (const char*)stage.m_dependencies[_i];
 }
 bool ShaderDesc::hasDependency(const char* _path) const
@@ -450,20 +448,20 @@ int ShaderDesc::getDefineCount(GLenum _stage) const
 const char* ShaderDesc::getDefineName(GLenum _stage, int _i) const
 {
 	auto& stage = m_stages[internal::ShaderStageToIndex(_stage)];
-	APT_ASSERT(_i < stage.m_defines.size());
+	FRM_ASSERT(_i < stage.m_defines.size());
 	return (const char*)(stage.m_defines.begin() + _i)->first;
 }
 
 const char* ShaderDesc::getDefineValue(GLenum _stage, int _i) const
 {
 	auto& stage = m_stages[internal::ShaderStageToIndex(_stage)];
-	APT_ASSERT(_i < stage.m_defines.size());
+	FRM_ASSERT(_i < stage.m_defines.size());
 	return (const char*)(stage.m_defines.begin() + _i)->second;
 }
 
 void ShaderDesc::setLocalSize(int _x, int _y, int _z)
 {
-	APT_ASSERT(hasStage(GL_COMPUTE_SHADER));
+	FRM_ASSERT(hasStage(GL_COMPUTE_SHADER));
 	m_localSize = ivec3(_x, _y, _z);
 	addDefine(GL_COMPUTE_SHADER, "LOCAL_SIZE_X", _x);
 	addDefine(GL_COMPUTE_SHADER, "LOCAL_SIZE_Y", _y);
@@ -590,7 +588,7 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 			if (tp[1] == '/') {
 				--commentBlock;
 				if (commentBlock < 0) {
-					APT_LOG_ERR("Shader: Comment block error ('%s' line %d)", _path, lineCount);
+					FRM_LOG_ERR("Shader: Comment block error ('%s' line %d)", _path, lineCount);
 					return false;
 				}
 			}
@@ -605,7 +603,7 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 					tp.advance(); // step over '"'
 					const char* beg = tp;
 					if (tp.advanceToNext('"') != '"') {
-						APT_LOG_ERR("Shader: error in #include directive ('%s' line %d)", _path, lineCount - 1);
+						FRM_LOG_ERR("Shader: error in #include directive ('%s' line %d)", _path, lineCount - 1);
 						return false;
 					}
 					Str path;
@@ -628,7 +626,7 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 					key.set(beg, tp - beg);
 					const char* vinc = _shaderDesc.findVirtualInclude((const char*)key);
 					if (!vinc) {
-						APT_LOG_ERR("Shader: unknown virtual include '%s' ('%s' line %d)", (const char*)key, _path, lineCount - 1);
+						FRM_LOG_ERR("Shader: unknown virtual include '%s' ('%s' line %d)", (const char*)key, _path, lineCount - 1);
 						return false;
 					}
 					tmp.push_back('\0');
@@ -691,7 +689,7 @@ Shader* Shader::Create(const ShaderDesc& _desc)
 	Id id = _desc.getHash();
 	Shader* ret = Find(id);
 	if (!ret) {
-		ret = APT_NEW(Shader(id, "")); // "" forces an auto generated name during reload()
+		ret = FRM_NEW(Shader(id, "")); // "" forces an auto generated name during reload()
 		ret->m_desc = _desc;
 	}
 	Use(ret);
@@ -716,10 +714,10 @@ Shader* Shader::CreateVsGsFs(const char* _vsPath, const char* _gsPath, const cha
 }
 Shader* Shader::CreateCs(const char* _csPath, int _localX, int _localY, int _localZ, std::initializer_list<const char*> _defines)
 {
-	APT_ASSERT(_localX <= GlContext::GetCurrent()->kMaxComputeLocalSize[0]);
-	APT_ASSERT(_localY <= GlContext::GetCurrent()->kMaxComputeLocalSize[1]);
-	APT_ASSERT(_localZ <= GlContext::GetCurrent()->kMaxComputeLocalSize[2]);
-	APT_ASSERT((_localX * _localY * _localZ) <= GlContext::GetCurrent()->kMaxComputeInvocationsPerGroup);
+	FRM_ASSERT(_localX <= GlContext::GetCurrent()->kMaxComputeLocalSize[0]);
+	FRM_ASSERT(_localY <= GlContext::GetCurrent()->kMaxComputeLocalSize[1]);
+	FRM_ASSERT(_localZ <= GlContext::GetCurrent()->kMaxComputeLocalSize[2]);
+	FRM_ASSERT((_localX * _localY * _localZ) <= GlContext::GetCurrent()->kMaxComputeInvocationsPerGroup);
 
 	ShaderDesc desc;
 	desc.setPath(GL_COMPUTE_SHADER, _csPath);
@@ -735,7 +733,7 @@ void Shader::Destroy(Shader*& _inst_)
 	if (ctx && ctx->getShader() == _inst_) {
 		ctx->setShader(nullptr);
 	}
-	APT_DELETE(_inst_);
+	FRM_DELETE(_inst_);
 	_inst_ = nullptr;
 }
 
@@ -761,7 +759,7 @@ bool Shader::reload()
 
 GLint Shader::getResourceIndex(GLenum _type, const char* _name) const
 {
-	APT_ASSERT(getState() == State_Loaded);
+	FRM_ASSERT(getState() == State_Loaded);
 	if (getState() != State_Loaded) {
 		return -1;
 	}
@@ -772,7 +770,7 @@ GLint Shader::getResourceIndex(GLenum _type, const char* _name) const
 
 GLint Shader::getUniformLocation(const char* _name) const
 {
-	APT_ASSERT(getState() == State_Loaded);
+	FRM_ASSERT(getState() == State_Loaded);
 	if (getState() != State_Loaded) {
 		return -1;
 	}
@@ -783,7 +781,7 @@ GLint Shader::getUniformLocation(const char* _name) const
 
 bool Shader::setLocalSize(int _x, int _y, int _z)
 {
-	APT_ASSERT(m_desc.hasStage(GL_COMPUTE_SHADER));
+	FRM_ASSERT(m_desc.hasStage(GL_COMPUTE_SHADER));
 	m_desc.setLocalSize(_x, _y, _z);
 	return loadEnabledStagesAndLinkProgram(false);
 }
@@ -791,14 +789,14 @@ bool Shader::setLocalSize(int _x, int _y, int _z)
 ivec3 Shader::getDispatchSize(int _outWidth, int _outHeight, int _outDepth)
 {
 	ivec3 localSize = getLocalSize();
-	return APT_MAX((ivec3(_outWidth, _outHeight, _outDepth) + localSize - 1) / localSize, ivec3(1));
+	return FRM_MAX((ivec3(_outWidth, _outHeight, _outDepth) + localSize - 1) / localSize, ivec3(1));
 }
 
 ivec3 Shader::getDispatchSize(const Texture* _tx, int _level)
 {
 	ivec3 localSize = getLocalSize();
-	ivec3 ret = APT_MAX(ivec3(_tx->getWidth() >> _level, _tx->getHeight() >> _level, _tx->getDepth() >> _level), ivec3(1));
-	return APT_MAX((ret + localSize - 1) / localSize, ivec3(1));
+	ivec3 ret = FRM_MAX(ivec3(_tx->getWidth() >> _level, _tx->getHeight() >> _level, _tx->getDepth() >> _level), ivec3(1));
+	return FRM_MAX((ret + localSize - 1) / localSize, ivec3(1));
 }
 
 bool Shader::addGlobalDefines(std::initializer_list<const char*> _defines)
@@ -813,13 +811,13 @@ const char* Shader::GetStageInfoLog(GLuint _handle)
 {
 	GLint len;
 	glAssert(glGetShaderiv(_handle, GL_INFO_LOG_LENGTH, &len));
-	char* ret = APT_NEW_ARRAY(GLchar, len);
+	char* ret = FRM_NEW_ARRAY(GLchar, len);
 	glAssert(glGetShaderInfoLog(_handle, len, 0, ret));
 	return ret;
 }
 void Shader::FreeStageInfoLog(const char*& _log_)
 {
-	APT_DELETE_ARRAY(_log_);
+	FRM_DELETE_ARRAY(_log_);
 	_log_ = "";
 }
 
@@ -827,14 +825,14 @@ const char* Shader::GetProgramInfoLog(GLuint _handle)
 {
 	GLint len;
 	glAssert(glGetProgramiv(_handle, GL_INFO_LOG_LENGTH, &len));
-	GLchar* ret = APT_NEW_ARRAY(GLchar, len);
+	GLchar* ret = FRM_NEW_ARRAY(GLchar, len);
 	glAssert(glGetProgramInfoLog(_handle, len, 0, ret));
 	return ret;
 
 }
 void Shader::FreeProgramInfoLog(const char*& _log_)
 {
-	APT_DELETE_ARRAY(_log_);
+	FRM_DELETE_ARRAY(_log_);
 	_log_ = "";
 }
 
@@ -842,7 +840,7 @@ Shader::Shader(uint64 _id, const char* _name)
 	: Resource<Shader>(_id, _name)
 	, m_handle(0)
 {
-	APT_ASSERT(GlContext::GetCurrent());
+	FRM_ASSERT(GlContext::GetCurrent());
 	memset(m_stageHandles, 0, sizeof(m_stageHandles));
 }
 
@@ -864,7 +862,7 @@ Shader::~Shader()
 bool Shader::loadStage(int _i, bool _loadSource)
 {
 	ShaderDesc::StageDesc& stageDesc = m_desc.m_stages[_i];
-	APT_ASSERT(stageDesc.isEnabled());
+	FRM_ASSERT(stageDesc.isEnabled());
 
  // process source file if required
 	if (_loadSource && !stageDesc.m_path.isEmpty()) {
@@ -893,7 +891,7 @@ bool Shader::loadStage(int _i, bool _loadSource)
 	
 	src.append((const char*)stageDesc.m_source);
 
-	//APT_LOG_DBG((const char*)(src));
+	//FRM_LOG_DBG((const char*)(src));
 
  // gen stage handle if required
 	if (m_stageHandles[_i] == 0) {
@@ -911,21 +909,21 @@ bool Shader::loadStage(int _i, bool _loadSource)
 	
  // print error log
 	if (ret == GL_FALSE) {		
-		const char* pth = apt::internal::StripPath((const char*)stageDesc.m_path);
-		APT_LOG_ERR("'%s' compile failed", pth);
+		const char* pth = frm::internal::StripPath((const char*)stageDesc.m_path);
+		FRM_LOG_ERR("'%s' compile failed", pth);
 		auto log = stageDesc.getLogInfo();
 		const char* stageLog = GetStageInfoLog(m_stageHandles[_i]);
 		log.append(stageLog);
 		FreeStageInfoLog(stageLog);
-		APT_LOG("'%s' compilation error log:\n%s", pth, (const char*)log);
+		FRM_LOG("'%s' compilation error log:\n%s", pth, (const char*)log);
 
 		#if 0
-			APT_LOG_DBG("'%s' source:\n%s", pth, (const char*)src);
-			APT_ASSERT(false);
+			FRM_LOG_DBG("'%s' source:\n%s", pth, (const char*)src);
+			FRM_ASSERT(false);
 		#endif
 
 	} else {
-		APT_LOG("'%s' compile succeeded", apt::internal::StripPath((const char*)stageDesc.m_path));
+		FRM_LOG("'%s' compile succeeded", frm::internal::StripPath((const char*)stageDesc.m_path));
 	}
 	
 	return ret == GL_TRUE;
@@ -965,7 +963,7 @@ bool Shader::linkProgram()
 	GLint linkStatus = GL_FALSE;
 	glAssert(glGetProgramiv(handle, GL_LINK_STATUS, &linkStatus));
 	if (linkStatus == GL_FALSE) {
-		APT_LOG_ERR("'%s' link failed", getName());
+		FRM_LOG_ERR("'%s' link failed", getName());
 		String<0> log("\tstages:\n");
 		for (int i = 0; i < internal::kShaderStageCount; ++i) {
 			const ShaderDesc::StageDesc& stage = m_desc.m_stages[i];
@@ -976,7 +974,7 @@ bool Shader::linkProgram()
 		const char* programLog = GetProgramInfoLog(handle);
 		log.append(programLog);
 		FreeProgramInfoLog(programLog);
-		APT_LOG("'%s' link error log:\n%s", getName(), (const char*)log);
+		FRM_LOG("'%s' link error log:\n%s", getName(), (const char*)log);
 
 		glAssert(glDeleteProgram(handle));
 		if (m_handle == 0) {
@@ -985,10 +983,10 @@ bool Shader::linkProgram()
 		}
 
 		ret = false;
-		//APT_ASSERT(false);
+		//FRM_ASSERT(false);
 
 	} else {
-		APT_LOG("'%s' link succeeded", getName());
+		FRM_LOG("'%s' link succeeded", getName());
 		if (m_handle != 0) {
 			glAssert(glDeleteProgram(m_handle));
 		}

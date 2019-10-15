@@ -1,10 +1,9 @@
 #include <frm/core/Input.h>
 #include <frm/core/Profiler.h>
-
-#include <apt/platform.h>
-#include <apt/log.h>
-#include <apt/math.h>
-#include <apt/win.h>
+#include <frm/core/platform.h>
+#include <frm/core/log.h>
+#include <frm/core/math.h>
+#include <frm/core/win.h>
 
 #include <new>
 #include <cmath>
@@ -45,7 +44,7 @@ static const char* HIDClass_ErrStr(int _err)
 }
 #define HIDClass_VERIFY(call) { \
 		int err = (call); \
-		APT_ASSERT_MSG(err == HIDP_STATUS_SUCCESS, HIDClass_ErrStr(err)); \
+		FRM_ASSERT_MSG(err == HIDP_STATUS_SUCCESS, HIDClass_ErrStr(err)); \
 	}
 
 using namespace frm;
@@ -119,8 +118,8 @@ struct ImplBase: public tDevice
 	void connect(RAWINPUT* _raw)
 	{
 		HANDLE h = _raw->header.hDevice;
-		APT_ASSERT_MSG(Find(h) == 0, "%s 0x%x already connected", getName(), h);
-		APT_LOG("%s %d connected (0x%x)", getName(), getIndex(), h);
+		FRM_ASSERT_MSG(Find(h) == 0, "%s 0x%x already connected", getName(), h);
+		FRM_LOG("%s %d connected (0x%x)", getName(), getIndex(), h);
 		m_handle = h;
 		m_isConnected = true;
 		reset();
@@ -128,14 +127,14 @@ struct ImplBase: public tDevice
 
 	void disconnect()
 	{
-		APT_LOG("%s %d disconnected (0x%x)", getName(), getIndex(), m_handle);
+		FRM_LOG("%s %d disconnected (0x%x)", getName(), getIndex(), m_handle);
 		m_handle = kNullHandle;
 		m_isConnected = false;
 		if (this == s_instances) {
 		 // default was disconnected, try to move another mouse to this slot
 			for (int i = 1; i < Input::kMaxMouseCount; ++i) {
 				if (s_instances[i].m_handle != kNullHandle) {
-					APT_LOG("%s %d (0x%x) moved to index 0", getName(), i, s_instances[i].m_handle);
+					FRM_LOG("%s %d (0x%x) moved to index 0", getName(), i, s_instances[i].m_handle);
 					eastl::swap(s_instances[i].m_handle, s_instances[0].m_handle);
 					s_instances[0].reset(); // we didn't bother to swap the state as well, so reset the device
 					break;
@@ -244,7 +243,7 @@ struct KeyboardImpl: public ImplBase<Keyboard, KeyboardImpl, Input::kMaxKeyboard
 
 		setIncButton(key, (flags & RI_KEY_BREAK) == 0u);
 
-		//APT_LOG_DBG("%s e0=%i, e1=%i, f=0x%x, sc=0x%x", GetButtonName(button), (int)e0, (int)e1, flags, sc);
+		//FRM_LOG_DBG("%s e0=%i, e1=%i, f=0x%x, sc=0x%x", GetButtonName(button), (int)e0, (int)e1, flags, sc);
 	}
 
 }; // struct KeyboardImpl
@@ -260,7 +259,7 @@ struct MouseImpl: public ImplBase<Mouse, MouseImpl, Input::kMaxMouseCount>
 
 	void update(RAWINPUT* _raw)
 	{
-		APT_ASSERT_MSG((_raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) == 0, "%s %d does not support relative position coordinates", getName(), getIndex());
+		FRM_ASSERT_MSG((_raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) == 0, "%s %d does not support relative position coordinates", getName(), getIndex());
 	 
 	 // buttons
 		USHORT currFlags = _raw->data.mouse.usButtonFlags;
@@ -333,7 +332,7 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 		
 		RID_DEVICE_INFO deviceInfo;
 		UINT deviceInfoSize = sizeof(deviceInfo);
-		APT_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_DEVICEINFO, &deviceInfo, &deviceInfoSize) >= 0);
+		FRM_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_DEVICEINFO, &deviceInfo, &deviceInfoSize) >= 0);
 		m_type = Type_Count;
 	 // http://www.linux-usb.org/usb.ids
 		switch (deviceInfo.hid.dwVendorId) {
@@ -357,14 +356,14 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 		};	
 	 // automatically disconnect any unsupported devices
 		if (m_type == Type_Count) {
-			APT_LOG_ERR("Unsupported gamepad type (vendor %d product %d)", deviceInfo.hid.dwVendorId, deviceInfo.hid.dwProductId);
+			FRM_LOG_ERR("Unsupported gamepad type (vendor %d product %d)", deviceInfo.hid.dwVendorId, deviceInfo.hid.dwProductId);
 			disconnect();
 			return;
 		}
 
-		APT_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_PREPARSEDDATA, NULL, &m_preparsedDataLength) == 0);
+		FRM_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_PREPARSEDDATA, NULL, &m_preparsedDataLength) == 0);
 		m_preparsedData = (PHIDP_PREPARSED_DATA)new BYTE[m_preparsedDataLength];
-		APT_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_PREPARSEDDATA, m_preparsedData, &m_preparsedDataLength) >= 0);
+		FRM_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_PREPARSEDDATA, m_preparsedData, &m_preparsedDataLength) >= 0);
 
 		HIDP_CAPS caps;
 		HIDClass_VERIFY(HidP_GetCaps(m_preparsedData, &caps));
@@ -408,7 +407,7 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 
 	void update(RAWINPUT* _raw)
 	{
-		APT_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_PREPARSEDDATA, m_preparsedData, &m_preparsedDataLength) >= 0);
+		FRM_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_PREPARSEDDATA, m_preparsedData, &m_preparsedDataLength) >= 0);
 
 	 // buttons
 		ULONG usageCount = m_buttonUsageCount;
@@ -444,8 +443,8 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 							case 4: { // trigger
 								float fval = (float)(val - m_valueCaps[i].LogicalMin) / (float)m_valueCaps[i].LogicalMax;
 								fval = (fval <= m_deadZone) ? 0.0f : fval;
-								m_axisStates[Axis_LeftTrigger]  = APT_CLAMP((fval - 0.5f) * 2.0f, 0.0f, 1.0f);
-								m_axisStates[Axis_RightTrigger] = 1.0f - APT_CLAMP(fval * 2.0f, 0.0f, 1.0f);
+								m_axisStates[Axis_LeftTrigger]  = FRM_CLAMP((fval - 0.5f) * 2.0f, 0.0f, 1.0f);
+								m_axisStates[Axis_RightTrigger] = 1.0f - FRM_CLAMP(fval * 2.0f, 0.0f, 1.0f);
 								setIncButton(Button_Left2,  m_axisStates[Axis_LeftTrigger] > 0.5f);
 								setIncButton(Button_Right2, m_axisStates[Axis_RightTrigger] > 0.5f);
 								break;
@@ -505,9 +504,9 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 	UINT buflen;
 	RAWINPUT* raw = (RAWINPUT*)buf;
 	if (_umsg == WM_INPUT) {
-		APT_PLATFORM_VERIFY(GetRawInputData((HRAWINPUT)_lparam, RID_INPUT, NULL, &buflen, sizeof(RAWINPUTHEADER)) == 0);
-		APT_ASSERT(buflen < kMaxBufferSize);
-		APT_PLATFORM_VERIFY(GetRawInputData((HRAWINPUT)_lparam, RID_INPUT, buf, &buflen, sizeof(RAWINPUTHEADER)) == buflen);
+		FRM_PLATFORM_VERIFY(GetRawInputData((HRAWINPUT)_lparam, RID_INPUT, NULL, &buflen, sizeof(RAWINPUTHEADER)) == 0);
+		FRM_ASSERT(buflen < kMaxBufferSize);
+		FRM_PLATFORM_VERIFY(GetRawInputData((HRAWINPUT)_lparam, RID_INPUT, buf, &buflen, sizeof(RAWINPUTHEADER)) == buflen);
 		
 		if (raw->header.dwType == RIM_TYPEMOUSE) {
 			MouseImpl* mouse;
@@ -516,8 +515,8 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 				mouse->update(raw);
 			} else {
 			 // device not found but in use, so set device 0
-				APT_LOG_DBG("Set unknown device as mouse 0");
-				APT_VERIFY(mouse = &MouseImpl::s_instances[0]);
+				FRM_LOG_DBG("Set unknown device as mouse 0");
+				FRM_VERIFY(mouse = &MouseImpl::s_instances[0]);
 				if (mouse) {
 					mouse->m_handle = raw->header.hDevice;
 					mouse->update(raw);
@@ -531,8 +530,8 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 				keyboard->update(raw);
 			} else {
 			 // device not found but in use, so set device 0
-				APT_LOG_DBG("Set unknown device as keyboard 0");
-				APT_VERIFY(keyboard = &KeyboardImpl::s_instances[0]);
+				FRM_LOG_DBG("Set unknown device as keyboard 0");
+				FRM_VERIFY(keyboard = &KeyboardImpl::s_instances[0]);
 				if (keyboard) {
 					keyboard->m_handle = raw->header.hDevice;
 					keyboard->update(raw);
@@ -546,8 +545,8 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 				gamepad->update(raw);
 			} else {
 			 // device not found but in use, so set device 0
-				APT_LOG_DBG("Set unknown device as gamepad 0");
-				APT_VERIFY(gamepad = &GamepadImpl::s_instances[0]);
+				FRM_LOG_DBG("Set unknown device as gamepad 0");
+				FRM_VERIFY(gamepad = &GamepadImpl::s_instances[0]);
 				if (gamepad) {
 					gamepad->m_handle = raw->header.hDevice;
 					gamepad->update(raw);
@@ -561,28 +560,28 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 		 // device was connected
 			RID_DEVICE_INFO info;
 			UINT sz = sizeof(info);
-			APT_PLATFORM_VERIFY(GetRawInputDeviceInfo((HRAWINPUT)_lparam, RIDI_DEVICEINFO, &info, &sz) == sizeof(info));
+			FRM_PLATFORM_VERIFY(GetRawInputDeviceInfo((HRAWINPUT)_lparam, RIDI_DEVICEINFO, &info, &sz) == sizeof(info));
 			
 			raw->header.hDevice = (HANDLE)_lparam; // connect() expects the handle to be stored here
 
 			if (info.dwType == RIM_TYPEMOUSE) {
 				MouseImpl* mouse = MouseImpl::Find(kNullHandle);
 				if (!mouse) {
-					APT_LOG("Too many mice connected, max is %d", Input::kMaxMouseCount);
+					FRM_LOG("Too many mice connected, max is %d", Input::kMaxMouseCount);
 				} else {
 					mouse->connect(raw);
 				}
 			} else if (info.dwType == RIM_TYPEKEYBOARD) {
 				KeyboardImpl* keyboard = KeyboardImpl::Find(kNullHandle);
 				if (!keyboard) {
-					APT_LOG("Too many keyboards connected, max is %d", Input::kMaxKeyboardCount);
+					FRM_LOG("Too many keyboards connected, max is %d", Input::kMaxKeyboardCount);
 				} else {
 					keyboard->connect(raw);
 				}
 			} else if (info.dwType == RIM_TYPEHID && info.hid.usUsagePage == 0x01 && info.hid.usUsage == 0x05) {
 				GamepadImpl* gamepad = GamepadImpl::Find(kNullHandle);
 				if (!gamepad) {
-					APT_LOG("Too many gamepads connected, max is %d", Input::kMaxGamepadCount);
+					FRM_LOG("Too many gamepads connected, max is %d", Input::kMaxGamepadCount);
 				} else {
 					gamepad->connect(raw);
 				}
@@ -609,19 +608,19 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 
 Keyboard* Input::GetKeyboard(int _id)
 {
-	APT_ASSERT(_id < Input::kMaxKeyboardCount);
+	FRM_ASSERT(_id < Input::kMaxKeyboardCount);
 	return &KeyboardImpl::s_instances[_id];
 }
 
 Mouse* Input::GetMouse(int _id)
 {
-	APT_ASSERT(_id < Input::kMaxMouseCount);
+	FRM_ASSERT(_id < Input::kMaxMouseCount);
 	return &MouseImpl::s_instances[_id];
 }
 
 Gamepad* Input::GetGamepad(int _id)
 {
-	APT_ASSERT(_id < Input::kMaxGamepadCount);
+	FRM_ASSERT(_id < Input::kMaxGamepadCount);
 	return &GamepadImpl::s_instances[_id];
 }
 
@@ -642,7 +641,7 @@ void Input::Init()
 		wc.lpfnWndProc = InputWindowProc;
 		wc.hInstance = GetModuleHandle(0);
 		wc.lpszClassName = "InputImpl";
-		APT_PLATFORM_VERIFY(wndclassex = RegisterClassEx(&wc));
+		FRM_PLATFORM_VERIFY(wndclassex = RegisterClassEx(&wc));
 	}
 	s_inputWindow = CreateWindowEx(
 		0u, 
@@ -656,7 +655,7 @@ void Input::Init()
 		GetModuleHandle(0), 
 		NULL
 		);
-	APT_PLATFORM_ASSERT(s_inputWindow);
+	FRM_PLATFORM_ASSERT(s_inputWindow);
 
 	RAWINPUTDEVICE hids[3]; // 3 for keyboard, mouse, gamepad
 	int currentHid = 0;
@@ -682,12 +681,12 @@ void Input::Init()
 	hids[currentHid].hwndTarget  = s_inputWindow;
 	++currentHid;
 	
-	APT_PLATFORM_VERIFY(RegisterRawInputDevices(hids, currentHid, sizeof(RAWINPUTDEVICE)));
+	FRM_PLATFORM_VERIFY(RegisterRawInputDevices(hids, currentHid, sizeof(RAWINPUTDEVICE)));
 }
 
 void Input::Shutdown()
 {
-	APT_PLATFORM_VERIFY(DestroyWindow(s_inputWindow));
+	FRM_PLATFORM_VERIFY(DestroyWindow(s_inputWindow));
 }
 
 void Input::PollAllDevices() 

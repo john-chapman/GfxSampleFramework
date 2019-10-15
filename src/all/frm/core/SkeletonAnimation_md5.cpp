@@ -1,6 +1,6 @@
 #include "SkeletonAnimation.h"
 
-#include <apt/TextParser.h>
+#include <frm/core/TextParser.h>
 
 #include <md5mesh.h>
 
@@ -8,7 +8,7 @@
 #include <EASTL/vector.h>
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 bool SkeletonAnimation::ReadMd5(SkeletonAnimation& anim_, const char* _srcData, uint _srcDataSize)
 {	

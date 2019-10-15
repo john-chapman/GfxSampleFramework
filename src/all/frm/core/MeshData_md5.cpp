@@ -1,6 +1,6 @@
 #include "MeshData.h"
 
-#include <apt/TextParser.h>
+#include <frm/core/TextParser.h>
 
 #include <md5mesh.h>
 
@@ -8,7 +8,7 @@
 #include <EASTL/vector.h>
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 {
@@ -75,7 +75,7 @@ bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 		 
 		 // copy the first 4 weights/indices into the vertex and normalize
 			float weightSum = 0.0f;
-			for (int i = 0, n = APT_MIN(4, (int)weights.size()); i < n; ++i) {
+			for (int i = 0, n = FRM_MIN(4, (int)weights.size()); i < n; ++i) {
 				vdst->m_boneIndices[i] = weights[i].m_jointIndex;
 				vdst->m_boneWeights[i] = weights[i].m_bias;
 				weightSum += weights[i].m_bias;

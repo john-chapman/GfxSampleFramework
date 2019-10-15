@@ -1,24 +1,22 @@
 #include "Texture.h"
 
 #include <frm/core/gl.h>
+#include <frm/core/memory.h>
+#include <frm/core/File.h>
+#include <frm/core/FileSystem.h>
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
+#include <frm/core/Image.h>
+#include <frm/core/Pool.h>
 #include <frm/core/Resource.h>
 #include <frm/core/Shader.h>
-
-#include <apt/memory.h>
-#include <apt/File.h>
-#include <apt/FileSystem.h>
-#include <apt/Image.h>
-#include <apt/Pool.h>
-#include <apt/Time.h>
+#include <frm/core/Time.h>
 
 #include <imgui/imgui.h>
 
 #include <EASTL/utility.h>
 
 using namespace frm;
-using namespace apt;
 
 /*******************************************************************************
 
@@ -74,7 +72,7 @@ struct TextureViewer
 	bool                        m_showTexelGrid  = false;
 	bool                        m_isDragging     = false;
 	int                         m_selected       = -1;
-	apt::Pool<TextureView>      m_txViewPool;
+	frm::Pool<TextureView>      m_txViewPool;
 	eastl::vector<TextureView*> m_txViews;
 
 	static vec2 ThumbToTxView(const frm::TextureView& _txView)
@@ -96,7 +94,7 @@ struct TextureViewer
 	{
 		if (!findTextureView(_tx)) {
 			//m_txViews.push_back(m_txViewPool.alloc(TextureView(_tx)));
-			m_txViews.push_back(APT_NEW(TextureView(_tx)));
+			m_txViews.push_back(FRM_NEW(TextureView(_tx)));
 		}
 	}
 
@@ -104,12 +102,12 @@ struct TextureViewer
 	{
 		auto it = eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto _txView) { return _txView->m_texture == _tx; });
 		if (it != m_txViews.end()) {
-			APT_STRICT_ASSERT(_tx->getHandle() == (*it)->m_texture->getHandle());
+			FRM_STRICT_ASSERT(_tx->getHandle() == (*it)->m_texture->getHandle());
 			if (m_selected == (int)(it - m_txViews.begin())) {
 				m_selected = -1;
 			}
 			//m_txViewPool.free(*it);
-			APT_DELETE(*it);
+			FRM_DELETE(*it);
 			m_txViews.erase_unsorted(it);
 		}
 	}
@@ -170,7 +168,7 @@ struct TextureViewer
 			bool first = true;
 			for (int i = 0; i < (int)m_txViews.size(); ++i) {
 				TextureView& txView = *m_txViews[i];
-				APT_ASSERT(txView.m_texture != nullptr);
+				FRM_ASSERT(txView.m_texture != nullptr);
 				Texture& tx = *txView.m_texture;
 				if (!filter.PassFilter(tx.getName())) {
 					continue;
@@ -182,7 +180,7 @@ struct TextureViewer
 			 // compute thumbnail size
 				//float txAspect = (float)tx.getWidth() / (float)tx.getHeight();
 				//float thumbWidth = kThumbHeight * (float)tx.getWidth() / (float)tx.getHeight();
-				//vec2 thumbSize(APT_MIN(thumbWidth, kThumbHeight * 2.0f), kThumbHeight);
+				//vec2 thumbSize(FRM_MIN(thumbWidth, kThumbHeight * 2.0f), kThumbHeight);
 				vec2 thumbSize(kThumbHeight); float thumbWidth = kThumbHeight; // square thumbnails
 	
 				
@@ -203,14 +201,14 @@ struct TextureViewer
 				if (ImGui::IsItemHovered()) {
 					ImGui::BeginTooltip();
 						ImGui::TextColored(kColorTxName, tx.getName());
-						ImGui::TextColored(kColorTxInfo, "%s\n%s\n%dx%dx%d", GlEnumStr(tx.getTarget()), GlEnumStr(tx.getFormat()), tx.getWidth(), tx.getHeight(), APT_MAX(tx.getDepth(), tx.getArrayCount()));
+						ImGui::TextColored(kColorTxInfo, "%s\n%s\n%dx%dx%d", GlEnumStr(tx.getTarget()), GlEnumStr(tx.getFormat()), tx.getWidth(), tx.getHeight(), FRM_MAX(tx.getDepth(), tx.getArrayCount()));
 					ImGui::EndTooltip();
 				}
 			}
 		
 		} else {
 			TextureView& txView = *m_txViews[m_selected];
-			APT_ASSERT(txView.m_texture != nullptr);
+			FRM_ASSERT(txView.m_texture != nullptr);
 			Texture& tx = *txView.m_texture;
 			float txAspect = (float)tx.getWidth() / (float)tx.getHeight();
 	
@@ -251,9 +249,9 @@ struct TextureViewer
 			//float thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
 			float thumbHeight = ImGui::GetWindowHeight() * 0.75f;
 			float thumbWidth = (float)tx.getWidth() / (float)tx.getHeight() * thumbHeight;
-			thumbWidth = APT_MIN(thumbWidth, ImGui::GetWindowSize().x * 2.0f/3.0f);
+			thumbWidth = FRM_MIN(thumbWidth, ImGui::GetWindowSize().x * 2.0f/3.0f);
 			thumbHeight = (float)tx.getHeight() / (float)tx.getWidth() * thumbWidth;
-			vec2 thumbSize(thumbWidth, APT_MAX(thumbHeight, 16.0f));
+			vec2 thumbSize(thumbWidth, FRM_MAX(thumbHeight, 16.0f));
 		  // need to flip the UVs here to account for the orientation of the quad output by ImGui
 			vec2  uv0 = vec2(0.0f, 1.0f);
 			vec2  uv1 = vec2(1.0f, 0.0f);
@@ -450,7 +448,7 @@ Texture* Texture::Create(const char* _path, SourceLayout _layout)
 	Id id = GetHashId(_path);
 	Texture* ret = Find(id);
 	if (!ret) {
-		ret = APT_NEW(Texture(id, _path));
+		ret = FRM_NEW(Texture(id, _path));
 		ret->m_path.set(_path);
 		ret->m_sourceLayout = _layout;
 	}
@@ -465,7 +463,7 @@ Texture* Texture::Create(const Image& _img)
 {
 	Id id = GetUniqueId();
 	NameStr name("image%llu", id);
-	Texture* ret = APT_NEW(Texture(id, (const char*)name));
+	Texture* ret = FRM_NEW(Texture(id, (const char*)name));
 	if (!ret->loadImage(_img)) {
 		ret->setState(State_Error);
 		return ret;
@@ -482,7 +480,7 @@ Texture* Texture::Create(Texture* _tx, bool _copyData)
 	}
 
 	Use(_tx);
-	APT_ASSERT(_tx->getState() == Texture::State_Loaded);
+	FRM_ASSERT(_tx->getState() == Texture::State_Loaded);
 	glScopedPixelStorei(GL_PACK_ALIGNMENT, 1);
 	GLenum attachment = GL_COLOR_ATTACHMENT0;
 	switch (_tx->m_format) {
@@ -501,22 +499,22 @@ Texture* Texture::Create(Texture* _tx, bool _copyData)
 			attachment = GL_COLOR_ATTACHMENT0;
 			break;
 	};
-	APT_ASSERT(_tx->m_target != GL_TEXTURE_CUBE_MAP_ARRAY && _tx->m_target != GL_TEXTURE_CUBE_MAP); // \todo code below doesn't support cubemaps
+	FRM_ASSERT(_tx->m_target != GL_TEXTURE_CUBE_MAP_ARRAY && _tx->m_target != GL_TEXTURE_CUBE_MAP); // \todo code below doesn't support cubemaps
 	GlContext* ctx = GlContext::GetCurrent();
 	Framebuffer* fbSrc = Framebuffer::Create(1, _tx);
 	const Framebuffer* fbRestore = ctx->getFramebuffer();
 	ctx->setFramebuffer(fbSrc); // required for glNamedFramebufferReadBuffer?
 	glAssert(glNamedFramebufferReadBuffer(fbSrc->getHandle(), attachment));
 	for (GLint mip = 0; mip < _tx->m_mipCount; ++mip) {
-		GLint w = APT_MAX(_tx->m_width  >> mip, 1);
-		GLint h = APT_MAX(_tx->m_height >> mip, 1);
-		GLint d = APT_MAX(_tx->m_depth  >> mip, 1);
+		GLint w = FRM_MAX(_tx->m_width  >> mip, 1);
+		GLint h = FRM_MAX(_tx->m_height >> mip, 1);
+		GLint d = FRM_MAX(_tx->m_depth  >> mip, 1);
 
 		switch (_tx->m_target) {
 			case GL_TEXTURE_3D:
 			case GL_TEXTURE_2D_ARRAY:
 			case GL_TEXTURE_1D_ARRAY:
-				for (GLint layer = 0; layer < APT_MAX(d, _tx->m_arrayCount); ++layer) {
+				for (GLint layer = 0; layer < FRM_MAX(d, _tx->m_arrayCount); ++layer) {
 					fbSrc->attachLayer(_tx, attachment, layer, mip);
 					if (_tx->m_target == GL_TEXTURE_1D_ARRAY) {
 						glAssert(glCopyTextureSubImage2D(ret->getHandle(), mip, 0, layer, 0, 0, w, h));
@@ -534,7 +532,7 @@ Texture* Texture::Create(Texture* _tx, bool _copyData)
 				glAssert(glCopyTextureSubImage1D(ret->getHandle(), mip, 0, 0, 0, w));
 				break;
 			default:
-				APT_ASSERT(false);
+				FRM_ASSERT(false);
 		};
 	}
 	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT));
@@ -582,7 +580,7 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 		return ret;
 	}
 	
-	ret = APT_NEW(Texture(id, _name));
+	ret = FRM_NEW(Texture(id, _name));
 	if (_name[0] == '\0') {
 		ret->setNamef("%llu", id);
 	}
@@ -594,20 +592,20 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 	glAssert(glGetTextureParameteriv(_handle, GL_TEXTURE_TARGET, (GLint*)&ret->m_target));
 	glAssert(glGetTextureLevelParameteriv(_handle, 0, GL_TEXTURE_WIDTH, (GLint*)&ret->m_width));
 	glAssert(glGetTextureLevelParameteriv(_handle, 0, GL_TEXTURE_HEIGHT, (GLint*)&ret->m_height));
-	ret->m_height = APT_MAX(ret->m_height, 1);
+	ret->m_height = FRM_MAX(ret->m_height, 1);
 	if (ret->m_target == GL_TEXTURE_1D_ARRAY) {
 		ret->m_arrayCount = ret->m_height;
 		ret->m_height = 1;
 	}
 	glAssert(glGetTextureLevelParameteriv(_handle, 0, GL_TEXTURE_DEPTH, (GLint*)&ret->m_depth));
-	ret->m_depth = APT_MAX(ret->m_depth, 1);
+	ret->m_depth = FRM_MAX(ret->m_depth, 1);
 	if (ret->m_target == GL_TEXTURE_2D_ARRAY) {
 		ret->m_arrayCount = ret->m_depth;
 		ret->m_depth = 1;
 	}
 	glAssert(glGetTextureLevelParameteriv(_handle, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint*)&ret->m_format));
 	glAssert(glGetTextureParameteriv(_handle, GL_TEXTURE_MAX_LEVEL, (GLint*)&ret->m_mipCount));
-	ret->m_mipCount = APT_MAX(ret->m_mipCount, 1);
+	ret->m_mipCount = FRM_MAX(ret->m_mipCount, 1);
 	ret->setState(State_Loaded);
 	
 	Use(ret);
@@ -616,7 +614,7 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 
 void Texture::Destroy(Texture*& _inst_)
 {
-	APT_DELETE(_inst_);
+	FRM_DELETE(_inst_);
 }
 
 void Texture::FileModified(const char* _path)
@@ -631,7 +629,7 @@ void Texture::FileModified(const char* _path)
 
 Image* Texture::CreateImage(const Texture* _tx)
 {
-	APT_ASSERT(_tx->getState() == State_Loaded);
+	FRM_ASSERT(_tx->getState() == State_Loaded);
 
 	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT));
 
@@ -686,7 +684,7 @@ Image* Texture::CreateImage(const Texture* _tx)
 		case GL_TEXTURE_CUBE_MAP:
 		case GL_TEXTURE_CUBE_MAP_ARRAY: ret = Image::CreateCubemap(_tx->m_width, layout, dataType, _tx->m_mipCount, _tx->m_arrayCount, compression); break;
 
-		default:                        APT_ASSERT_MSG(false, "downloadImage unsupported for '%s'", internal::GlEnumStr(_tx->m_target)); break;
+		default:                        FRM_ASSERT_MSG(false, "downloadImage unsupported for '%s'", internal::GlEnumStr(_tx->m_target)); break;
 	};
 
 	if (ret) {
@@ -715,9 +713,9 @@ Image* Texture::CreateImage(const Texture* _tx)
 				} else {
 					glAssert(glGetTextureSubImage(_tx->m_handle, mip, 0, offsetY, offsetZ, w, h, d, glFormat, glType, bufSize, dst));
 				}
-				w = APT_MAX(w >> 1, 1);
-				h = APT_MAX(h >> 1, 1);
-				d = APT_MAX(d >> 1, 1);
+				w = FRM_MAX(w >> 1, 1);
+				h = FRM_MAX(h >> 1, 1);
+				d = FRM_MAX(d >> 1, 1);
 			}
 		}
 	}
@@ -734,7 +732,7 @@ GLint Texture::GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth)
 	const GLint log2Width  = (GLint)floor(log2((double)_width));
 	const GLint log2Height = (GLint)floor(log2((double)_height));
 	const GLint log2Depth  = (GLint)floor(log2((double)_depth));
-	return APT_MAX(log2Width, APT_MAX(log2Height, log2Depth)) + 1; // +1 for level 0
+	return FRM_MAX(log2Width, FRM_MAX(log2Height, log2Depth)) + 1; // +1 for level 0
 }
 
 bool Texture::ConvertSphereToCube(Texture& _sphere, GLsizei _width)
@@ -840,7 +838,7 @@ bool Texture::reload()
 		return true;
 	}
 
-	APT_AUTOTIMER("Texture::load(%s)", (const char*)m_path);
+	FRM_AUTOTIMER("Texture::load(%s)", (const char*)m_path);
 	
 	File f;
 	if (!FileSystem::Read(f, (const char*)m_path)) {
@@ -885,10 +883,10 @@ void Texture::setSubData(
 	GLint       _mip
 	)
 {
-	APT_ASSERT(_mip <= m_mipCount);
+	FRM_ASSERT(_mip <= m_mipCount);
 
 	if (GlIsTexFormatCompressed(m_format)) {
-		#ifdef APT_DEBUG
+		#ifdef FRM_DEBUG
 			GLsizei mipDiv = (GLsizei)pow(2.0, (double)_mip);
 			GLsizei w = m_width / mipDiv;
 			GLsizei h = m_height / mipDiv;
@@ -899,7 +897,7 @@ void Texture::setSubData(
 					_sizeX != w  ||
 					_sizeY != h
 					;
-				APT_ASSERT_MSG(!illegal, "Illegal operation, cannot upload sub data within a compressed block");
+				FRM_ASSERT_MSG(!illegal, "Illegal operation, cannot upload sub data within a compressed block");
 			}
 		#endif
 		switch (m_target) {
@@ -915,7 +913,7 @@ void Texture::setSubData(
 				glAssert(glCompressedTextureSubImage3D(m_handle, _mip, _offsetX, _offsetY, _offsetZ, _sizeX, _sizeY, _sizeZ, m_format, (GLsizei)_dataType, (GLvoid*)_data));
 				break;
 			default:
-				APT_ASSERT(false);
+				FRM_ASSERT(false);
 				setState(State_Error);
 				return;
 		};
@@ -934,7 +932,7 @@ void Texture::setSubData(
 				glAssert(glTextureSubImage3D(m_handle, _mip, _offsetX, _offsetY, _offsetZ, _sizeX, _sizeY, _sizeZ, _dataFormat, _dataType, (GLvoid*)_data));
 				break;
 			default:
-				APT_ASSERT(false);
+				FRM_ASSERT(false);
 				setState(State_Error);
 				return;
 		};
@@ -945,7 +943,7 @@ void Texture::setSubData(
 
 void Texture::generateMipmap()
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	m_mipCount = GetMaxMipCount(m_width, m_height, m_depth);
 	setMipRange(0, m_mipCount - 1);
 	setMinFilter(GL_LINEAR_MIPMAP_LINEAR);
@@ -955,30 +953,30 @@ void Texture::generateMipmap()
 
 void Texture::setMipRange(GLint _base, GLint _max)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_BASE_LEVEL, (GLint)_base));
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAX_LEVEL,  (GLint)_max));
 }
 
 void Texture::setFilter(GLenum _mode)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MIN_FILTER, (GLint)_mode));
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAG_FILTER, (GLint)_mode));
 }
 void Texture::setMinFilter(GLenum _mode)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MIN_FILTER, (GLint)_mode));
 }
 void Texture::setMagFilter(GLenum _mode)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAG_FILTER, (GLint)_mode));
 }
 GLenum Texture::getMinFilter() const 
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	GLint ret;
 	glAssert(glGetTextureParameteriv(m_handle, GL_TEXTURE_MIN_FILTER, &ret));
 	return (GLenum)ret;
@@ -986,7 +984,7 @@ GLenum Texture::getMinFilter() const
 }
 GLenum Texture::getMagFilter() const
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	GLint ret;
 	glAssert(glGetTextureParameteriv(m_handle, GL_TEXTURE_MAG_FILTER, &ret));
 	return (GLenum)ret;
@@ -994,17 +992,17 @@ GLenum Texture::getMagFilter() const
 
 void Texture::setAnisotropy(GLfloat _anisotropy)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	//if (GLEW_EXT_texture_filter_anisotropic) {
 		float mx;
-		APT_ONCE glAssert(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &mx));
-		glAssert(glTextureParameterf(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, APT_CLAMP(_anisotropy, 1.0f, mx)));
+		FRM_ONCE glAssert(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &mx));
+		glAssert(glTextureParameterf(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, FRM_CLAMP(_anisotropy, 1.0f, mx)));
 	//}
 }
 
 GLfloat Texture::getAnisotropy() const
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	GLfloat ret = -1.0f;
 	//if (GLEW_EXT_texture_filter_anisotropic) {
 		glAssert(glGetTextureParameterfv(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, &ret));
@@ -1014,29 +1012,29 @@ GLfloat Texture::getAnisotropy() const
 
 void Texture::setWrap(GLenum _mode)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_WRAP_S, (GLint)_mode));
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_WRAP_T, (GLint)_mode));
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_WRAP_R, (GLint)_mode));
 }
 void Texture::setWrapU(GLenum _mode)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_WRAP_S, (GLint)_mode));
 }
 void Texture::setWrapV(GLenum _mode)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_WRAP_T, (GLint)_mode));
 }
 void Texture::setWrapW(GLenum _mode)
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_WRAP_R, (GLint)_mode));
 }
 GLenum Texture::getWrapU() const
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	GLint ret;
 	glAssert(glGetTextureParameteriv(m_handle, GL_TEXTURE_WRAP_S, &ret));
 	return (GLenum)ret;
@@ -1044,14 +1042,14 @@ GLenum Texture::getWrapU() const
 }
 GLenum Texture::getWrapV() const
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	GLint ret;
 	glAssert(glGetTextureParameteriv(m_handle, GL_TEXTURE_WRAP_T, &ret));
 	return (GLenum)ret;
 }
 GLenum Texture::getWrapW() const
 {
-	APT_ASSERT(m_handle);
+	FRM_ASSERT(m_handle);
 	GLint ret;
 	glAssert(glGetTextureParameteriv(m_handle, GL_TEXTURE_WRAP_R, &ret));
 	return (GLenum)ret;
@@ -1091,7 +1089,7 @@ Texture::Texture(
 	m_height     = _height;
 	m_depth      = _depth;
 	m_arrayCount = _arrayCount;
-	m_mipCount   = APT_MIN(_mipCount, GetMaxMipCount(_width, _height));
+	m_mipCount   = FRM_MIN(_mipCount, GetMaxMipCount(_width, _height));
 	glAssert(glCreateTextures(m_target, 1, &m_handle));
 
 	switch (_target) {
@@ -1105,7 +1103,7 @@ Texture::Texture(
 			m_arrayCount *= 6; // depth arg is layer-faces in this case
 			glAssert(glTextureStorage3D(m_handle, m_mipCount, m_format, m_width, m_height, m_arrayCount)); 
 			break;
-		default:                        APT_ASSERT(false); setState(State_Error); return;
+		default:                        FRM_ASSERT(false); setState(State_Error); return;
 	};
 	
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MIN_FILTER, (_mipCount > 1) ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR));
@@ -1172,7 +1170,7 @@ Texture* Texture::Create(
 	)
 {
 	uint64 id = GetUniqueId();
-	Texture* ret = APT_NEW(Texture(id, "", _target, _width, _height, _depth, _arrayCount, _mipCount, _format));
+	Texture* ret = FRM_NEW(Texture(id, "", _target, _width, _height, _depth, _arrayCount, _mipCount, _format));
 	ret->setNamef("%llu", id);
 	Use(ret);
 	return ret;
@@ -1211,9 +1209,9 @@ static void AllocCubemapArray(Texture& _tx, const Image& _img)
 
 #define Texture_COMPUTE_WHD() \
 	GLsizei div = (GLsizei)pow(2.0, (double)_mip); \
-	GLsizei w = APT_MAX(_tx.getWidth()  / div, (GLsizei)1); \
-	GLsizei h = APT_MAX(_tx.getHeight() / div, (GLsizei)1);\
-	GLsizei d = APT_MAX(_tx.getDepth()  / div, (GLsizei)1); 
+	GLsizei w = FRM_MAX(_tx.getWidth()  / div, (GLsizei)1); \
+	GLsizei h = FRM_MAX(_tx.getHeight() / div, (GLsizei)1);\
+	GLsizei d = FRM_MAX(_tx.getDepth()  / div, (GLsizei)1); 
 
 static void Upload1d(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
 {
@@ -1321,7 +1319,7 @@ bool Texture::loadImage(const Image& _img)
 				case Image::Type_3d:           m_target = GL_TEXTURE_3D;             alloc = Alloc3d;           upload = Upload3d;       break;
 				case Image::Type_Cubemap:      m_target = GL_TEXTURE_CUBE_MAP;       alloc = AllocCubemap;      upload = Upload2dArray;  break;
 				case Image::Type_CubemapArray: m_target = GL_TEXTURE_CUBE_MAP_ARRAY; alloc = AllocCubemapArray; upload = Upload2dArray;  break;
-				default:                       APT_ASSERT(false); return false;
+				default:                       FRM_ASSERT(false); return false;
 			};
 			break;
 		case SourceLayout_Cubemap2x3:
@@ -1349,7 +1347,7 @@ bool Texture::loadImage(const Image& _img)
 		case Image::Layout_RG:   srcFormat = m_format = GL_RG;   break;
 		case Image::Layout_RGB:  srcFormat = m_format = GL_RGB;  break;
 		case Image::Layout_RGBA: srcFormat = m_format = GL_RGBA; break;
-		default:                 APT_ASSERT(false); return false;
+		default:                 FRM_ASSERT(false); return false;
 	};
 
  // internal format (request only, we read back the actual format the implementation used later)
@@ -1359,7 +1357,7 @@ bool Texture::loadImage(const Image& _img)
 				switch (_img.getLayout()) {
 					case Image::Layout_RGB:  m_format = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;       break;
 					case Image::Layout_RGBA: m_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;      break;
-					default:                 APT_ASSERT(false); return false;
+					default:                 FRM_ASSERT(false); return false;
 				};
 				break;
 			case Image::Compression_BC2: m_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;      break;
@@ -1414,7 +1412,7 @@ bool Texture::loadImage(const Image& _img)
 		glAssert(glDeleteTextures(1, &m_handle));
 	}
 
- // upload data; apt::Image stores each array layer contiguously with its mip chain, so we need to call glTexSubImage* to upload each layer/mip separately
+ // upload data; frm::Image stores each array layer contiguously with its mip chain, so we need to call glTexSubImage* to upload each layer/mip separately
 	glAssert(glCreateTextures(m_target, 1, &m_handle));
 	alloc(*this, _img);
 	GLint count = (GLint)(_img.isCubemap() ? _img.getArrayCount() * 6 : _img.getArrayCount());

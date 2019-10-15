@@ -2,11 +2,11 @@
 #ifndef md5mesh_h
 #define md5mesh_h
 
-#include <apt/apt.h>
-#include <apt/log.h>
-#include <apt/math.h>
-#include <apt/String.h>
-#include <apt/TextParser.h>
+#include <frm/core/frm.h>
+#include <frm/core/log.h>
+#include <frm/core/math.h>
+#include <frm/core/String.h>
+#include <frm/core/TextParser.h>
 
 #include <EASTL/vector.h>
 
@@ -29,13 +29,13 @@ enum OrientationComponents
 	Orientation_Mask = Orientation_X + Orientation_Y + Orientation_Z
 };
 
-typedef apt::String<32> NameStr;
+typedef frm::String<32> NameStr;
 
 struct MeshJoint {
 	NameStr    m_name;
 	long int   m_parentIndex;
-	apt::vec3  m_position;
-	apt::quat  m_orientation;
+	frm::vec3  m_position;
+	frm::quat  m_orientation;
 };
 
 struct AnimJoint {
@@ -43,17 +43,17 @@ struct AnimJoint {
 	long int   m_parentIndex;
 	long int   m_flags;
 	long int   m_startIndex;
-	apt::vec3  m_position;	  // from the base frame
-	apt::quat  m_orientation; //         "
+	frm::vec3  m_position;	  // from the base frame
+	frm::quat  m_orientation; //         "
 };
 
 struct Bounds {
-	apt::vec3  m_min;
-	apt::vec3  m_max;
+	frm::vec3  m_min;
+	frm::vec3  m_max;
 };
 
 struct Vert {
-	apt::vec2  m_texcoord;
+	frm::vec2  m_texcoord;
 	long int   m_weightStart;
 	long int   m_weightCount;
 };
@@ -65,7 +65,7 @@ struct Tri {
 struct Weight {
 	long int   m_jointIndex;
 	float      m_bias;
-	apt::vec3  m_position;
+	frm::vec3  m_position;
 };
 
 struct Mesh {
@@ -76,17 +76,17 @@ struct Mesh {
 };
 
 #define md5_syntax_err(_msg) \
-	APT_LOG_ERR("md5 syntax error, line %d: %s", _tp_.getLineCount(), _msg); \
+	FRM_LOG_ERR("md5 syntax error, line %d: %s", _tp_.getLineCount(), _msg); \
 	return false
 
 #define md5_err(_fmt, ...) \
-	APT_LOG_ERR("md5 error: " _fmt, __VA_ARGS__); \
+	FRM_LOG_ERR("md5 error: " _fmt, __VA_ARGS__); \
 	return false
 
 #define md5_call(_func) \
 	if (!(_func)) return false;
 
-inline void SkipWhitespaceOrComment(apt::TextParser& _tp_)
+inline void SkipWhitespaceOrComment(frm::TextParser& _tp_)
 {
 	for (;;) {
 		_tp_.skipWhitespace();
@@ -98,7 +98,7 @@ inline void SkipWhitespaceOrComment(apt::TextParser& _tp_)
 	}
 }
 
-inline bool ParseString(apt::TextParser& _tp_, NameStr& out_)
+inline bool ParseString(frm::TextParser& _tp_, NameStr& out_)
 {
 	_tp_.skipWhitespace();
 	if (*_tp_ != '"') {
@@ -114,7 +114,7 @@ inline bool ParseString(apt::TextParser& _tp_, NameStr& out_)
 	return true;
 }
 
-inline bool ParseFloat(apt::TextParser& _tp_, float* out_)
+inline bool ParseFloat(frm::TextParser& _tp_, float* out_)
 {
 	_tp_.skipWhitespace();
 	double d;
@@ -125,7 +125,7 @@ inline bool ParseFloat(apt::TextParser& _tp_, float* out_)
 	return true;
 }
 
-inline bool ParseInt(apt::TextParser& _tp_, long int* out_)
+inline bool ParseInt(frm::TextParser& _tp_, long int* out_)
 {
 	_tp_.skipWhitespace();
 	if (!_tp_.readNextInt(*out_)) {
@@ -134,7 +134,7 @@ inline bool ParseInt(apt::TextParser& _tp_, long int* out_)
 	return true;
 }
 
-inline bool ParseFloatArray(apt::TextParser& _tp_, int count_, float out_[])
+inline bool ParseFloatArray(frm::TextParser& _tp_, int count_, float out_[])
 {
 	_tp_.skipWhitespace();
 	if (*_tp_ != '(') {
@@ -152,7 +152,7 @@ inline bool ParseFloatArray(apt::TextParser& _tp_, int count_, float out_[])
 	return true;
 }
 
-inline bool ParseMeshJoint(apt::TextParser& _tp_, MeshJoint& out_)
+inline bool ParseMeshJoint(frm::TextParser& _tp_, MeshJoint& out_)
 {
 	SkipWhitespaceOrComment(_tp_);
 	md5_call(ParseString(_tp_, out_.m_name));
@@ -168,7 +168,7 @@ inline bool ParseMeshJoint(apt::TextParser& _tp_, MeshJoint& out_)
 	return true;
 }
 
-inline bool ParseAnimJoint(apt::TextParser& _tp_, AnimJoint& out_)
+inline bool ParseAnimJoint(frm::TextParser& _tp_, AnimJoint& out_)
 {
 	SkipWhitespaceOrComment(_tp_);
 	md5_call(ParseString(_tp_, out_.m_name));
@@ -179,7 +179,7 @@ inline bool ParseAnimJoint(apt::TextParser& _tp_, AnimJoint& out_)
 	return true;
 }
 
-inline bool ParseAnimJointPositionOrientation(apt::TextParser& _tp_, AnimJoint& out_)
+inline bool ParseAnimJointPositionOrientation(frm::TextParser& _tp_, AnimJoint& out_)
 {
 	SkipWhitespaceOrComment(_tp_);
 	md5_call(ParseFloatArray(_tp_, 3, &out_.m_position.x));
@@ -193,7 +193,7 @@ inline bool ParseAnimJointPositionOrientation(apt::TextParser& _tp_, AnimJoint& 
 	return true;
 }
 
-inline bool ParseAnimJointList(apt::TextParser& _tp_, long int _numJoints, AnimJoint out_[])
+inline bool ParseAnimJointList(frm::TextParser& _tp_, long int _numJoints, AnimJoint out_[])
 {
 	if (_tp_.advanceToNext('{') != '{') {
 		md5_syntax_err("expected '{'");
@@ -218,7 +218,7 @@ inline bool ParseAnimJointList(apt::TextParser& _tp_, long int _numJoints, AnimJ
 	SkipWhitespaceOrComment(_tp_);
 	return true;
 }
-inline bool ParseBaseFrame(apt::TextParser& _tp_, long int _numJoints, AnimJoint out_[])
+inline bool ParseBaseFrame(frm::TextParser& _tp_, long int _numJoints, AnimJoint out_[])
 {
 	if (_tp_.advanceToNext('{') != '{') {
 		md5_syntax_err("expected '{'");
@@ -244,7 +244,7 @@ inline bool ParseBaseFrame(apt::TextParser& _tp_, long int _numJoints, AnimJoint
 	return true;
 }
 
-inline bool ParseBounds(apt::TextParser& _tp_, Bounds& out_)
+inline bool ParseBounds(frm::TextParser& _tp_, Bounds& out_)
 {
 	SkipWhitespaceOrComment(_tp_);
 	md5_call(ParseFloatArray(_tp_, 3, &out_.m_min.x))
@@ -253,7 +253,7 @@ inline bool ParseBounds(apt::TextParser& _tp_, Bounds& out_)
 	return true;
 }
 
-inline bool ParseBoundsList(apt::TextParser& _tp_, long int _numBounds, Bounds out_[])
+inline bool ParseBoundsList(frm::TextParser& _tp_, long int _numBounds, Bounds out_[])
 {
 	if (_tp_.advanceToNext('{') != '{') {
 		md5_syntax_err("expected '{'");
@@ -279,7 +279,7 @@ inline bool ParseBoundsList(apt::TextParser& _tp_, long int _numBounds, Bounds o
 	return true;
 }
 
-inline bool ParseVert(apt::TextParser& _tp_, Vert out_[])
+inline bool ParseVert(frm::TextParser& _tp_, Vert out_[])
 {
 	if (!_tp_.compareNext("vert")) {
 		md5_syntax_err("expected 'vert'");
@@ -294,7 +294,7 @@ inline bool ParseVert(apt::TextParser& _tp_, Vert out_[])
 	return true;
 }
 
-inline bool ParseTri(apt::TextParser& _tp_, Tri out_[])
+inline bool ParseTri(frm::TextParser& _tp_, Tri out_[])
 {
 	if (!_tp_.compareNext("tri")) {
 		md5_syntax_err("expected 'tri'");
@@ -309,7 +309,7 @@ inline bool ParseTri(apt::TextParser& _tp_, Tri out_[])
 	return true;
 }
 
-inline bool ParseWeight(apt::TextParser& _tp_, Weight out_[])
+inline bool ParseWeight(frm::TextParser& _tp_, Weight out_[])
 {
 	if (!_tp_.compareNext("weight")) {
 		md5_syntax_err("expected 'weight'");
@@ -324,7 +324,7 @@ inline bool ParseWeight(apt::TextParser& _tp_, Weight out_[])
 	return true;
 }
 
-inline bool ParseVersion(apt::TextParser& _tp_)
+inline bool ParseVersion(frm::TextParser& _tp_)
 {
 	if (!_tp_.compareNext("MD5Version")) {
 		md5_syntax_err("expected 'MD5Version'");
@@ -338,7 +338,7 @@ inline bool ParseVersion(apt::TextParser& _tp_)
 	return true;
 }
 
-inline bool ParseMeshHeader(apt::TextParser& _tp_, long int* numJoints_, long int* numMeshes_)
+inline bool ParseMeshHeader(frm::TextParser& _tp_, long int* numJoints_, long int* numMeshes_)
 {
 	md5_call(ParseVersion(_tp_));
 	while (true) {
@@ -371,7 +371,7 @@ inline bool ParseMeshHeader(apt::TextParser& _tp_, long int* numJoints_, long in
 	return true;
 }
 
-inline bool ParseAnimHeader(apt::TextParser& _tp_, long int* numJoints_, long int* numFrames_, long int* frameRate_, long int* numAnimatedComponents_)
+inline bool ParseAnimHeader(frm::TextParser& _tp_, long int* numJoints_, long int* numFrames_, long int* frameRate_, long int* numAnimatedComponents_)
 {
 	md5_call(ParseVersion(_tp_));
 	while (true) {
@@ -422,7 +422,7 @@ inline bool ParseAnimHeader(apt::TextParser& _tp_, long int* numJoints_, long in
 	return true;
 }
 
-inline bool ParseFrame(apt::TextParser& _tp_, long int _numAnimatedComponents, float out_[])
+inline bool ParseFrame(frm::TextParser& _tp_, long int _numAnimatedComponents, float out_[])
 {
 	if (_tp_.advanceToNext('{') != '{') {
 		md5_syntax_err("expected '{'");
@@ -456,7 +456,7 @@ inline bool ParseFrame(apt::TextParser& _tp_, long int _numAnimatedComponents, f
 }
 
 
-inline bool ParseMeshJointList(apt::TextParser& _tp_, long int _numJoints, MeshJoint out_[])
+inline bool ParseMeshJointList(frm::TextParser& _tp_, long int _numJoints, MeshJoint out_[])
 {
 	if (_tp_.advanceToNext('{') != '{') {
 		md5_syntax_err("expected '{'");
@@ -482,7 +482,7 @@ inline bool ParseMeshJointList(apt::TextParser& _tp_, long int _numJoints, MeshJ
 	return true;
 }
 
-inline bool ParseMesh(apt::TextParser& _tp_, Mesh& out_)
+inline bool ParseMesh(frm::TextParser& _tp_, Mesh& out_)
 {
 	if (_tp_.advanceToNext('{') != '{') {
 		md5_syntax_err("expected '{'");

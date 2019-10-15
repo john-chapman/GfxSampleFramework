@@ -1,10 +1,9 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
-
-#include <apt/Pool.h>
-#include <apt/String.h>
+#include <frm/core/Pool.h>
+#include <frm/core/String.h>
 
 #include <EASTL/vector.h>
 
@@ -20,10 +19,10 @@ namespace frm {
 ////////////////////////////////////////////////////////////////////////////////
 class Node
 {
-	friend class apt::Pool<Node>;
+	friend class frm::Pool<Node>;
 	friend class Scene;
 public:
-	typedef apt::String<24> NameStr;
+	typedef frm::String<24> NameStr;
 	typedef uint64 Id;
 	static const Id kInvalidId = ~0u;
 
@@ -68,8 +67,8 @@ public:
 	void         setUserData(uint64 _data)           { m_userData = _data; }
 
 	uint64       getSceneData() const                { return m_sceneData; }
-	Camera*      getSceneDataCamera() const          { APT_ASSERT(m_type == Type_Camera); return (Camera*)m_sceneData; }
-	Scene*       getSceneDataScene() const           { APT_ASSERT(m_type == Type_Root); return (Scene*)m_sceneData;    }
+	Camera*      getSceneDataCamera() const          { FRM_ASSERT(m_type == Type_Camera); return (Camera*)m_sceneData; }
+	Scene*       getSceneDataScene() const           { FRM_ASSERT(m_type == Type_Root); return (Scene*)m_sceneData;    }
 
 	const mat4&  getLocalMatrix() const              { return m_localMatrix; }
 	void         setLocalMatrix(const mat4& _mat)    { m_localMatrix = _mat; }
@@ -100,7 +99,7 @@ public:
 	void         addChild(Node* _node);
 	void         removeChild(Node* _node);
 
-	friend bool  Serialize(apt::Serializer& _serializer_, Scene& _scene_, Node& _node_);
+	friend bool  Serialize(frm::Serializer& _serializer_, Scene& _scene_, Node& _node_);
 
 private:
  // meta
@@ -139,8 +138,8 @@ private:
 	int moveXForm(int _i, int _dir);
 
 
-	void setSceneDataCamera(Camera* _camera) { APT_ASSERT(m_type == Type_Camera); m_sceneData = (uint64)_camera; }
-	void setSceneDataScene(Scene* _scene)    { APT_ASSERT(m_type == Type_Root);   m_sceneData = (uint64)_scene;  }
+	void setSceneDataCamera(Camera* _camera) { FRM_ASSERT(m_type == Type_Camera); m_sceneData = (uint64)_camera; }
+	void setSceneDataScene(Scene* _scene)    { FRM_ASSERT(m_type == Type_Root);   m_sceneData = (uint64)_scene;  }
 
 }; // class Node
 
@@ -196,8 +195,8 @@ public:
 	void    setCullCamera(Camera* _camera)          { m_cullCamera = _camera; }
 
 	// \note Node names beginning with '#' are ignored during serialization (use for any nodes added programmatcially).
-	friend bool Serialize(apt::Serializer& _serializer_, Scene& _scene_);
-	friend bool Serialize(apt::Serializer& _serializer_, Scene& _scene_, Node& _node_);
+	friend bool Serialize(frm::Serializer& _serializer_, Scene& _scene_);
+	friend bool Serialize(frm::Serializer& _serializer_, Scene& _scene_, Node& _node_);
 #ifdef frm_Scene_ENABLE_EDIT
 	void edit();
 
@@ -217,13 +216,13 @@ private:
 	Node::Id                m_nextNodeId = 0;           // Monotonically increasing id for nodes.
 	Node*                   m_root = nullptr;           // Everything is a child of root.              
 	eastl::vector<Node*>    m_nodes[Node::Type_Count];  // Nodes binned by type.
-	apt::Pool<Node>         m_nodePool;
+	frm::Pool<Node>         m_nodePool;
 
  // cameras
 	Camera*                 m_drawCamera = nullptr;
 	Camera*                 m_cullCamera = nullptr;
 	eastl::vector<Camera*>  m_cameras;
-	apt::Pool<Camera>       m_cameraPool;
+	frm::Pool<Camera>       m_cameraPool;
 
 #ifdef frm_Scene_ENABLE_EDIT
 	bool       m_showNodeGraph3d    = false;

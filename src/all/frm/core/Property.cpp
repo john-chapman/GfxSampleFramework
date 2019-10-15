@@ -1,8 +1,8 @@
 #include "Property.h"
 
-#include <apt/memory.h>
-#include <apt/FileSystem.h>
-#include <apt/Json.h>
+#include <frm/core/memory.h>
+#include <frm/core/FileSystem.h>
+#include <frm/core/Json.h>
 
 #include <EASTL/utility.h>
 #include <imgui/imgui.h>
@@ -11,7 +11,7 @@
 
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 /******************************************************************************
 
@@ -44,7 +44,7 @@ Property::Property(
 	Edit*       _edit
 	)
 {
-	APT_ASSERT(_name); // must provide a name
+	FRM_ASSERT(_name); // must provide a name
 	m_name.set(_name);
 	m_displayName.set(_displayName ? _displayName : _name);
 	m_type = _type;
@@ -52,23 +52,23 @@ Property::Property(
 	m_count = (uint8)_count;
 	int sizeBytes = GetTypeSize(_type) * _count;
 
-	m_default = (char*)APT_MALLOC_ALIGNED(sizeBytes, 16);
-	m_min     = (char*)APT_MALLOC_ALIGNED(sizeBytes, 16);
-	m_max     = (char*)APT_MALLOC_ALIGNED(sizeBytes, 16);
+	m_default = (char*)FRM_MALLOC_ALIGNED(sizeBytes, 16);
+	m_min     = (char*)FRM_MALLOC_ALIGNED(sizeBytes, 16);
+	m_max     = (char*)FRM_MALLOC_ALIGNED(sizeBytes, 16);
 	if (storage_) {
 		m_data = (char*)storage_;
 		m_ownsData = false;
 	} else {
-		m_data = (char*)APT_MALLOC_ALIGNED(sizeBytes, 16);
+		m_data = (char*)FRM_MALLOC_ALIGNED(sizeBytes, 16);
 		m_ownsData = true;
 	}
 
 	if (_type == Type_String) {
 	 // call StringBase ctor
 		if (m_ownsData) {
-			new((apt::String<0>*)m_data) apt::String<0>();
+			new((frm::String<0>*)m_data) frm::String<0>();
 		}
-		new((apt::String<0>*)m_default) apt::String<0>();
+		new((frm::String<0>*)m_default) frm::String<0>();
 		((StringBase*)m_default)->set((const char*)_default);
 	} else {
 		memcpy(m_default, _default, sizeBytes);
@@ -88,11 +88,11 @@ Property::Property(
 Property::~Property()
 {
 	if (m_ownsData) {
-		APT_FREE_ALIGNED(m_data);
+		FRM_FREE_ALIGNED(m_data);
 	}
-	APT_FREE_ALIGNED(m_default);
-	APT_FREE_ALIGNED(m_min);
-	APT_FREE_ALIGNED(m_max);
+	FRM_FREE_ALIGNED(m_default);
+	FRM_FREE_ALIGNED(m_min);
+	FRM_FREE_ALIGNED(m_max);
 }
 
 Property::Property(Property&& _rhs)
@@ -162,7 +162,7 @@ bool Property::edit()
 						ret |= ImGui::SliderInt4((const char*)m_displayName, (int*)m_data, *((int*)m_min), *((int*)m_max));
 						break;
 					default: {
-						APT_ASSERT(false); // \todo arbitrary arrays, see bool
+						FRM_ASSERT(false); // \todo arbitrary arrays, see bool
 						break;
 					}
 				};
@@ -182,7 +182,7 @@ bool Property::edit()
 						ret |= ImGui::SliderFloat4((const char*)m_displayName, (float*)m_data, *((float*)m_min), *((float*)m_max));
 						break;
 					default: {
-						APT_ASSERT(false); // \todo arbitrary arrays, see bool
+						FRM_ASSERT(false); // \todo arbitrary arrays, see bool
 						break;
 					}
 				};
@@ -192,7 +192,7 @@ bool Property::edit()
 				switch (m_count) {
 					case 1: {
 						StringBase& str = (StringBase&)*m_data;
-						APT_ASSERT(str.getCapacity() < kStrBufLen);
+						FRM_ASSERT(str.getCapacity() < kStrBufLen);
 						memcpy(buf, (const char*)str, str.getLength() + 1);
 						if (ImGui::InputText((const char*)m_displayName, buf, kStrBufLen)) {
 							str.set(buf);
@@ -205,7 +205,7 @@ bool Property::edit()
 						for (int i = 0; i < (int)m_count; ++i) {
 							displayName.setf("%s[%d]", (const char*)m_displayName, i); 
 						 	StringBase& str = (StringBase&)*m_data;
-							APT_ASSERT(str.getCapacity() < kStrBufLen);
+							FRM_ASSERT(str.getCapacity() < kStrBufLen);
 							if (ImGui::InputText((const char*)displayName, buf, kStrBufLen)) {
 								str.set(buf);
 								ret = true;
@@ -216,7 +216,7 @@ bool Property::edit()
 				};
 				break;
 			default:
-				APT_ASSERT(false);
+				FRM_ASSERT(false);
 			}
 		};
 	}
@@ -248,7 +248,7 @@ bool frm::Serialize(SerializerJson& _serializer_, Property& _prop_)
 					case Property::Type_Int:    ret &= Serialize(_serializer_, ((int*)_prop_.m_data)[i]); break;
 					case Property::Type_Float:  ret &= Serialize(_serializer_, ((float*)_prop_.m_data)[i]); break;
 					case Property::Type_String: ret &= Serialize(_serializer_, ((StringBase*)_prop_.m_data)[i]); break;
-					default:                    ret = false; APT_ASSERT(false);
+					default:                    ret = false; FRM_ASSERT(false);
 				}
 			}
 			_prop_.m_count = (uint8)count;
@@ -262,7 +262,7 @@ bool frm::Serialize(SerializerJson& _serializer_, Property& _prop_)
 			case Property::Type_Int:    ret &= Serialize(_serializer_, *((int*)_prop_.m_data),        (const char*)_prop_.m_name); break;
 			case Property::Type_Float:  ret &= Serialize(_serializer_, *((float*)_prop_.m_data),      (const char*)_prop_.m_name); break;
 			case Property::Type_String: ret &= Serialize(_serializer_, *((StringBase*)_prop_.m_data), (const char*)_prop_.m_name); break;
-			default:                    ret = false; APT_ASSERT(false);
+			default:                    ret = false; FRM_ASSERT(false);
 		}
 	}
 	return ret;
@@ -286,7 +286,7 @@ static bool EditColor(Property& _prop)
 		ret = ImGui::ColorEdit4(_prop.getDisplayName(), (float*)_prop.getData());
 		break;
 	default:
-		APT_ASSERT(false);
+		FRM_ASSERT(false);
 		break;
 	};
 	return ret;

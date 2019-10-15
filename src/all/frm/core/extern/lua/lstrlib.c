@@ -26,12 +26,12 @@
 
 
 /*
-** maximum number of captures that a pattern can do during
+** maximum number of cfrmures that a pattern can do during
 ** pattern-matching. This limit is arbitrary, but must fit in
 ** an unsigned char.
 */
-#if !defined(LUA_MAXCAPTURES)
-#define LUA_MAXCAPTURES		32
+#if !defined(LUA_MAXCfrmURES)
+#define LUA_MAXCfrmURES		32
 #endif
 
 
@@ -217,11 +217,11 @@ typedef struct MatchState {
   const char *p_end;  /* end ('\0') of pattern */
   lua_State *L;
   int matchdepth;  /* control for recursive depth (to avoid C stack overflow) */
-  unsigned char level;  /* total number of captures (finished or unfinished) */
+  unsigned char level;  /* total number of cfrmures (finished or unfinished) */
   struct {
     const char *init;
     ptrdiff_t len;
-  } capture[LUA_MAXCAPTURES];
+  } cfrmure[LUA_MAXCfrmURES];
 } MatchState;
 
 
@@ -239,19 +239,19 @@ static const char *match (MatchState *ms, const char *s, const char *p);
 #define SPECIALS	"^$*+?.([%-"
 
 
-static int check_capture (MatchState *ms, int l) {
+static int check_cfrmure (MatchState *ms, int l) {
   l -= '1';
-  if (l < 0 || l >= ms->level || ms->capture[l].len == CAP_UNFINISHED)
-    return luaL_error(ms->L, "invalid capture index %%%d", l + 1);
+  if (l < 0 || l >= ms->level || ms->cfrmure[l].len == CAP_UNFINISHED)
+    return luaL_error(ms->L, "invalid cfrmure index %%%d", l + 1);
   return l;
 }
 
 
-static int capture_to_close (MatchState *ms) {
+static int cfrmure_to_close (MatchState *ms) {
   int level = ms->level;
   for (level--; level>=0; level--)
-    if (ms->capture[level].len == CAP_UNFINISHED) return level;
-  return luaL_error(ms->L, "invalid pattern capture");
+    if (ms->cfrmure[level].len == CAP_UNFINISHED) return level;
+  return luaL_error(ms->L, "invalid pattern cfrmure");
 }
 
 
@@ -386,37 +386,37 @@ static const char *min_expand (MatchState *ms, const char *s,
 }
 
 
-static const char *start_capture (MatchState *ms, const char *s,
+static const char *start_cfrmure (MatchState *ms, const char *s,
                                     const char *p, int what) {
   const char *res;
   int level = ms->level;
-  if (level >= LUA_MAXCAPTURES) luaL_error(ms->L, "too many captures");
-  ms->capture[level].init = s;
-  ms->capture[level].len = what;
+  if (level >= LUA_MAXCfrmURES) luaL_error(ms->L, "too many cfrmures");
+  ms->cfrmure[level].init = s;
+  ms->cfrmure[level].len = what;
   ms->level = level+1;
   if ((res=match(ms, s, p)) == NULL)  /* match failed? */
-    ms->level--;  /* undo capture */
+    ms->level--;  /* undo cfrmure */
   return res;
 }
 
 
-static const char *end_capture (MatchState *ms, const char *s,
+static const char *end_cfrmure (MatchState *ms, const char *s,
                                   const char *p) {
-  int l = capture_to_close(ms);
+  int l = cfrmure_to_close(ms);
   const char *res;
-  ms->capture[l].len = s - ms->capture[l].init;  /* close capture */
+  ms->cfrmure[l].len = s - ms->cfrmure[l].init;  /* close cfrmure */
   if ((res = match(ms, s, p)) == NULL)  /* match failed? */
-    ms->capture[l].len = CAP_UNFINISHED;  /* undo capture */
+    ms->cfrmure[l].len = CAP_UNFINISHED;  /* undo cfrmure */
   return res;
 }
 
 
-static const char *match_capture (MatchState *ms, const char *s, int l) {
+static const char *match_cfrmure (MatchState *ms, const char *s, int l) {
   size_t len;
-  l = check_capture(ms, l);
-  len = ms->capture[l].len;
+  l = check_cfrmure(ms, l);
+  len = ms->cfrmure[l].len;
   if ((size_t)(ms->src_end-s) >= len &&
-      memcmp(ms->capture[l].init, s, len) == 0)
+      memcmp(ms->cfrmure[l].init, s, len) == 0)
     return s+len;
   else return NULL;
 }
@@ -428,15 +428,15 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
   init: /* using goto's to optimize tail recursion */
   if (p != ms->p_end) {  /* end of pattern? */
     switch (*p) {
-      case '(': {  /* start capture */
-        if (*(p + 1) == ')')  /* position capture? */
-          s = start_capture(ms, s, p + 2, CAP_POSITION);
+      case '(': {  /* start cfrmure */
+        if (*(p + 1) == ')')  /* position cfrmure? */
+          s = start_cfrmure(ms, s, p + 2, CAP_POSITION);
         else
-          s = start_capture(ms, s, p + 1, CAP_UNFINISHED);
+          s = start_cfrmure(ms, s, p + 1, CAP_UNFINISHED);
         break;
       }
-      case ')': {  /* end capture */
-        s = end_capture(ms, s, p + 1);
+      case ')': {  /* end cfrmure */
+        s = end_cfrmure(ms, s, p + 1);
         break;
       }
       case '$': {
@@ -470,8 +470,8 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
           }
           case '0': case '1': case '2': case '3':
           case '4': case '5': case '6': case '7':
-          case '8': case '9': {  /* capture results (%0-%9)? */
-            s = match_capture(ms, s, uchar(*(p + 1)));
+          case '8': case '9': {  /* cfrmure results (%0-%9)? */
+            s = match_cfrmure(ms, s, uchar(*(p + 1)));
             if (s != NULL) {
               p += 2; goto init;  /* return match(ms, s, p + 2) */
             }
@@ -547,31 +547,31 @@ static const char *lmemfind (const char *s1, size_t l1,
 }
 
 
-static void push_onecapture (MatchState *ms, int i, const char *s,
+static void push_onecfrmure (MatchState *ms, int i, const char *s,
                                                     const char *e) {
   if (i >= ms->level) {
     if (i == 0)  /* ms->level == 0, too */
       lua_pushlstring(ms->L, s, e - s);  /* add whole match */
     else
-      luaL_error(ms->L, "invalid capture index %%%d", i + 1);
+      luaL_error(ms->L, "invalid cfrmure index %%%d", i + 1);
   }
   else {
-    ptrdiff_t l = ms->capture[i].len;
-    if (l == CAP_UNFINISHED) luaL_error(ms->L, "unfinished capture");
+    ptrdiff_t l = ms->cfrmure[i].len;
+    if (l == CAP_UNFINISHED) luaL_error(ms->L, "unfinished cfrmure");
     if (l == CAP_POSITION)
-      lua_pushinteger(ms->L, (ms->capture[i].init - ms->src_init) + 1);
+      lua_pushinteger(ms->L, (ms->cfrmure[i].init - ms->src_init) + 1);
     else
-      lua_pushlstring(ms->L, ms->capture[i].init, l);
+      lua_pushlstring(ms->L, ms->cfrmure[i].init, l);
   }
 }
 
 
-static int push_captures (MatchState *ms, const char *s, const char *e) {
+static int push_cfrmures (MatchState *ms, const char *s, const char *e) {
   int i;
   int nlevels = (ms->level == 0 && s) ? 1 : ms->level;
-  luaL_checkstack(ms->L, nlevels, "too many captures");
+  luaL_checkstack(ms->L, nlevels, "too many cfrmures");
   for (i = 0; i < nlevels; i++)
-    push_onecapture(ms, i, s, e);
+    push_onecfrmure(ms, i, s, e);
   return nlevels;  /* number of strings pushed */
 }
 
@@ -639,10 +639,10 @@ static int str_find_aux (lua_State *L, int find) {
         if (find) {
           lua_pushinteger(L, (s1 - s) + 1);  /* start */
           lua_pushinteger(L, res - s);   /* end */
-          return push_captures(&ms, NULL, 0) + 2;
+          return push_cfrmures(&ms, NULL, 0) + 2;
         }
         else
-          return push_captures(&ms, s1, res);
+          return push_cfrmures(&ms, s1, res);
       }
     } while (s1++ < ms.src_end && !anchor);
   }
@@ -679,7 +679,7 @@ static int gmatch_aux (lua_State *L) {
     reprepstate(&gm->ms);
     if ((e = match(&gm->ms, src, gm->p)) != NULL && e != gm->lastmatch) {
       gm->src = gm->lastmatch = e;
-      return push_captures(&gm->ms, src, e);
+      return push_cfrmures(&gm->ms, src, e);
     }
   }
   return 0;  /* not found */
@@ -718,10 +718,10 @@ static void add_s (MatchState *ms, luaL_Buffer *b, const char *s,
       else if (news[i] == '0')
           luaL_addlstring(b, s, e - s);
       else {
-        push_onecapture(ms, news[i] - '1', s, e);
+        push_onecfrmure(ms, news[i] - '1', s, e);
         luaL_tolstring(L, -1, NULL);  /* if number, convert it to string */
         lua_remove(L, -2);  /* remove original value */
-        luaL_addvalue(b);  /* add capture to accumulated result */
+        luaL_addvalue(b);  /* add cfrmure to accumulated result */
       }
     }
   }
@@ -735,12 +735,12 @@ static void add_value (MatchState *ms, luaL_Buffer *b, const char *s,
     case LUA_TFUNCTION: {
       int n;
       lua_pushvalue(L, 3);
-      n = push_captures(ms, s, e);
+      n = push_cfrmures(ms, s, e);
       lua_call(L, n, 1);
       break;
     }
     case LUA_TTABLE: {
-      push_onecapture(ms, 0, s, e);
+      push_onecfrmure(ms, 0, s, e);
       lua_gettable(L, 3);
       break;
     }

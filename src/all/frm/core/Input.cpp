@@ -24,7 +24,7 @@ Device::Device(int _buttonCount, int _axisCount)
 {
 	setButtonCount(_buttonCount);
 	setAxisCount(_axisCount);
-	//m_lastPoll = apt::Time::GetTimestamp();
+	//m_lastPoll = frm::Time::GetTimestamp();
 	reset();
 }
 
@@ -36,12 +36,13 @@ Device::~Device()
 
 void Device::pollBegin()
 {
-	//apt::Timestamp t = apt::Time::GetTimestamp();
+	//frm::Timestamp t = frm::Time::GetTimestamp();
 	//m_deltaTime = (float)(t - m_lastPoll).asSeconds();
 	//m_lastPoll = t;
 
  // zero button counters but preserve state
-	for (int i = 0; i < m_buttonCount; ++i) {
+	for (int i = 0; i < m_buttonCount; ++i)
+	{
 		m_buttonStates[i] &= 0x80;
 	}
  // zero axis states
@@ -56,7 +57,8 @@ void Device::pollEnd()
 void Device::setIncButton(int _button, bool _isDown)
 {
 	char state = m_buttonStates[_button];
-	if ((state & 0x80) && !_isDown) {
+	if ((state & 0x80) && !_isDown)
+	{
 		state = ((state & 0x7f) + 1);
 	}
 	state = (_isDown ? 0x80 : 0x00) | (state & 0x7f);
@@ -72,9 +74,10 @@ void Device::reset()
 void Device::setButtonCount(int _count)
 {
 	delete[] m_buttonStates;
-	if (_count > 0u) {
+	if (_count > 0u)
+	{
 		m_buttonStates = new char[_count];
-		APT_ASSERT(m_buttonStates);
+		FRM_ASSERT(m_buttonStates);
 		m_buttonCount = _count;
 	}
 }
@@ -82,9 +85,10 @@ void Device::setButtonCount(int _count)
 void Device::setAxisCount(int _count)
 {
 	delete[] m_axisStates;
-	if (_count > 0u) {
+	if (_count > 0u)
+	{
 		m_axisStates = new float[_count];
-		APT_ASSERT(m_axisStates);
+		FRM_ASSERT(m_axisStates);
 		m_axisCount = _count;
 	}
 }
@@ -212,16 +216,20 @@ void Keyboard::InitKeyNames()
 
 char Keyboard::ToChar(Key _key)
 {
-	if (_key >= Key_A && _key <= Key_Z) {
+	if (_key >= Key_A && _key <= Key_Z)
+	{
 		return 'A' + (_key - Key_A);
 	}
-	if (_key >= Key_0 && _key <= Key_9) {
+	if (_key >= Key_0 && _key <= Key_9)
+	{
 		return '0' + (_key - Key_0);
 	}
-	if (_key >= Key_Numpad0 && _key <= Key_Numpad9) {
+	if (_key >= Key_Numpad0 && _key <= Key_Numpad9)
+	{
 		return '0' + (_key - Key_Numpad0);
 	}
-	switch (_key) {
+	switch (_key)
+	{
 		case Key_Space:           return ' ';
 		case Key_Plus:
 		case Key_NumpadPlus:      return '+';
@@ -302,17 +310,20 @@ void Gamepad::InitButtonNames()
 
 *******************************************************************************/
 
-APT_DEFINE_STATIC_INIT(Input, Input::Init, Input::Shutdown);
+FRM_DEFINE_STATIC_INIT(Input, Input::Init, Input::Shutdown);
 
 void Input::ResetAllDevices()
 {
-	for (int i = 0; i < kMaxKeyboardCount; ++i) {
+	for (int i = 0; i < kMaxKeyboardCount; ++i)
+	{
 		ResetKeyboard(i);
 	}
-	for (int i = 0; i < kMaxMouseCount; ++i) {
+	for (int i = 0; i < kMaxMouseCount; ++i)
+	{
 		ResetMouse(i);
 	}
-	for (int i = 0; i < kMaxGamepadCount; ++i) {
+	for (int i = 0; i < kMaxGamepadCount; ++i)
+	{
 		ResetGamepad(i);
 	}
 }

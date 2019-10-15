@@ -1,6 +1,7 @@
 #include "BasicRenderer.h"
 
 #include <frm/core/geom.h>
+#include <frm/core/memory.h>
 #include <frm/core/BasicMaterial.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Camera.h>
@@ -13,13 +14,9 @@
 #include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
 
-#include <apt/memory.h>
-
 #include <imgui/imgui.h>
 
 #include <EASTL/vector.h>
-
-using namespace apt;
 
 namespace frm {
 
@@ -27,14 +24,14 @@ namespace frm {
 
 BasicRenderer* BasicRenderer::Create(int _resolutionX, int _resolutionY)
 {
-	BasicRenderer* ret = APT_NEW(BasicRenderer(_resolutionX, _resolutionY));
+	BasicRenderer* ret = FRM_NEW(BasicRenderer(_resolutionX, _resolutionY));
 
 	return ret;
 }
 
 void BasicRenderer::Destroy(BasicRenderer*& _inst_)
 {
-	APT_DELETE(_inst_);
+	FRM_DELETE(_inst_);
 	_inst_ = nullptr;
 }
 
@@ -174,9 +171,9 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY)
 	fbGBuffer = Framebuffer::Create(2, txGBuffer0, txGBufferDepth);
 	fbScene   = Framebuffer::Create(2, txScene, txGBufferDepth);
 
-	//APT_VERIFY(m_luminanceMeter.init(_resolutionY / 2));
+	//FRM_VERIFY(m_luminanceMeter.init(_resolutionY / 2));
 	//m_colorCorrection.m_luminanceMeter = &m_luminanceMeter;
-	APT_VERIFY(m_colorCorrection.init());	
+	FRM_VERIFY(m_colorCorrection.init());	
 }
 
 BasicRenderer::~BasicRenderer()

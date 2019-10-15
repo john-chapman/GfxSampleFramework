@@ -4,16 +4,16 @@
 	#error framework: Don't include GL/gl.h, included frm/gl.h
 #endif
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 
 #include <GL/glew.h>
 
-#ifdef APT_DEBUG
+#ifdef FRM_DEBUG
 	#define glAssert(call) \
 		do { \
 			(call); \
-			if (frm::internal::GlAssert(#call, __FILE__, __LINE__) == apt::AssertBehavior_Break) \
-				{ APT_BREAK(); } \
+			if (frm::internal::GlAssert(#call, __FILE__, __LINE__) == frm::AssertBehavior_Break) \
+				{ FRM_BREAK(); } \
 			} \
 		while (0)
 #else
@@ -45,9 +45,9 @@ const int kShaderStageCount = 6;
 extern const GLenum kShaderStages[kShaderStageCount];
 int ShaderStageToIndex(GLenum _stage);
 
-GLenum DataTypeToGLenum(apt::DataType _type);
+GLenum DataTypeToGLenum(frm::DataType _type);
 
-apt::AssertBehavior GlAssert(const char* _call, const char* _file, int _line);
+frm::AssertBehavior GlAssert(const char* _call, const char* _file, int _line);
 const char* GlEnumStr(GLenum _enum);
 const char* GlGetString(GLenum _name);
 
@@ -75,7 +75,7 @@ struct GLScopedPixelStorei
 		glAssert(glPixelStorei(m_pname, m_param));
 	}
 };
-#define glScopedPixelStorei(_pname, _param) frm::GLScopedPixelStorei APT_UNIQUE_NAME(_GLScopedPixelStorei)(_pname, _param)
+#define glScopedPixelStorei(_pname, _param) frm::GLScopedPixelStorei FRM_UNIQUE_NAME(_GLScopedPixelStorei)(_pname, _param)
 
 
 struct GLScopedEnable
@@ -104,6 +104,6 @@ struct GLScopedEnable
 		}
 	}
 };
-#define glScopedEnable(_cap, _val) frm::GLScopedEnable APT_UNIQUE_NAME(_GLScopedEnable)(_cap, _val)
+#define glScopedEnable(_cap, _val) frm::GLScopedEnable FRM_UNIQUE_NAME(_GLScopedEnable)(_cap, _val)
 
 } // namespace frm

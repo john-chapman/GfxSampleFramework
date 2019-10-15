@@ -1,10 +1,9 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
-
-#include <apt/Factory.h>
-#include <apt/FileSystem.h>
+#include <frm/core/Factory.h>
+#include <frm/core/FileSystem.h>
 
 #include <EASTL/fixed_vector.h>
 
@@ -16,7 +15,7 @@ class Node;
 // Component
 // Base class/factory for Components.
 ////////////////////////////////////////////////////////////////////////////////
-class Component: public apt::Factory<Component>
+class Component: public Factory<Component>
 {
 public:
 	
@@ -36,8 +35,8 @@ public:
 	Node*        getNode() const                            { return m_node; }
 	void         setNode(Node* _node)                       { m_node = _node; }
 
-	virtual bool serialize(apt::Serializer& _serializer_) = 0;
-	friend bool Serialize(apt::Serializer& _serializer_, Component& _component_)
+	virtual bool serialize(Serializer& _serializer_) = 0;
+	friend bool Serialize(Serializer& _serializer_, Component& _component_)
 	{
 		return _component_.serialize(_serializer_);
 	}
@@ -68,9 +67,9 @@ struct Component_BasicRenderable: public Component
 	bool                                   m_castShadows = true;
 	mat4                                   m_prevWorld   = identity;
 	Mesh*                                  m_mesh        = nullptr;
-	apt::PathStr                           m_meshPath    = "";
+	PathStr                                m_meshPath    = "";
 	eastl::fixed_vector<BasicMaterial*, 1> m_materials;      // per submesh
-	eastl::fixed_vector<apt::PathStr, 1>   m_materialPaths;  //     "
+	eastl::fixed_vector<PathStr, 1>   m_materialPaths;  //     "
 
 	static eastl::vector<Component_BasicRenderable*> s_instances;
 
@@ -78,7 +77,7 @@ struct Component_BasicRenderable: public Component
 	virtual void shutdown() override;
 	virtual void update(float _dt) override;
 	virtual bool edit() override;
-	virtual bool serialize(apt::Serializer& _serializer_) override;
+	virtual bool serialize(Serializer& _serializer_) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -108,7 +107,7 @@ struct Component_BasicLight: public Component
 	virtual void shutdown() override;
 	virtual void update(float _dt) override;
 	virtual bool edit() override;
-	virtual bool serialize(apt::Serializer& _serializer_) override;
+	virtual bool serialize(Serializer& _serializer_) override;
 };
 
 } // namespace frm

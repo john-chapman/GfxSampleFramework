@@ -10,7 +10,7 @@
 #endif
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 static float GetMaxScale(const mat4& _mat)
 {
@@ -133,14 +133,14 @@ Plane::Plane(const vec3& _p0, const vec3& _p1, const vec3& _p2)
 {
 	vec3 u(_p1 - _p0);
 	vec3 v(_p2 - _p0);
-	m_normal = apt::Normalize(cross(v, u));
+	m_normal = frm::Normalize(cross(v, u));
 	m_offset = dot(m_normal, (_p0 + _p1 + _p2) / 3.0f);
 }
 
 void Plane::transform(const mat4& _mat)
 {
 	vec3 origin = TransformPosition(_mat, getOrigin());
-	m_normal = apt::Normalize(TransformDirection(_mat, m_normal));
+	m_normal = frm::Normalize(TransformDirection(_mat, m_normal));
 	m_offset = dot(m_normal, origin);
 }
 
@@ -887,11 +887,11 @@ bool frm::Intersect(const Line& _line, const Cylinder& _cylinder, float& t0_, fl
 		Intersect(_line, Plane(nrm, _cylinder.m_end), t2);
 		Intersect(_line, Plane(-nrm, _cylinder.m_start), t3);
 		if (t3 < t2) {
-			t0 = APT_CLAMP(t0, t3, t2);
-			t1 = APT_CLAMP(t1, t3, t2);
+			t0 = FRM_CLAMP(t0, t3, t2);
+			t1 = FRM_CLAMP(t1, t3, t2);
 		} else {
-			t0 = APT_CLAMP(t0, t2, t3);
-			t1 = APT_CLAMP(t1, t2, t3);
+			t0 = FRM_CLAMP(t0, t2, t3);
+			t1 = FRM_CLAMP(t1, t2, t3);
 		}
 		OrderByMagnitude(t0, t1);
 

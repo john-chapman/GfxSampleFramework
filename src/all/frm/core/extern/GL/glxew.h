@@ -1080,32 +1080,32 @@ typedef void ( * PFNGLXFREEMEMORYNVPROC) (void *pointer);
 
 #endif /* GLX_NV_vertex_array_range */
 
-/* -------------------------- GLX_NV_video_capture ------------------------- */
+/* -------------------------- GLX_NV_video_cfrmure ------------------------- */
 
-#ifndef GLX_NV_video_capture
-#define GLX_NV_video_capture 1
+#ifndef GLX_NV_video_cfrmure
+#define GLX_NV_video_cfrmure 1
 
 #define GLX_DEVICE_ID_NV 0x20CD
 #define GLX_UNIQUE_ID_NV 0x20CE
-#define GLX_NUM_VIDEO_CAPTURE_SLOTS_NV 0x20CF
+#define GLX_NUM_VIDEO_CfrmURE_SLOTS_NV 0x20CF
 
-typedef XID GLXVideoCaptureDeviceNV;
+typedef XID GLXVideoCfrmureDeviceNV;
 
-typedef int ( * PFNGLXBINDVIDEOCAPTUREDEVICENVPROC) (Display* dpy, unsigned int video_capture_slot, GLXVideoCaptureDeviceNV device);
-typedef GLXVideoCaptureDeviceNV * ( * PFNGLXENUMERATEVIDEOCAPTUREDEVICESNVPROC) (Display* dpy, int screen, int *nelements);
-typedef void ( * PFNGLXLOCKVIDEOCAPTUREDEVICENVPROC) (Display* dpy, GLXVideoCaptureDeviceNV device);
-typedef int ( * PFNGLXQUERYVIDEOCAPTUREDEVICENVPROC) (Display* dpy, GLXVideoCaptureDeviceNV device, int attribute, int *value);
-typedef void ( * PFNGLXRELEASEVIDEOCAPTUREDEVICENVPROC) (Display* dpy, GLXVideoCaptureDeviceNV device);
+typedef int ( * PFNGLXBINDVIDEOCfrmUREDEVICENVPROC) (Display* dpy, unsigned int video_cfrmure_slot, GLXVideoCfrmureDeviceNV device);
+typedef GLXVideoCfrmureDeviceNV * ( * PFNGLXENUMERATEVIDEOCfrmUREDEVICESNVPROC) (Display* dpy, int screen, int *nelements);
+typedef void ( * PFNGLXLOCKVIDEOCfrmUREDEVICENVPROC) (Display* dpy, GLXVideoCfrmureDeviceNV device);
+typedef int ( * PFNGLXQUERYVIDEOCfrmUREDEVICENVPROC) (Display* dpy, GLXVideoCfrmureDeviceNV device, int attribute, int *value);
+typedef void ( * PFNGLXRELEASEVIDEOCfrmUREDEVICENVPROC) (Display* dpy, GLXVideoCfrmureDeviceNV device);
 
-#define glXBindVideoCaptureDeviceNV GLXEW_GET_FUN(__glewXBindVideoCaptureDeviceNV)
-#define glXEnumerateVideoCaptureDevicesNV GLXEW_GET_FUN(__glewXEnumerateVideoCaptureDevicesNV)
-#define glXLockVideoCaptureDeviceNV GLXEW_GET_FUN(__glewXLockVideoCaptureDeviceNV)
-#define glXQueryVideoCaptureDeviceNV GLXEW_GET_FUN(__glewXQueryVideoCaptureDeviceNV)
-#define glXReleaseVideoCaptureDeviceNV GLXEW_GET_FUN(__glewXReleaseVideoCaptureDeviceNV)
+#define glXBindVideoCfrmureDeviceNV GLXEW_GET_FUN(__glewXBindVideoCfrmureDeviceNV)
+#define glXEnumerateVideoCfrmureDevicesNV GLXEW_GET_FUN(__glewXEnumerateVideoCfrmureDevicesNV)
+#define glXLockVideoCfrmureDeviceNV GLXEW_GET_FUN(__glewXLockVideoCfrmureDeviceNV)
+#define glXQueryVideoCfrmureDeviceNV GLXEW_GET_FUN(__glewXQueryVideoCfrmureDeviceNV)
+#define glXReleaseVideoCfrmureDeviceNV GLXEW_GET_FUN(__glewXReleaseVideoCfrmureDeviceNV)
 
-#define GLXEW_NV_video_capture GLXEW_GET_VAR(__GLXEW_NV_video_capture)
+#define GLXEW_NV_video_cfrmure GLXEW_GET_VAR(__GLXEW_NV_video_cfrmure)
 
-#endif /* GLX_NV_video_capture */
+#endif /* GLX_NV_video_cfrmure */
 
 /* ---------------------------- GLX_NV_video_out --------------------------- */
 
@@ -1614,11 +1614,11 @@ GLXEW_FUN_EXPORT PFNGLXRESETFRAMECOUNTNVPROC __glewXResetFrameCountNV;
 GLXEW_FUN_EXPORT PFNGLXALLOCATEMEMORYNVPROC __glewXAllocateMemoryNV;
 GLXEW_FUN_EXPORT PFNGLXFREEMEMORYNVPROC __glewXFreeMemoryNV;
 
-GLXEW_FUN_EXPORT PFNGLXBINDVIDEOCAPTUREDEVICENVPROC __glewXBindVideoCaptureDeviceNV;
-GLXEW_FUN_EXPORT PFNGLXENUMERATEVIDEOCAPTUREDEVICESNVPROC __glewXEnumerateVideoCaptureDevicesNV;
-GLXEW_FUN_EXPORT PFNGLXLOCKVIDEOCAPTUREDEVICENVPROC __glewXLockVideoCaptureDeviceNV;
-GLXEW_FUN_EXPORT PFNGLXQUERYVIDEOCAPTUREDEVICENVPROC __glewXQueryVideoCaptureDeviceNV;
-GLXEW_FUN_EXPORT PFNGLXRELEASEVIDEOCAPTUREDEVICENVPROC __glewXReleaseVideoCaptureDeviceNV;
+GLXEW_FUN_EXPORT PFNGLXBINDVIDEOCfrmUREDEVICENVPROC __glewXBindVideoCfrmureDeviceNV;
+GLXEW_FUN_EXPORT PFNGLXENUMERATEVIDEOCfrmUREDEVICESNVPROC __glewXEnumerateVideoCfrmureDevicesNV;
+GLXEW_FUN_EXPORT PFNGLXLOCKVIDEOCfrmUREDEVICENVPROC __glewXLockVideoCfrmureDeviceNV;
+GLXEW_FUN_EXPORT PFNGLXQUERYVIDEOCfrmUREDEVICENVPROC __glewXQueryVideoCfrmureDeviceNV;
+GLXEW_FUN_EXPORT PFNGLXRELEASEVIDEOCfrmUREDEVICENVPROC __glewXReleaseVideoCfrmureDeviceNV;
 
 GLXEW_FUN_EXPORT PFNGLXBINDVIDEOIMAGENVPROC __glewXBindVideoImageNV;
 GLXEW_FUN_EXPORT PFNGLXGETVIDEODEVICENVPROC __glewXGetVideoDeviceNV;
@@ -1732,7 +1732,7 @@ GLXEW_VAR_EXPORT GLboolean __GLXEW_NV_present_video;
 GLXEW_VAR_EXPORT GLboolean __GLXEW_NV_robustness_video_memory_purge;
 GLXEW_VAR_EXPORT GLboolean __GLXEW_NV_swap_group;
 GLXEW_VAR_EXPORT GLboolean __GLXEW_NV_vertex_array_range;
-GLXEW_VAR_EXPORT GLboolean __GLXEW_NV_video_capture;
+GLXEW_VAR_EXPORT GLboolean __GLXEW_NV_video_cfrmure;
 GLXEW_VAR_EXPORT GLboolean __GLXEW_NV_video_out;
 GLXEW_VAR_EXPORT GLboolean __GLXEW_OML_swap_method;
 GLXEW_VAR_EXPORT GLboolean __GLXEW_OML_sync_control;

@@ -14,7 +14,7 @@ class Window;
 ////////////////////////////////////////////////////////////////////////////////
 // GlContext
 ////////////////////////////////////////////////////////////////////////////////
-class GlContext: private apt::non_copyable<GlContext>
+class GlContext: private frm::non_copyable<GlContext>
 {
 public:
 	GLint kMaxComputeInvocationsPerGroup;
@@ -23,7 +23,7 @@ public:
 
 	enum Vsync
 	{
-		Vsync_Adaptive = -1, // swap/tear
+		Vsync_Adfrmive = -1, // swap/tear
 		Vsync_Off      =  0,
 		Vsync_On       =  1, // wait 1 interval
 		Vsync_On2,           // wait 2 intervals

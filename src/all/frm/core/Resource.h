@@ -1,7 +1,8 @@
 #pragma once
 
-#include <frm/core/def.h>
-#include <apt/String.h>
+#include <frm/core/frm.h>
+#include <frm/core/String.h>
+
 #include <EASTL/vector.h>
 
 namespace frm {
@@ -23,7 +24,7 @@ namespace frm {
 //   - Correctly set the resource state during load(), reload().
 ////////////////////////////////////////////////////////////////////////////////
 template <typename tDerived>
-class Resource: private apt::non_copyable<Resource<tDerived> >
+class Resource: private frm::non_copyable<Resource<tDerived> >
 {
 public:
 	typedef tDerived Derived;
@@ -53,7 +54,7 @@ public:
 	static Derived* Find(Id _id);
 	static Derived* Find(const char* _name);
 	static int      GetInstanceCount()               { return (int)s_instances.size(); }
-	static Derived* GetInstance(int _i)              { APT_ASSERT(_i < GetInstanceCount()); return s_instances[_i]; }
+	static Derived* GetInstance(int _i)              { FRM_ASSERT(_i < GetInstanceCount()); return s_instances[_i]; }
 
 	Id              getId() const                    { return m_id;                }
 	const char*     getName() const                  { return (const char*)m_name; }
@@ -67,7 +68,7 @@ protected:
 	static Id       GetUniqueId();
 	static Id       GetHashId(const char* _str);
 	
-	typedef apt::String<32> NameStr;
+	typedef frm::String<32> NameStr;
 	NameStr m_name;
 
 	Resource(const char* _name);

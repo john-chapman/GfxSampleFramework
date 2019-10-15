@@ -2,16 +2,16 @@
 #ifndef im3d_config_h
 #define im3d_config_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
-#include <apt/memory.h>
+#include <frm/core/memory.h>
 
 // User-defined assertion handler (default is cassert assert()).
-#define IM3D_ASSERT(e) APT_ASSERT(e)
+#define IM3D_ASSERT(e) FRM_ASSERT(e)
 
 // User-defined malloc/free. Define both or neither (default is cstdlib malloc()/free()).
-#define IM3D_MALLOC(size) APT_MALLOC(size)
-#define IM3D_FREE(ptr)    APT_FREE(ptr) 
+#define IM3D_MALLOC(size) FRM_MALLOC(size)
+#define IM3D_FREE(ptr)    FRM_FREE(ptr) 
 
 // Use row-major internal matrix layout. 
 //#define IM3D_MATRIX_ROW_MAJOR 1

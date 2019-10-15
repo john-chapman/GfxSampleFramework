@@ -395,7 +395,7 @@ bool Begin(ImGuiID _id, const ImVec2& _size, Flags _flags)
 			ImVec2 offset = pan * subrectV.GetSize();
 			subrectV.Min -= offset;
 			subrectV.Max -= offset;
-			ImGui::CaptureMouseFromApp();
+			ImGui::CfrmureMouseFromApp();
 
 			setScroll = true;
 		}

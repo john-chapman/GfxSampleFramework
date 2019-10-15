@@ -1,8 +1,7 @@
 #pragma once
 
-#include <frm/core/def.h>
-
-#include <apt/String.h>
+#include <frm/core/frm.h>
+#include <frm/core/String.h>
 
 struct lua_State;
 
@@ -42,7 +41,7 @@ namespace frm {
 //   if (script->find("add")) {              // function 'add' is on the top of the stack
 //      script->pushValue(1);                // push first arg
 //      script->pushValue(2);                // push second arg
-//      APT_VERIFY(script->call() == 1);     // the function only returns 1 value
+//      FRM_VERIFY(script->call() == 1);     // the function only returns 1 value
 //      int onePlusTwo = script->popValue(); // pop the ret val
 //   }
 //
@@ -126,7 +125,7 @@ public:
 
 	// Get a named value. Equivalent to find(_name) followed by getValue().
 	template <typename tType>
-	tType       getValue(const char* _name) { APT_VERIFY(find(_name)); return getValue<tType>(); }
+	tType       getValue(const char* _name) { FRM_VERIFY(find(_name)); return getValue<tType>(); }
 	
  // Modification
 	
@@ -161,14 +160,14 @@ public:
 private:
 	static const int kMaxTableDepth = 10;
 	
-	apt::PathStr     m_name;
+	frm::PathStr     m_name;
 	lua_State*       m_state                        = nullptr;
 	int              m_err                          = 0;
 
 	int              m_currentTable                 = 1;        // Stack index of the current table (start at 1 to account for the script chunk).
 	mutable int      m_tableLength[kMaxTableDepth]  = { 0 };    // Length per table.
 	int              m_tableIndex[kMaxTableDepth]   = { 0 };    // Index of the current element per table.
-	apt::String<16>  m_tableField[kMaxTableDepth];              // Name of the current field per table (0 is the current global).
+	frm::String<16>  m_tableField[kMaxTableDepth];              // Name of the current field per table (0 is the current global).
 
 	LuaScript(const char* _name, Lib _libs);
 	~LuaScript();

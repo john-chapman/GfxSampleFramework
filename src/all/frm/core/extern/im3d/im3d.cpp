@@ -1832,11 +1832,11 @@ bool Context::gizmoAxisTranslation_Behavior(Id _id, const Vec3& _origin, const V
 			float tr, tl;
 			Nearest(ray, axisLine, tr, tl);
 			#if IM3D_RELATIVE_SNAP
-				tl = Snap(tl, m_appData.m_snapTranslation);
-				Vec3 snappedOrigin = Snap(storedPosition, m_appData.m_snapTranslation); // always snap the origin = prevent issues when enabling snap after the gizmo became hot
+				tl = Snap(tl, m_appData.m_snfrmranslation);
+				Vec3 snappedOrigin = Snap(storedPosition, m_appData.m_snfrmranslation); // always snap the origin = prevent issues when enabling snap after the gizmo became hot
 				*_out_ = *_out_ + _axis * tl - snappedOrigin;
 			#else
-				*_out_ = Snap(*_out_ + _axis * tl - storedPosition, m_appData.m_snapTranslation);
+				*_out_ = Snap(*_out_ + _axis * tl - storedPosition, m_appData.m_snfrmranslation);
 			#endif
 
 			return true;
@@ -1929,10 +1929,10 @@ bool Context::gizmoPlaneTranslation_Behavior(Id _id, const Vec3& _origin, const 
 	if (_id == m_activeId) {
 		if (isKeyDown(Action_Select)) {
 			#if IM3D_RELATIVE_SNAP
-				intersection = Snap(intersection, plane, m_appData.m_snapTranslation);
+				intersection = Snap(intersection, plane, m_appData.m_snfrmranslation);
 				*_out_ = intersection + storedPosition;
 			#else
-				*_out_ = Snap(intersection + storedPosition, plane, m_appData.m_snapTranslation);
+				*_out_ = Snap(intersection + storedPosition, plane, m_appData.m_snfrmranslation);
 			#endif
 			return true;
 		} else {

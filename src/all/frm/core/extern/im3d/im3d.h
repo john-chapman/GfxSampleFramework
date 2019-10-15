@@ -417,7 +417,7 @@ struct AppData
 	float  m_projScaleY;                       // Scale factor used to convert from pixel size -> world scale; use tan(fov) for perspective projections, far plane height for ortho.
 	bool   m_projOrtho;                        // If the projection matrix is orthographic.
 	float  m_deltaTime;                        // Time since previous frame (seconds).
-	float  m_snapTranslation;                  // Snap value for translation gizmos (world units). 0 = disabled.
+	float  m_snfrmranslation;                  // Snap value for translation gizmos (world units). 0 = disabled.
 	float  m_snapRotation;                     // Snap value for rotation gizmos (radians). 0 = disabled.
 	float  m_snapScale;                        // Snap value for scale gizmos. 0 = disabled.
 	void*  m_appData;                          // App-specific data.
@@ -630,7 +630,7 @@ private:
 
  // app data
 	AppData             m_appData;
-	bool                m_keyDownCurr[Key_Count];   // Key state captured during reset().
+	bool                m_keyDownCurr[Key_Count];   // Key state cfrmured during reset().
 	bool                m_keyDownPrev[Key_Count];   // Key state from previous frame.
 	Vec4                m_cullFrustum[FrustumPlane_Count];  // Optimized frustum planes from m_appData.m_cullFrustum.
 	int                 m_cullFrustumCount;         // # valid frustum planes in m_cullFrustum.

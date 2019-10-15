@@ -1,12 +1,12 @@
 #include <frm/core/Window.h>
-#include <frm/core/def.h>
-#include <frm/core/Input.h>
 
-#include <apt/log.h>
-#include <apt/math.h>
-#include <apt/platform.h>
-#include <apt/win.h>
-#include <apt/FileSystem.h>
+#include <frm/core/frm.h>
+#include <frm/core/Input.h>
+#include <frm/core/log.h>
+#include <frm/core/math.h>
+#include <frm/core/platform.h>
+#include <frm/core/win.h>
+#include <frm/core/FileSystem.h>
 
 #include <shellapi.h>
 
@@ -164,7 +164,7 @@ struct Window::Impl
 				case WM_SYSKEYUP:
 				case WM_KEYDOWN:
 				case WM_KEYUP:
-					//APT_LOG_DBG("%s", Keyboard::GetButtonName(ButtonFromVk(_wparam, _lparam)));
+					//FRM_LOG_DBG("%s", Keyboard::GetButtonName(ButtonFromVk(_wparam, _lparam)));
 					WindowImpl_DISPATCH_CALLBACK(OnKey, (unsigned)ButtonFromVk(_wparam, _lparam), _umsg == WM_KEYDOWN || _umsg == WM_SYSKEYDOWN);
 					break;
 				case WM_CHAR:
@@ -176,7 +176,7 @@ struct Window::Impl
 					UINT fileCount = DragQueryFile(hdrop, 0xffffffff, NULL, NULL);
 					for (UINT i = 0; i < fileCount; ++i) {
 						TCHAR fileName[MAX_PATH];
-						APT_PLATFORM_VERIFY(DragQueryFile(hdrop, i, fileName, MAX_PATH));
+						FRM_PLATFORM_VERIFY(DragQueryFile(hdrop, i, fileName, MAX_PATH));
 					 // don't use the DISPATCH_CALLBACK macro as we want to dispatch once per file
 						//WindowImpl_DISPATCH_CALLBACK(OnFileDrop, fileName);
 						if (window->m_callbacks.m_OnFileDrop) {
@@ -212,7 +212,7 @@ struct Window::Impl
 	
 		switch (_umsg) {
 			case WM_PAINT:
-				//APT_ASSERT(false); // should be suppressed by calling ValidateRect()
+				//FRM_ASSERT(false); // should be suppressed by calling ValidateRect()
 				break;
 			case WM_CLOSE:
 				PostMessage((HWND)window->getHandle(), WM_QUIT, 0, 0);
@@ -237,18 +237,18 @@ struct Window::Impl
 
 Window* Window::Create(int _width, int _height, const char* _title)
 {
-	APT_STATIC_ASSERT(sizeof(void*) >= sizeof(HWND));
+	FRM_STATIC_ASSERT(sizeof(void*) >= sizeof(HWND));
 	Window* ret = new Window;
-	APT_ASSERT(ret);
+	FRM_ASSERT(ret);
 	ret->m_width  = _width;
 	ret->m_height = _height;
 	ret->m_title  = _title;
 
  // disable the Windows UI scaling
 	#ifdef USE_OLD_DPI_API
-		APT_VERIFY(SetProcessDPIAware());
+		FRM_VERIFY(SetProcessDPIAware());
 	#else
- 		APT_VERIFY(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK); // new API, Windows 8.1+
+ 		FRM_VERIFY(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK); // new API, Windows 8.1+
 	#endif
 
 	static ATOM wndclassex = 0;
@@ -261,7 +261,7 @@ Window* Window::Create(int _width, int _height, const char* _title)
 		wc.hInstance = GetModuleHandle(0);
 		wc.lpszClassName = "WindowImpl";
 		wc.hCursor = LoadCursor(0, IDC_ARROW);
-		APT_PLATFORM_VERIFY(wndclassex = RegisterClassEx(&wc));
+		FRM_PLATFORM_VERIFY(wndclassex = RegisterClassEx(&wc));
 	}
 
 	
@@ -271,12 +271,12 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	if (_width == -1 || _height == -1) {
 	 // auto size; get the dimensions of the primary screen area and subtract the non-client area
 		RECT r;
-		APT_PLATFORM_VERIFY(SystemParametersInfo(SPI_GETWORKAREA, 0, &r, 0));
+		FRM_PLATFORM_VERIFY(SystemParametersInfo(SPI_GETWORKAREA, 0, &r, 0));
 		_width  = r.right - r.left;
 		_height = r.bottom - r.top;
 
 		RECT wr = {};
-		APT_PLATFORM_VERIFY(AdjustWindowRectEx(&wr, dwStyle, FALSE, dwExStyle));
+		FRM_PLATFORM_VERIFY(AdjustWindowRectEx(&wr, dwStyle, FALSE, dwExStyle));
 		_width  -= wr.right - wr.left;
 		_height -= wr.bottom - wr.top;
 	}
@@ -284,7 +284,7 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	ret->m_height = _height;
 
 	RECT r; r.top = 0; r.left = 0; r.bottom = _height; r.right = _width;
-	APT_PLATFORM_VERIFY(AdjustWindowRectEx(&r, dwStyle, FALSE, dwExStyle));
+	FRM_PLATFORM_VERIFY(AdjustWindowRectEx(&r, dwStyle, FALSE, dwExStyle));
 	ret->m_handle = CreateWindowEx(
 		dwExStyle, 
 		MAKEINTATOM(wndclassex), 
@@ -297,7 +297,7 @@ Window* Window::Create(int _width, int _height, const char* _title)
 		GetModuleHandle(0), 
 		NULL
 		);
-	APT_PLATFORM_ASSERT(ret->m_handle);
+	FRM_PLATFORM_ASSERT(ret->m_handle);
 	DragAcceptFiles((HWND)ret->m_handle, TRUE);
 
 	return ret;
@@ -305,8 +305,8 @@ Window* Window::Create(int _width, int _height, const char* _title)
 
 void Window::Destroy(Window*& _window_)
 {
-	APT_ASSERT(_window_ != 0);
-	APT_PLATFORM_VERIFY(DestroyWindow((HWND)_window_->m_handle));
+	FRM_ASSERT(_window_ != 0);
+	FRM_PLATFORM_VERIFY(DestroyWindow((HWND)_window_->m_handle));
 	_window_->m_handle = 0;
 	delete _window_;
 	_window_ = 0;
@@ -353,12 +353,12 @@ void Window::minimize() const
 }
 void Window::setPositionSize(int _x, int _y, int _width, int _height)
 {
-	APT_PLATFORM_VERIFY(SetWindowPos((HWND)m_handle, NULL, _x, _y, _width, _height, 0));
+	FRM_PLATFORM_VERIFY(SetWindowPos((HWND)m_handle, NULL, _x, _y, _width, _height, 0));
 }
 
 void Window::setTitle(const char* _title)
 {
-	APT_PLATFORM_VERIFY(SetWindowText((HWND)m_handle, _title));
+	FRM_PLATFORM_VERIFY(SetWindowText((HWND)m_handle, _title));
 }
 
 bool Window::hasFocus() const
@@ -376,12 +376,12 @@ bool Window::isMaximized() const
 
 void Window::getWindowRelativeCursor(int* x_, int* y_) const
 {
-	APT_STRICT_ASSERT(x_);
-	APT_STRICT_ASSERT(y_);
+	FRM_STRICT_ASSERT(x_);
+	FRM_STRICT_ASSERT(y_);
 
 	POINT p = {};
-	APT_PLATFORM_VERIFY(GetCursorPos(&p));
-	APT_PLATFORM_VERIFY(ScreenToClient((HWND)m_handle, &p));
+	FRM_PLATFORM_VERIFY(GetCursorPos(&p));
+	FRM_PLATFORM_VERIFY(ScreenToClient((HWND)m_handle, &p));
 	*x_ = (int)p.x;
 	*y_ = (int)p.y;
 }
@@ -393,8 +393,8 @@ float Window::getScaling() const
 #else
 	auto monitor = MonitorFromWindow((HWND)m_handle, MONITOR_DEFAULTTONEAREST);
 	UINT dpiX, dpiY;
-	APT_VERIFY(GetDpiForMonitor(monitor, MDT_DEFAULT, &dpiX, &dpiY) == S_OK);
-	float ret = (float)APT_MAX(dpiX, dpiY) / USER_DEFAULT_SCREEN_DPI;
+	FRM_VERIFY(GetDpiForMonitor(monitor, MDT_DEFAULT, &dpiX, &dpiY) == S_OK);
+	float ret = (float)FRM_MAX(dpiX, dpiY) / USER_DEFAULT_SCREEN_DPI;
 	return ret;
 #endif
 }

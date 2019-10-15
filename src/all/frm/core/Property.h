@@ -1,10 +1,9 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
-
-#include <apt/String.h>
-#include <apt/StringHash.h>
+#include <frm/core/String.h>
+#include <frm/core/StringHash.h>
 
 #include <EASTL/vector_map.h>
 
@@ -17,8 +16,8 @@ class Property
 {
 public:
 	typedef bool (Edit)(Property& _prop); // edit func, return true if the value changed
-	typedef apt::StringBase StringBase;
-	typedef apt::StringHash StringHash;
+	typedef frm::StringBase StringBase;
+	typedef frm::StringHash StringHash;
 
 	enum Type : uint8
 	{
@@ -52,21 +51,21 @@ public:
 
 	bool        edit();
 	void        setDefault();
-	friend bool Serialize(apt::SerializerJson& _serializer_, Property& _prop_);
+	friend bool Serialize(frm::SerializerJson& _serializer_, Property& _prop_);
 
-	bool*       asBool()               { APT_ASSERT(getType() == Type_Bool);   return (bool*)getData();       }
-	int*        asInt()                { APT_ASSERT(getType() == Type_Int);    return (int*)getData();        }
-	ivec2*      asInt2()               { APT_ASSERT(getType() == Type_Int);    return (ivec2*)getData();      }
-	ivec3*      asInt3()               { APT_ASSERT(getType() == Type_Int);    return (ivec3*)getData();      }
-	ivec4*      asInt4()               { APT_ASSERT(getType() == Type_Int);    return (ivec4*)getData();      }
-	float*      asFloat()              { APT_ASSERT(getType() == Type_Float);  return (float*)getData();      }
-	vec2*       asFloat2()             { APT_ASSERT(getType() == Type_Float);  return (vec2*)getData();       }
-	vec3*       asFloat3()             { APT_ASSERT(getType() == Type_Float);  return (vec3*)getData();       }
-	vec4*       asFloat4()             { APT_ASSERT(getType() == Type_Float);  return (vec4*)getData();       }
-	vec3*       asRgb()                { APT_ASSERT(getType() == Type_Float);  return (vec3*)getData();       }
-	vec4*       asRgba()               { APT_ASSERT(getType() == Type_Float);  return (vec4*)getData();       }
-	StringBase* asString()             { APT_ASSERT(getType() == Type_String); return (StringBase*)getData(); }
-	StringBase* asPath()               { APT_ASSERT(getType() == Type_String); return (StringBase*)getData(); }
+	bool*       asBool()               { FRM_ASSERT(getType() == Type_Bool);   return (bool*)getData();       }
+	int*        asInt()                { FRM_ASSERT(getType() == Type_Int);    return (int*)getData();        }
+	ivec2*      asInt2()               { FRM_ASSERT(getType() == Type_Int);    return (ivec2*)getData();      }
+	ivec3*      asInt3()               { FRM_ASSERT(getType() == Type_Int);    return (ivec3*)getData();      }
+	ivec4*      asInt4()               { FRM_ASSERT(getType() == Type_Int);    return (ivec4*)getData();      }
+	float*      asFloat()              { FRM_ASSERT(getType() == Type_Float);  return (float*)getData();      }
+	vec2*       asFloat2()             { FRM_ASSERT(getType() == Type_Float);  return (vec2*)getData();       }
+	vec3*       asFloat3()             { FRM_ASSERT(getType() == Type_Float);  return (vec3*)getData();       }
+	vec4*       asFloat4()             { FRM_ASSERT(getType() == Type_Float);  return (vec4*)getData();       }
+	vec3*       asRgb()                { FRM_ASSERT(getType() == Type_Float);  return (vec3*)getData();       }
+	vec4*       asRgba()               { FRM_ASSERT(getType() == Type_Float);  return (vec4*)getData();       }
+	StringBase* asString()             { FRM_ASSERT(getType() == Type_String); return (StringBase*)getData(); }
+	StringBase* asPath()               { FRM_ASSERT(getType() == Type_String); return (StringBase*)getData(); }
 
 	void*       getData() const        { return m_data; }
 	Type        getType() const        { return m_type; }
@@ -75,7 +74,7 @@ public:
 	const char* getDisplayName() const { return (const char*)m_displayName; }
 
 private:
-	typedef apt::String<32> String;
+	typedef frm::String<32> String;
 
 	char*  m_data;
 	char*  m_default;
@@ -94,11 +93,11 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 // PropertyGroup
 ////////////////////////////////////////////////////////////////////////////////
-class PropertyGroup: private apt::non_copyable<PropertyGroup>
+class PropertyGroup: private frm::non_copyable<PropertyGroup>
 {
 public:
-	typedef apt::StringBase StringBase;
-	typedef apt::StringHash StringHash;
+	typedef frm::StringBase StringBase;
+	typedef frm::StringHash StringHash;
 
 	PropertyGroup(const char* _name);
 	~PropertyGroup();
@@ -127,21 +126,21 @@ public:
 	const char* getName() const { return (const char*)m_name; }
 
 	bool        edit(bool _showHidden = false);
-	friend bool Serialize(apt::SerializerJson& _serializer_, PropertyGroup& _prop_);
+	friend bool Serialize(frm::SerializerJson& _serializer_, PropertyGroup& _prop_);
 
 private:
-	apt::String<32> m_name;
-	eastl::vector_map<apt::StringHash, Property*> m_props;
+	frm::String<32> m_name;
+	eastl::vector_map<frm::StringHash, Property*> m_props;
 
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 // Properties
 ////////////////////////////////////////////////////////////////////////////////
-class Properties: private apt::non_copyable<Properties>
+class Properties: private frm::non_copyable<Properties>
 {
 public:
-	typedef apt::StringHash StringHash;
+	typedef frm::StringHash StringHash;
 
 	Properties()  {}
 	~Properties();
@@ -155,10 +154,10 @@ public:
 	PropertyGroup* findGroup(const char* _name) { return findGroup(StringHash(_name)); }
 
 	bool           edit(bool _showHidden = false);
-	friend bool    Serialize(apt::SerializerJson& _serializer_, Properties& _props_);
+	friend bool    Serialize(frm::SerializerJson& _serializer_, Properties& _props_);
 
 private:
-	eastl::vector_map<apt::StringHash, PropertyGroup*> m_groups;
+	eastl::vector_map<frm::StringHash, PropertyGroup*> m_groups;
 
 };
 

@@ -1,6 +1,6 @@
 #include "AppSample3d.h"
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/interpolation.h>
 #include <frm/core/gl.h>
 #include <frm/core/geom.h>
@@ -17,16 +17,18 @@
 #include <im3d/im3d.h>
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 // PUBLIC
 
-bool AppSample3d::init(const apt::ArgList& _args)
+bool AppSample3d::init(const frm::ArgList& _args)
 {
-	if (!AppSample::init(_args)) {
+	if (!AppSample::init(_args))
+	{
 		return false;
 	}
-	if (!Im3d_Init(this)) {
+	if (!Im3d_Init(this))
+	{
 		return false;
 	}
 
@@ -58,7 +60,8 @@ void AppSample3d::shutdown()
 
 bool AppSample3d::update()
 {
-	if (!AppSample::update()) {
+	if (!AppSample::update())
+	{
 		return false;
 	}
 
@@ -69,20 +72,24 @@ bool AppSample3d::update()
 	Scene& scene = *Scene::GetCurrent();
 	scene.update((float)m_deltaTime, Node::State_Active | Node::State_Dynamic);
 	#ifdef frm_Scene_ENABLE_EDIT
-		if (m_showSceneEditor) {
+		if (m_showSceneEditor)
+		{
 			Scene::GetCurrent()->edit();
 		}
 	#endif
 
 	Camera* currentCamera = scene.getDrawCamera();
-	if (!currentCamera->getProjFlag(Camera::ProjFlag_Asymmetrical)) {
+	if (!currentCamera->getProjFlag(Camera::ProjFlag_Asymmetrical))
+	{
 	 // update aspect ratio to match window size
 		Window* win = getWindow();
 		int winX = win->getWidth();
 		int winY = win->getHeight();
-		if (winX != 0 && winY != 0) {
+		if (winX != 0 && winY != 0)
+		{
 			float aspect = (float)winX / (float)winY;
-			if (currentCamera->m_aspectRatio != aspect) {
+			if (currentCamera->m_aspectRatio != aspect)
+			{
 				currentCamera->setAspectRatio(aspect);
 			}
 		}
@@ -92,17 +99,23 @@ bool AppSample3d::update()
 
  // keyboard shortcuts
 	Keyboard* keyb = Input::GetKeyboard();
-	if (keyb->wasPressed(Keyboard::Key_F2)) {
+	if (keyb->wasPressed(Keyboard::Key_F2))
+	{
 		m_showHelpers = !m_showHelpers;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::Key_0) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_0) && ImGui::IsKeyDown(Keyboard::Key_LCtrl))
+	{
 		m_showSceneEditor = !m_showSceneEditor;
 	}
-	if (ImGui::IsKeyPressed(Keyboard::Key_C) && ImGui::IsKeyDown(Keyboard::Key_LCtrl) && ImGui::IsKeyDown(Keyboard::Key_LShift)) {
-		if (m_dbgCullCamera) {
+	if (ImGui::IsKeyPressed(Keyboard::Key_C) && ImGui::IsKeyDown(Keyboard::Key_LCtrl) && ImGui::IsKeyDown(Keyboard::Key_LShift))
+	{
+		if (m_dbgCullCamera)
+		{
 			scene.destroyCamera(m_dbgCullCamera);
 			scene.setCullCamera(scene.getDrawCamera());
-		} else {
+		}
+		else
+		{
 			m_dbgCullCamera = scene.createCamera(*scene.getCullCamera());
 			Node* node = m_dbgCullCamera->m_parent;
 			node->setName("#DEBUG CULL CAMERA");
@@ -113,7 +126,8 @@ bool AppSample3d::update()
 		}
 	}
 
-	if (m_showHelpers) {
+	if (m_showHelpers)
+	{
 		const int   kGridSize = 20;
 		const float kGridHalf = (float)kGridSize * 0.5f;
 		Im3d::PushDrawState();
@@ -122,20 +136,24 @@ bool AppSample3d::update()
 
 		 // origin XZ grid
 			Im3d::BeginLines();
-				for (int x = 0; x <= kGridSize; ++x) {
+				for (int x = 0; x <= kGridSize; ++x)
+				{
 					Im3d::Vertex(-kGridHalf, 0.0f, (float)x - kGridHalf,  Im3d::Color(0.0f, 0.0f, 0.0f));
 					Im3d::Vertex( kGridHalf, 0.0f, (float)x - kGridHalf,  Im3d::Color(1.0f, 0.0f, 0.0f));
 				}
-				for (int z = 0; z <= kGridSize; ++z) {
+				for (int z = 0; z <= kGridSize; ++z)
+				{
 					Im3d::Vertex((float)z - kGridHalf, 0.0f, -kGridHalf,  Im3d::Color(0.0f, 0.0f, 0.0f));
 					Im3d::Vertex((float)z - kGridHalf, 0.0f,  kGridHalf,  Im3d::Color(0.0f, 0.0f, 1.0f));
 				}
 			Im3d::End();
 
 		 // scene cameras
-			for (int i = 0; i < scene.getCameraCount(); ++i) {
+			for (int i = 0; i < scene.getCameraCount(); ++i)
+			{
 				Camera* camera = scene.getCamera(i);
-				if (camera == scene.getDrawCamera()) {
+				if (camera == scene.getDrawCamera())
+				{
 					continue;
 				}
 				Im3d::PushMatrix();
@@ -152,7 +170,8 @@ bool AppSample3d::update()
 
 void AppSample3d::draw()
 {
-	if (!m_hiddenMode) {	
+	if (!m_hiddenMode)
+	{	
 		PROFILER_MARKER("#AppSample3d::draw");
 		getGlContext()->setFramebufferAndViewport(getDefaultFramebuffer());
 		Im3d::Draw();
@@ -176,12 +195,15 @@ Ray AppSample3d::getCursorRayV(const Camera* _camera) const
 	vec2 wsize = vec2((float)getWindow()->getWidth(), (float)getWindow()->getHeight());
 	vec2 mpos  = vec2((float)mx, (float)my) / wsize;
 	Ray ret;
-	if (_camera->getProjFlag(Camera::ProjFlag_Orthographic)) {
+	if (_camera->getProjFlag(Camera::ProjFlag_Orthographic))
+	{
 		ret.m_origin.x    = lerp(_camera->m_left, _camera->m_right, mpos.x);
 		ret.m_origin.y    = lerp(_camera->m_up,   _camera->m_down,  mpos.y);
 		ret.m_origin.z    = 0.0f;
 		ret.m_direction   = vec3(0.0f, 0.0f, -1.0f);
-	} else {
+	}
+	else
+	{
 		ret.m_origin      = vec3(0.0f);
 		ret.m_direction.x = lerp(_camera->m_left, _camera->m_right, mpos.x);
 		ret.m_direction.y = lerp(_camera->m_up,   _camera->m_down,  mpos.y);
@@ -272,19 +294,26 @@ AppSample3d::~AppSample3d()
 
 void AppSample3d::drawMainMenuBar()
 {
-	if (m_showMenu && ImGui::BeginMainMenuBar()) {
-		if (ImGui::BeginMenu("Scene")) {
-			if (ImGui::MenuItem("Load...")) {
-				if (FileSystem::PlatformSelect(m_scenePath, { "*.json" })) {
+	if (m_showMenu && ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Scene"))
+		{
+			if (ImGui::MenuItem("Load..."))
+			{
+				if (FileSystem::PlatformSelect(m_scenePath, { "*.json" }))
+				{
 					m_scenePath = FileSystem::MakeRelative((const char*)m_scenePath);
 					Scene::Load((const char*)m_scenePath, *m_scene);
 				}
 			}
-			if (ImGui::MenuItem("Save")) {
+			if (ImGui::MenuItem("Save"))
+			{
 				Scene::Save((const char*)m_scenePath, *m_scene);
 			}
-			if (ImGui::MenuItem("Save As...")) {
-				if (FileSystem::PlatformSelect(m_scenePath, { "*.json" })) {
+			if (ImGui::MenuItem("Save As..."))
+			{
+				if (FileSystem::PlatformSelect(m_scenePath, { "*.json" }))
+				{
 					m_scenePath = FileSystem::MakeRelative((const char*)m_scenePath);
 					Scene::Save((const char*)m_scenePath, *m_scene);
 				}
@@ -317,7 +346,8 @@ bool AppSample3d::Im3d_Init(AppSample3d* _app)
 {
 	Im3d::GetAppData().drawCallback = Im3d_Draw;
 
-	if (_app->m_hiddenMode) {
+	if (_app->m_hiddenMode)
+	{
 		return true;
 	}
 
@@ -332,7 +362,7 @@ bool AppSample3d::Im3d_Init(AppSample3d* _app)
 	MeshDesc meshDesc(MeshDesc::Primitive_Points);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 4);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint8N, 4);
-	APT_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::VertexData));
+	FRM_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::VertexData));
 	s_msIm3dPoints = Mesh::Create(meshDesc);
 	meshDesc.setPrimitive(MeshDesc::Primitive_Lines);
 	s_msIm3dLines= Mesh::Create(meshDesc);
@@ -380,7 +410,7 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	ad.m_keyDown[Im3d::Key_R/*Action_GizmoRotation*/]    = ctrlDown && keyb->wasPressed(Keyboard::Key_R);
 	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::Key_S);
 
-	ad.m_snapTranslation = ctrlDown ? 0.1f : 0.0f;
+	ad.m_snfrmranslation = ctrlDown ? 0.1f : 0.0f;
 	ad.m_snapRotation    = ctrlDown ? Radians(15.0f) : 0.0f;
 	ad.m_snapScale       = ctrlDown ? 0.5f : 0.0f;
 
@@ -402,7 +432,8 @@ void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 
 	Mesh* ms;
 	Shader* sh;
-	switch (_drawList.m_primType) {
+	switch (_drawList.m_primType)
+	{
 		case Im3d::DrawPrimitive_Points:
 			ms = s_msIm3dPoints;
 			sh = s_shIm3dPoints;
@@ -416,7 +447,7 @@ void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
 			sh = s_shIm3dTriangles;
 			break;
 		default:
-			APT_ASSERT(false); // unsupported primitive type?
+			FRM_ASSERT(false); // unsupported primitive type?
 	};
 
 	ms->setVertexData(_drawList.m_vertexData, _drawList.m_vertexCount, GL_STREAM_DRAW);

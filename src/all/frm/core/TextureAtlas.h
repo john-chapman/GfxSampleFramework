@@ -1,15 +1,14 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/gl.h>
 #include <frm/core/Texture.h>
-
-#include <apt/Pool.h>
-#include <apt/StringHash.h>
+#include <frm/core/Pool.h>
+#include <frm/core/StringHash.h>
 
 #include <EASTL/vector.h>
 
-#ifdef APT_DEBUG
+#ifdef FRM_DEBUG
 	#define frm_TextureAtlas_DEBUG
 #endif
 
@@ -25,7 +24,7 @@ namespace frm {
 class TextureAtlas: public Texture
 {
 public:
-	typedef apt::StringHash::HashType RegionId;
+	typedef frm::StringHash::HashType RegionId;
 
 	struct Region
 	{
@@ -41,7 +40,7 @@ public:
 	Region* alloc(GLsizei _width, GLsizei _height);
 	// Alloc a region large enough to fit _img and upload data (to all mips). Optionally 
 	// set the region id (e.g. a hash of the image path), see findUse()/unuseFree().
-	Region* alloc(const apt::Image& _img, RegionId _id = 0);
+	Region* alloc(const frm::Image& _img, RegionId _id = 0);
 
 	// Free a previously allocated region.
 	void free(Region*& _region_);
@@ -68,7 +67,7 @@ protected:
 
 private:
 	vec2 m_rsize;
-	apt::Pool<Region> m_regionPool;
+	frm::Pool<Region> m_regionPool;
 
 	struct RegionRef { RegionId m_id; Region* m_region; int m_refCount; };
 	eastl::vector<RegionRef> m_regionMap;
@@ -76,7 +75,7 @@ private:
  // quad tree allocator
  	struct Node;
 	Node* m_root;
-	apt::Pool<Node>* m_nodePool;	
+	frm::Pool<Node>* m_nodePool;	
 
 	Node* insert(Node* _root, uint16 _sizeX, uint16 _sizeY);
 	void  remove(Node*& _node_);

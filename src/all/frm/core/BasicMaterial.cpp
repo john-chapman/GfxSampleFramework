@@ -1,13 +1,12 @@
 #include "BasicMaterial.h"
 
+#include <frm/core/log.h>
+#include <frm/core/memory.h>
+#include <frm/core/FileSystem.h>
+#include <frm/core/Json.h>
+#include <frm/core/Serializer.h>
 #include <frm/core/Texture.h>
-
-#include <apt/log.h>
-#include <apt/memory.h>
-#include <apt/FileSystem.h>
-#include <apt/Json.h>
-#include <apt/Serializer.h>
-#include <apt/Time.h>
+#include <frm/core/Time.h>
 
 #include <imgui/imgui.h>
 
@@ -50,7 +49,7 @@ BasicMaterial* BasicMaterial::Create()
 {
 	Id id = GetUniqueId();
 	NameStr name("Material%u", id);
-	BasicMaterial* ret = APT_NEW(BasicMaterial(id, name.c_str()));
+	BasicMaterial* ret = FRM_NEW(BasicMaterial(id, name.c_str()));
 	Use(ret);
 	return ret;
 }
@@ -61,7 +60,7 @@ BasicMaterial* BasicMaterial::Create(const char* _path)
 	BasicMaterial* ret = Find(id);
 	if (!ret) 
 	{
-		ret = APT_NEW(BasicMaterial(id, apt::FileSystem::StripPath(_path).c_str()));
+		ret = FRM_NEW(BasicMaterial(id, FileSystem::StripPath(_path).c_str()));
 		ret->m_path.set(_path);
 	}
 	Use(ret);
@@ -74,13 +73,13 @@ BasicMaterial* BasicMaterial::Create(const char* _path)
 
 void BasicMaterial::Destroy(BasicMaterial*& _basicMaterial_)
 {
-	APT_DELETE(_basicMaterial_);
+	FRM_DELETE(_basicMaterial_);
 	_basicMaterial_ = nullptr;
 }
 
 bool BasicMaterial::Edit(BasicMaterial*& _basicMaterial_, bool* _open_)
 {
-	APT_ASSERT(false); // \todo need a better way to call this function - separate window per material?
+	FRM_ASSERT(false); // \todo need a better way to call this function - separate window per material?
 	bool ret = false;
 	if (_basicMaterial_ && ImGui::Begin("Basic Material", _open_))
 	{
@@ -93,23 +92,23 @@ bool BasicMaterial::Edit(BasicMaterial*& _basicMaterial_, bool* _open_)
 		{
 			if (_basicMaterial_->m_path.isEmpty())
 			{
-				apt::PathStr path;
-				if (apt::FileSystem::PlatformSelect(path))
+				PathStr path;
+				if (FileSystem::PlatformSelect(path))
 				{
-					apt::FileSystem::SetExtension(path, "json");
-					path = apt::FileSystem::MakeRelative(path.c_str());
+					FileSystem::SetExtension(path, "json");
+					path = FileSystem::MakeRelative(path.c_str());
 					_basicMaterial_->m_path = path;
 				}
 			}
 
 			if (!_basicMaterial_->m_path.isEmpty())
 			{
-				apt::Json json;
-				apt::SerializerJson serializer(json, apt::SerializerJson::Mode_Write);
+				Json json;
+				SerializerJson serializer(json, SerializerJson::Mode_Write);
 				if (_basicMaterial_->serialize(serializer))
 				{
-					APT_ASSERT(false); // \todo this is broken for relative paths which aren't the default root
-					apt::Json::Write(json, _basicMaterial_->m_path.c_str());
+					FRM_ASSERT(false); // \todo this is broken for relative paths which aren't the default root
+					Json::Write(json, _basicMaterial_->m_path.c_str());
 				}
 			}
 		}
@@ -126,34 +125,34 @@ bool BasicMaterial::reload()
 		return true;
 	}
 
-	APT_AUTOTIMER("BasicMaterial::reload(%s)", m_path.c_str());
+	FRM_AUTOTIMER("BasicMaterial::reload(%s)", m_path.c_str());
 
-	apt::File f;
-	if (!apt::FileSystem::Read(f, m_path.c_str())) 
+	File f;
+	if (!FileSystem::Read(f, m_path.c_str())) 
 	{
 		setState(State_Error);
 		return false;
 	}
 	m_path = f.getPath(); // use f.getPath() to include the root - this is required for reload to work correctly
 
-	if (!apt::FileSystem::CompareExtension("json", m_path.c_str()))
+	if (!FileSystem::CompareExtension("json", m_path.c_str()))
 	{
-		APT_LOG_ERR("BasicMaterial: Invalid file '%s' (expected .json)", apt::FileSystem::StripPath(m_path.c_str()).c_str());
+		FRM_LOG_ERR("BasicMaterial: Invalid file '%s' (expected .json)", FileSystem::StripPath(m_path.c_str()).c_str());
 		setState(State_Error);
 		return false;		
 	}
 
-	apt::Json json;
-	if (!apt::Json::Read(json, f))
+	Json json;
+	if (!Json::Read(json, f))
 	{
 		setState(State_Error);
 		return false;		
 	}
 
-	apt::SerializerJson serializer(json, apt::SerializerJson::Mode_Read);
+	SerializerJson serializer(json, SerializerJson::Mode_Read);
 	if (!Serialize(serializer, *this))
 	{
-		APT_LOG_ERR("BasicMaterial: Error serializing '%s': %s", apt::FileSystem::StripPath(m_path.c_str()).c_str(), serializer.getError());
+		FRM_LOG_ERR("BasicMaterial: Error serializing '%s': %s", FileSystem::StripPath(m_path.c_str()).c_str(), serializer.getError());
 		setState(State_Error);
 		return false;
 	}
@@ -182,11 +181,11 @@ bool BasicMaterial::edit()
 			ImGui::PushID(kMapStr[i]);
 			if (ImGui::Button(kMapStr[i]))
 			{
-				apt::PathStr path = m_mapPaths[i];
-				if (apt::FileSystem::PlatformSelect(path, { "*.dds", "*.psd", "*.tga", "*.png" }))
+				PathStr path = m_mapPaths[i];
+				if (FileSystem::PlatformSelect(path, { "*.dds", "*.psd", "*.tga", "*.png" }))
 				{
-					path = apt::FileSystem::MakeRelative(path.c_str());
-					path = apt::FileSystem::StripRoot(path.c_str());
+					path = FileSystem::MakeRelative(path.c_str());
+					path = FileSystem::StripRoot(path.c_str());
 					setMap(i, path.c_str());
 				}
 			}
@@ -213,7 +212,7 @@ bool BasicMaterial::edit()
 	return ret;
 }
 
-bool BasicMaterial::serialize(apt::Serializer& _serializer_)
+bool BasicMaterial::serialize(Serializer& _serializer_)
 {	
 	Serialize(_serializer_, m_baseColor,     "BaseColor");
 	Serialize(_serializer_, m_emissiveColor, "EmissiveColor");
@@ -227,7 +226,7 @@ bool BasicMaterial::serialize(apt::Serializer& _serializer_)
 	{
 		for (int i = 0; i < Map_Count; ++i)
 		{
-			apt::PathStr mapPath = "";
+			PathStr mapPath = "";
 			Serialize(_serializer_, mapPath, kMapStr[i]);
 			setMap(i, mapPath.c_str());
 		}
@@ -269,7 +268,7 @@ BasicMaterial::BasicMaterial(Id _id, const char* _name)
 	: Resource(_id, _name)
 {
 	m_index = GetInstanceCount() - 1;
-	APT_STATIC_ASSERT(APT_ARRAY_COUNT(kMapStr) == Map_Count);
+	FRM_STATIC_ASSERT(FRM_ARRAY_COUNT(kMapStr) == Map_Count);
 }
 
 BasicMaterial::~BasicMaterial()

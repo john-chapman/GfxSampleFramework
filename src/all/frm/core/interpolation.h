@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_interpolation_h
-#define frm_interpolation_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
 
 namespace frm {
@@ -76,7 +74,8 @@ template <typename T>
 inline T slerp(const T& _p0, const T& _p1, float _delta) 
 { 
 	float cosH = dot(_p0, _p1);
-	if (abs(cosH) >= 1.0f) { // theta = 0, return p0
+	if (abs(cosH) >= 1.0f) // theta = 0, return p0
+	{
 		return _p0;
 	}
 		
@@ -84,9 +83,12 @@ inline T slerp(const T& _p0, const T& _p1, float _delta)
 	float sinH = sqrt(1.0f - cosH * cosH);
 
 	float a, b;
-	if (abs(sinH) < FLT_EPSILON) {
+	if (abs(sinH) < FLT_EPSILON)
+	{
 		a = b = 0.5f;
-	} else {
+	}
+	else
+	{
 		a = sin((1.0f - _delta) * H) / sinH;
 		b = sin(_delta * H) / sinH;
 	}
@@ -199,5 +201,3 @@ inline float hermite(float _p0, float _p1, float _p2, float _p3, float _delta, f
 }
 
 } // namespace frm
-
-#endif // frm_interpolation_h

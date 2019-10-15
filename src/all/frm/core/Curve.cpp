@@ -2,14 +2,12 @@
 
 #include <frm/core/interpolation.h>
 #include <frm/core/Input.h>
-
-#include <apt/Serializer.h>
-#include <apt/String.h>
+#include <frm/core/Serializer.h>
+#include <frm/core/String.h>
 
 #include <imgui/imgui.h>
 
 using namespace frm;
-using namespace apt;
 
 #define Curve_DEBUG 0
 
@@ -35,7 +33,7 @@ Curve::Curve()
 {
 }
 
-bool frm::Serialize(apt::Serializer& _serializer_, Curve& _curve_)
+bool frm::Serialize(frm::Serializer& _serializer_, Curve& _curve_)
 {
 	bool ret = true;
 
@@ -166,9 +164,9 @@ int Curve::move(int _endpoint, Component _component, const vec2& _value)
 	 // prevent crossing VP in x
 		ep[_component] = _value;
 		if (_component == Component_In) {
-			ep[_component].x = APT_MIN(ep[_component].x, ep[Component_Value].x);
+			ep[_component].x = FRM_MIN(ep[_component].x, ep[Component_Value].x);
 		} else {
-			ep[_component].x = APT_MAX(ep[_component].x, ep[Component_Value].x);
+			ep[_component].x = FRM_MAX(ep[_component].x, ep[Component_Value].x);
 		}
 
 		if (!ep.m_free_handles)
@@ -198,9 +196,9 @@ void Curve::moveY(int _endpointIndex, Component _component, float _value)
 
 void Curve::erase(int _endpoint)
 {
-	APT_ASSERT(_endpoint < (int)m_bezier.size());
+	FRM_ASSERT(_endpoint < (int)m_bezier.size());
 	m_bezier.erase(m_bezier.begin() + _endpoint);
-	updateExtentsAndConstrain(APT_MIN(_endpoint, APT_MAX((int)m_bezier.size() - 1, 0)));
+	updateExtentsAndConstrain(FRM_MIN(_endpoint, FRM_MAX((int)m_bezier.size() - 1, 0)));
 	updatePiecewise();
 }
 
@@ -214,10 +212,10 @@ float Curve::wrap(float _t) const
 			break;
 		case Wrap_Clamp:
 		default:
-			ret = APT_CLAMP(ret, m_valueMin.x, m_valueMax.x);
+			ret = FRM_CLAMP(ret, m_valueMin.x, m_valueMax.x);
 			break;
 	};
-	APT_ASSERT(ret >= m_valueMin.x && ret <= m_valueMax.x);
+	FRM_ASSERT(ret >= m_valueMin.x && ret <= m_valueMax.x);
 	return ret;
 }
 
@@ -334,7 +332,7 @@ void Curve::constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1)
 		v = v / vlen;
 		n = vec2(1.0f, 0.0f);
 		t = dot(n, n * _x0 - _vp.x) / dot(n, v);
-		vlen = APT_MIN(vlen, t > 0.0f ? t : vlen);
+		vlen = FRM_MIN(vlen, t > 0.0f ? t : vlen);
 		ret = _vp + v * vlen;
 
 	} else if (ret.x > _x1) {
@@ -345,7 +343,7 @@ void Curve::constrainCp(vec2& _cp_, const vec2& _vp, float _x0, float _x1)
 		v = v / vlen;
 		n = vec2(1.0f, 0.0f);
 		t = dot(n, n * _x1 - _vp.x) / dot(n, v);
-		vlen = APT_MIN(vlen, t > 0.0f ? t : vlen);
+		vlen = FRM_MIN(vlen, t > 0.0f ? t : vlen);
 		ret = _vp + v * vlen;
 
 	}
@@ -386,7 +384,7 @@ void Curve::subdivide(const Endpoint& _p0, const Endpoint& _p1, int _limit)
 	constrainCp(p1, p0, p0.x, p3.x);
 	constrainCp(p2, p3, p0.x, p3.x);
 
- // http://antigrain.com/research/adaptive_bezier/ suggests a better error metric: use the height of CPs above the line p1.m_val - p0.m_val
+ // http://antigrain.com/research/adfrmive_bezier/ suggests a better error metric: use the height of CPs above the line p1.m_val - p0.m_val
 	vec2 q0 = lerp(p0, p1, 0.5f);
 	vec2 q1 = lerp(p1, p2, 0.5f);
 	vec2 q2 = lerp(p2, p3, 0.5f);
@@ -438,7 +436,7 @@ vec4 CurveGradient::evaluate(float _t) const
 		);
 }
 
-bool frm::Serialize(apt::Serializer& _serializer_, CurveGradient& _curveGradient_)
+bool frm::Serialize(frm::Serializer& _serializer_, CurveGradient& _curveGradient_)
 {
 	const char* kCurveNames[] = { "Red", "Green", "Blue", "Alpha" };
 	bool ret = true;
@@ -567,13 +565,13 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 			 // zoom Y (value)
 				float wy = ImGui::GetWindowContentRegionMax().y;
 				float zoom = io.MouseWheel * m_regionSize.y * 0.1f;
-				m_regionSize.y = APT_MAX(m_regionSize.y - zoom, 0.01f);
+				m_regionSize.y = FRM_MAX(m_regionSize.y - zoom, 0.01f);
 				m_regionBeg.y += ((m_windowEnd.y - m_windowBeg.y) - (io.MousePos.y - m_windowBeg.y)) / (m_windowEnd.y - m_windowBeg.y) * zoom;
 			} else {
 			 // zoom X (time)
 				float wx = ImGui::GetWindowContentRegionMax().x;
 				float zoom = io.MouseWheel * m_regionSize.x * 0.1f;
-				m_regionSize.x = APT_MAX(m_regionSize.x - zoom, 0.01f);
+				m_regionSize.x = FRM_MAX(m_regionSize.x - zoom, 0.01f);
 				m_regionBeg.x += (1 - ((m_windowEnd.x - m_windowBeg.x) - (io.MousePos.x - m_windowBeg.x)) / (m_windowEnd.x - m_windowBeg.x)) * zoom;
 			}
 		}
@@ -589,7 +587,7 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 			if (m_dragRuler.x) {
 			 // zoom X (time)
 				float zoom = io.MouseDelta.x * m_regionSize.x * 0.03f;
-				m_regionSize.x = APT_MAX(m_regionSize.x - zoom, 0.1f);
+				m_regionSize.x = FRM_MAX(m_regionSize.x - zoom, 0.1f);
 				m_regionBeg.x += (1 - ((m_windowEnd.x - m_windowBeg.x) - (io.MousePos.x - m_windowBeg.x)) / (m_windowEnd.x - m_windowBeg.x)) * zoom;
 				if (!io.MouseDown[2]){
 					m_dragRuler.x = false;
@@ -598,7 +596,7 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 			if (m_dragRuler.y) {
 			 // zoom Y (value)
 				float zoom = - io.MouseDelta.y * m_regionSize.y * 0.03f;
-				m_regionSize.y = APT_MAX(m_regionSize.y - zoom, 0.1f);
+				m_regionSize.y = FRM_MAX(m_regionSize.y - zoom, 0.1f);
 				m_regionBeg.y += ((m_windowEnd.y - m_windowBeg.y) - (io.MousePos.y - m_windowBeg.y)) / (m_windowEnd.y - m_windowBeg.y) * zoom;
 				if (!io.MouseDown[2]) {
 					m_dragRuler.y = false;
@@ -612,7 +610,7 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 			delta.y = -delta.y;
 			m_regionBeg -= delta;
 			m_isDragging = true;
-			ImGui::CaptureMouseFromApp();
+			ImGui::CfrmureMouseFromApp();
 		} else {
 			m_isDragging = false;
 		}
@@ -696,7 +694,7 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 
 			if (ImGui::BeginMenu("Max Error")) {
 				if (ImGui::DragFloat("##Max Error Drag", &curve.m_maxError, 1e-4f, 1e-6f, 1.0f, "%.4f")) {
-					curve.m_maxError = APT_CLAMP(curve.m_maxError, 1e-6f, 1.0f);
+					curve.m_maxError = FRM_CLAMP(curve.m_maxError, 1e-6f, 1.0f);
 					curve.updatePiecewise();
 				}
 				ImGui::EndMenu();
@@ -855,7 +853,7 @@ bool CurveEditor::editCurve()
 			}
 
 			m_selectedEndpoint = m_dragEndpoint = curve.move(m_dragEndpoint, (Curve::Component)m_dragComponent, newPos);
-			ImGui::CaptureMouseFromApp();
+			ImGui::CfrmureMouseFromApp();
 
 		} else {
 		 // mouse just released

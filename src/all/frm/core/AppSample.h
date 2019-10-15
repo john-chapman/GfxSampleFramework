@@ -1,12 +1,9 @@
 #pragma once
-#ifndef frm_AppSample_h
-#define frm_AppSample_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/App.h>
+#include <frm/core/FileSystem.h>
 #include <frm/core/Property.h>
-
-#include <apt/FileSystem.h>
 
 #include <imgui/imgui.h>
 
@@ -23,7 +20,7 @@ public:
 
 	static AppSample* AppSample::GetCurrent();
 
-	virtual bool        init(const apt::ArgList& _args) override;
+	virtual bool        init(const ArgList& _args) override;
 	virtual void        shutdown() override;
 	virtual bool        update() override;
 	virtual void        draw();
@@ -49,8 +46,8 @@ protected:
 	virtual void overrideInput() {}
 
 	Properties m_props;
-	bool readProps(const char* _path,  int _root = apt::FileSystem::GetDefaultRoot());
-	bool writeProps(const char* _path, int _root = apt::FileSystem::GetDefaultRoot());
+	bool readProps(const char* _path,  int _root = FileSystem::GetDefaultRoot());
+	bool writeProps(const char* _path, int _root = FileSystem::GetDefaultRoot());
 
 	ivec2  m_resolution;
 	ivec2  m_windowSize;
@@ -65,11 +62,11 @@ protected:
 	bool   m_hiddenMode = false;  // don't display the app window, disable ImGui
 
 private:
-	apt::String<32>    m_name;
+	String<32>         m_name;
 	Window*            m_window    = nullptr;
 	GlContext*         m_glContext = nullptr;
 	const Framebuffer* m_fbDefault = nullptr; // where to draw overlays, or default backbuffer if 0
-	apt::PathStr       m_propsPath;
+	PathStr            m_propsPath;
 	int                m_rootCommon;
 	int                m_rootApp;
 
@@ -79,7 +76,7 @@ private:
 
 	bool initRenderdoc();
 
-	apt::PathStr m_imguiIniPath;
+	PathStr m_imguiIniPath;
 	static bool ImGui_Init(AppSample* _app);
 	static void ImGui_InitStyle();
 	static bool ImGui_InitFont(AppSample* _app);
@@ -94,7 +91,4 @@ private:
 
 }; // class AppSample
 
-
 } // namespace frm
-
-#endif // frm_AppSample_h

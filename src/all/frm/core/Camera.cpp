@@ -1,15 +1,13 @@
 #include "Camera.h"
 
 #include <frm/core/Buffer.h>
+#include <frm/core/Serializer.h>
 #include <frm/core/Scene.h>
-
-#include <apt/Serializer.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
 
 using namespace frm;
-using namespace apt;
 
 // PUBLIC
 
@@ -21,7 +19,8 @@ Camera::Camera(Node* _parent)
 
 Camera::~Camera()
 {
-	if (m_gpuBuffer) {
+	if (m_gpuBuffer) 
+	{
 		Buffer::Destroy(m_gpuBuffer);
 	}
 }
@@ -29,21 +28,24 @@ Camera::~Camera()
 Camera::Camera(const Camera& _rhs)
 {
 	memcpy(this, &_rhs, sizeof(Camera));
-	if (_rhs.m_gpuBuffer) {
+	if (_rhs.m_gpuBuffer)
+	{
 		m_gpuBuffer = nullptr;
 		updateGpuBuffer();
 	}
 }
 Camera::Camera(Camera&& _rhs)
 {
-	if (this != &_rhs) {
+	if (this != &_rhs) 
+	{
 		memcpy(this, &_rhs, sizeof(Camera));
 		_rhs.defaultInit();
 	}
 }
 Camera& Camera::operator=(Camera&& _rhs)
 {
-	if (&_rhs != this) {
+	if (&_rhs != this) 
+	{
 		swap(*this, _rhs);
 	}
 	return *this;
@@ -73,7 +75,7 @@ void frm::swap(Camera& _a_, Camera& _b_)
 	swap(_a_.m_gpuBuffer,    _b_.m_gpuBuffer);
 }
 
-bool frm::Serialize(apt::Serializer& _serializer_, Camera& _camera_)
+bool frm::Serialize(frm::Serializer& _serializer_, Camera& _camera_)
 {
  // note that the parent node doesn't get written here - the scene serializes the camera params *within* a node so it's not required
 	_serializer_.value(_camera_.m_up,    "Up");
@@ -96,7 +98,8 @@ bool frm::Serialize(apt::Serializer& _serializer_, Camera& _camera_)
 	bool hasGpuBuffer = _camera_.m_gpuBuffer != nullptr;
 	_serializer_.value(hasGpuBuffer, "HasGpuBuffer");
 
-	if (_serializer_.getMode() == apt::Serializer::Mode_Read) {
+	if (_serializer_.getMode() == frm::Serializer::Mode_Read)
+	{
 		_camera_.setProjFlag(Camera::ProjFlag_Perspective,  !orthographic);
 		_camera_.setProjFlag(Camera::ProjFlag_Orthographic, orthographic);
 		_camera_.setProjFlag(Camera::ProjFlag_Asymmetrical, asymmetrical);
@@ -106,7 +109,8 @@ bool frm::Serialize(apt::Serializer& _serializer_, Camera& _camera_)
 		_camera_.m_aspectRatio = abs(_camera_.m_right - _camera_.m_left) / abs(_camera_.m_up - _camera_.m_down);
 		_camera_.m_projDirty = true;
 
-		if (hasGpuBuffer) {
+		if (hasGpuBuffer)
+		{
 			_camera_.updateGpuBuffer();
 		}
 	}
@@ -126,15 +130,19 @@ void Camera::edit()
 	bool  reversed     = getProjFlag(ProjFlag_Reversed);
 
 	ImGui::Text("Projection:");
-	if (ImGui::Checkbox("Orthographic", &orthographic)) {
+	if (ImGui::Checkbox("Orthographic", &orthographic))
+	{
 		float a = fabs(m_far);
-		if (orthographic) {
+		if (orthographic)
+		{
 		 // perspective -> orthographic
 			m_up    = m_up * a;
 			m_down  = m_down * a;
 			m_right = m_right * a;
 			m_left  = m_left * a;
-		} else {
+		}
+		else
+		{
 		 // orthographic -> perspective
 			m_up    = m_up / a;
 			m_down  = m_down / a;
@@ -144,7 +152,8 @@ void Camera::edit()
 		updated = true;
 	}
 	updated |= ImGui::Checkbox("Asymmetrical", &asymmetrical);
-	if (!orthographic) {
+	if (!orthographic)
+	{
 		updated |= ImGui::Checkbox("Infinite", &infinite);
 	}
 	updated |= ImGui::Checkbox("Reversed", &reversed);
@@ -155,22 +164,26 @@ void Camera::edit()
 	float left  = orthographic ? m_left	 : Degrees(atan(m_left));
 	float near  = m_near;
 	float far   = m_far;
-
 	
-	if (orthographic) {
-		if (asymmetrical) {
+	if (orthographic)
+	{
+		if (asymmetrical)
+		{
 			updated |= ImGui::DragFloat("Up",    &up,    0.5f);
 			updated |= ImGui::DragFloat("Down",  &down,  0.5f);
 			updated |= ImGui::DragFloat("Right", &right, 0.5f);
 			updated |= ImGui::DragFloat("Left",  &left,  0.5f);
-		} else {
+		}
+		else
+		{
 			float height = up * 2.0f;
 			float width = right * 2.0f;
 			updated |= ImGui::SliderFloat("Height", &height, 0.0f, 100.0f);
 			updated |= ImGui::SliderFloat("Width",  &width,  0.0f, 100.0f);
 			float aspect = width / height;
 			updated |= ImGui::SliderFloat("Apect Ratio", &aspect, 0.0f, 4.0f);
-			if (updated) {
+			if (updated)
+			{
 				up = height * 0.5f;
 				down = -up;
 				right = up * aspect;
@@ -178,27 +191,35 @@ void Camera::edit()
 			}
 		}
 
-	} else {
-		if (asymmetrical) {
+	}
+	else
+	{
+		if (asymmetrical)
+		{
 			updated |= ImGui::SliderFloat("Up",    &up,    -90.0f, 90.0f);
 			updated |= ImGui::SliderFloat("Down",  &down,  -90.0f, 90.0f);
 			updated |= ImGui::SliderFloat("Right", &right, -90.0f, 90.0f);
 			updated |= ImGui::SliderFloat("Left",  &left,  -90.0f, 90.0f);
-		} else {
+		}
+		else
+		{
 			float fovVertical = up * 2.0f;
-			if (ImGui::SliderFloat("FOV Vertical", &fovVertical, 0.0f, 180.0f)) {
+			if (ImGui::SliderFloat("FOV Vertical", &fovVertical, 0.0f, 180.0f))
+			{
 				setPerspective(Radians(fovVertical), m_aspectRatio, m_near, m_far, m_projFlags);
 			}
-			if (ImGui::SliderFloat("Apect Ratio", &m_aspectRatio, 0.0f, 2.0f)) {
+
+			if (ImGui::SliderFloat("Apect Ratio", &m_aspectRatio, 0.0f, 2.0f))
+			{
 				setAspectRatio(m_aspectRatio);
-			}
-			
+			}			
 		}
 	}
 	updated |= ImGui::SliderFloat("Near",  &near,   0.0f,  10.0f);
 	updated |= ImGui::SliderFloat("Far",   &far,    0.0f,  1000.0f);
 
-	if (ImGui::TreeNode("Raw Params")) {
+	if (ImGui::TreeNode("Raw Params"))
+	{
 		
 		updated |= ImGui::DragFloat("Up",    &up,    0.5f);
 		updated |= ImGui::DragFloat("Down",  &down,  0.5f);
@@ -209,12 +230,15 @@ void Camera::edit()
 
 		ImGui::TreePop();
 	}
-	if (ImGui::TreeNode("DEBUG")) {
+
+	if (ImGui::TreeNode("DEBUG"))
+	{
 		static const int kSampleCount = 256;
 		static float zrange[2] = { -10.0f, fabs(m_far) + 1.0f };
 		ImGui::SliderFloat2("Z Range", zrange, 0.0f, 100.0f);
 		float zvalues[kSampleCount];
-		for (int i = 0; i < kSampleCount; ++i) {
+		for (int i = 0; i < kSampleCount; ++i)
+		{
 			float z = zrange[0] + ((float)i / (float)kSampleCount) * (zrange[1] - zrange[0]);
 			vec4 pz = m_proj * vec4(0.0f, 0.0f, -z, 1.0f);
 			zvalues[i] = pz.z / pz.w;
@@ -259,7 +283,8 @@ void Camera::edit()
 		ImGui::TreePop();
 	}
 
-	if (updated) {
+	if (updated)
+	{
 		m_up    = orthographic ? up    : tanf(Radians(up));
 		m_down  = orthographic ? down  : tanf(Radians(down));
 		m_right = orthographic ? right : tanf(Radians(right));
@@ -283,14 +308,17 @@ void Camera::setProj(float _up, float _down, float _right, float _left, float _n
 	m_projFlags = _flags;
 	m_projDirty = true;
 
-	if (getProjFlag(ProjFlag_Orthographic)) {
-	 // ortho proj, params are ±offsets from the centre of the view plane
+	if (getProjFlag(ProjFlag_Orthographic))
+	{
+	 // ortho proj, params are ï¿½offsets from the centre of the view plane
 		m_up    = _up;
 		m_down  = _down;
 		m_right = _right;
 		m_left  = _left;
-	} else {
-	 // perspective proj, params are ±tan(angle from the view axis)
+	}
+	else
+	{
+	 // perspective proj, params are ï¿½tan(angle from the view axis)
 		m_up    = tanf(_up);
 		m_down  = tanf(_down);
 		m_right = tanf(_right);
@@ -312,7 +340,8 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 	
  // transform an NDC box by the inverse matrix
 	mat4 invProj = inverse(_projMatrix);
-	static const vec4 lv[8] = {
+	static const vec4 lv[8] =
+	{
 		#if FRM_NDC_Z_ZERO_TO_ONE
 			vec4(-1.0f,  1.0f, 0.0f,  1.0f),
 			vec4( 1.0f,  1.0f, 0.0f,  1.0f),
@@ -330,16 +359,20 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 		vec4(-1.0f, -1.0f,  1.0f,  1.0f)
 	};
 	vec3 lvt[8];
-	for (int i = 0; i < 8; ++i) {
+	for (int i = 0; i < 8; ++i)
+	{
 		vec4 v = invProj * lv[i];
-		if (!getProjFlag(ProjFlag_Orthographic)) {
+		if (!getProjFlag(ProjFlag_Orthographic))
+		{
 			v /= v.w;
 		}
 		lvt[i] = v.xyz();
 	}
  // replace far plane in the case of an infinite projection
-	if (getProjFlag(ProjFlag_Infinite)) {
-		for (int i = 4; i < 8; ++i) {
+	if (getProjFlag(ProjFlag_Infinite))
+	{
+		for (int i = 4; i < 8; ++i)
+		{
 			lvt[i] = lvt[i - 4] * (m_far / -lvt[0].z);
 		}
 	}
@@ -350,7 +383,8 @@ void Camera::setProj(const mat4& _projMatrix, uint32 _flags)
 	m_down  = frustum[3].y;
 	m_left  = frustum[3].x;
 	m_right = frustum[1].x;
-	if (!getProjFlag(ProjFlag_Orthographic)) {
+	if (!getProjFlag(ProjFlag_Orthographic))
+	{
 		m_up    /= m_near;
 		m_down  /= m_near;
 		m_left  /= m_near;
@@ -374,20 +408,20 @@ void Camera::setPerspective(float _fovVertical, float _aspect, float _near, floa
 	m_far         = _far;
 	m_projDirty   = true;
 	setProjFlag(ProjFlag_Asymmetrical, false);
-	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // invalid _flags
+	FRM_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // invalid _flags
 }
 
 void Camera::setPerspective(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags)
 {
 	setProj(_up, _down, _right, _left, _near, _far, _flags | ProjFlag_Perspective);
-	APT_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // invalid _flags
+	FRM_ASSERT(!getProjFlag(ProjFlag_Orthographic)); // invalid _flags
 }
 
 void Camera::setOrtho(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags)
 {
 	_flags &= ~ProjFlag_Infinite; // disallow infinite ortho projection
 	setProj(_up, _down, _right, _left, _near, _far, _flags | ProjFlag_Orthographic);
-	APT_ASSERT(getProjFlag(ProjFlag_Orthographic)); // invalid _flags 
+	FRM_ASSERT(getProjFlag(ProjFlag_Orthographic)); // invalid _flags 
 }
 
 void Camera::setAspectRatio(float _aspect)
@@ -408,18 +442,21 @@ void Camera::lookAt(const vec3& _from, const vec3& _to, const vec3& _up)
 
 void Camera::update()
 {
-	if (m_projDirty) {
+	if (m_projDirty)
+	{
 		updateProj();	
 	}
 	updateView();
-	if (m_gpuBuffer) {
+	if (m_gpuBuffer)
+	{
 		updateGpuBuffer();
 	}
 }
 
 void Camera::updateView()
 {
-	if (m_parent) {
+	if (m_parent)
+	{
 		m_world = m_parent->getWorldMatrix();
 	}
 	m_view = AffineInverse(m_world);
@@ -443,7 +480,8 @@ void Camera::updateProj()
 
 	float scale = -1.0f; // view space z direction \todo expose? need to also modify getViewVector(), lookAt(), frustum ctors, shader code
 
-	if (getProjFlag(ProjFlag_Orthographic)) {
+	if (getProjFlag(ProjFlag_Orthographic))
+	{
 		m_proj = mat4(
 			2.0f / (r - l), 0.0f,           0.0f,    scale * (l + r) / (r - l),
 			0.0f,           2.0f / (t - b), 0.0f,    scale * (b + t) / (t - b),
@@ -469,7 +507,9 @@ void Camera::updateProj()
 			#endif
 		}
 
-	} else {
+	}	
+	else
+	{
 	 // oblique perspective
 		m_proj = mat4(
 			(2.0f * n) / (r - l), 0.0f,                 -scale * (l + r) / (r - l), 0.0f,
@@ -477,7 +517,8 @@ void Camera::updateProj()
 			0.0f,                 0.0f,                  0.0f,                      0.0f,
 			0.0f,                 0.0f,                  scale,                     0.0f
 			);
-		if (infinite && reversed) {
+		if (infinite && reversed)
+		{
 			#if FRM_NDC_Z_ZERO_TO_ONE
 				m_proj[2][2] = 0.0;
 				m_proj[3][2] = n;
@@ -488,7 +529,9 @@ void Camera::updateProj()
 			//m_proj[2][2] = ndcGl ? -scale : 0.0f;
 			//m_proj[3][2] = (n + offset);
 
-		} else if (infinite) {
+		}
+		else if (infinite)
+		{
 			#if FRM_NDC_Z_ZERO_TO_ONE
 				m_proj[2][2] = scale;
 				m_proj[3][2] = -n;
@@ -499,7 +542,9 @@ void Camera::updateProj()
 			//m_proj[2][2] = scale;
 			//m_proj[3][2] = -(n + offset);
 
-		} else if (reversed) {
+		}
+		else if (reversed)
+		{
 			#if FRM_NDC_Z_ZERO_TO_ONE
 				m_proj[2][2] = -scale * n / (f - n);
 				m_proj[3][2] = n * f / (f - n);
@@ -510,7 +555,9 @@ void Camera::updateProj()
 			//m_proj[2][2] = -scale * (ndcGl? (f + offset) : n) / (f - n);
 			//m_proj[3][2] = (n + offset) * f / (f - n);
 
-		} else {
+		}
+		else
+		{
 			#if FRM_NDC_Z_ZERO_TO_ONE
 				m_proj[2][2] = scale * f / (f - n);
 				m_proj[3][2] = n * f / (n - f);
@@ -531,14 +578,18 @@ void Camera::updateProj()
 void Camera::updateGpuBuffer(Buffer* _buffer_)
 {
 	Buffer*	buf = m_gpuBuffer;
-	if (_buffer_) {
-		APT_ASSERT(_buffer_->getSize() >= sizeof(GpuBuffer));
+	if (_buffer_)	
+	{
+		FRM_ASSERT(_buffer_->getSize() >= sizeof(GpuBuffer));
 		buf = _buffer_;
-	} else if (!buf) {
+	}
+	else if (!buf)
+	{
 		m_gpuBuffer = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(GpuBuffer), GL_DYNAMIC_STORAGE_BIT);
 		m_gpuBuffer->setName("_bfCamera");
 		buf = m_gpuBuffer;
 	}
+
 	GpuBuffer data;
 	data.m_world           = m_world;
 	data.m_view            = m_view;
@@ -564,9 +615,12 @@ float Camera::getDepthV(float _depth) const
 	#else
 		float zndc = _depth * 2.0f - 1.0f;
 	#endif	
-	if (getProjFlag(ProjFlag_Perspective)) {
+	if (getProjFlag(ProjFlag_Perspective))
+	{
 		return m_proj[3][2] / (m_proj[2][3] * zndc - m_proj[2][2]);
-	} else {
+	}
+	else
+	{
 		return (zndc - m_proj[3][2]) / m_proj[2][2];
 	}
 }

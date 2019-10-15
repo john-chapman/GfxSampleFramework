@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_Camera_h
-#define frm_Camera_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/geom.h>
 #include <frm/core/math.h>
 
@@ -10,8 +8,8 @@ namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Camera
-// Projection is defined either by 4 angles (±radians) from the view axis for
-// perspective projections, or 4 offsets (±world units) from the view origin for
+// Projection is defined either by 4 angles (ï¿½radians) from the view axis for
+// perspective projections, or 4 offsets (ï¿½world units) from the view origin for
 // parallel projections, plus a near/far clipping plane.
 //
 // Projection flags control how the projection matrix is set up - this must be 
@@ -48,10 +46,10 @@ public:
 	friend void swap(Camera& _a_, Camera& _b_);
 
 
-	friend bool Serialize(apt::Serializer& _serializer_, Camera& _camera_);
+	friend bool Serialize(frm::Serializer& _serializer_, Camera& _camera_);
 	void edit();
 	
-	// Set projection params. For a perspective projection _up/_down/_right/_near are ­±radians from the view
+	// Set projection params. For a perspective projection _up/_down/_right/_near are ï¿½ï¿½radians from the view
 	// axis, for an orthographic projection they are offsets from the center of the projection plane.
 	void setProj(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags = ProjFlag_Default);
 	// Recover params directly from a projection matrix. 
@@ -60,7 +58,7 @@ public:
 	void setPerspective(float _fovVertical, float _aspect, float _near, float _far, uint32 _flags = ProjFlag_Default);
 	// Set an asymmetrical (oblique) perspective projection.
 	void setPerspective(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags = ProjFlag_Default | ProjFlag_Asymmetrical);
-	// Set an asymmetrical orthographic projection. _up/_down/_left/_right are ­±world units from the view plane origin.
+	// Set an asymmetrical orthographic projection. _up/_down/_left/_right are ï¿½ï¿½world units from the view plane origin.
 	void setOrtho(float _up, float _down, float _right, float _left, float _near, float _far, uint32 _flags = ProjFlag_Orthographic | ProjFlag_Asymmetrical);
 	// Force a symmetrical projection with the specified aspect ratio.
 	void setAspectRatio(float _aspectRatio);
@@ -97,8 +95,8 @@ public:
 	bool    m_projDirty;      // Whether to rebuild the projection matrix/local frustum during update().
 	
 	float   m_up;             // Projection params are interpreted depending on the projection flags;
-	float   m_down;           //  for a perspective projection they are ±tan(angle from the view axis),
-	float   m_right;          //  for ortho projections they are ­±offset from the center of the projection
+	float   m_down;           //  for a perspective projection they are ï¿½tan(angle from the view axis),
+	float   m_right;          //  for ortho projections they are ï¿½ï¿½offset from the center of the projection
 	float   m_left;           //  plane.
 	float   m_near;
 	float   m_far;		
@@ -134,10 +132,9 @@ public:
 	Buffer* m_gpuBuffer;
 
 private:
+
 	void defaultInit();
 
 }; // class Camera
 
 } // namespace frm
-
-#endif // frm_Camera_h

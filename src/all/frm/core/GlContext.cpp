@@ -1,6 +1,7 @@
 #include "GlContext.h"
 
 #include <frm/core/gl.h>
+#include <frm/core/log.h>
 #include <frm/core/math.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Camera.h>
@@ -12,8 +13,6 @@
 #include <frm/core/Texture.h>
 #include <frm/core/Window.h>
 
-#include <apt/log.h>
-
 // Debug options, additional validation, troubleshooting etc.
 #define GlContext_VALIDATE_MESH_SHADER_ON_DRAW     0
 #define GlContext_ACTUALLY_CLEAR_BUFFER_BINDINGS   0
@@ -21,25 +20,26 @@
 #define GlContext_ACTUALLY_CLEAR_IMAGE_BINDINGS    0
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 
 // PUBLIC
 
 void GlContext::draw(GLsizei _instances)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
-	APT_ASSERT(m_currentMesh);
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentMesh);
 
 #if GlContext_VALIDATE_MESH_SHADER_ON_DRAW
  // \todo fully validate the mesh vertex descriptor against the shader
 	GLint activeAttribCount;
 	glAssert(glGetProgramiv(m_currentShader->getHandle(), GL_ACTIVE_ATTRIBUTES, &activeAttribCount));
-	APT_ASSERT(m_currentMesh->m_desc.getVertexComponentCount() == activeAttribCount);
+	FRM_ASSERT(m_currentMesh->m_desc.getVertexComponentCount() == activeAttribCount);
 #endif
 	const MeshData::Submesh& submesh = m_currentMesh->getSubmesh(m_currentSubmesh);
 
-	if (m_currentMesh->getIndexBufferHandle() != 0) {
+	if (m_currentMesh->getIndexBufferHandle() != 0)
+	{
 		glAssert(glDrawElementsInstanced(
 			m_currentMesh->getPrimitive(), 
 			(GLsizei)submesh.m_indexCount, 
@@ -47,7 +47,9 @@ void GlContext::draw(GLsizei _instances)
 			(GLvoid*)submesh.m_indexOffset, 
 			_instances
 			));
-	} else {
+	}
+	else
+	{
 		glAssert(glDrawArraysInstanced(
 			m_currentMesh->getPrimitive(),
 			(GLint)submesh.m_vertexOffset, 
@@ -61,8 +63,8 @@ void GlContext::draw(GLsizei _instances)
 
 void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
-	APT_ASSERT(m_currentMesh);
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentMesh);
 	
 	bindBuffer(_buffer, GL_DRAW_INDIRECT_BUFFER);
 
@@ -70,12 +72,15 @@ void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
  // \todo fully validate the mesh vertex descriptor against the shader
 	GLint activeAttribCount;
 	glAssert(glGetProgramiv(m_currentShader->getHandle(), GL_ACTIVE_ATTRIBUTES, &activeAttribCount));
-	APT_ASSERT(m_currentMesh->m_desc.getVertexComponentCount() == activeAttribCount);
+	FRM_ASSERT(m_currentMesh->m_desc.getVertexComponentCount() == activeAttribCount);
 #endif
 
-	if (m_currentMesh->getIndexBufferHandle() != 0) {
+	if (m_currentMesh->getIndexBufferHandle() != 0)
+	{
 		glAssert(glDrawElementsIndirect(m_currentMesh->getPrimitive(), m_currentMesh->getIndexDataType(), _offset));
-	} else {
+	}
+	else
+	{
 		glAssert(glDrawArraysIndirect(m_currentMesh->getPrimitive(), _offset));
 	}
 
@@ -84,12 +89,14 @@ void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
 
 void GlContext::drawNdcQuad(const Camera* _cam)
 {
-	if_unlikely (!m_ndcQuadMesh) {
+	if_unlikely (!m_ndcQuadMesh)
+	{
 		MeshDesc quadDesc;
 		quadDesc.setPrimitive(MeshDesc::Primitive_TriangleStrip);
 		quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 2);
 		//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType_Float32);
-		float quadVertexData[] = { 
+		float quadVertexData[] =
+		{ 
 			-1.0f, -1.0f, //0.0f, 0.0f,
 			 1.0f, -1.0f, //1.0f, 0.0f,
 			-1.0f,  1.0f, //0.0f, 1.0f,
@@ -100,10 +107,14 @@ void GlContext::drawNdcQuad(const Camera* _cam)
 		MeshData::Destroy(quadData);
 	}
 
-	if (_cam) {
-		if (_cam->m_gpuBuffer) {
+	if (_cam)	
+	{
+		if (_cam->m_gpuBuffer)
+		{
 			bindBuffer("_bfCamera", _cam->m_gpuBuffer);
-		} else {
+		}
+		else
+		{
 		 // legacy
 			setUniform("uCameraNear",        _cam->m_near);
 			setUniform("uCameraFar",         _cam->m_far);
@@ -120,40 +131,42 @@ void GlContext::drawNdcQuad(const Camera* _cam)
 
 void GlContext::dispatch(GLuint _groupsX, GLuint _groupsY, GLuint _groupsZ)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
-	APT_ASSERT(_groupsX < (GLuint)kMaxComputeWorkGroups[0]);
-	APT_ASSERT(_groupsY < (GLuint)kMaxComputeWorkGroups[1]);
-	APT_ASSERT(_groupsZ < (GLuint)kMaxComputeWorkGroups[2]);
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(_groupsX < (GLuint)kMaxComputeWorkGroups[0]);
+	FRM_ASSERT(_groupsY < (GLuint)kMaxComputeWorkGroups[1]);
+	FRM_ASSERT(_groupsZ < (GLuint)kMaxComputeWorkGroups[2]);
 	glAssert(glDispatchCompute(_groupsX, _groupsY, _groupsZ));
 	++m_dispatchCount;
 }
 
 void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	ivec3 localSize = m_currentShader->getLocalSize();
-	if (_groupsZ == 0) {
-		switch (_tx->getTarget()) {
+	if (_groupsZ == 0)
+	{
+		switch (_tx->getTarget())
+		{
 			case GL_TEXTURE_CUBE_MAP: _groupsZ = 6; break;
 			case GL_TEXTURE_2D_ARRAY: _groupsZ = _tx->getArrayCount(); break;
 			case GL_TEXTURE_3D:       _groupsZ = _tx->getDepth(); break;
 			default:                  _groupsZ = 1; break;
 		};
 		GLuint sizeZ = (GLuint)localSize.z;
-		_groupsZ = APT_MAX((_groupsZ + sizeZ - 1) / sizeZ, 1u);
+		_groupsZ = FRM_MAX((_groupsZ + sizeZ - 1) / sizeZ, 1u);
 	}
 	GLuint sizeX = (GLuint)localSize.x;
 	GLuint sizeY = (GLuint)localSize.y;
 	dispatch(
-		APT_MAX((_tx->getWidth() + sizeX - 1) / sizeX, 1u),
-		APT_MAX((_tx->getHeight() + sizeY - 1) / sizeY, 1u),
+		FRM_MAX((_tx->getWidth() + sizeX - 1) / sizeX, 1u),
+		FRM_MAX((_tx->getHeight() + sizeY - 1) / sizeY, 1u),
 		_groupsZ
 		);
 }
 
 void GlContext::dispatchIndirect(const Buffer* _buffer, const void* _offset)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	bindBuffer(_buffer, GL_DISPATCH_INDIRECT_BUFFER);
 	glAssert(glDispatchComputeIndirect((GLintptr)_offset));
 	++m_dispatchCount; // count indirect dispatch as a single dispatch
@@ -161,17 +174,22 @@ void GlContext::dispatchIndirect(const Buffer* _buffer, const void* _offset)
 
 void GlContext::setFramebuffer(const Framebuffer* _framebuffer)
 {
-	if (_framebuffer == m_currentFramebuffer) {
+	if (_framebuffer == m_currentFramebuffer)
+	{
 		return;
 	}
-	if (!_framebuffer) {
+	if (!_framebuffer)
+	{
 		glAssert(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-	} else {
+	}
+	else
+	{
 	 // validate framebuffer completeness
 		GLenum status = _framebuffer->getStatus();
-		if (status != GL_FRAMEBUFFER_COMPLETE) {
-			APT_LOG_ERR("GlContext: Framebuffer %u incomplete (status %s)", _framebuffer->getHandle(), internal::GlEnumStr(status));
-			APT_ASSERT(false);
+		if (status != GL_FRAMEBUFFER_COMPLETE)
+		{
+			FRM_LOG_ERR("GlContext: Framebuffer %u incomplete (status %s)", _framebuffer->getHandle(), internal::GlEnumStr(status));
+			FRM_ASSERT(false);
 		}
 
 		glAssert(glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer->getHandle()));
@@ -182,9 +200,12 @@ void GlContext::setFramebuffer(const Framebuffer* _framebuffer)
 void GlContext::setFramebufferAndViewport(const Framebuffer* _framebuffer)
 {
 	setFramebuffer(_framebuffer);
-	if (_framebuffer) {
+	if (_framebuffer)
+	{
 		setViewport(0, 0, _framebuffer->getWidth(), _framebuffer->getHeight());
-	} else {
+	}	
+	else
+	{
 		setViewport(0, 0, m_window->getWidth(), m_window->getHeight());
 	}
 }
@@ -212,19 +233,23 @@ void GlContext::setViewport(int _x, int _y, int _width, int _height)
 
 void GlContext::setShader(const Shader* _shader)
 {
-	APT_ASSERT((!_shader) || (_shader->getState() == Shader::State_Loaded));
+	FRM_ASSERT((!_shader) || (_shader->getState() == Shader::State_Loaded));
 
  // must at least clear the slot counters between shaders
 	clearBufferBindings();
 	clearTextureBindings(); 
 	clearImageBindings();
 
-	if (_shader == m_currentShader) {
+	if (_shader == m_currentShader)
+	{
 		return;
 	}
-	if (!_shader || _shader->getState() != Shader::State_Loaded) {
+	if (!_shader || _shader->getState() != Shader::State_Loaded)
+	{
 		glAssert(glUseProgram(0));
-	} else {
+	}
+	else
+	{
 		glAssert(glUseProgram(_shader->getHandle()));
 	}
 	m_currentShader = _shader;
@@ -233,85 +258,85 @@ void GlContext::setShader(const Shader* _shader)
 template <>
 void GlContext::setUniformArray<int>(const char* _name, const int* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform1iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
 }
 template <>
 void GlContext::setUniformArray<uint32>(const char* _name, const uint32* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform1uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
 }
 template <>
 void GlContext::setUniformArray<float>(const char* _name, const float* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform1fv(m_currentShader->getUniformLocation(_name), _count, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<vec2>(const char* _name, const vec2* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform2fv(m_currentShader->getUniformLocation(_name), _count, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<vec3>(const char* _name, const vec3* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform3fv(m_currentShader->getUniformLocation(_name), _count, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<vec4>(const char* _name, const vec4* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform4fv(m_currentShader->getUniformLocation(_name), _count, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<ivec2>(const char* _name, const ivec2* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform2iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
 }
 template <>
 void GlContext::setUniformArray<ivec3>(const char* _name, const ivec3* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform3iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
 }
 template <>
 void GlContext::setUniformArray<ivec4>(const char* _name, const ivec4* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform4iv(m_currentShader->getUniformLocation(_name), _count, (const GLint*)_val));
 }
 template <>
 void GlContext::setUniformArray<uvec2>(const char* _name, const uvec2* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform2uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
 }
 template <>
 void GlContext::setUniformArray<uvec3>(const char* _name, const uvec3* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform3uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
 }
 template <>
 void GlContext::setUniformArray<uvec4>(const char* _name, const uvec4* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniform4uiv(m_currentShader->getUniformLocation(_name), _count, (const GLuint*)_val));
 }
 template <>
 void GlContext::setUniformArray<mat3>(const char* _name, const mat3* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniformMatrix3fv(m_currentShader->getUniformLocation(_name), _count, false, (const GLfloat*)_val));
 }
 template <>
 void GlContext::setUniformArray<mat4>(const char* _name, const mat4* _val, GLsizei _count)
 {
-	APT_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
+	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	glAssert(glUniformMatrix4fv(m_currentShader->getUniformLocation(_name), _count, false, (const GLfloat*)_val));
 }
 
@@ -319,13 +344,17 @@ void GlContext::setUniformArray<mat4>(const char* _name, const mat4* _val, GLsiz
 void GlContext::setMesh(const Mesh* _mesh, int _submeshId)
 {
 	m_currentSubmesh = _submeshId;
-	if (_mesh == m_currentMesh) {
+	if (_mesh == m_currentMesh)
+	{
 		return;
 	}
-	if (!_mesh || _mesh->getState() != Mesh::State_Loaded) {
+	if (!_mesh || _mesh->getState() != Mesh::State_Loaded)
+	{
 		glAssert(glBindVertexArray(0));
-	} else {
-		APT_ASSERT(_submeshId < _mesh->getSubmeshCount());
+	}
+	else
+	{
+		FRM_ASSERT(_submeshId < _mesh->getSubmeshCount());
 		glAssert(glBindVertexArray(_mesh->getVertexArrayHandle()));
 	}
 	m_currentMesh = _mesh;
@@ -338,20 +367,22 @@ void GlContext::bindBuffer(const char* _location, const Buffer* _buffer)
 
 void GlContext::bindBufferRange(const char* _location, const Buffer* _buffer, GLintptr _offset, GLsizeiptr _size)
 {
-	APT_ASSERT(_location);
-	APT_ASSERT(m_currentShader);
-	APT_ASSERT(_buffer->getTarget() == GL_UNIFORM_BUFFER || 
+	FRM_ASSERT(_location);
+	FRM_ASSERT(m_currentShader);
+	FRM_ASSERT(_buffer->getTarget() == GL_UNIFORM_BUFFER || 
 	           _buffer->getTarget() == GL_SHADER_STORAGE_BUFFER ||
 			   _buffer->getTarget() == GL_ATOMIC_COUNTER_BUFFER ||
 			   _buffer->getTarget() == GL_TRANSFORM_FEEDBACK_BUFFER
 			   );
-	APT_ASSERT((_offset + _size) <= _buffer->getSize());
+	FRM_ASSERT((_offset + _size) <= _buffer->getSize());
 
 	GLint loc = m_currentShader->getResourceIndex(_buffer->getTarget() == GL_SHADER_STORAGE_BUFFER ? GL_SHADER_STORAGE_BLOCK : GL_UNIFORM_BLOCK, _location);
-	if (loc != GL_INVALID_INDEX) {
+	if (loc != GL_INVALID_INDEX)
+	{
 		int t = internal::BufferTargetToIndex(_buffer->getTarget());
-		APT_ASSERT(m_nextBufferSlots[t] < kMaxBufferSlots[t]);
-		switch (_buffer->getTarget()) {
+		FRM_ASSERT(m_nextBufferSlots[t] < kMaxBufferSlots[t]);
+		switch (_buffer->getTarget())
+		{
 			case GL_SHADER_STORAGE_BUFFER: glShaderStorageBlockBinding(m_currentShader->getHandle(), loc, m_nextBufferSlots[t]); break;
 			case GL_UNIFORM_BUFFER:
 			default:                       glUniformBlockBinding(m_currentShader->getHandle(), loc, m_nextBufferSlots[t]); break;
@@ -375,7 +406,7 @@ void GlContext::bindBuffer(const Buffer* _buffer, GLenum _target)
 {
 	_target = _target == GL_NONE ? _buffer->getTarget() : _target;
 
-	APT_ASSERT(_target == GL_DRAW_INDIRECT_BUFFER || 
+	FRM_ASSERT(_target == GL_DRAW_INDIRECT_BUFFER || 
 	           _target == GL_DISPATCH_INDIRECT_BUFFER ||
 			   _target == GL_COPY_READ_BUFFER ||
 			   _target == GL_COPY_WRITE_BUFFER ||
@@ -418,11 +449,12 @@ void GlContext::clearBufferBindings()
 
 void GlContext::bindTexture(const char* _location, const Texture* _texture)
 {
-	APT_ASSERT(_location);
-	APT_ASSERT(m_currentShader);
+	FRM_ASSERT(_location);
+	FRM_ASSERT(m_currentShader);
 	GLint loc = m_currentShader->getUniformLocation(_location);
-	if (loc != GL_INVALID_INDEX) {
-		APT_ASSERT(m_nextTextureSlot < kTextureSlotCount);
+	if (loc != GL_INVALID_INDEX)
+	{
+		FRM_ASSERT(m_nextTextureSlot < kTextureSlotCount);
 		glAssert(glUniform1i(loc, m_nextTextureSlot));
 		glAssert(glActiveTexture(GL_TEXTURE0 + m_nextTextureSlot));
 		glAssert(glBindTexture(_texture->getTarget(), _texture->getHandle()));
@@ -453,11 +485,12 @@ void GlContext::clearTextureBindings()
 
 void GlContext::bindImage(const char* _location, const Texture* _texture, GLenum _access, GLint _level)
 {
-	APT_ASSERT(_location);
-	APT_ASSERT(m_currentShader);
+	FRM_ASSERT(_location);
+	FRM_ASSERT(m_currentShader);
 	GLint loc = m_currentShader->getUniformLocation(_location);
-	if (loc != GL_INVALID_INDEX) {
-		APT_ASSERT(m_nextImageSlot < kImageSlotCount);
+	if (loc != GL_INVALID_INDEX)
+	{
+		FRM_ASSERT(m_nextImageSlot < kImageSlotCount);
 		glAssert(glUniform1i(loc, m_nextImageSlot));
 		GLboolean layered = 
 			_texture->getTarget() == GL_TEXTURE_2D_ARRAY ||
@@ -477,7 +510,8 @@ void GlContext::clearImageBindings()
 	memset(m_currentImages,  0, sizeof(m_currentImages)); // not necessary but nice for debugging
 
 #if GlContext_ACTUALLY_CLEAR_IMAGE_BINDINGS
-	for (int slot = 0; slot < kImageSlotCount; ++slot) {
+	for (int slot = 0; slot < kImageSlotCount; ++slot)
+	{
 		glAssert(glBindImageTexture(slot, 0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8));
 	}
 #endif
@@ -500,7 +534,7 @@ GlContext::GlContext()
 
 GlContext::~GlContext()
 {
-	APT_ASSERT(m_impl == 0);
+	FRM_ASSERT(m_impl == 0);
 }
 
 bool GlContext::init()

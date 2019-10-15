@@ -1,8 +1,6 @@
 dofile "GfxSampleFramework_premake.lua"
-dofile "../extern/ApplicationTools/build/ApplicationTools_premake.lua"
 
 local FRM_ROOT = "../"
-local APT_ROOT = "../extern/ApplicationTools/"
 
 workspace "GfxSampleFramework"
 	location(_ACTION)
@@ -23,17 +21,10 @@ workspace "GfxSampleFramework"
 		optimize "Off"
 	filter {}
 	filter { "configurations:Release" }
-		symbols "Off"
+		symbols "On"
 		optimize "Full"
 	filter {}
 
-	group "libs"
-		--ApplicationTools_ProjectExternal("../extern/ApplicationTools")
-		ApplicationTools_Project(
-			APT_ROOT,
-			APT_ROOT .. "lib"
-			)
-	group ""
 	group "libs"
 		GfxSampleFramework_Project(
 			FRM_ROOT .. "",     -- root
@@ -61,7 +52,6 @@ workspace "GfxSampleFramework"
 			ALL_TESTS_DIR .. "**.cpp",
 			})
 
-		ApplicationTools_Link()
 		GfxSampleFramework_Link()
 		
 		local name    = "AppSampleTest"

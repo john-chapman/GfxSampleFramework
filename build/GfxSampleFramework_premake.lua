@@ -144,6 +144,20 @@ local function GfxSampleFramework_Globals()
 			defines(def)
 		end
 
+		defines { "EA_COMPILER_NO_EXCEPTIONS" }
+		rtti "Off"
+		exceptionhandling "Off"
+
+		filter { "action:vs*" }
+			defines { "_CRT_SECURE_NO_WARNINGS", "_SCL_SECURE_NO_WARNINGS" }
+			buildoptions { "/EHsc" }
+			characterset "MBCS" -- force Win32 API to use *A variants (i.e. can pass char* for strings)
+		filter {}
+
+		filter { "configurations:debug" }
+			defines { "FRM_DEBUG" }
+		filter {}
+
 	 -- include frm sources as e.g. <frm/core/def.h>
 		includedirs(makepath { SRC_PATH_ROOT, "all" })
 		filter { "platforms:Win*" }

@@ -1125,31 +1125,31 @@ typedef void (WINAPI * PFNWGLFREEMEMORYNVPROC) (void *pointer);
 
 #endif /* WGL_NV_vertex_array_range */
 
-/* -------------------------- WGL_NV_video_capture ------------------------- */
+/* -------------------------- WGL_NV_video_cfrmure ------------------------- */
 
-#ifndef WGL_NV_video_capture
-#define WGL_NV_video_capture 1
+#ifndef WGL_NV_video_cfrmure
+#define WGL_NV_video_cfrmure 1
 
 #define WGL_UNIQUE_ID_NV 0x20CE
-#define WGL_NUM_VIDEO_CAPTURE_SLOTS_NV 0x20CF
+#define WGL_NUM_VIDEO_CfrmURE_SLOTS_NV 0x20CF
 
 DECLARE_HANDLE(HVIDEOINPUTDEVICENV);
 
-typedef BOOL (WINAPI * PFNWGLBINDVIDEOCAPTUREDEVICENVPROC) (UINT uVideoSlot, HVIDEOINPUTDEVICENV hDevice);
-typedef UINT (WINAPI * PFNWGLENUMERATEVIDEOCAPTUREDEVICESNVPROC) (HDC hDc, HVIDEOINPUTDEVICENV* phDeviceList);
-typedef BOOL (WINAPI * PFNWGLLOCKVIDEOCAPTUREDEVICENVPROC) (HDC hDc, HVIDEOINPUTDEVICENV hDevice);
-typedef BOOL (WINAPI * PFNWGLQUERYVIDEOCAPTUREDEVICENVPROC) (HDC hDc, HVIDEOINPUTDEVICENV hDevice, int iAttribute, int* piValue);
-typedef BOOL (WINAPI * PFNWGLRELEASEVIDEOCAPTUREDEVICENVPROC) (HDC hDc, HVIDEOINPUTDEVICENV hDevice);
+typedef BOOL (WINAPI * PFNWGLBINDVIDEOCfrmUREDEVICENVPROC) (UINT uVideoSlot, HVIDEOINPUTDEVICENV hDevice);
+typedef UINT (WINAPI * PFNWGLENUMERATEVIDEOCfrmUREDEVICESNVPROC) (HDC hDc, HVIDEOINPUTDEVICENV* phDeviceList);
+typedef BOOL (WINAPI * PFNWGLLOCKVIDEOCfrmUREDEVICENVPROC) (HDC hDc, HVIDEOINPUTDEVICENV hDevice);
+typedef BOOL (WINAPI * PFNWGLQUERYVIDEOCfrmUREDEVICENVPROC) (HDC hDc, HVIDEOINPUTDEVICENV hDevice, int iAttribute, int* piValue);
+typedef BOOL (WINAPI * PFNWGLRELEASEVIDEOCfrmUREDEVICENVPROC) (HDC hDc, HVIDEOINPUTDEVICENV hDevice);
 
-#define wglBindVideoCaptureDeviceNV WGLEW_GET_FUN(__wglewBindVideoCaptureDeviceNV)
-#define wglEnumerateVideoCaptureDevicesNV WGLEW_GET_FUN(__wglewEnumerateVideoCaptureDevicesNV)
-#define wglLockVideoCaptureDeviceNV WGLEW_GET_FUN(__wglewLockVideoCaptureDeviceNV)
-#define wglQueryVideoCaptureDeviceNV WGLEW_GET_FUN(__wglewQueryVideoCaptureDeviceNV)
-#define wglReleaseVideoCaptureDeviceNV WGLEW_GET_FUN(__wglewReleaseVideoCaptureDeviceNV)
+#define wglBindVideoCfrmureDeviceNV WGLEW_GET_FUN(__wglewBindVideoCfrmureDeviceNV)
+#define wglEnumerateVideoCfrmureDevicesNV WGLEW_GET_FUN(__wglewEnumerateVideoCfrmureDevicesNV)
+#define wglLockVideoCfrmureDeviceNV WGLEW_GET_FUN(__wglewLockVideoCfrmureDeviceNV)
+#define wglQueryVideoCfrmureDeviceNV WGLEW_GET_FUN(__wglewQueryVideoCfrmureDeviceNV)
+#define wglReleaseVideoCfrmureDeviceNV WGLEW_GET_FUN(__wglewReleaseVideoCfrmureDeviceNV)
 
-#define WGLEW_NV_video_capture WGLEW_GET_VAR(__WGLEW_NV_video_capture)
+#define WGLEW_NV_video_cfrmure WGLEW_GET_VAR(__WGLEW_NV_video_cfrmure)
 
-#endif /* WGL_NV_video_capture */
+#endif /* WGL_NV_video_cfrmure */
 
 /* -------------------------- WGL_NV_video_output -------------------------- */
 
@@ -1348,11 +1348,11 @@ WGLEW_FUN_EXPORT PFNWGLRESETFRAMECOUNTNVPROC __wglewResetFrameCountNV;
 WGLEW_FUN_EXPORT PFNWGLALLOCATEMEMORYNVPROC __wglewAllocateMemoryNV;
 WGLEW_FUN_EXPORT PFNWGLFREEMEMORYNVPROC __wglewFreeMemoryNV;
 
-WGLEW_FUN_EXPORT PFNWGLBINDVIDEOCAPTUREDEVICENVPROC __wglewBindVideoCaptureDeviceNV;
-WGLEW_FUN_EXPORT PFNWGLENUMERATEVIDEOCAPTUREDEVICESNVPROC __wglewEnumerateVideoCaptureDevicesNV;
-WGLEW_FUN_EXPORT PFNWGLLOCKVIDEOCAPTUREDEVICENVPROC __wglewLockVideoCaptureDeviceNV;
-WGLEW_FUN_EXPORT PFNWGLQUERYVIDEOCAPTUREDEVICENVPROC __wglewQueryVideoCaptureDeviceNV;
-WGLEW_FUN_EXPORT PFNWGLRELEASEVIDEOCAPTUREDEVICENVPROC __wglewReleaseVideoCaptureDeviceNV;
+WGLEW_FUN_EXPORT PFNWGLBINDVIDEOCfrmUREDEVICENVPROC __wglewBindVideoCfrmureDeviceNV;
+WGLEW_FUN_EXPORT PFNWGLENUMERATEVIDEOCfrmUREDEVICESNVPROC __wglewEnumerateVideoCfrmureDevicesNV;
+WGLEW_FUN_EXPORT PFNWGLLOCKVIDEOCfrmUREDEVICENVPROC __wglewLockVideoCfrmureDeviceNV;
+WGLEW_FUN_EXPORT PFNWGLQUERYVIDEOCfrmUREDEVICENVPROC __wglewQueryVideoCfrmureDeviceNV;
+WGLEW_FUN_EXPORT PFNWGLRELEASEVIDEOCfrmUREDEVICENVPROC __wglewReleaseVideoCfrmureDeviceNV;
 
 WGLEW_FUN_EXPORT PFNWGLBINDVIDEOIMAGENVPROC __wglewBindVideoImageNV;
 WGLEW_FUN_EXPORT PFNWGLGETVIDEODEVICENVPROC __wglewGetVideoDeviceNV;
@@ -1420,7 +1420,7 @@ WGLEW_VAR_EXPORT GLboolean __WGLEW_NV_render_depth_texture;
 WGLEW_VAR_EXPORT GLboolean __WGLEW_NV_render_texture_rectangle;
 WGLEW_VAR_EXPORT GLboolean __WGLEW_NV_swap_group;
 WGLEW_VAR_EXPORT GLboolean __WGLEW_NV_vertex_array_range;
-WGLEW_VAR_EXPORT GLboolean __WGLEW_NV_video_capture;
+WGLEW_VAR_EXPORT GLboolean __WGLEW_NV_video_cfrmure;
 WGLEW_VAR_EXPORT GLboolean __WGLEW_NV_video_output;
 WGLEW_VAR_EXPORT GLboolean __WGLEW_OML_sync_control;
 /* ------------------------------------------------------------------------- */

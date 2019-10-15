@@ -1,18 +1,16 @@
 #include "Scene.h"
 
+#include <frm/core/log.h>
 #include <frm/core/Camera.h>
 #include <frm/core/Component.h>
+#include <frm/core/Json.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/XForm.h>
-
-#include <apt/log.h>
-#include <apt/Json.h>
 
 #include <EASTl/algorithm.h>
 #include <EASTL/utility.h> // eastl::swap
 
 using namespace frm;
-using namespace apt;
 
 /*******************************************************************************
 
@@ -48,8 +46,8 @@ void Node::setNamef(const char* _fmt, ...)
 
 void Node::addXForm(XForm* _xform)
 {
-	APT_ASSERT(_xform);
-	APT_ASSERT(_xform->getNode() == nullptr);
+	FRM_ASSERT(_xform);
+	FRM_ASSERT(_xform->getNode() == nullptr);
 	_xform->setNode(this);
 	m_xforms.push_back(_xform);
 }
@@ -57,8 +55,8 @@ void Node::addXForm(XForm* _xform)
 void Node::removeXForm(XForm* _xform)
 {
 	auto it = eastl::find(m_xforms.begin(), m_xforms.end(), _xform);
-	APT_ASSERT(it != m_xforms.end());
-	APT_ASSERT(_xform->getNode() == this);
+	FRM_ASSERT(it != m_xforms.end());
+	FRM_ASSERT(_xform->getNode() == this);
 	
 	m_xforms.erase(it);
 	XForm::Destroy(_xform);
@@ -68,7 +66,7 @@ void Node::moveXForm(const XForm* _xform, int _dir)
 {
 	for (int i = 0, n = getXFormCount(); i < n; ++i) {
 		if (m_xforms[i] == _xform) {
-			int j = APT_CLAMP(i + _dir, 0, n - 1);
+			int j = FRM_CLAMP(i + _dir, 0, n - 1);
 			eastl::swap(m_xforms[i], m_xforms[j]);
 			return;
 		}
@@ -77,8 +75,8 @@ void Node::moveXForm(const XForm* _xform, int _dir)
 
 void Node::addComponent(Component* _component)
 {
-	APT_ASSERT(_component);
-	APT_ASSERT(_component->getNode() == nullptr);
+	FRM_ASSERT(_component);
+	FRM_ASSERT(_component->getNode() == nullptr);
 	_component->setNode(this);
 	if (_component->init()) {
 		m_components.push_back(_component);
@@ -90,8 +88,8 @@ void Node::addComponent(Component* _component)
 void Node::removeComponent(Component* _component)
 {
 	auto it = eastl::find(m_components.begin(), m_components.end(), _component);
-	APT_ASSERT(it != m_components.end());
-	APT_ASSERT(_component->getNode() == this);
+	FRM_ASSERT(it != m_components.end());
+	FRM_ASSERT(_component->getNode() == this);
 	
 	_component->shutdown();
 	m_components.erase(it);
@@ -112,8 +110,8 @@ void Node::setParent(Node* _node)
 
 void Node::addChild(Node* _node)
 {
-	APT_ASSERT(_node);
-	APT_ASSERT(eastl::find(m_children.begin(), m_children.end(), _node) == m_children.end()); // added the same child multiple times?
+	FRM_ASSERT(_node);
+	FRM_ASSERT(eastl::find(m_children.begin(), m_children.end(), _node) == m_children.end()); // added the same child multiple times?
 	m_children.push_back(_node);
 	if (_node->m_parent && _node->m_parent != this) {
 		_node->m_parent->removeChild(_node);
@@ -127,7 +125,7 @@ void Node::addChild(Node* _node)
 
 void Node::removeChild(Node* _node)
 {
-	APT_ASSERT(_node);
+	FRM_ASSERT(_node);
 	auto it = eastl::find(m_children.begin(), m_children.end(), _node);
 	if (it != m_children.end()) {
 		(*it)->m_parent = nullptr;
@@ -170,8 +168,8 @@ void Node::Update(Node* _node_, float _dt, uint8 _stateMask)
 	switch (_node_->getType()) {
 		case Node::Type_Camera: {
 			Camera* camera = _node_->getSceneDataCamera();
-			APT_ASSERT(camera);
-			APT_ASSERT(camera->m_parent == _node_);
+			FRM_ASSERT(camera);
+			FRM_ASSERT(camera->m_parent == _node_);
 			camera->update();
 			}
 			break;
@@ -202,7 +200,7 @@ Node::Node(Type _type, Id _id, uint8 _state, const char* _name)
 	, m_localMatrix(identity)
 	, m_parent(nullptr)
 {
-	APT_ASSERT(_type < Type_Count);
+	FRM_ASSERT(_type < Type_Count);
 	if (_name) {
 		m_name.set(_name);
 	} else {
@@ -229,20 +227,20 @@ Node::~Node()
  // delete components
 	for (Component* component : m_components) {
 		component->shutdown();
-		APT_DELETE(component);
+		FRM_DELETE(component);
 	}
 	m_components.clear();
 
  // delete xforms
 	for (XForm* xform : m_xforms) {
-		APT_DELETE(xform);
+		FRM_DELETE(xform);
 	}
 	m_xforms.clear();
 }
 
 int Node::moveXForm(int _i, int _dir)
 {
-	int j = APT_CLAMP(_i + _dir, 0, (int)(m_xforms.size() - 1));
+	int j = FRM_CLAMP(_i + _dir, 0, (int)(m_xforms.size() - 1));
 	eastl::swap(m_xforms[_i], m_xforms[j]);
 	return j;
 }
@@ -260,11 +258,11 @@ void frm::swap(Scene& _a, Scene& _b)
 	eastl::swap(_a.m_nextNodeId, _b.m_nextNodeId);
 	eastl::swap(_a.m_root,       _b.m_root);
 	eastl::swap(_a.m_nodes,      _b.m_nodes);
-	apt::swap  (_a.m_nodePool,   _b.m_nodePool);
+	frm::swap  (_a.m_nodePool,   _b.m_nodePool);
 	eastl::swap(_a.m_drawCamera, _b.m_drawCamera);
 	eastl::swap(_a.m_cullCamera, _b.m_cullCamera);
 	eastl::swap(_a.m_cameras,    _b.m_cameras);
-	apt::swap  (_a.m_cameraPool, _b.m_cameraPool);
+	frm::swap  (_a.m_cameraPool, _b.m_cameraPool);
 }
 
 
@@ -272,7 +270,7 @@ void frm::swap(Scene& _a, Scene& _b)
 
 bool Scene::Load(const char* _path, Scene& scene_)
 {
-	APT_LOG("Loading scene from '%s'", _path);
+	FRM_LOG("Loading scene from '%s'", _path);
 	Json json;
 	if (!Json::Read(json, _path)) {
 		return false;
@@ -289,7 +287,7 @@ bool Scene::Load(const char* _path, Scene& scene_)
 
 bool Scene::Save(const char* _path, Scene& _scene)
 {
-	APT_LOG("Saving scene to '%s'", _path);
+	FRM_LOG("Saving scene to '%s'", _path);
 	Json json;
 	SerializerJson serializer(json, SerializerJson::Mode_Write);
 	if (!Serialize(serializer, _scene)) {
@@ -363,7 +361,7 @@ void Scene::destroyNode(Node*& _node_)
 {
 	PROFILER_MARKER_CPU("#Scene::destroyNode");
 
-	APT_ASSERT(_node_ != m_root); // can't destroy the root
+	FRM_ASSERT(_node_ != m_root); // can't destroy the root
 	
 	Node::Type type = _node_->getType();
 	switch (type) {
@@ -372,7 +370,7 @@ void Scene::destroyNode(Node*& _node_)
 				Camera* camera = _node_->getSceneDataCamera();
 				auto it = eastl::find(m_cameras.begin(), m_cameras.end(), camera);
 				if (it != m_cameras.end()) {
-					APT_ASSERT(camera->m_parent == _node_); // _node_ points to camera, but camera doesn't point to _node_
+					FRM_ASSERT(camera->m_parent == _node_); // _node_ points to camera, but camera doesn't point to _node_
 					m_cameras.erase(it);
 				}
 				m_cameraPool.free(camera);
@@ -467,7 +465,7 @@ void Scene::destroyCamera(Camera*& _camera_)
 	PROFILER_MARKER_CPU("#Scene::destroyCamera");
 
 	Node* node = _camera_->m_parent;
-	APT_ASSERT(node);
+	FRM_ASSERT(node);
 	destroyNode(node); // implicitly destroys camera
 	if (m_editCamera == _camera_) {
 		m_editCamera = nullptr;
@@ -521,11 +519,11 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_)
 		}
 
 		for (int i = 0; i < Node::Type_Count; ++i) {
-			s_typeCounters[i] = APT_MAX((unsigned int)_scene_.m_nodes[i].size(), s_typeCounters[i]);
+			s_typeCounters[i] = FRM_MAX((unsigned int)_scene_.m_nodes[i].size(), s_typeCounters[i]);
 		}
 	}
 
-	APT_ASSERT(_scene_.m_drawCamera != nullptr);
+	FRM_ASSERT(_scene_.m_drawCamera != nullptr);
 	if (_scene_.m_cullCamera == nullptr) {
 		_scene_.m_cullCamera = _scene_.m_drawCamera;
 	}
@@ -560,7 +558,7 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 	if (_serializer_.getMode() == Serializer::Mode_Read) {
 		_node_.m_type = NodeTypeFromStr((const char*)typeStr);
 		if (_node_.m_type == Node::Type_Count) {
-			APT_LOG_ERR("Scene: Invalid node type '%s'", (const char*)typeStr);
+			FRM_LOG_ERR("Scene: Invalid node type '%s'", (const char*)typeStr);
 			return false;
 		}
 
@@ -583,7 +581,7 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 			default:
 				break;
 		};
-		_scene_.m_nextNodeId = APT_MAX(_scene_.m_nextNodeId, _node_.m_id + 1);
+		_scene_.m_nextNodeId = FRM_MAX(_scene_.m_nextNodeId, _node_.m_id + 1);
 
 		uint childCount = (uint)_node_.getChildCount();
 		if (_serializer_.beginArray(childCount, "Children")) {
@@ -613,7 +611,7 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 					xform->serialize(_serializer_);
 					_node_.addXForm(xform);
 				} else {
-					APT_LOG_ERR("Scene: Invalid xform '%s'", (const char*)className);
+					FRM_LOG_ERR("Scene: Invalid xform '%s'", (const char*)className);
 				}
 				_serializer_.endObject();
 			}
@@ -632,7 +630,7 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 					component->serialize(_serializer_);
 					_node_.addComponent(component);
 				} else {
-					APT_LOG_ERR("Scene: Invalid component '%s'", (const char*)className);
+					FRM_LOG_ERR("Scene: Invalid component '%s'", (const char*)className);
 				}
 				_serializer_.endObject();
 			}
@@ -804,7 +802,7 @@ void Scene::editNodes()
 			 // \todo modal warning when deleting a root or a node with children?
 				if (m_editNode->getType() == Node::Type_Root || m_editNode->getType() == Node::Type_Camera) {
 					if (m_nodes[m_editNode->getType()].size() == 1) {
-						APT_LOG_ERR("Error: Can't delete the only %s", kNodeTypeStr[m_editNode->getType()]);
+						FRM_LOG_ERR("Error: Can't delete the only %s", kNodeTypeStr[m_editNode->getType()]);
 						destroyNode = false;
 					}
 				}
@@ -836,7 +834,7 @@ void Scene::editNodes()
 				}
 				Node* newParent = selectNode(m_editNode->getParent());
 				if (newParent == m_editNode) {
-					APT_LOG_ERR("Error: Can't parent a node to itself");
+					FRM_LOG_ERR("Error: Can't parent a node to itself");
 					newParent = m_editNode->getParent();
 				}
 			ImGui::PopID();
@@ -922,7 +920,7 @@ void Scene::editNodes()
 				if (!m_editNode->m_xforms.empty()) {
 				 // build list for xform stack
 					const char* xformList[64];
-					APT_ASSERT(m_editNode->m_xforms.size() <= 64);
+					FRM_ASSERT(m_editNode->m_xforms.size() <= 64);
 					int selectedXForm = 0;
 					for (int i = 0; i < (int)m_editNode->m_xforms.size(); ++i) {
 						XForm* xform = m_editNode->m_xforms[i];
@@ -988,7 +986,7 @@ void Scene::editNodes()
 				if (!m_editNode->m_components.empty()) {
 				 // build list for component stack
 					const char* componentList[64];
-					APT_ASSERT(m_editNode->m_components.size() <= 64);
+					FRM_ASSERT(m_editNode->m_components.size() <= 64);
 					int selectedComponent = 0;
 					for (int i = 0; i < (int)m_editNode->m_components.size(); ++i) {
 						Component* component = m_editNode->m_components[i];
@@ -1078,7 +1076,7 @@ void Scene::editCameras()
 			if (ImGui::Button(ICON_FA_TIMES " Destroy")) {
 				destroy = true;
 				if (m_cameras.size() == 1) {
-					APT_LOG_ERR("Error: Can't delete the only Camera");
+					FRM_LOG_ERR("Error: Can't delete the only Camera");
 					destroy = false;
 				}
 			}
@@ -1190,7 +1188,7 @@ Node* Scene::selectNode(Node* _current, Node::Type _type)
 		static ImGuiTextFilter filter;
 		filter.Draw("Filter##Node");
 		int type = _type == Node::Type_Count ? 0 : _type;
-		int typeEnd = APT_MIN((int)_type + 1, (int)Node::Type_Count);
+		int typeEnd = FRM_MIN((int)_type + 1, (int)Node::Type_Count);
 		for (; type < typeEnd; ++type) {
 			for (int node = 0; node < (int)m_nodes[type].size(); ++node) {
 				if (m_nodes[type][node] == _current) {
@@ -1229,7 +1227,7 @@ Camera* Scene::selectCamera(Camera* _current)
 			if (cam == _current) {
 				continue;
 			}
-			APT_ASSERT(cam->m_parent);
+			FRM_ASSERT(cam->m_parent);
 			if (filter.PassFilter(cam->m_parent->getName())) {
 				if (ImGui::Selectable(cam->m_parent->getName())) {
 					ret = cam;
@@ -1265,7 +1263,7 @@ Node* Scene::createNode(Node* _current)
 			ret->setStateMask(Node::State_Active | Node::State_Dynamic | Node::State_Selected);
 			switch (ret->getType()) {
 				case Node::Type_Root:   ret->setSceneDataScene(this); break;
-				case Node::Type_Camera: APT_ASSERT(false); break; // \todo creata a camera in this case?
+				case Node::Type_Camera: FRM_ASSERT(false); break; // \todo creata a camera in this case?
 				default:                break;
 			};
 			ImGui::CloseCurrentPopup();

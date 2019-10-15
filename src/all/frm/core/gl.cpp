@@ -1,19 +1,20 @@
 #include "gl.h"
 
-#include <apt/log.h>
+#include <frm/core/log.h>
 
 using namespace frm;
-using namespace apt;
 
 template <size_t kListSize>
 static int FindIndex(const GLenum (&_list)[kListSize], GLenum _find)
 {
-	for (int i = 0; i < kListSize; ++i) {
-		if (_list[i] == _find) {
+	for (int i = 0; i < kListSize; ++i) 
+	{
+		if (_list[i] == _find) 
+		{
 			return i;
 		}
 	}
-	APT_ASSERT(false);
+	FRM_ASSERT(false);
 	return -1;
 }
 
@@ -119,19 +120,27 @@ GLenum frm::internal::DataTypeToGLenum(DataType _type)
 	switch (_type) {
 		case DataType_Sint8:
 		case DataType_Sint8N:   return GL_BYTE;
+
 		case DataType_Sint16:
 		case DataType_Sint16N:  return GL_SHORT;
+
 		case DataType_Sint32:
 		case DataType_Sint32N:  return GL_INT;
+
 		case DataType_Uint8: 
 		case DataType_Uint8N:   return GL_UNSIGNED_BYTE;
+
 		case DataType_Uint16:
 		case DataType_Uint16N:  return GL_UNSIGNED_SHORT;
+
 		case DataType_Uint32:
 		case DataType_Uint32N:  return GL_UNSIGNED_INT;
+
 		case DataType_Float16:  return GL_HALF_FLOAT;
+
 		case DataType_Float32:  return GL_FLOAT;
-		default:                APT_ASSERT(false); return GL_INVALID_VALUE;
+
+		default:                FRM_ASSERT(false); return GL_INVALID_VALUE;
 	};
 }
 
@@ -446,14 +455,15 @@ const char* frm::internal::GlEnumStr(GLenum _enum)
 	return "Unknown enum";
 }
 
-apt::AssertBehavior frm::internal::GlAssert(const char* _call, const char* _file, int _line)
+frm::AssertBehavior frm::internal::GlAssert(const char* _call, const char* _file, int _line)
 {
 	GLenum err = glGetError(); 
-	if (err != GL_NO_ERROR) {
-		APT_LOG_ERR("GL_ASSERT (%s, line %d)\n\t'%s' %s", apt::internal::StripPath(_file), _line, _call ? _call : "", GlEnumStr(err));
-		return apt::AssertBehavior_Break;
+	if (err != GL_NO_ERROR) 
+	{
+		FRM_LOG_ERR("GL_ASSERT (%s, line %d)\n\t'%s' %s", frm::internal::StripPath(_file), _line, _call ? _call : "", GlEnumStr(err));
+		return frm::AssertBehavior_Break;
 	}
-	return apt::AssertBehavior_Continue;
+	return frm::AssertBehavior_Continue;
 }
 
 const char* frm::internal::GlGetString(GLenum _name)

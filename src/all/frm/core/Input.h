@@ -1,8 +1,7 @@
 #pragma once
 
-#include <frm/core/def.h>
-
-#include <apt/StaticInitializer.h>
+#include <frm/core/frm.h>
+#include <frm/core/StaticInitializer.h>
 
 namespace frm {
 
@@ -35,9 +34,9 @@ public:
 	char getPressCount(int _button) const       { return getButtonState(_button) & 0x7f; }
 
 	// Raw button state. High order bit contains the button state, low bits contain the press count.
-	char getButtonState(int _button) const      { APT_ASSERT(_button < m_buttonCount); return m_buttonStates ? m_buttonStates[_button] : 0; }
+	char getButtonState(int _button) const      { FRM_ASSERT(_button < m_buttonCount); return m_buttonStates ? m_buttonStates[_button] : 0; }
 	// Raw axis state.
-	float getAxisState(int _axis) const         { APT_ASSERT(_axis < m_axisCount); return m_axisStates ? m_axisStates[_axis] : 0.0f; }
+	float getAxisState(int _axis) const         { FRM_ASSERT(_axis < m_axisCount); return m_axisStates ? m_axisStates[_axis] : 0.0f; }
 
 	int getButtonCount() const                  { return m_buttonCount; }
 	int getAxisCount() const                    { return m_axisCount; }
@@ -256,12 +255,12 @@ public:
 	static void ResetGamepad(int _id = 0)    { GetGamepad(_id)->reset(); }
 
 private:
-	APT_DECLARE_STATIC_INIT_FRIEND(Input);	
+	FRM_DECLARE_STATIC_INIT_FRIEND(Input);	
 	static void Init();
 	static void Shutdown();
 
 }; // class Input
-APT_DECLARE_STATIC_INIT(Input);
+FRM_DECLARE_STATIC_INIT(Input);
 
 class ProxyDevice
 {
@@ -274,7 +273,7 @@ protected:
 	}
 	void setAxisState(Device* device_, int _axis, float _state)
 	{
-		APT_ASSERT(_axis < device_->m_axisCount);
+		FRM_ASSERT(_axis < device_->m_axisCount);
 		device_->m_axisStates[_axis] = _state;
 	}
 
@@ -295,7 +294,7 @@ public:
 	ProxyKeyboard(int _id = 0)
 		: ProxyDevice(_id)
 	{
-		APT_ASSERT(m_id < Input::kMaxKeyboardCount);
+		FRM_ASSERT(m_id < Input::kMaxKeyboardCount);
 	}
 
 	void setButtonState(Keyboard::Key _button, bool _isDown)
@@ -310,7 +309,7 @@ public:
 	ProxyMouse(int _id = 0)
 		: ProxyDevice(_id)
 	{
-		APT_ASSERT(m_id < Input::kMaxMouseCount);
+		FRM_ASSERT(m_id < Input::kMaxMouseCount);
 	}
 	
 	void setButtonState(Mouse::Button _button, bool _isDown)
@@ -329,7 +328,7 @@ public:
 	ProxyGamepad(int _id = 0)
 		: ProxyDevice(_id)
 	{
-		APT_ASSERT(m_id < Input::kMaxGamepadCount);
+		FRM_ASSERT(m_id < Input::kMaxGamepadCount);
 	}
 	
 	void setButtonState(Gamepad::Button _button, bool _isDown)

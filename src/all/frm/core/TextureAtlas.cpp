@@ -1,8 +1,7 @@
 #include "TextureAtlas.h"
 
+#include <frm/core/Image.h>
 #include <frm/core/Texture.h>
-
-#include <apt/Image.h>
 
 #ifdef frm_TextureAtlas_DEBUG
 	#include <imgui/imgui.h>
@@ -10,7 +9,7 @@
 #endif
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 /*******************************************************************************
 
@@ -47,7 +46,7 @@ struct TextureAtlas::Node
 TextureAtlas* TextureAtlas::Create(GLsizei _width, GLsizei _height, GLenum _format, GLsizei _mipCount)
 {
 	uint64 id = GetUniqueId();
-	APT_ASSERT(!Find(id)); // id collision
+	FRM_ASSERT(!Find(id)); // id collision
 	TextureAtlas* ret = new TextureAtlas(id, "", _format, _width, _height, _mipCount);
 	ret->setNamef("%llu", id);
 	Use((Texture*&)ret);
@@ -56,11 +55,11 @@ TextureAtlas* TextureAtlas::Create(GLsizei _width, GLsizei _height, GLenum _form
 
 void TextureAtlas::Destroy(TextureAtlas*& _inst_)
 {
-	APT_ASSERT(_inst_);
+	FRM_ASSERT(_inst_);
 	TextureAtlas* inst = _inst_; // make a copy because Unuse will nullify _inst_
 	Release((Texture*&)_inst_);
 	if (inst->getRefCount() == 0) {
-		APT_ASSERT(false); // \todo this is a double delete - Release() is also deleting the object
+		FRM_ASSERT(false); // \todo this is a double delete - Release() is also deleting the object
 		delete inst;
 	}
 }
@@ -76,10 +75,10 @@ TextureAtlas::Region* TextureAtlas::alloc(GLsizei _width, GLsizei _height)
 		
 		if (isCompressed()) {
 		 // compressed atlas, the smallest usable region is 4x4, hence the max lod is log2(w/4)
-			ret->m_lodMax = APT_MIN((int)log2((double)(_width / 4)), (int)log2((double)(_height / 4)));
+			ret->m_lodMax = FRM_MIN((int)log2((double)(_width / 4)), (int)log2((double)(_height / 4)));
 		} else {
 		 // uncompressed, the smallest usable region is log2(w)
-			ret->m_lodMax = APT_MIN((int)log2((double)(_width)), (int)log2((double)(_height)));
+			ret->m_lodMax = FRM_MIN((int)log2((double)(_width)), (int)log2((double)(_height)));
 		}
 		
 		#ifdef frm_TextureAtlas_DEBUG
@@ -91,9 +90,9 @@ TextureAtlas::Region* TextureAtlas::alloc(GLsizei _width, GLsizei _height)
 	return 0;
 }
 
-TextureAtlas::Region* TextureAtlas::alloc(const apt::Image& _img, RegionId _id)
+TextureAtlas::Region* TextureAtlas::alloc(const frm::Image& _img, RegionId _id)
 {
-	APT_ASSERT(_img.getType() == Image::Type_2d);
+	FRM_ASSERT(_img.getType() == Image::Type_2d);
 	Region* ret = alloc((GLsizei)_img.getWidth(), (GLsizei)_img.getHeight());
 
 	GLenum srcFormat;
@@ -102,10 +101,10 @@ TextureAtlas::Region* TextureAtlas::alloc(const apt::Image& _img, RegionId _id)
 		case Image::Layout_RG:   srcFormat = GL_RG;   break;
 		case Image::Layout_RGB:  srcFormat = GL_RGB;  break;
 		case Image::Layout_RGBA: srcFormat = GL_RGBA; break;
-		default:                   APT_ASSERT(false); return false;
+		default:                   FRM_ASSERT(false); return false;
 	};
 	GLenum srcType = _img.isCompressed() ? GL_UNSIGNED_BYTE : internal::DataTypeToGLenum(_img.getImageDataType());
-	int mipMax = APT_MIN(APT_MIN((int)getMipCount(), (int)_img.getMipmapCount()), ret->m_lodMax + 1);
+	int mipMax = FRM_MIN(FRM_MIN((int)getMipCount(), (int)_img.getMipmapCount()), ret->m_lodMax + 1);
 	for (int mip = 0; mip < mipMax; ++mip) {
 		if (_img.isCompressed()) { // \hack, see Texture.h
 			srcType = (GLenum)_img.getRawImageSize(mip);
@@ -124,17 +123,17 @@ TextureAtlas::Region* TextureAtlas::alloc(const apt::Image& _img, RegionId _id)
 
 void TextureAtlas::free(Region*& _region_)
 {
-	APT_ASSERT(_region_);
-	#ifdef APT_DEBUG
+	FRM_ASSERT(_region_);
+	#ifdef FRM_DEBUG
 		for (auto it = m_regionMap.begin(); it != m_regionMap.end(); ++it) {
 			if (it->m_region == _region_) {
-				APT_ASSERT(false); // named regions must be freed via unuseFree()
+				FRM_ASSERT(false); // named regions must be freed via unuseFree()
 			}
 		}
 	#endif
 
 	Node* node = find(*_region_);
-	APT_ASSERT(node);
+	FRM_ASSERT(node);
 	remove(node);
 
 	m_regionPool.free(_region_);
@@ -164,12 +163,12 @@ void TextureAtlas::unuseFree(Region*& _region_)
 			return;
 		}
 	}
-	APT_ASSERT(false); // region not found, didn't set the region name via alloc()?
+	FRM_ASSERT(false); // region not found, didn't set the region name via alloc()?
 }
 
 void TextureAtlas::upload(const Region& _region, const void* _data, GLenum _dataFormat, GLenum _dataType, GLint _mip)
 {
-	APT_ASSERT(_mip < getMipCount());
+	FRM_ASSERT(_mip < getMipCount());
 	
 	GLsizei x = (GLsizei)(_region.m_uvBias.x  * (float)getWidth());
 	GLsizei y = (GLsizei)(_region.m_uvBias.y  * (float)getHeight());
@@ -275,7 +274,7 @@ TextureAtlas::Node* TextureAtlas::insert(Node* _root, uint16 _sizeX, uint16 _siz
 
 void TextureAtlas::remove(Node*& _node_)
 {
-	APT_ASSERT(_node_->isLeaf());
+	FRM_ASSERT(_node_->isLeaf());
 	_node_->m_isEmpty = true;
 	Node* parent = _node_->m_parent;
 

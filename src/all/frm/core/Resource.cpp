@@ -1,15 +1,15 @@
 #include "Resource.h"
 
-#include <apt/hash.h>
-#include <apt/log.h>
-#include <apt/String.h>
-#include <apt/Time.h>
+#include <frm/core/hash.h>
+#include <frm/core/log.h>
+#include <frm/core/String.h>
+#include <frm/core/Time.h>
 
 #include <cstdarg> // va_list
 #include <EASTL/algorithm.h>
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 // PUBLIC
 
@@ -32,7 +32,7 @@ void Resource<tDerived>::Release(Derived*& _inst_)
 {
 	if (_inst_) {
 		--(_inst_->m_refs);
-		APT_ASSERT(_inst_->m_refs >= 0);
+		FRM_ASSERT(_inst_->m_refs >= 0);
 		if (_inst_->m_refs == 0) {
 			Derived::Destroy(_inst_);
 		}
@@ -79,7 +79,7 @@ template <typename tDerived>
 typename Resource<tDerived>::Id Resource<tDerived>::GetUniqueId()
 {
 	Id ret = s_nextUniqueId++;
-	APT_ASSERT(!Find(ret));
+	FRM_ASSERT(!Find(ret));
 	return ret;
 }
 
@@ -104,7 +104,7 @@ Resource<tDerived>::Resource(Id _id, const char* _name)
 template <typename tDerived>
 Resource<tDerived>::~Resource()
 {
-	APT_ASSERT(m_refs == 0); // resource still in use
+	FRM_ASSERT(m_refs == 0); // resource still in use
 	auto it = eastl::find(s_instances.begin(), s_instances.end(), (Derived*)this);
 	s_instances.erase_unsorted(it);
 }
@@ -128,7 +128,7 @@ template <typename tDerived>
 void Resource<tDerived>::init(Id _id, const char* _name)
 {
  // at this point an id collision is an error; reusing existing resources must happen prior to calling the Resource ctor
-	APT_ASSERT_MSG(Find(_id) == 0, "Resource '%s' already exists", _name);
+	FRM_ASSERT_MSG(Find(_id) == 0, "Resource '%s' already exists", _name);
 
 	m_state = State_Unloaded;
 	m_id = _id;
@@ -146,7 +146,7 @@ Resource<tDerived>::InstanceList::~InstanceList()
 			list.appendf("\n\t'%s' -- %d refs", inst->getName(), inst->getRefCount());
 		}
 		list.append("\n");
-		APT_LOG_ERR("Warning: %d %s instances were not released:%s", (int)size(), tDerived::s_className, (const char*)list);
+		FRM_LOG_ERR("Warning: %d %s instances were not released:%s", (int)size(), tDerived::s_className, (const char*)list);
 	}
 }
 

@@ -226,7 +226,7 @@ namespace ImGui
     IMGUI_API void          Dummy(const ImVec2& size);                                          // add a dummy item of given size
     IMGUI_API void          Indent(float indent_w = 0.0f);                                      // move content position toward the right, by style.IndentSpacing or indent_w if != 0
     IMGUI_API void          Unindent(float indent_w = 0.0f);                                    // move content position back to the left, by style.IndentSpacing or indent_w if != 0
-    IMGUI_API void          BeginGroup();                                                       // lock horizontal starting position + capture group bounding box into one "item" (so you can use IsItemHovered() or layout primitives such as SameLine() on whole group, etc.)
+    IMGUI_API void          BeginGroup();                                                       // lock horizontal starting position + cfrmure group bounding box into one "item" (so you can use IsItemHovered() or layout primitives such as SameLine() on whole group, etc.)
     IMGUI_API void          EndGroup();
     IMGUI_API ImVec2        GetCursorPos();                                                     // cursor position is relative to window position
     IMGUI_API float         GetCursorPosX();                                                    // "
@@ -417,7 +417,7 @@ namespace ImGui
     IMGUI_API bool          IsPopupOpen(const char* str_id);                                    // return true if the popup is open
     IMGUI_API void          CloseCurrentPopup();                                                // close the popup we have begin-ed into. clicking on a MenuItem or Selectable automatically close the current popup.
 
-    // Logging/Capture: all text output from interface is captured to tty/file/clipboard. By default, tree nodes are automatically opened during logging.
+    // Logging/Cfrmure: all text output from interface is cfrmured to tty/file/clipboard. By default, tree nodes are automatically opened during logging.
     IMGUI_API void          LogToTTY(int max_depth = -1);                                       // start logging to tty
     IMGUI_API void          LogToFile(int max_depth = -1, const char* filename = NULL);         // start logging to file
     IMGUI_API void          LogToClipboard(int max_depth = -1);                                 // start logging to OS clipboard
@@ -502,8 +502,8 @@ namespace ImGui
     IMGUI_API void          ResetMouseDragDelta(int button = 0);                                //
     IMGUI_API ImGuiMouseCursor GetMouseCursor();                                                // get desired cursor type, reset in ImGui::NewFrame(), this is updated during the frame. valid before Render(). If you use software rendering by setting io.MouseDrawCursor ImGui will render those for you
     IMGUI_API void          SetMouseCursor(ImGuiMouseCursor type);                              // set desired cursor type
-    IMGUI_API void          CaptureKeyboardFromApp(bool capture = true);                        // manually override io.WantCaptureKeyboard flag next frame (said flag is entirely left for your application handle). e.g. force capture keyboard when your widget is being hovered.
-    IMGUI_API void          CaptureMouseFromApp(bool capture = true);                           // manually override io.WantCaptureMouse flag next frame (said flag is entirely left for your application handle).
+    IMGUI_API void          CfrmureKeyboardFromApp(bool cfrmure = true);                        // manually override io.WantCfrmureKeyboard flag next frame (said flag is entirely left for your application handle). e.g. force cfrmure keyboard when your widget is being hovered.
+    IMGUI_API void          CfrmureMouseFromApp(bool cfrmure = true);                           // manually override io.WantCfrmureMouse flag next frame (said flag is entirely left for your application handle).
 
     // Helpers functions to access functions pointers in ImGui::GetIO()
     IMGUI_API void*         MemAlloc(size_t sz);
@@ -947,8 +947,8 @@ struct ImGuiIO
     // Output - Retrieve after calling NewFrame()
     //------------------------------------------------------------------
 
-    bool        WantCaptureMouse;           // When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application. This is set by ImGui when it wants to use your mouse (e.g. unclicked mouse is hovering a window, or a widget is active). 
-    bool        WantCaptureKeyboard;        // When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application. This is set by ImGui when it wants to use your keyboard inputs.
+    bool        WantCfrmureMouse;           // When io.WantCfrmureMouse is true, do not dispatch mouse input data to your main application. This is set by ImGui when it wants to use your mouse (e.g. unclicked mouse is hovering a window, or a widget is active). 
+    bool        WantCfrmureKeyboard;        // When io.WantCfrmureKeyboard is true, do not dispatch keyboard input data to your main application. This is set by ImGui when it wants to use your keyboard inputs.
     bool        WantTextInput;              // Mobile/console: when io.WantTextInput is true, you may display an on-screen keyboard. This is set by ImGui when it wants textual keyboard input to happen (e.g. when a InputText widget is active).
     bool        WantMoveMouse;              // [BETA-NAV] MousePos has been altered, back-end should reposition mouse on next frame. Set only when 'NavMovesMouse=true'.
     float       Framerate;                  // Application framerate estimation, in frame per second. Solely for convenience. Rolling average estimation based on IO.DeltaTime over 120 frames
@@ -968,7 +968,7 @@ struct ImGuiIO
     bool        MouseClicked[5];            // Mouse button went from !Down to Down
     bool        MouseDoubleClicked[5];      // Has mouse button been double-clicked?
     bool        MouseReleased[5];           // Mouse button went from Down to !Down
-    bool        MouseDownOwned[5];          // Track if button was clicked inside a window. We don't request mouse capture from the application if click started outside ImGui bounds.
+    bool        MouseDownOwned[5];          // Track if button was clicked inside a window. We don't request mouse cfrmure from the application if click started outside ImGui bounds.
     float       MouseDownDuration[5];       // Duration the mouse button has been down (0.0f == just clicked)
     float       MouseDownDurationPrev[5];   // Previous time the mouse button has been down
     ImVec2      MouseDragMaxDistanceAbs[5]; // Maximum distance, absolute, on each axis, of how much mouse has traveled from the clicking point
@@ -995,7 +995,7 @@ namespace ImGui
     static inline void  AlignFirstTextHeightToWidgets() { AlignTextToFramePadding(); }     // OBSOLETE 1.52+
     static inline void  SetNextWindowPosCenter(ImGuiCond cond = 0) { SetNextWindowPos(ImVec2(GetIO().DisplaySize.x * 0.5f, GetIO().DisplaySize.y * 0.5f), cond, ImVec2(0.5f, 0.5f)); } // OBSOLETE 1.52+
     static inline bool  IsItemHoveredRect() { return IsItemHovered(ImGuiHoveredFlags_RectOnly); } // OBSOLETE 1.51+
-    static inline bool  IsPosHoveringAnyWindow(const ImVec2&) { IM_ASSERT(0); return false; } // OBSOLETE 1.51+. This was partly broken. You probably wanted to use ImGui::GetIO().WantCaptureMouse instead.
+    static inline bool  IsPosHoveringAnyWindow(const ImVec2&) { IM_ASSERT(0); return false; } // OBSOLETE 1.51+. This was partly broken. You probably wanted to use ImGui::GetIO().WantCfrmureMouse instead.
     static inline bool  IsMouseHoveringAnyWindow() { return IsAnyWindowHovered(); }        // OBSOLETE 1.51+
     static inline bool  IsMouseHoveringWindow() { return IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem); } // OBSOLETE 1.51+
     static inline bool  CollapsingHeader(const char* label, const char* str_id, bool framed = true, bool default_open = false) { (void)str_id; (void)framed; ImGuiTreeNodeFlags default_open_flags = 1 << 5; return CollapsingHeader(label, (default_open ? default_open_flags : 0)); } // OBSOLETE 1.49+

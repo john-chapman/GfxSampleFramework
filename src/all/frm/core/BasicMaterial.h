@@ -1,10 +1,9 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
+#include <frm/core/FileSystem.h>
 #include <frm/core/Resource.h>
-
-#include <apt/FileSystem.h>
 
 #include <EASTL/array.h>
 
@@ -39,9 +38,9 @@ public:
 	bool                  load()                     { return reload(); }
 	bool                  reload();
 	bool                  edit();
-	bool                  serialize(apt::Serializer& _serializer_);
+	bool                  serialize(frm::Serializer& _serializer_);
 
-	friend bool Serialize(apt::Serializer& _serializer_, BasicMaterial& _basicMaterial_) { return _basicMaterial_.serialize(_serializer_); }
+	friend bool Serialize(frm::Serializer& _serializer_, BasicMaterial& _basicMaterial_) { return _basicMaterial_.serialize(_serializer_); }
 
 	int                   getIndex() const           { return m_index; }
 	const char*           getPath() const            { return m_path.c_str(); }
@@ -62,9 +61,9 @@ protected:
 	~BasicMaterial();
 
 	int                                   m_index           = -1; // global index (see BasicRenderer)
-	apt::PathStr                          m_path            = "";
+	frm::PathStr                          m_path            = "";
 	eastl::array<Texture*, Map_Count>     m_maps            = { nullptr };
-	eastl::array<apt::PathStr, Map_Count> m_mapPaths        = { "" };
+	eastl::array<frm::PathStr, Map_Count> m_mapPaths        = { "" };
 	vec3                                  m_baseColor       = vec3(1.0f);
 	vec3                                  m_emissiveColor   = vec3(0.0f);
 	float                                 m_alpha           = 1.0f;

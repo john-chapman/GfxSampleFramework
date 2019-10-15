@@ -1,16 +1,14 @@
 #include "SkeletonAnimation.h"
 
+#include <frm/core/hash.h>
 #include <frm/core/interpolation.h>
-
-#include <apt/hash.h>
-#include <apt/log.h>
-#include <apt/FileSystem.h>
-#include <apt/Time.h>
+#include <frm/core/log.h>
+#include <frm/core/FileSystem.h>
+#include <frm/core/Time.h>
 
 #include <im3d/im3d.h>
 
 using namespace frm;
-using namespace apt;
 
 /******************************************************************************
 
@@ -22,7 +20,7 @@ using namespace apt;
 
 int Skeleton::addBone(const char* _name, int _parentIndex)
 {
-	APT_ASSERT(_parentIndex < getBoneCount());
+	FRM_ASSERT(_parentIndex < getBoneCount());
 	int ret = (int)m_bones.size();
 	m_bones.push_back(Bone());
 	m_boneIds.push_back(HashString<BoneId>(_name));
@@ -33,7 +31,7 @@ int Skeleton::addBone(const char* _name, int _parentIndex)
 
 const mat4* Skeleton::resolve()
 {
-	APT_ASSERT(m_pose.size() == m_bones.size());
+	FRM_ASSERT(m_pose.size() == m_bones.size());
 
 	for (int i = 0, n = getBoneCount(); i < n; ++i) {
 		const Bone& bone = m_bones[i];
@@ -41,7 +39,7 @@ const mat4* Skeleton::resolve()
 		mat4 m = TransformationMatrix(bone.m_position, bone.m_orientation, bone.m_scale);
 
 		if (bone.m_parentIndex >= 0) {
-			APT_ASSERT(bone.m_parentIndex <= i); // parent must come before children
+			FRM_ASSERT(bone.m_parentIndex <= i); // parent must come before children
 
 		 // \todo cheaper to apply the parent position/orientation/scale separately then build the matrix?
 			m = m_pose[bone.m_parentIndex] * m;
@@ -86,10 +84,10 @@ void Skeleton::draw() const
 Skeleton::Skeleton()
 {
  // Bone is cast to a float* during sampling, check alignments/offsets:
-	APT_STATIC_ASSERT(alignof(Bone) >= alignof(float));
-	APT_STATIC_ASSERT(offsetof(Bone, m_position) == 0);
-	APT_STATIC_ASSERT(offsetof(Bone, m_orientation) == 3 * sizeof(float));
-	APT_STATIC_ASSERT(offsetof(Bone, m_scale) == 7 * sizeof(float));
+	FRM_STATIC_ASSERT(alignof(Bone) >= alignof(float));
+	FRM_STATIC_ASSERT(offsetof(Bone, m_position) == 0);
+	FRM_STATIC_ASSERT(offsetof(Bone, m_orientation) == 3 * sizeof(float));
+	FRM_STATIC_ASSERT(offsetof(Bone, m_scale) == 7 * sizeof(float));
 }
 
 /******************************************************************************
@@ -119,9 +117,9 @@ void SkeletonAnimationTrack::sample(float _t, float* out_, int* _hint_)
 		}
 	}
 	
-	//APT_ASSERT(i < m_data.size());
-	//APT_ASSERT(i * m_boneDataSize < m_data.size());
-	//APT_ASSERT((i + 1) * m_boneDataSize < m_data.size());
+	//FRM_ASSERT(i < m_data.size());
+	//FRM_ASSERT(i * m_boneDataSize < m_data.size());
+	//FRM_ASSERT((i + 1) * m_boneDataSize < m_data.size());
 	float t = (_t - m_frames[i]) / (m_frames[i + 1] - m_frames[i]);
 	const float* a = &m_data[i * m_boneDataSize];
 	const float* b = &m_data[(i + 1) * m_boneDataSize];
@@ -143,9 +141,9 @@ if (m_boneDataSize == 3) {
 
 void SkeletonAnimationTrack::addFrames(int _count, const float* _normalizedTimes, const float* _data)
 {
-	APT_ASSERT(m_frames.empty() || m_frames.back() < *_normalizedTimes);
+	FRM_ASSERT(m_frames.empty() || m_frames.back() < *_normalizedTimes);
 	for (int i = 0; i < _count; ++i) {
-		APT_ASSERT(*_normalizedTimes >= 0.0f && *_normalizedTimes <= 1.0f); // times must be normalized by the track duration
+		FRM_ASSERT(*_normalizedTimes >= 0.0f && *_normalizedTimes <= 1.0f); // times must be normalized by the track duration
 		
 		m_frames.push_back(*(_normalizedTimes++));
 		for (int j = 0; j < m_boneDataSize; ++j) {
@@ -202,7 +200,7 @@ SkeletonAnimation* SkeletonAnimation::Create(const char* _path)
 	}
 	Use(ret);
 	if (ret->getState() != State_Loaded) {
-		APT_LOG_ERR("Error loading SkeletonAnimation '%s'", _path);
+		FRM_LOG_ERR("Error loading SkeletonAnimation '%s'", _path);
 	}
 	return ret;
 }
@@ -217,7 +215,7 @@ bool SkeletonAnimation::reload()
 		return true;
 	}
 
-	APT_AUTOTIMER("SkeletonAnimation::load(%s)", (const char*)m_path);
+	FRM_AUTOTIMER("SkeletonAnimation::load(%s)", (const char*)m_path);
 
 	File f;
 	if (!FileSystem::Read(f, (const char*)m_path)) {
@@ -227,7 +225,7 @@ bool SkeletonAnimation::reload()
 	if (FileSystem::CompareExtension("md5anim", (const char*)m_path)) {
 		return ReadMd5(*this, f.getData(), f.getDataSize());
 	} else {
-		APT_ASSERT(false); // unsupported format
+		FRM_ASSERT(false); // unsupported format
 	}
 	return false;
 }
@@ -248,21 +246,21 @@ void SkeletonAnimation::sample(float _t, Skeleton& _out_, int _hints_[])
 SkeletonAnimationTrack* SkeletonAnimation::addPositionTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
 {
 	int offset = offsetof(Skeleton::Bone, m_position) / sizeof(float);
-	APT_ASSERT(findTrack(_boneIndex, offset, 3) == nullptr); // track already exists
+	FRM_ASSERT(findTrack(_boneIndex, offset, 3) == nullptr); // track already exists
 	m_tracks.push_back(SkeletonAnimationTrack(_boneIndex, offset, 3, _frameCount, _normalizedTimes, _data));
 	return &m_tracks.back();
 }
 SkeletonAnimationTrack* SkeletonAnimation::addOrientationTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
 {
 	int offset = offsetof(Skeleton::Bone, m_orientation) / sizeof(float);
-	APT_ASSERT(findTrack(_boneIndex, offset, 4) == nullptr); // track already exists
+	FRM_ASSERT(findTrack(_boneIndex, offset, 4) == nullptr); // track already exists
 	m_tracks.push_back(SkeletonAnimationTrack(_boneIndex, offset, 4, _frameCount, _normalizedTimes, _data));
 	return &m_tracks.back();
 }
 SkeletonAnimationTrack* SkeletonAnimation::addScaleTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
 {
 	int offset = offsetof(Skeleton::Bone, m_scale) / sizeof(float);
-	APT_ASSERT(findTrack(_boneIndex, offset, 3) == nullptr); // track already exists
+	FRM_ASSERT(findTrack(_boneIndex, offset, 3) == nullptr); // track already exists
 	m_tracks.push_back(SkeletonAnimationTrack(_boneIndex, offset, 3, _frameCount, _normalizedTimes, _data));
 	return &m_tracks.back();
 }

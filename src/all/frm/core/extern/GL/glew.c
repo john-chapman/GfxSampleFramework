@@ -2380,9 +2380,9 @@ PFNGLSECONDARYCOLORPOINTERLISTIBMPROC __glewSecondaryColorPointerListIBM = NULL;
 PFNGLTEXCOORDPOINTERLISTIBMPROC __glewTexCoordPointerListIBM = NULL;
 PFNGLVERTEXPOINTERLISTIBMPROC __glewVertexPointerListIBM = NULL;
 
-PFNGLMAPTEXTURE2DINTELPROC __glewMapTexture2DINTEL = NULL;
+PFNGLMfrmEXTURE2DINTELPROC __glewMfrmexture2DINTEL = NULL;
 PFNGLSYNCTEXTUREINTELPROC __glewSyncTextureINTEL = NULL;
-PFNGLUNMAPTEXTURE2DINTELPROC __glewUnmapTexture2DINTEL = NULL;
+PFNGLUNMfrmEXTURE2DINTELPROC __glewUnmfrmexture2DINTEL = NULL;
 
 PFNGLCOLORPOINTERVINTELPROC __glewColorPointervINTEL = NULL;
 PFNGLNORMALPOINTERVINTELPROC __glewNormalPointervINTEL = NULL;
@@ -2507,7 +2507,7 @@ PFNGLGETSTAGEINDEXNVPROC __glewGetStageIndexNV = NULL;
 PFNGLISCOMMANDLISTNVPROC __glewIsCommandListNV = NULL;
 PFNGLISSTATENVPROC __glewIsStateNV = NULL;
 PFNGLLISTDRAWCOMMANDSSTATESCLIENTNVPROC __glewListDrawCommandsStatesClientNV = NULL;
-PFNGLSTATECAPTURENVPROC __glewStateCaptureNV = NULL;
+PFNGLSTATECfrmURENVPROC __glewStateCfrmureNV = NULL;
 
 PFNGLBEGINCONDITIONALRENDERNVPROC __glewBeginConditionalRenderNV = NULL;
 PFNGLENDCONDITIONALRENDERNVPROC __glewEndConditionalRenderNV = NULL;
@@ -2974,18 +2974,18 @@ PFNGLVERTEXATTRIBS4FVNVPROC __glewVertexAttribs4fvNV = NULL;
 PFNGLVERTEXATTRIBS4SVNVPROC __glewVertexAttribs4svNV = NULL;
 PFNGLVERTEXATTRIBS4UBVNVPROC __glewVertexAttribs4ubvNV = NULL;
 
-PFNGLBEGINVIDEOCAPTURENVPROC __glewBeginVideoCaptureNV = NULL;
-PFNGLBINDVIDEOCAPTURESTREAMBUFFERNVPROC __glewBindVideoCaptureStreamBufferNV = NULL;
-PFNGLBINDVIDEOCAPTURESTREAMTEXTURENVPROC __glewBindVideoCaptureStreamTextureNV = NULL;
-PFNGLENDVIDEOCAPTURENVPROC __glewEndVideoCaptureNV = NULL;
-PFNGLGETVIDEOCAPTURESTREAMDVNVPROC __glewGetVideoCaptureStreamdvNV = NULL;
-PFNGLGETVIDEOCAPTURESTREAMFVNVPROC __glewGetVideoCaptureStreamfvNV = NULL;
-PFNGLGETVIDEOCAPTURESTREAMIVNVPROC __glewGetVideoCaptureStreamivNV = NULL;
-PFNGLGETVIDEOCAPTUREIVNVPROC __glewGetVideoCaptureivNV = NULL;
-PFNGLVIDEOCAPTURENVPROC __glewVideoCaptureNV = NULL;
-PFNGLVIDEOCAPTURESTREAMPARAMETERDVNVPROC __glewVideoCaptureStreamParameterdvNV = NULL;
-PFNGLVIDEOCAPTURESTREAMPARAMETERFVNVPROC __glewVideoCaptureStreamParameterfvNV = NULL;
-PFNGLVIDEOCAPTURESTREAMPARAMETERIVNVPROC __glewVideoCaptureStreamParameterivNV = NULL;
+PFNGLBEGINVIDEOCfrmURENVPROC __glewBeginVideoCfrmureNV = NULL;
+PFNGLBINDVIDEOCfrmURESTREAMBUFFERNVPROC __glewBindVideoCfrmureStreamBufferNV = NULL;
+PFNGLBINDVIDEOCfrmURESTREAMTEXTURENVPROC __glewBindVideoCfrmureStreamTextureNV = NULL;
+PFNGLENDVIDEOCfrmURENVPROC __glewEndVideoCfrmureNV = NULL;
+PFNGLGETVIDEOCfrmURESTREAMDVNVPROC __glewGetVideoCfrmureStreamdvNV = NULL;
+PFNGLGETVIDEOCfrmURESTREAMFVNVPROC __glewGetVideoCfrmureStreamfvNV = NULL;
+PFNGLGETVIDEOCfrmURESTREAMIVNVPROC __glewGetVideoCfrmureStreamivNV = NULL;
+PFNGLGETVIDEOCfrmUREIVNVPROC __glewGetVideoCfrmureivNV = NULL;
+PFNGLVIDEOCfrmURENVPROC __glewVideoCfrmureNV = NULL;
+PFNGLVIDEOCfrmURESTREAMPARAMETERDVNVPROC __glewVideoCfrmureStreamParameterdvNV = NULL;
+PFNGLVIDEOCfrmURESTREAMPARAMETERFVNVPROC __glewVideoCfrmureStreamParameterfvNV = NULL;
+PFNGLVIDEOCfrmURESTREAMPARAMETERIVNVPROC __glewVideoCfrmureStreamParameterivNV = NULL;
 
 PFNGLDEPTHRANGEARRAYFVNVPROC __glewDepthRangeArrayfvNV = NULL;
 PFNGLDEPTHRANGEINDEXEDFNVPROC __glewDepthRangeIndexedfNV = NULL;
@@ -3930,7 +3930,7 @@ GLboolean __GLEW_NV_vertex_program2 = GL_FALSE;
 GLboolean __GLEW_NV_vertex_program2_option = GL_FALSE;
 GLboolean __GLEW_NV_vertex_program3 = GL_FALSE;
 GLboolean __GLEW_NV_vertex_program4 = GL_FALSE;
-GLboolean __GLEW_NV_video_capture = GL_FALSE;
+GLboolean __GLEW_NV_video_cfrmure = GL_FALSE;
 GLboolean __GLEW_NV_viewport_array = GL_FALSE;
 GLboolean __GLEW_NV_viewport_array2 = GL_FALSE;
 GLboolean __GLEW_NV_viewport_swizzle = GL_FALSE;
@@ -6035,8 +6035,8 @@ static const char * _glewExtensionLookup[] = {
 #ifdef GL_NV_vertex_program4
   "GL_NV_vertex_program4",
 #endif
-#ifdef GL_NV_video_capture
-  "GL_NV_video_capture",
+#ifdef GL_NV_video_cfrmure
+  "GL_NV_video_cfrmure",
 #endif
 #ifdef GL_NV_viewport_array
   "GL_NV_viewport_array",
@@ -8445,8 +8445,8 @@ static GLboolean* _glewExtensionEnabled[] = {
 #ifdef GL_NV_vertex_program4
   &__GLEW_NV_vertex_program4,
 #endif
-#ifdef GL_NV_video_capture
-  &__GLEW_NV_video_capture,
+#ifdef GL_NV_video_cfrmure
+  &__GLEW_NV_video_cfrmure,
 #endif
 #ifdef GL_NV_viewport_array
   &__GLEW_NV_viewport_array,
@@ -9196,7 +9196,7 @@ static GLboolean _glewInit_GL_NV_vertex_array_range ();
 static GLboolean _glewInit_GL_NV_vertex_attrib_integer_64bit ();
 static GLboolean _glewInit_GL_NV_vertex_buffer_unified_memory ();
 static GLboolean _glewInit_GL_NV_vertex_program ();
-static GLboolean _glewInit_GL_NV_video_capture ();
+static GLboolean _glewInit_GL_NV_video_cfrmure ();
 static GLboolean _glewInit_GL_NV_viewport_array ();
 static GLboolean _glewInit_GL_NV_viewport_swizzle ();
 static GLboolean _glewInit_GL_OVR_multiview ();
@@ -13858,9 +13858,9 @@ static GLboolean _glewInit_GL_INTEL_map_texture ()
 {
   GLboolean r = GL_FALSE;
 
-  r = ((glMapTexture2DINTEL = (PFNGLMAPTEXTURE2DINTELPROC)glewGetProcAddress((const GLubyte*)"glMapTexture2DINTEL")) == NULL) || r;
+  r = ((glMfrmexture2DINTEL = (PFNGLMfrmEXTURE2DINTELPROC)glewGetProcAddress((const GLubyte*)"glMfrmexture2DINTEL")) == NULL) || r;
   r = ((glSyncTextureINTEL = (PFNGLSYNCTEXTUREINTELPROC)glewGetProcAddress((const GLubyte*)"glSyncTextureINTEL")) == NULL) || r;
-  r = ((glUnmapTexture2DINTEL = (PFNGLUNMAPTEXTURE2DINTELPROC)glewGetProcAddress((const GLubyte*)"glUnmapTexture2DINTEL")) == NULL) || r;
+  r = ((glUnmfrmexture2DINTEL = (PFNGLUNMfrmEXTURE2DINTELPROC)glewGetProcAddress((const GLubyte*)"glUnmfrmexture2DINTEL")) == NULL) || r;
 
   return r;
 }
@@ -14194,7 +14194,7 @@ static GLboolean _glewInit_GL_NV_command_list ()
   r = ((glIsCommandListNV = (PFNGLISCOMMANDLISTNVPROC)glewGetProcAddress((const GLubyte*)"glIsCommandListNV")) == NULL) || r;
   r = ((glIsStateNV = (PFNGLISSTATENVPROC)glewGetProcAddress((const GLubyte*)"glIsStateNV")) == NULL) || r;
   r = ((glListDrawCommandsStatesClientNV = (PFNGLLISTDRAWCOMMANDSSTATESCLIENTNVPROC)glewGetProcAddress((const GLubyte*)"glListDrawCommandsStatesClientNV")) == NULL) || r;
-  r = ((glStateCaptureNV = (PFNGLSTATECAPTURENVPROC)glewGetProcAddress((const GLubyte*)"glStateCaptureNV")) == NULL) || r;
+  r = ((glStateCfrmureNV = (PFNGLSTATECfrmURENVPROC)glewGetProcAddress((const GLubyte*)"glStateCfrmureNV")) == NULL) || r;
 
   return r;
 }
@@ -15205,29 +15205,29 @@ static GLboolean _glewInit_GL_NV_vertex_program ()
 
 #endif /* GL_NV_vertex_program */
 
-#ifdef GL_NV_video_capture
+#ifdef GL_NV_video_cfrmure
 
-static GLboolean _glewInit_GL_NV_video_capture ()
+static GLboolean _glewInit_GL_NV_video_cfrmure ()
 {
   GLboolean r = GL_FALSE;
 
-  r = ((glBeginVideoCaptureNV = (PFNGLBEGINVIDEOCAPTURENVPROC)glewGetProcAddress((const GLubyte*)"glBeginVideoCaptureNV")) == NULL) || r;
-  r = ((glBindVideoCaptureStreamBufferNV = (PFNGLBINDVIDEOCAPTURESTREAMBUFFERNVPROC)glewGetProcAddress((const GLubyte*)"glBindVideoCaptureStreamBufferNV")) == NULL) || r;
-  r = ((glBindVideoCaptureStreamTextureNV = (PFNGLBINDVIDEOCAPTURESTREAMTEXTURENVPROC)glewGetProcAddress((const GLubyte*)"glBindVideoCaptureStreamTextureNV")) == NULL) || r;
-  r = ((glEndVideoCaptureNV = (PFNGLENDVIDEOCAPTURENVPROC)glewGetProcAddress((const GLubyte*)"glEndVideoCaptureNV")) == NULL) || r;
-  r = ((glGetVideoCaptureStreamdvNV = (PFNGLGETVIDEOCAPTURESTREAMDVNVPROC)glewGetProcAddress((const GLubyte*)"glGetVideoCaptureStreamdvNV")) == NULL) || r;
-  r = ((glGetVideoCaptureStreamfvNV = (PFNGLGETVIDEOCAPTURESTREAMFVNVPROC)glewGetProcAddress((const GLubyte*)"glGetVideoCaptureStreamfvNV")) == NULL) || r;
-  r = ((glGetVideoCaptureStreamivNV = (PFNGLGETVIDEOCAPTURESTREAMIVNVPROC)glewGetProcAddress((const GLubyte*)"glGetVideoCaptureStreamivNV")) == NULL) || r;
-  r = ((glGetVideoCaptureivNV = (PFNGLGETVIDEOCAPTUREIVNVPROC)glewGetProcAddress((const GLubyte*)"glGetVideoCaptureivNV")) == NULL) || r;
-  r = ((glVideoCaptureNV = (PFNGLVIDEOCAPTURENVPROC)glewGetProcAddress((const GLubyte*)"glVideoCaptureNV")) == NULL) || r;
-  r = ((glVideoCaptureStreamParameterdvNV = (PFNGLVIDEOCAPTURESTREAMPARAMETERDVNVPROC)glewGetProcAddress((const GLubyte*)"glVideoCaptureStreamParameterdvNV")) == NULL) || r;
-  r = ((glVideoCaptureStreamParameterfvNV = (PFNGLVIDEOCAPTURESTREAMPARAMETERFVNVPROC)glewGetProcAddress((const GLubyte*)"glVideoCaptureStreamParameterfvNV")) == NULL) || r;
-  r = ((glVideoCaptureStreamParameterivNV = (PFNGLVIDEOCAPTURESTREAMPARAMETERIVNVPROC)glewGetProcAddress((const GLubyte*)"glVideoCaptureStreamParameterivNV")) == NULL) || r;
+  r = ((glBeginVideoCfrmureNV = (PFNGLBEGINVIDEOCfrmURENVPROC)glewGetProcAddress((const GLubyte*)"glBeginVideoCfrmureNV")) == NULL) || r;
+  r = ((glBindVideoCfrmureStreamBufferNV = (PFNGLBINDVIDEOCfrmURESTREAMBUFFERNVPROC)glewGetProcAddress((const GLubyte*)"glBindVideoCfrmureStreamBufferNV")) == NULL) || r;
+  r = ((glBindVideoCfrmureStreamTextureNV = (PFNGLBINDVIDEOCfrmURESTREAMTEXTURENVPROC)glewGetProcAddress((const GLubyte*)"glBindVideoCfrmureStreamTextureNV")) == NULL) || r;
+  r = ((glEndVideoCfrmureNV = (PFNGLENDVIDEOCfrmURENVPROC)glewGetProcAddress((const GLubyte*)"glEndVideoCfrmureNV")) == NULL) || r;
+  r = ((glGetVideoCfrmureStreamdvNV = (PFNGLGETVIDEOCfrmURESTREAMDVNVPROC)glewGetProcAddress((const GLubyte*)"glGetVideoCfrmureStreamdvNV")) == NULL) || r;
+  r = ((glGetVideoCfrmureStreamfvNV = (PFNGLGETVIDEOCfrmURESTREAMFVNVPROC)glewGetProcAddress((const GLubyte*)"glGetVideoCfrmureStreamfvNV")) == NULL) || r;
+  r = ((glGetVideoCfrmureStreamivNV = (PFNGLGETVIDEOCfrmURESTREAMIVNVPROC)glewGetProcAddress((const GLubyte*)"glGetVideoCfrmureStreamivNV")) == NULL) || r;
+  r = ((glGetVideoCfrmureivNV = (PFNGLGETVIDEOCfrmUREIVNVPROC)glewGetProcAddress((const GLubyte*)"glGetVideoCfrmureivNV")) == NULL) || r;
+  r = ((glVideoCfrmureNV = (PFNGLVIDEOCfrmURENVPROC)glewGetProcAddress((const GLubyte*)"glVideoCfrmureNV")) == NULL) || r;
+  r = ((glVideoCfrmureStreamParameterdvNV = (PFNGLVIDEOCfrmURESTREAMPARAMETERDVNVPROC)glewGetProcAddress((const GLubyte*)"glVideoCfrmureStreamParameterdvNV")) == NULL) || r;
+  r = ((glVideoCfrmureStreamParameterfvNV = (PFNGLVIDEOCfrmURESTREAMPARAMETERFVNVPROC)glewGetProcAddress((const GLubyte*)"glVideoCfrmureStreamParameterfvNV")) == NULL) || r;
+  r = ((glVideoCfrmureStreamParameterivNV = (PFNGLVIDEOCfrmURESTREAMPARAMETERIVNVPROC)glewGetProcAddress((const GLubyte*)"glVideoCfrmureStreamParameterivNV")) == NULL) || r;
 
   return r;
 }
 
-#endif /* GL_NV_video_capture */
+#endif /* GL_NV_video_cfrmure */
 
 #ifdef GL_NV_viewport_array
 
@@ -17185,9 +17185,9 @@ static GLenum GLEWAPIENTRY glewContextInit ()
 #ifdef GL_NV_vertex_program
   if (glewExperimental || GLEW_NV_vertex_program) GLEW_NV_vertex_program = !_glewInit_GL_NV_vertex_program();
 #endif /* GL_NV_vertex_program */
-#ifdef GL_NV_video_capture
-  if (glewExperimental || GLEW_NV_video_capture) GLEW_NV_video_capture = !_glewInit_GL_NV_video_capture();
-#endif /* GL_NV_video_capture */
+#ifdef GL_NV_video_cfrmure
+  if (glewExperimental || GLEW_NV_video_cfrmure) GLEW_NV_video_cfrmure = !_glewInit_GL_NV_video_cfrmure();
+#endif /* GL_NV_video_cfrmure */
 #ifdef GL_NV_viewport_array
   if (glewExperimental || GLEW_NV_viewport_array) GLEW_NV_viewport_array = !_glewInit_GL_NV_viewport_array();
 #endif /* GL_NV_viewport_array */
@@ -18936,11 +18936,11 @@ PFNWGLRESETFRAMECOUNTNVPROC __wglewResetFrameCountNV = NULL;
 PFNWGLALLOCATEMEMORYNVPROC __wglewAllocateMemoryNV = NULL;
 PFNWGLFREEMEMORYNVPROC __wglewFreeMemoryNV = NULL;
 
-PFNWGLBINDVIDEOCAPTUREDEVICENVPROC __wglewBindVideoCaptureDeviceNV = NULL;
-PFNWGLENUMERATEVIDEOCAPTUREDEVICESNVPROC __wglewEnumerateVideoCaptureDevicesNV = NULL;
-PFNWGLLOCKVIDEOCAPTUREDEVICENVPROC __wglewLockVideoCaptureDeviceNV = NULL;
-PFNWGLQUERYVIDEOCAPTUREDEVICENVPROC __wglewQueryVideoCaptureDeviceNV = NULL;
-PFNWGLRELEASEVIDEOCAPTUREDEVICENVPROC __wglewReleaseVideoCaptureDeviceNV = NULL;
+PFNWGLBINDVIDEOCfrmUREDEVICENVPROC __wglewBindVideoCfrmureDeviceNV = NULL;
+PFNWGLENUMERATEVIDEOCfrmUREDEVICESNVPROC __wglewEnumerateVideoCfrmureDevicesNV = NULL;
+PFNWGLLOCKVIDEOCfrmUREDEVICENVPROC __wglewLockVideoCfrmureDeviceNV = NULL;
+PFNWGLQUERYVIDEOCfrmUREDEVICENVPROC __wglewQueryVideoCfrmureDeviceNV = NULL;
+PFNWGLRELEASEVIDEOCfrmUREDEVICENVPROC __wglewReleaseVideoCfrmureDeviceNV = NULL;
 
 PFNWGLBINDVIDEOIMAGENVPROC __wglewBindVideoImageNV = NULL;
 PFNWGLGETVIDEODEVICENVPROC __wglewGetVideoDeviceNV = NULL;
@@ -19008,7 +19008,7 @@ GLboolean __WGLEW_NV_render_depth_texture = GL_FALSE;
 GLboolean __WGLEW_NV_render_texture_rectangle = GL_FALSE;
 GLboolean __WGLEW_NV_swap_group = GL_FALSE;
 GLboolean __WGLEW_NV_vertex_array_range = GL_FALSE;
-GLboolean __WGLEW_NV_video_capture = GL_FALSE;
+GLboolean __WGLEW_NV_video_cfrmure = GL_FALSE;
 GLboolean __WGLEW_NV_video_output = GL_FALSE;
 GLboolean __WGLEW_OML_sync_control = GL_FALSE;
 #ifdef WGL_3DL_stereo_control
@@ -19449,22 +19449,22 @@ static GLboolean _glewInit_WGL_NV_vertex_array_range ()
 
 #endif /* WGL_NV_vertex_array_range */
 
-#ifdef WGL_NV_video_capture
+#ifdef WGL_NV_video_cfrmure
 
-static GLboolean _glewInit_WGL_NV_video_capture ()
+static GLboolean _glewInit_WGL_NV_video_cfrmure ()
 {
   GLboolean r = GL_FALSE;
 
-  r = ((wglBindVideoCaptureDeviceNV = (PFNWGLBINDVIDEOCAPTUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"wglBindVideoCaptureDeviceNV")) == NULL) || r;
-  r = ((wglEnumerateVideoCaptureDevicesNV = (PFNWGLENUMERATEVIDEOCAPTUREDEVICESNVPROC)glewGetProcAddress((const GLubyte*)"wglEnumerateVideoCaptureDevicesNV")) == NULL) || r;
-  r = ((wglLockVideoCaptureDeviceNV = (PFNWGLLOCKVIDEOCAPTUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"wglLockVideoCaptureDeviceNV")) == NULL) || r;
-  r = ((wglQueryVideoCaptureDeviceNV = (PFNWGLQUERYVIDEOCAPTUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"wglQueryVideoCaptureDeviceNV")) == NULL) || r;
-  r = ((wglReleaseVideoCaptureDeviceNV = (PFNWGLRELEASEVIDEOCAPTUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"wglReleaseVideoCaptureDeviceNV")) == NULL) || r;
+  r = ((wglBindVideoCfrmureDeviceNV = (PFNWGLBINDVIDEOCfrmUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"wglBindVideoCfrmureDeviceNV")) == NULL) || r;
+  r = ((wglEnumerateVideoCfrmureDevicesNV = (PFNWGLENUMERATEVIDEOCfrmUREDEVICESNVPROC)glewGetProcAddress((const GLubyte*)"wglEnumerateVideoCfrmureDevicesNV")) == NULL) || r;
+  r = ((wglLockVideoCfrmureDeviceNV = (PFNWGLLOCKVIDEOCfrmUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"wglLockVideoCfrmureDeviceNV")) == NULL) || r;
+  r = ((wglQueryVideoCfrmureDeviceNV = (PFNWGLQUERYVIDEOCfrmUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"wglQueryVideoCfrmureDeviceNV")) == NULL) || r;
+  r = ((wglReleaseVideoCfrmureDeviceNV = (PFNWGLRELEASEVIDEOCfrmUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"wglReleaseVideoCfrmureDeviceNV")) == NULL) || r;
 
   return r;
 }
 
-#endif /* WGL_NV_video_capture */
+#endif /* WGL_NV_video_cfrmure */
 
 #ifdef WGL_NV_video_output
 
@@ -19730,10 +19730,10 @@ GLenum GLEWAPIENTRY wglewInit ()
   WGLEW_NV_vertex_array_range = _glewSearchExtension("WGL_NV_vertex_array_range", extStart, extEnd);
   if (glewExperimental || WGLEW_NV_vertex_array_range|| crippled) WGLEW_NV_vertex_array_range= !_glewInit_WGL_NV_vertex_array_range();
 #endif /* WGL_NV_vertex_array_range */
-#ifdef WGL_NV_video_capture
-  WGLEW_NV_video_capture = _glewSearchExtension("WGL_NV_video_capture", extStart, extEnd);
-  if (glewExperimental || WGLEW_NV_video_capture|| crippled) WGLEW_NV_video_capture= !_glewInit_WGL_NV_video_capture();
-#endif /* WGL_NV_video_capture */
+#ifdef WGL_NV_video_cfrmure
+  WGLEW_NV_video_cfrmure = _glewSearchExtension("WGL_NV_video_cfrmure", extStart, extEnd);
+  if (glewExperimental || WGLEW_NV_video_cfrmure|| crippled) WGLEW_NV_video_cfrmure= !_glewInit_WGL_NV_video_cfrmure();
+#endif /* WGL_NV_video_cfrmure */
 #ifdef WGL_NV_video_output
   WGLEW_NV_video_output = _glewSearchExtension("WGL_NV_video_output", extStart, extEnd);
   if (glewExperimental || WGLEW_NV_video_output|| crippled) WGLEW_NV_video_output= !_glewInit_WGL_NV_video_output();
@@ -19832,11 +19832,11 @@ PFNGLXRESETFRAMECOUNTNVPROC __glewXResetFrameCountNV = NULL;
 PFNGLXALLOCATEMEMORYNVPROC __glewXAllocateMemoryNV = NULL;
 PFNGLXFREEMEMORYNVPROC __glewXFreeMemoryNV = NULL;
 
-PFNGLXBINDVIDEOCAPTUREDEVICENVPROC __glewXBindVideoCaptureDeviceNV = NULL;
-PFNGLXENUMERATEVIDEOCAPTUREDEVICESNVPROC __glewXEnumerateVideoCaptureDevicesNV = NULL;
-PFNGLXLOCKVIDEOCAPTUREDEVICENVPROC __glewXLockVideoCaptureDeviceNV = NULL;
-PFNGLXQUERYVIDEOCAPTUREDEVICENVPROC __glewXQueryVideoCaptureDeviceNV = NULL;
-PFNGLXRELEASEVIDEOCAPTUREDEVICENVPROC __glewXReleaseVideoCaptureDeviceNV = NULL;
+PFNGLXBINDVIDEOCfrmUREDEVICENVPROC __glewXBindVideoCfrmureDeviceNV = NULL;
+PFNGLXENUMERATEVIDEOCfrmUREDEVICESNVPROC __glewXEnumerateVideoCfrmureDevicesNV = NULL;
+PFNGLXLOCKVIDEOCfrmUREDEVICENVPROC __glewXLockVideoCfrmureDeviceNV = NULL;
+PFNGLXQUERYVIDEOCfrmUREDEVICENVPROC __glewXQueryVideoCfrmureDeviceNV = NULL;
+PFNGLXRELEASEVIDEOCfrmUREDEVICENVPROC __glewXReleaseVideoCfrmureDeviceNV = NULL;
 
 PFNGLXBINDVIDEOIMAGENVPROC __glewXBindVideoImageNV = NULL;
 PFNGLXGETVIDEODEVICENVPROC __glewXGetVideoDeviceNV = NULL;
@@ -19951,7 +19951,7 @@ GLboolean __GLXEW_NV_present_video = GL_FALSE;
 GLboolean __GLXEW_NV_robustness_video_memory_purge = GL_FALSE;
 GLboolean __GLXEW_NV_swap_group = GL_FALSE;
 GLboolean __GLXEW_NV_vertex_array_range = GL_FALSE;
-GLboolean __GLXEW_NV_video_capture = GL_FALSE;
+GLboolean __GLXEW_NV_video_cfrmure = GL_FALSE;
 GLboolean __GLXEW_NV_video_out = GL_FALSE;
 GLboolean __GLXEW_OML_swap_method = GL_FALSE;
 GLboolean __GLXEW_OML_sync_control = GL_FALSE;
@@ -20287,22 +20287,22 @@ static GLboolean _glewInit_GLX_NV_vertex_array_range ()
 
 #endif /* GLX_NV_vertex_array_range */
 
-#ifdef GLX_NV_video_capture
+#ifdef GLX_NV_video_cfrmure
 
-static GLboolean _glewInit_GLX_NV_video_capture ()
+static GLboolean _glewInit_GLX_NV_video_cfrmure ()
 {
   GLboolean r = GL_FALSE;
 
-  r = ((glXBindVideoCaptureDeviceNV = (PFNGLXBINDVIDEOCAPTUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"glXBindVideoCaptureDeviceNV")) == NULL) || r;
-  r = ((glXEnumerateVideoCaptureDevicesNV = (PFNGLXENUMERATEVIDEOCAPTUREDEVICESNVPROC)glewGetProcAddress((const GLubyte*)"glXEnumerateVideoCaptureDevicesNV")) == NULL) || r;
-  r = ((glXLockVideoCaptureDeviceNV = (PFNGLXLOCKVIDEOCAPTUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"glXLockVideoCaptureDeviceNV")) == NULL) || r;
-  r = ((glXQueryVideoCaptureDeviceNV = (PFNGLXQUERYVIDEOCAPTUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"glXQueryVideoCaptureDeviceNV")) == NULL) || r;
-  r = ((glXReleaseVideoCaptureDeviceNV = (PFNGLXRELEASEVIDEOCAPTUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"glXReleaseVideoCaptureDeviceNV")) == NULL) || r;
+  r = ((glXBindVideoCfrmureDeviceNV = (PFNGLXBINDVIDEOCfrmUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"glXBindVideoCfrmureDeviceNV")) == NULL) || r;
+  r = ((glXEnumerateVideoCfrmureDevicesNV = (PFNGLXENUMERATEVIDEOCfrmUREDEVICESNVPROC)glewGetProcAddress((const GLubyte*)"glXEnumerateVideoCfrmureDevicesNV")) == NULL) || r;
+  r = ((glXLockVideoCfrmureDeviceNV = (PFNGLXLOCKVIDEOCfrmUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"glXLockVideoCfrmureDeviceNV")) == NULL) || r;
+  r = ((glXQueryVideoCfrmureDeviceNV = (PFNGLXQUERYVIDEOCfrmUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"glXQueryVideoCfrmureDeviceNV")) == NULL) || r;
+  r = ((glXReleaseVideoCfrmureDeviceNV = (PFNGLXRELEASEVIDEOCfrmUREDEVICENVPROC)glewGetProcAddress((const GLubyte*)"glXReleaseVideoCfrmureDeviceNV")) == NULL) || r;
 
   return r;
 }
 
-#endif /* GLX_NV_video_capture */
+#endif /* GLX_NV_video_cfrmure */
 
 #ifdef GLX_NV_video_out
 
@@ -20739,10 +20739,10 @@ GLenum glxewInit ()
   GLXEW_NV_vertex_array_range = _glewSearchExtension("GLX_NV_vertex_array_range", extStart, extEnd);
   if (glewExperimental || GLXEW_NV_vertex_array_range) GLXEW_NV_vertex_array_range = !_glewInit_GLX_NV_vertex_array_range();
 #endif /* GLX_NV_vertex_array_range */
-#ifdef GLX_NV_video_capture
-  GLXEW_NV_video_capture = _glewSearchExtension("GLX_NV_video_capture", extStart, extEnd);
-  if (glewExperimental || GLXEW_NV_video_capture) GLXEW_NV_video_capture = !_glewInit_GLX_NV_video_capture();
-#endif /* GLX_NV_video_capture */
+#ifdef GLX_NV_video_cfrmure
+  GLXEW_NV_video_cfrmure = _glewSearchExtension("GLX_NV_video_cfrmure", extStart, extEnd);
+  if (glewExperimental || GLXEW_NV_video_cfrmure) GLXEW_NV_video_cfrmure = !_glewInit_GLX_NV_video_cfrmure();
+#endif /* GLX_NV_video_cfrmure */
 #ifdef GLX_NV_video_out
   GLXEW_NV_video_out = _glewSearchExtension("GLX_NV_video_out", extStart, extEnd);
   if (glewExperimental || GLXEW_NV_video_out) GLXEW_NV_video_out = !_glewInit_GLX_NV_video_out();
@@ -25524,10 +25524,10 @@ GLboolean GLEWAPIENTRY glewIsSupported (const char* name)
           continue;
         }
 #endif
-#ifdef GL_NV_video_capture
-        if (_glewStrSame3(&pos, &len, (const GLubyte*)"video_capture", 13))
+#ifdef GL_NV_video_cfrmure
+        if (_glewStrSame3(&pos, &len, (const GLubyte*)"video_cfrmure", 13))
         {
-          ret = GLEW_NV_video_capture;
+          ret = GLEW_NV_video_cfrmure;
           continue;
         }
 #endif
@@ -27028,10 +27028,10 @@ GLboolean GLEWAPIENTRY wglewIsSupported (const char* name)
           continue;
         }
 #endif
-#ifdef WGL_NV_video_capture
-        if (_glewStrSame3(&pos, &len, (const GLubyte*)"video_capture", 13))
+#ifdef WGL_NV_video_cfrmure
+        if (_glewStrSame3(&pos, &len, (const GLubyte*)"video_cfrmure", 13))
         {
-          ret = WGLEW_NV_video_capture;
+          ret = WGLEW_NV_video_cfrmure;
           continue;
         }
 #endif
@@ -27446,10 +27446,10 @@ GLboolean glxewIsSupported (const char* name)
           continue;
         }
 #endif
-#ifdef GLX_NV_video_capture
-        if (_glewStrSame3(&pos, &len, (const GLubyte*)"video_capture", 13))
+#ifdef GLX_NV_video_cfrmure
+        if (_glewStrSame3(&pos, &len, (const GLubyte*)"video_cfrmure", 13))
         {
-          ret = GLXEW_NV_video_capture;
+          ret = GLXEW_NV_video_cfrmure;
           continue;
         }
 #endif

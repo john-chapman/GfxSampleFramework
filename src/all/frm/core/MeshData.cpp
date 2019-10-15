@@ -1,11 +1,11 @@
 #include "MeshData.h"
 
-#include <apt/log.h>
-#include <apt/hash.h>
-#include <apt/memory.h>
-#include <apt/FileSystem.h>
-#include <apt/TextParser.h>
-#include <apt/Time.h>
+#include <frm/core/log.h>
+#include <frm/core/hash.h>
+#include <frm/core/memory.h>
+#include <frm/core/FileSystem.h>
+#include <frm/core/TextParser.h>
+#include <frm/core/Time.h>
 
 #include <algorithm> // swap
 #include <cstdarg>
@@ -13,7 +13,7 @@
 #include <cstring>
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 static const uint8 kVertexAttrAlignment = 4;
 
@@ -30,13 +30,13 @@ static const char* VertexSemanticToStr(VertexAttr::Semantic _semantic)
 		"BoneIndices",
 		"Padding",
 	};
-	APT_STATIC_ASSERT(sizeof(kSemanticStr) / sizeof(const char*) == VertexAttr::Semantic_Count);
+	FRM_STATIC_ASSERT(sizeof(kSemanticStr) / sizeof(const char*) == VertexAttr::Semantic_Count);
 	return kSemanticStr[_semantic];
 };
 
 static inline DataType GetIndexDataType(uint _vertexCount)
 {
-	if (_vertexCount >= APT_DATA_TYPE_MAX(uint16)) {
+	if (_vertexCount >= FRM_DATA_TYPE_MAX(uint16)) {
 		return DataType_Uint32;
 	}
 	return DataType_Uint16;
@@ -69,8 +69,8 @@ VertexAttr* MeshDesc::addVertexAttr(
 	uint8                _count
 	)
 {
-	APT_ASSERT_MSG(findVertexAttr(_semantic) == 0, "MeshDesc: Semantic '%s' already exists", VertexSemanticToStr(_semantic));
-	APT_ASSERT_MSG(m_vertexAttrCount < kMaxVertexAttrCount, "MeshDesc: Too many vertex attributes (added %d, max is %d)", m_vertexAttrCount + 1, kMaxVertexAttrCount);
+	FRM_ASSERT_MSG(findVertexAttr(_semantic) == 0, "MeshDesc: Semantic '%s' already exists", VertexSemanticToStr(_semantic));
+	FRM_ASSERT_MSG(m_vertexAttrCount < kMaxVertexAttrCount, "MeshDesc: Too many vertex attributes (added %d, max is %d)", m_vertexAttrCount + 1, kMaxVertexAttrCount);
 	
  // roll back padding if present
 	uint8 offset = m_vertexSize;
@@ -111,8 +111,8 @@ VertexAttr* MeshDesc::addVertexAttr(
 
 VertexAttr* MeshDesc::addVertexAttr(VertexAttr& _attr)
 {
-	APT_ASSERT_MSG(findVertexAttr(_attr.getSemantic()) == 0, "MeshDesc: Semantic '%s' already exists", VertexSemanticToStr(_attr.getSemantic()));
-	APT_ASSERT_MSG(m_vertexAttrCount < kMaxVertexAttrCount, "MeshDesc: Too many vertex attributes (added %d, max is %d)", m_vertexAttrCount + 1, kMaxVertexAttrCount);
+	FRM_ASSERT_MSG(findVertexAttr(_attr.getSemantic()) == 0, "MeshDesc: Semantic '%s' already exists", VertexSemanticToStr(_attr.getSemantic()));
+	FRM_ASSERT_MSG(m_vertexAttrCount < kMaxVertexAttrCount, "MeshDesc: Too many vertex attributes (added %d, max is %d)", m_vertexAttrCount + 1, kMaxVertexAttrCount);
 	VertexAttr* ret = &m_vertexDesc[m_vertexAttrCount++];
 	*ret = _attr;
 	m_vertexSize += _attr.getSize();
@@ -172,7 +172,7 @@ MeshData* MeshData::Create(const char* _path)
 	if (!FileSystem::Read(f, _path)) {
 		return nullptr;
 	}
-	MeshData* ret = APT_NEW(MeshData);
+	MeshData* ret = FRM_NEW(MeshData);
 	ret->m_path.set(_path);
 
 	if        (FileSystem::CompareExtension("obj", _path)) {
@@ -184,14 +184,14 @@ MeshData* MeshData::Create(const char* _path)
 			goto MeshData_Create_error;
 		}
 	} else {
-		APT_ASSERT(false); // unsupported format
+		FRM_ASSERT(false); // unsupported format
 		goto MeshData_Create_error;
 	}
 	
 	return ret;
 
 MeshData_Create_error:
-	APT_DELETE(ret);
+	FRM_DELETE(ret);
 	return nullptr;
 }
 
@@ -203,9 +203,9 @@ MeshData* MeshData::Create(
 	const void*     _indexData
 	)
 {
-	MeshData* ret = APT_NEW(MeshData(_desc));
+	MeshData* ret = FRM_NEW(MeshData(_desc));
 	
-	ret->m_vertexData = (char*)APT_MALLOC(_desc.getVertexSize() * _vertexCount);
+	ret->m_vertexData = (char*)FRM_MALLOC(_desc.getVertexSize() * _vertexCount);
 	ret->m_submeshes[0].m_vertexCount = _vertexCount;
 	if (_vertexData) {
 		ret->setVertexData(_vertexData);
@@ -213,7 +213,7 @@ MeshData* MeshData::Create(
 
 	if (_indexCount > 0) {
 		ret->m_indexDataType = GetIndexDataType(_vertexCount);
-		ret->m_indexData = (char*)APT_MALLOC(DataTypeSizeBytes(ret->m_indexDataType) * _indexCount);
+		ret->m_indexData = (char*)FRM_MALLOC(DataTypeSizeBytes(ret->m_indexDataType) * _indexCount);
 		ret->m_submeshes[0].m_indexCount = _indexCount;
 		if (_indexData) {
 			ret->setIndexData(_indexData);
@@ -228,7 +228,7 @@ MeshData* MeshData::Create(
 	const MeshBuilder& _meshBuilder
 	)
 {
-	MeshData* ret = APT_NEW(MeshData(_desc, _meshBuilder));
+	MeshData* ret = FRM_NEW(MeshData(_desc, _meshBuilder));
 	return ret;
 }
 
@@ -417,7 +417,7 @@ MeshData* MeshData::CreateCylinder(
 		v.m_normal = normalize(vec3(v.m_position.x, 0.0f, v.m_position.z));
 	}
 	if (_capped) {
-		APT_ASSERT(false); // \todo
+		FRM_ASSERT(false); // \todo
 	}
 
 	if (_desc.findVertexAttr(VertexAttr::Semantic_Tangents)) {
@@ -429,7 +429,7 @@ MeshData* MeshData::CreateCylinder(
 
 void MeshData::Destroy(MeshData*& _meshData_)
 {
-	APT_DELETE(_meshData_);
+	FRM_DELETE(_meshData_);
 	_meshData_ = nullptr;
 }
 
@@ -447,20 +447,20 @@ void frm::swap(MeshData& _a, MeshData& _b)
 
 void MeshData::setVertexData(const void* _src)
 {
-	APT_ASSERT(_src);
-	APT_ASSERT(m_vertexData);
+	FRM_ASSERT(_src);
+	FRM_ASSERT(m_vertexData);
 	memcpy(m_vertexData, _src, m_desc.getVertexSize() * getVertexCount());
 }
 
 void MeshData::setVertexData(VertexAttr::Semantic _semantic, DataType _srcType, uint _srcCount, const void* _src)
 {
-	APT_ASSERT(_src);
-	APT_ASSERT(m_vertexData);
-	APT_ASSERT(_srcCount <= 4);
+	FRM_ASSERT(_src);
+	FRM_ASSERT(m_vertexData);
+	FRM_ASSERT(_srcCount <= 4);
 	
 	const VertexAttr* attr = m_desc.findVertexAttr(_semantic);
-	APT_ASSERT(attr);
-	APT_ASSERT(attr->getCount() == _srcCount); // \todo implement count conversion (trim or pad with 0s)
+	FRM_ASSERT(attr);
+	FRM_ASSERT(attr->getCount() == _srcCount); // \todo implement count conversion (trim or pad with 0s)
 
 	const char* src = (const char*)_src;
 	char* dst = (char*)m_vertexData;
@@ -486,15 +486,15 @@ void MeshData::setVertexData(VertexAttr::Semantic _semantic, DataType _srcType, 
 
 void MeshData::setIndexData(const void* _src)
 {
-	APT_ASSERT(_src);
-	APT_ASSERT(m_indexData);
+	FRM_ASSERT(_src);
+	FRM_ASSERT(m_indexData);
 	memcpy(m_indexData, _src, DataTypeSizeBytes(m_indexDataType) * getIndexCount());
 }
 
 void MeshData::setIndexData(DataType _srcType, const void* _src)
 {
-	APT_ASSERT(_src);
-	APT_ASSERT(m_indexData);
+	FRM_ASSERT(_src);
+	FRM_ASSERT(m_indexData);
 	if (_srcType == m_indexDataType) {
 		setIndexData(_src);
 
@@ -525,8 +525,8 @@ void MeshData::beginSubmesh(uint _materialId)
 
 void MeshData::addSubmeshVertexData(const void* _src, uint _vertexCount)
 {
-	APT_ASSERT(!m_submeshes.empty());
-	APT_ASSERT(_src && _vertexCount > 0);
+	FRM_ASSERT(!m_submeshes.empty());
+	FRM_ASSERT(_src && _vertexCount > 0);
 	uint vertexSize = m_desc.getVertexSize();
 	m_submeshes[0].m_vertexCount += _vertexCount;
 	m_vertexData = (char*)realloc(m_vertexData, vertexSize * m_submeshes[0].m_vertexCount);
@@ -536,8 +536,8 @@ void MeshData::addSubmeshVertexData(const void* _src, uint _vertexCount)
 
 void MeshData::addSubmeshIndexData(const void* _src, uint _indexCount)
 {
-	APT_ASSERT(!m_submeshes.empty());
-	APT_ASSERT(_src && _indexCount > 0);
+	FRM_ASSERT(!m_submeshes.empty());
+	FRM_ASSERT(_src && _indexCount > 0);
 	uint indexSize = DataTypeSizeBytes(m_indexDataType);
 	m_submeshes[0].m_indexCount += _indexCount;
 	m_indexData = (char*)realloc(m_indexData, indexSize * m_submeshes[0].m_indexCount);
@@ -576,7 +576,7 @@ uint64 MeshData::getHash() const
 void MeshData::setBindPose(const Skeleton& _skel)
 {
 	if (!m_bindPose) {
-		m_bindPose = APT_NEW(Skeleton);
+		m_bindPose = FRM_NEW(Skeleton);
 	}
 	*m_bindPose = _skel;
 }
@@ -603,33 +603,33 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	const VertexAttr* colorsAttr      = m_desc.findVertexAttr(VertexAttr::Semantic_Colors);
 	const VertexAttr* boneWeightsAttr = m_desc.findVertexAttr(VertexAttr::Semantic_BoneWeights);
 	const VertexAttr* boneIndicesAttr = m_desc.findVertexAttr(VertexAttr::Semantic_BoneIndices);
-	m_vertexData = (char*)APT_MALLOC(m_desc.getVertexSize() * _meshBuilder.getVertexCount());
+	m_vertexData = (char*)FRM_MALLOC(m_desc.getVertexSize() * _meshBuilder.getVertexCount());
 	for (uint32 i = 0, n = _meshBuilder.getVertexCount(); i < n; ++i) {
 		char* dst = m_vertexData + i * m_desc.getVertexSize();
 		const MeshBuilder::Vertex& src = _meshBuilder.getVertex(i);
 		if (positionsAttr) {
-			DataTypeConvert(DataType_Float32, positionsAttr->getDataType(), &src.m_position, dst + positionsAttr->getOffset(), APT_MIN(3, (int)positionsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, positionsAttr->getDataType(), &src.m_position, dst + positionsAttr->getOffset(), FRM_MIN(3, (int)positionsAttr->getCount()));
 		}
 		if (texcoordsAttr) {
-			DataTypeConvert(DataType_Float32, texcoordsAttr->getDataType(), &src.m_texcoord, dst + texcoordsAttr->getOffset(), APT_MIN(2, (int)positionsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, texcoordsAttr->getDataType(), &src.m_texcoord, dst + texcoordsAttr->getOffset(), FRM_MIN(2, (int)positionsAttr->getCount()));
 		}
 		if (normalsAttr) {
-			DataTypeConvert(DataType_Float32, normalsAttr->getDataType(), &src.m_normal, dst + normalsAttr->getOffset(), APT_MIN(3, (int)normalsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, normalsAttr->getDataType(), &src.m_normal, dst + normalsAttr->getOffset(), FRM_MIN(3, (int)normalsAttr->getCount()));
 		}
 		if (tangentsAttr) {
-			DataTypeConvert(DataType_Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), APT_MIN(4, (int)tangentsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), FRM_MIN(4, (int)tangentsAttr->getCount()));
 		}
 		if (boneWeightsAttr) {
-			DataTypeConvert(DataType_Float32, boneWeightsAttr->getDataType(), &src.m_boneWeights, dst + boneWeightsAttr->getOffset(), APT_MIN(4, (int)boneWeightsAttr->getCount()));
+			DataTypeConvert(DataType_Float32, boneWeightsAttr->getDataType(), &src.m_boneWeights, dst + boneWeightsAttr->getOffset(), FRM_MIN(4, (int)boneWeightsAttr->getCount()));
 		}
 		if (boneIndicesAttr) {
-			DataTypeConvert(DataType_Uint32, boneIndicesAttr->getDataType(), &src.m_boneIndices, dst + boneIndicesAttr->getOffset(), APT_MIN(4, (int)boneIndicesAttr->getCount()));
+			DataTypeConvert(DataType_Uint32, boneIndicesAttr->getDataType(), &src.m_boneIndices, dst + boneIndicesAttr->getOffset(), FRM_MIN(4, (int)boneIndicesAttr->getCount()));
 		}
 	}
 
 	if (_meshBuilder.getIndexCount() > 0) {
 		m_indexDataType = GetIndexDataType(_meshBuilder.getVertexCount());
-		m_indexData = (char*)APT_MALLOC(_meshBuilder.getIndexCount() * DataTypeSizeBytes(m_indexDataType));
+		m_indexData = (char*)FRM_MALLOC(_meshBuilder.getIndexCount() * DataTypeSizeBytes(m_indexDataType));
 		DataTypeConvert(DataType_Uint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
 	}
 
@@ -652,23 +652,23 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 MeshData::~MeshData()
 {
 	if (m_bindPose) {
-		APT_DELETE(m_bindPose);
+		FRM_DELETE(m_bindPose);
 	}
-	APT_FREE(m_vertexData);
-	APT_FREE(m_indexData);
+	FRM_FREE(m_vertexData);
+	FRM_FREE(m_indexData);
 }
 
 void MeshData::updateSubmeshBounds(Submesh& _submesh)
 {
 	const VertexAttr* posAttr = m_desc.findVertexAttr(VertexAttr::Semantic_Positions);
-	APT_ASSERT(posAttr); // no positions
+	FRM_ASSERT(posAttr); // no positions
 	
 	const char* data = m_vertexData + posAttr->getOffset() + _submesh.m_vertexOffset;
 	_submesh.m_boundingBox.m_min = vec3(FLT_MAX);
 	_submesh.m_boundingBox.m_max = vec3(-FLT_MAX);
 	for (auto i = 0; i < _submesh.m_vertexCount; ++i) {
 		vec3 v;
-		for (auto j = 0; j < APT_MIN(posAttr->getCount(), (uint8)3); ++j) {
+		for (auto j = 0; j < FRM_MIN(posAttr->getCount(), (uint8)3); ++j) {
 			DataTypeConvert(
 				posAttr->getDataType(),
 				DataType_Float32,
@@ -816,9 +816,9 @@ uint32 MeshBuilder::addTriangle(uint32 _a, uint32 _b, uint32 _c)
 
 uint32 MeshBuilder::addTriangle(const Triangle& _triangle)
 {
-	APT_ASSERT(_triangle.a < getVertexCount());
-	APT_ASSERT(_triangle.b < getVertexCount());
-	APT_ASSERT(_triangle.c < getVertexCount());
+	FRM_ASSERT(_triangle.a < getVertexCount());
+	FRM_ASSERT(_triangle.b < getVertexCount());
+	FRM_ASSERT(_triangle.c < getVertexCount());
 	uint32 ret = getTriangleCount();
 	m_triangles.push_back(_triangle);
 	return ret;
@@ -856,31 +856,31 @@ void MeshBuilder::addVertexData(const MeshDesc& _desc, const void* _data, uint32
 			const VertexAttr& srcAttr = _desc[j];
 			switch (srcAttr.getSemantic()) {
 				case VertexAttr::Semantic_Positions: 
-					APT_ASSERT(srcAttr.getCount() <= 3);
+					FRM_ASSERT(srcAttr.getCount() <= 3);
 					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_position.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Texcoords:
-					APT_ASSERT(srcAttr.getCount() <= 2);
+					FRM_ASSERT(srcAttr.getCount() <= 2);
 					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_texcoord.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Normals:
-					APT_ASSERT(srcAttr.getCount() <= 3);
+					FRM_ASSERT(srcAttr.getCount() <= 3);
 					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_normal.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Tangents:
-					APT_ASSERT(srcAttr.getCount() <= 4);
+					FRM_ASSERT(srcAttr.getCount() <= 4);
 					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_tangent.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_Colors:
-					APT_ASSERT(srcAttr.getCount() <= 4);
+					FRM_ASSERT(srcAttr.getCount() <= 4);
 					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_color.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_BoneWeights:
-					APT_ASSERT(srcAttr.getCount() <= 4);
+					FRM_ASSERT(srcAttr.getCount() <= 4);
 					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_boneWeights.x, srcAttr.getCount());
 					break;
 				case VertexAttr::Semantic_BoneIndices:
-					APT_ASSERT(srcAttr.getCount() <= 4);
+					FRM_ASSERT(srcAttr.getCount() <= 4);
 					DataTypeConvert(srcAttr.getDataType(), DataType_Uint32, src + srcAttr.getOffset(), &v.m_boneIndices.x, srcAttr.getCount());
 					break;
 				default:
@@ -895,13 +895,13 @@ void MeshBuilder::addVertexData(const MeshDesc& _desc, const void* _data, uint32
 void MeshBuilder::addIndexData(DataType _type, const void* _data, uint32 _count)
 {
  // \todo avoid conversion in case where _type == uint32
-	uint32* tmp = APT_NEW_ARRAY(uint32, _count);
+	uint32* tmp = FRM_NEW_ARRAY(uint32, _count);
 	DataTypeConvert(_type, DataType_Uint32, _data, tmp, _count);
 	uint32 off = (uint32)m_submeshes.back().m_vertexOffset;
 	for (uint32 i = 0; i < _count; i += 3) {
 		m_triangles.push_back(Triangle(tmp[i] + off, tmp[i + 1] + off, tmp[i + 2] + off));
 	}
-	APT_DELETE_ARRAY(tmp);
+	FRM_DELETE_ARRAY(tmp);
 }
 
 void MeshBuilder::setVertexCount(uint32 _count)

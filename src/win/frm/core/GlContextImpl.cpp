@@ -1,14 +1,14 @@
 #include <frm/core/GlContext.h>
-#include <frm/core/def.h>
+
+#include <frm/core/frm.h>
 #include <frm/core/gl.h>
+#include <frm/core/log.h>
+#include <frm/core/platform.h>
+#include <frm/core/win.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Shader.h>
+#include <frm/core/String.h>
 #include <frm/core/Window.h>
-
-#include <apt/log.h>
-#include <apt/platform.h>
-#include <apt/win.h>
-#include <apt/String.h>
 
 #include <GL/wglew.h>
 
@@ -20,7 +20,7 @@ extern "C" {
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 
-static APT_THREAD_LOCAL GlContext* g_currentCtx;
+static thread_local GlContext* g_currentCtx;
 
 static void GlDebugMessageCallback(GLenum _source, GLenum _type, GLuint _id, GLenum _severity, GLsizei _length, const GLchar* _message, const void* _user)
 {
@@ -30,16 +30,16 @@ static void GlDebugMessageCallback(GLenum _source, GLenum _type, GLuint _id, GLe
 	}
 
  // log
-	apt::String<512> msg("[%s] [%s] [%s] (%u): ", internal::GlEnumStr(_source), internal::GlEnumStr(_type), internal::GlEnumStr(_severity), _id);
+	frm::String<512> msg("[%s] [%s] [%s] (%u): ", internal::GlEnumStr(_source), internal::GlEnumStr(_type), internal::GlEnumStr(_severity), _id);
 	msg.append(_message, _length);
 	switch (_type) {
 		case GL_DEBUG_TYPE_ERROR:
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
 		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-			APT_LOG_ERR((const char*)msg);
+			FRM_LOG_ERR((const char*)msg);
 			break;
 		default:
-			APT_LOG((const char*)msg);
+			FRM_LOG((const char*)msg);
 	};
 }
 
@@ -68,13 +68,13 @@ struct GlContext::Impl
 GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, CreateFlags _flags)
 {
 	GlContext* ret = new GlContext;
-	APT_ASSERT(ret);
+	FRM_ASSERT(ret);
 	ret->m_window = _window;
 
 	GlContext::Impl* impl = ret->m_impl = new GlContext::Impl;
-	APT_ASSERT(impl);
+	FRM_ASSERT(impl);
 	impl->m_hwnd = (HWND)_window->getHandle();
-	APT_PLATFORM_VERIFY(impl->m_hdc = GetDC(impl->m_hwnd));
+	FRM_PLATFORM_VERIFY(impl->m_hdc = GetDC(impl->m_hwnd));
 
  // set the window pixel format
 	PIXELFORMATDESCRIPTOR pfd = {};
@@ -86,13 +86,13 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 	pfd.cDepthBits   = 24;
 	pfd.cStencilBits = 8;
 	int pformat = 0;
-	APT_PLATFORM_VERIFY(pformat = ChoosePixelFormat(GetDC(impl->m_hwnd), &pfd));
-	APT_PLATFORM_VERIFY(SetPixelFormat(impl->m_hdc, pformat, &pfd));
+	FRM_PLATFORM_VERIFY(pformat = ChoosePixelFormat(GetDC(impl->m_hwnd), &pfd));
+	FRM_PLATFORM_VERIFY(SetPixelFormat(impl->m_hdc, pformat, &pfd));
 	
  // create dummy context to load wgl extensions
 	HGLRC hGLRC = 0;
-	APT_PLATFORM_VERIFY(hGLRC = wglCreateContext(impl->m_hdc));
-	APT_PLATFORM_VERIFY(wglMakeCurrent(impl->m_hdc, hGLRC));
+	FRM_PLATFORM_VERIFY(hGLRC = wglCreateContext(impl->m_hdc));
+	FRM_PLATFORM_VERIFY(wglMakeCurrent(impl->m_hdc, hGLRC));
 
  // check the platform supports the requested GL version
 	GLint platformVMaj, platformVMin;
@@ -101,19 +101,19 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 	_vmaj = _vmaj < 0 ? platformVMaj : _vmaj;
 	_vmin = _vmin < 0 ? platformVMin : _vmin;
 	if (platformVMaj < _vmaj || (platformVMaj >= _vmaj && platformVMin < _vmin)) {
-		APT_LOG_ERR("OpenGL version %d.%d is not available (available version is %d.%d).", _vmaj, _vmin, platformVMaj, platformVMin);
-		APT_LOG("This error may occur if the platform has an integrated GPU.");
-		APT_ASSERT(false);
+		FRM_LOG_ERR("OpenGL version %d.%d is not available (available version is %d.%d).", _vmaj, _vmin, platformVMaj, platformVMin);
+		FRM_LOG("This error may occur if the platform has an integrated GPU.");
+		FRM_ASSERT(false);
 		return 0;
 	}
 	
  // load wgl extensions for true context creation
-	static APT_THREAD_LOCAL PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs;
-	APT_PLATFORM_VERIFY(wglCreateContextAttribs = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB"));
+	static thread_local PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs;
+	FRM_PLATFORM_VERIFY(wglCreateContextAttribs = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB"));
 
  // delete the dummy context
-	APT_PLATFORM_VERIFY(wglMakeCurrent(0, 0));
-	APT_PLATFORM_VERIFY(wglDeleteContext(hGLRC));
+	FRM_PLATFORM_VERIFY(wglMakeCurrent(0, 0));
+	FRM_PLATFORM_VERIFY(wglDeleteContext(hGLRC));
 
  // create true context
 	int profileMask = ((_flags & CreateFlags_Compatibility) != 0) ? WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
@@ -125,16 +125,16 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 		WGL_CONTEXT_FLAGS_ARB,          ctxFlags,
 		0
 	};
-	APT_PLATFORM_VERIFY(impl->m_hglrc = wglCreateContextAttribs(impl->m_hdc, 0, attr));
+	FRM_PLATFORM_VERIFY(impl->m_hglrc = wglCreateContextAttribs(impl->m_hdc, 0, attr));
 
  // load extensions
 	MakeCurrent(ret);
 	glewExperimental = GL_TRUE;
 	GLenum err = glewInit();
-	APT_ASSERT(err == GLEW_OK);
+	FRM_ASSERT(err == GLEW_OK);
 	glGetError(); // clear any errors caused by glewInit()
 
-	APT_LOG("OpenGL %s%scontext:"
+	FRM_LOG("OpenGL %s%scontext:"
 		"\n\tVersion:      %s"
 		"\n\tGLSL Version: %s"
 		"\n\tVendor:       %s"
@@ -147,36 +147,36 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 		internal::GlGetString(GL_RENDERER)
 		);
 	if ((_flags & CreateFlags_Debug) != 0) {
-		APT_ASSERT(glewIsExtensionSupported("GL_ARB_debug_output"));
+		FRM_ASSERT(glewIsExtensionSupported("GL_ARB_debug_output"));
 		glAssert(glDebugMessageCallback(GlDebugMessageCallback, 0));
 		glAssert(glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS));
 		glAssert(glEnable(GL_DEBUG_OUTPUT));
 	}
 
  // set default states
-	ShaderDesc::SetDefaultVersion((const char*)apt::String<8>("%d%d0", _vmaj, _vmin));
+	ShaderDesc::SetDefaultVersion((const char*)frm::String<8>("%d%d0", _vmaj, _vmin));
 	#if FRM_NDC_Z_ZERO_TO_ONE
-		APT_ASSERT(glewIsExtensionSupported("GL_ARB_clip_control"));
+		FRM_ASSERT(glewIsExtensionSupported("GL_ARB_clip_control"));
 		glAssert(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE));
 	#endif
-	APT_ASSERT(glewIsExtensionSupported("GL_ARB_seamless_cube_map"));
+	FRM_ASSERT(glewIsExtensionSupported("GL_ARB_seamless_cube_map"));
 	glAssert(glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS));
 
-	APT_VERIFY(ret->init());
+	FRM_VERIFY(ret->init());
 
 	return ret;
 }
 
 void GlContext::Destroy(GlContext*& _ctx_)
 {
-	APT_ASSERT(_ctx_ != 0);
-	APT_ASSERT(_ctx_->m_impl != 0);
+	FRM_ASSERT(_ctx_ != 0);
+	FRM_ASSERT(_ctx_->m_impl != 0);
 
 	_ctx_->shutdown();
 
-	APT_PLATFORM_VERIFY(wglMakeCurrent(0, 0));
-	APT_PLATFORM_VERIFY(wglDeleteContext(_ctx_->m_impl->m_hglrc));
-	APT_PLATFORM_VERIFY(ReleaseDC(_ctx_->m_impl->m_hwnd, _ctx_->m_impl->m_hdc) != 0);
+	FRM_PLATFORM_VERIFY(wglMakeCurrent(0, 0));
+	FRM_PLATFORM_VERIFY(wglDeleteContext(_ctx_->m_impl->m_hglrc));
+	FRM_PLATFORM_VERIFY(ReleaseDC(_ctx_->m_impl->m_hwnd, _ctx_->m_impl->m_hdc) != 0);
 		
 	delete _ctx_->m_impl;
 	_ctx_->m_impl = 0;
@@ -191,7 +191,7 @@ GlContext* GlContext::GetCurrent()
 
 bool GlContext::MakeCurrent(GlContext* _ctx)
 {
-	APT_ASSERT(_ctx != 0);
+	FRM_ASSERT(_ctx != 0);
 
 	if (_ctx != g_currentCtx) {
 		if (!wglMakeCurrent(_ctx->m_impl->m_hdc, _ctx->m_impl->m_hglrc)) {
@@ -204,8 +204,8 @@ bool GlContext::MakeCurrent(GlContext* _ctx)
 
 void GlContext::present()
 {
-	APT_PLATFORM_VERIFY(SwapBuffers(m_impl->m_hdc));
-	APT_PLATFORM_VERIFY(ValidateRect(m_impl->m_hwnd, 0)); // suppress WM_PAINT
+	FRM_PLATFORM_VERIFY(SwapBuffers(m_impl->m_hdc));
+	FRM_PLATFORM_VERIFY(ValidateRect(m_impl->m_hwnd, 0)); // suppress WM_PAINT
 	++m_frameIndex;
 	PROFILER_VALUE_CPU("#Draw Call Count", m_drawCount,     "%.0f");
 	PROFILER_VALUE_CPU("#Dispatch Count",  m_dispatchCount, "%.0f");
@@ -216,6 +216,6 @@ void GlContext::setVsync(Vsync _mode)
 {
 	if (m_vsync	!= _mode) {
 		m_vsync = _mode;
-		APT_PLATFORM_VERIFY(wglSwapIntervalEXT((int)_mode));
+		FRM_PLATFORM_VERIFY(wglSwapIntervalEXT((int)_mode));
 	}
 }

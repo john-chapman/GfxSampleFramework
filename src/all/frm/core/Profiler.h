@@ -1,25 +1,23 @@
 #pragma once
-#ifndef frm_Profiler_h
-#define frm_Profiler_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 
 //#define frm_Profiler_DISABLE
 #ifndef frm_Profiler_DISABLE
 	// Profile the current block. Use PROFILER_MARKER_CPU, unless the block contains gl* calls.
-	#define PROFILER_MARKER_CPU(_name)              volatile frm::Profiler::CpuAutoMarker APT_UNIQUE_NAME(_cpuAutoMarker_)(_name)
-	#define PROFILER_MARKER_GPU(_name)              volatile frm::Profiler::GpuAutoMarker APT_UNIQUE_NAME(_gpuAutoMarker_)(_name)
+	#define PROFILER_MARKER_CPU(_name)              volatile frm::Profiler::CpuAutoMarker FRM_UNIQUE_NAME(_cpuAutoMarker_)(_name)
+	#define PROFILER_MARKER_GPU(_name)              volatile frm::Profiler::GpuAutoMarker FRM_UNIQUE_NAME(_gpuAutoMarker_)(_name)
 	#define PROFILER_MARKER(_name)                  PROFILER_MARKER_CPU(_name); PROFILER_MARKER_GPU(_name)
 
 	// Track a value (call every frame). Use Profiler::kFormatTimeMs as _fmt if _value represents a time in milliseconds.
 	#define PROFILER_VALUE_CPU(_name, _value, _fmt)  Profiler::CpuValue(_name, (float)_value, _fmt)
 
 #else
-	#define PROFILER_MARKER_CPU(_name)              APT_UNUSED(_name)
-	#define PROFILER_MARKER_GPU(_name)              APT_UNUSED(_name)
-	#define PROFILER_MARKER(_name)                  APT_UNUSED(_name)
+	#define PROFILER_MARKER_CPU(_name)              FRM_UNUSED(_name)
+	#define PROFILER_MARKER_GPU(_name)              FRM_UNUSED(_name)
+	#define PROFILER_MARKER(_name)                  FRM_UNUSED(_name)
 
-	#define PROFILER_VALUE_CPU(_name, _value, _fmt)  APT_UNUSED(_name); APT_UNUSED(_value); APT_UNUSED(_fmt)
+	#define PROFILER_VALUE_CPU(_name, _value, _fmt)  FRM_UNUSED(_name); FRM_UNUSED(_value); FRM_UNUSED(_fmt)
 
 	
 #endif
@@ -118,5 +116,3 @@ private:
 }; // class Profiler
 
 } // namespace frm
-
-#endif // frm_Profiler_h

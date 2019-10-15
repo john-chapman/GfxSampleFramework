@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_Framebuffer_h
-#define frm_Framebuffer_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/gl.h>
 
 namespace frm {
@@ -19,7 +17,7 @@ class Texture;
 //    be useful to allow them to be globally named (e.g. for scripted 
 //    pipelines).
 ////////////////////////////////////////////////////////////////////////////////
-class Framebuffer: public apt::non_copyable<Framebuffer>
+class Framebuffer: public frm::non_copyable<Framebuffer>
 {
 public:
 
@@ -81,5 +79,3 @@ private:
 }; // Framebuffer
 
 } // namespace frm
-
-#endif // frm_Framebuffer_h

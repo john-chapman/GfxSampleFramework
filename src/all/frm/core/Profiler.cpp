@@ -1,13 +1,12 @@
 #include "Profiler.h"
 
 #include <frm/core/gl.h>
+#include <frm/core/math.h>
+#include <frm/core/memory.h>
 #include <frm/core/GlContext.h>
-
-#include <apt/math.h>
-#include <apt/memory.h>
-#include <apt/String.h>
-#include <apt/StringHash.h>
-#include <apt/Time.h>
+#include <frm/core/String.h>
+#include <frm/core/StringHash.h>
+#include <frm/core/Time.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_ext.h>
@@ -15,7 +14,7 @@
 #include <EASTL/vector_map.h>
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 /******************************************************************************
 
@@ -26,9 +25,9 @@ using namespace apt;
 #define Profiler_ALWAYS_GEN_QUERIES 0 // using a query pool seems to use a lot more memory (on Nvidia)
 #define Profiler_DEBUG 0
 #if Profiler_DEBUG
-	#define Profiler_STRICT_ASSERT(e) APT_ASSERT(e)
+	#define Profiler_STRICT_ASSERT(e) FRM_ASSERT(e)
 #else
-	#define Profiler_STRICT_ASSERT(e) APT_STRICT_ASSERT(e)
+	#define Profiler_STRICT_ASSERT(e) FRM_STRICT_ASSERT(e)
 #endif
 
 // \todo make these configurable
@@ -52,23 +51,23 @@ public:
 	RingBuffer(uint32 _capacity)
 		: m_capacity(_capacity)
 	{
-		APT_ASSERT(APT_IS_POW2(_capacity));
-		m_data = APT_NEW_ARRAY(tType, _capacity);
+		FRM_ASSERT(FRM_IS_POW2(_capacity));
+		m_data = FRM_NEW_ARRAY(tType, _capacity);
 		m_back = m_data - 1; // first call to push_back() must write at element 0
 	}
 
 	RingBuffer(uint32 _capacity, const tType& _assign)
 		: m_capacity(_capacity)
 	{
-		APT_ASSERT(APT_IS_POW2(_capacity));
-		m_data = APT_NEW_ARRAY(tType, _capacity);
+		FRM_ASSERT(FRM_IS_POW2(_capacity));
+		m_data = FRM_NEW_ARRAY(tType, _capacity);
 		assign(_assign);
 		m_back = m_data - 1; // first call to push_back() must write at element 0
 	}
 
 	~RingBuffer()
 	{
-		APT_DELETE_ARRAY(m_data);
+		FRM_DELETE_ARRAY(m_data);
 	}
 
 	RingBuffer(RingBuffer<tType>&) = delete;
@@ -123,7 +122,7 @@ public:
 
 	tType& back()
 	{
-		APT_STRICT_ASSERT(!empty()); // m_back is invalid in this case
+		FRM_STRICT_ASSERT(!empty()); // m_back is invalid in this case
 		return *m_back;
 	}
 
@@ -140,12 +139,12 @@ public:
 	{
 		auto fr = &front();
 		uint32 off = (uint32)(fr - m_data);
-		return m_data[APT_MOD_POW2(_i + off, m_capacity)];
+		return m_data[FRM_MOD_POW2(_i + off, m_capacity)];
 	}
 
 	tType& at_absolute(uint32 _i)
 	{
-		APT_STRICT_ASSERT(_i < m_capacity);
+		FRM_STRICT_ASSERT(_i < m_capacity);
 		return m_data[_i];
 	}
 
@@ -179,8 +178,8 @@ struct ProfilerData
 	
 	ProfilerData(int _frameCount, int _maxTotalMarkersPerFrame)
 	{
-		m_frames  = APT_NEW(RingBuffer<Profiler::Frame>(_frameCount, Profiler::Frame()));
-		m_markers = APT_NEW(RingBuffer<Profiler::Marker>(_frameCount * _maxTotalMarkersPerFrame, Profiler::Marker()));
+		m_frames  = FRM_NEW(RingBuffer<Profiler::Frame>(_frameCount, Profiler::Frame()));
+		m_markers = FRM_NEW(RingBuffer<Profiler::Marker>(_frameCount * _maxTotalMarkersPerFrame, Profiler::Marker()));
 
 		m_markerStack.reserve(8);
 	}
@@ -188,8 +187,8 @@ struct ProfilerData
 	~ProfilerData()
 	{
 	 // some static systems (e.g. Log) may push markers during shutdown
-		//APT_DELETE(m_frames);
-		//APT_DELETE(m_markers);
+		//FRM_DELETE(m_frames);
+		//FRM_DELETE(m_markers);
 	}
 
 	uint32 getFrameIndex(const Profiler::Frame* _frame)
@@ -209,9 +208,9 @@ struct ProfilerData
 	 // \todo It would be nice to check if we pushed too many markers in a single frame, however we don't explicitly track the 
 	 // count and checking for overlap in the ring buffer is complicated; the test below always fails for the first marker pushed
 	 // during a frame because we set frame.m_markerBegin = m_markers->front() during nextFrame().
-		//APT_ASSERT(&m_markers->front() != m_frames->back().m_markerBegin); // too many markers pushed this frame
+		//FRM_ASSERT(&m_markers->front() != m_frames->back().m_markerBegin); // too many markers pushed this frame
 
-		APT_ASSERT(m_markerStack.size() < APT_DATA_TYPE_MAX(decltype(Profiler::Marker::m_stackDepth)));
+		FRM_ASSERT(m_markerStack.size() < FRM_DATA_TYPE_MAX(decltype(Profiler::Marker::m_stackDepth)));
 		Profiler::Marker newMarker;
 		newMarker.m_name = _name;
 		newMarker.m_stackDepth = (decltype(Profiler::Marker::m_stackDepth))m_markerStack.size();
@@ -224,7 +223,7 @@ struct ProfilerData
 	{
 		auto ret = m_markerStack.back();
 		m_markerStack.pop_back();
-		APT_ASSERT_MSG(strcmp(ret->m_name, _name) == 0, "Unmatched marker push/pop '%s'/'%s'", ret->m_name, _name);
+		FRM_ASSERT_MSG(strcmp(ret->m_name, _name) == 0, "Unmatched marker push/pop '%s'/'%s'", ret->m_name, _name);
 		return *ret;
 	}
 
@@ -264,8 +263,8 @@ struct ProfilerData
 
 		val.m_name    = _name;
 		val.m_format  = _format;
-		//val.m_max     = APT_MAX(val.m_max, _value);
-		//val.m_min     = APT_MIN(val.m_min, _value);
+		//val.m_max     = FRM_MAX(val.m_max, _value);
+		//val.m_min     = FRM_MIN(val.m_min, _value);
 		//val.m_avg     = (val.m_avg - val.m_avg / 1000.0f) + _value / 1000.0f; // approx moving average
 		
 		++data.m_count;
@@ -279,7 +278,7 @@ struct ProfilerData
 
 	void endFrame()
 	{
-		APT_ASSERT_MSG(m_markerStack.empty(), "Marker '%s' was not popped before frame end", m_markerStack.back()->m_name);
+		FRM_ASSERT_MSG(m_markerStack.empty(), "Marker '%s' was not popped before frame end", m_markerStack.back()->m_name);
 
 	 // average frame duration
 		uint64 avg  = 0;
@@ -309,8 +308,8 @@ struct ProfilerData
 			value.m_avg      = 0.0f;
 			for (uint32 i = 0; i < history.capacity(); ++i) {
 				float v      = history.at_relative(i);
-				value.m_min  = APT_MIN(value.m_min, v);
-				value.m_max  = APT_MAX(value.m_max, v);
+				value.m_min  = FRM_MIN(value.m_min, v);
+				value.m_max  = FRM_MAX(value.m_max, v);
 				value.m_avg += v;
 			}
 			value.m_avg /= (float)history.capacity();
@@ -338,14 +337,14 @@ struct ProfilerData
 		if_unlikely (m_frames->empty() || _frame.m_id == 0) { // uninitialized frame
 			return;
 		}
-		APT_STRICT_ASSERT(m_frames->is_element(&_frame));
+		FRM_STRICT_ASSERT(m_frames->is_element(&_frame));
 		auto i = _frame.m_markerBegin;
 		while (i != _frame.m_markerEnd) {
 			auto& marker = m_markers->at_absolute(i);
 			if (eastl::find(m_trackedMarkers.begin(), m_trackedMarkers.end(), StringHash(marker.m_name)) != m_trackedMarkers.end()) {
 				value(marker.m_name, (float)Timestamp(marker.m_stopTime - marker.m_startTime).asMilliseconds(), Profiler::kFormatTimeMs);
 			}
-			i = APT_MOD_POW2(i + 1, m_markers->capacity());
+			i = FRM_MOD_POW2(i + 1, m_markers->capacity());
 		}
 	}
 };
@@ -375,7 +374,7 @@ void SyncGpu()
 	glAssert(glGetInteger64v(GL_TIMESTAMP, &gpuTime));
 	uint64 cpuTicks = Time::GetTimestamp().getRaw();
 	uint64 gpuTicks = GpuToSystemTicks(gpuTime);
-	APT_ASSERT(cpuTicks > gpuTicks);
+	FRM_ASSERT(cpuTicks > gpuTicks);
 	g_GpuTimeOffset = cpuTicks - gpuTicks; 
 }
 
@@ -389,8 +388,8 @@ const char* Profiler::kFormatTimeMs;
 void Profiler::NextFrame()
 {
  // allocating GPU queries requires a GL context, do this once during the first call to NextFrame
-	APT_ONCE {
-		APT_ASSERT(GlContext::GetCurrent());
+	FRM_ONCE {
+		FRM_ASSERT(GlContext::GetCurrent());
 		
 		#if !Profiler_ALWAYS_GEN_QUERIES
 			glAssert(glGenQueries((GLsizei)g_GpuFrameStartQueries.capacity(),  g_GpuFrameStartQueries.data()));
@@ -420,7 +419,7 @@ void Profiler::NextFrame()
 		frame.m_startTime = GpuToTimestamp(gpuTime);
 		gpuMarkerGetEnd = frame.m_markerBegin; // markers *up to* the last available frame start are implicitly available
 	
-		g_GpuFrameGetBegin = APT_MOD_POW2(g_GpuFrameGetBegin + 1, g_GpuData.m_frames->capacity());
+		g_GpuFrameGetBegin = FRM_MOD_POW2(g_GpuFrameGetBegin + 1, g_GpuData.m_frames->capacity());
 	}
 
  // retrieve available marker start/stop queries
@@ -449,7 +448,7 @@ void Profiler::NextFrame()
 		#endif
 		marker.m_stopTime = GpuToTimestamp(gpuStopTime);
 
-		g_GpuMarkerGetBegin = APT_MOD_POW2(g_GpuMarkerGetBegin + 1, g_GpuData.m_markers->capacity());
+		g_GpuMarkerGetBegin = FRM_MOD_POW2(g_GpuMarkerGetBegin + 1, g_GpuData.m_markers->capacity());
 	}
 
  // increment the frame index first so that new frame data will have the correct index
@@ -464,7 +463,7 @@ void Profiler::NextFrame()
 	g_CpuData.beginFrame();
 
 	g_GpuData.endFrame();
-	auto gpuAvailFrameIndex = APT_MOD_POW2(g_GpuMarkerGetBegin + g_GpuData.m_frames->capacity() - 2, g_GpuData.m_frames->capacity()); // markers are available 2 frames behind g_GpuMarkerGetBegin
+	auto gpuAvailFrameIndex = FRM_MOD_POW2(g_GpuMarkerGetBegin + g_GpuData.m_frames->capacity() - 2, g_GpuData.m_frames->capacity()); // markers are available 2 frames behind g_GpuMarkerGetBegin
 	g_GpuData.trackMarkers(g_GpuData.m_frames->at_absolute(gpuAvailFrameIndex));
 	auto& frame = g_GpuData.beginFrame();
 	frame.m_startTime = 0;
@@ -630,7 +629,7 @@ static void DrawDataMarkers(ProfilerData& _data, ImU32 _color, float _begY, floa
 			break;
 		}
 
-		for (auto j = thisFrame.m_markerBegin; j != thisFrame.m_markerEnd; j = APT_MOD_POW2(j + 1, _data.m_markers->capacity())) {
+		for (auto j = thisFrame.m_markerBegin; j != thisFrame.m_markerEnd; j = FRM_MOD_POW2(j + 1, _data.m_markers->capacity())) {
 			auto& marker    = _data.m_markers->at_absolute(j);
 			float markerBeg = ImGui::VirtualWindow::ToWindowX((float)Timestamp(marker.m_startTime - rangeStart).asMilliseconds());
 			float markerEnd = ImGui::VirtualWindow::ToWindowX((float)Timestamp(marker.m_stopTime  - rangeStart).asMilliseconds());
@@ -641,8 +640,8 @@ static void DrawDataMarkers(ProfilerData& _data, ImU32 _color, float _begY, floa
 				break;
 			}
 			
-			markerBeg         = APT_MAX(markerBeg, windowBeg.x);        // clamp at window edge = keep label in view
-			markerEnd         = APT_MIN(markerEnd, windowEnd.x) - 1.0f; //                   "
+			markerBeg         = FRM_MAX(markerBeg, windowBeg.x);        // clamp at window edge = keep label in view
+			markerEnd         = FRM_MIN(markerEnd, windowEnd.x) - 1.0f; //                   "
 			float markerWidth = markerEnd - markerBeg;
 			float markerY     = _begY + (kMarkerHeight + 1.0f) * (float)marker.m_stackDepth;
 
@@ -713,7 +712,7 @@ static void DrawDataMarkers(ProfilerData& _data, ImU32 _color, float _begY, floa
 	}
 
 	if (ImGui::BeginPopup("MarkerPopup")) {
-		APT_ASSERT(g_SelectedMarker);
+		FRM_ASSERT(g_SelectedMarker);
 		StringHash nameHash(g_SelectedMarker->m_name);
 		if (_data.findTrackedMarker(nameHash) == _data.m_trackedMarkers.end()) {
 			if (ImGui::MenuItem("Track")) {
@@ -772,8 +771,8 @@ static void DrawDataFrames(ProfilerData& _data, ImU32 _color, float _begY, float
 		drawList.AddLine(ImVec2(frameBeg, _begY), ImVec2(frameBeg, _endY), borderColor);
 	
 	 // highlight
-		frameBeg = APT_MAX(frameBeg, windowBeg.x);
-		frameEnd = APT_MIN(frameEnd, windowEnd.x);
+		frameBeg = FRM_MAX(frameBeg, windowBeg.x);
+		frameEnd = FRM_MIN(frameEnd, windowEnd.x);
 		if (highlight) {
 			drawList.AddRectFilled(ImVec2(frameBeg, _begY), ImVec2(frameEnd - 1.0f, _begY + kFrameBarHeight), _color);
 			drawList.AddLine(ImVec2(frameEnd - 1.0f, _begY), ImVec2(frameEnd - 1.0f, _endY), _color); // extra border at frame end
@@ -830,7 +829,7 @@ static void DrawDataTree(ProfilerData& _data, ImU32 _color)
 				ImGui::NextColumn();
 				ImGui::PopStyleColor(1);
 				
-				markerBegin = APT_MOD_POW2(markerBegin + 1, _data.m_markers->capacity());
+				markerBegin = FRM_MOD_POW2(markerBegin + 1, _data.m_markers->capacity());
 			}
 			ImGui::Columns(1);
 			ImGui::TreePop();
@@ -866,7 +865,7 @@ static void DrawValueData(ProfilerData& _data, ProfilerData::ValueData& _valueDa
 	
  // plot graph relative to the average = keep average in the vertical center
 	#define ValueToWindow(idx) vec2(beg.x + (float)idx / (float)(n - 1) * size.x, beg.y + size.y * 0.5f + (value.m_avg - history.at_relative(idx)) / range * size.y * 0.5f)
-	float range = APT_MAX(1.0f, value.m_max - value.m_min);
+	float range = FRM_MAX(1.0f, value.m_max - value.m_min);
 	uint32 n    = history.capacity() - 1;
 	vec2 prev   = ValueToWindow(0);
 	for (uint32 i = 1; i < n; ++i ) {
@@ -934,7 +933,7 @@ static void DrawValueData(ProfilerData& _data, ProfilerData::ValueData& _valueDa
 	vec2 labelMaxSize   = ImGui::CalcTextSize(labelMax.begin(),  labelMax.end());
 	vec2 labelAvgSize   = ImGui::CalcTextSize(labelAvg.begin(),  labelAvg.end());
 
-	float maxWidth        = APT_MAX(labelMinSize.x, APT_MAX(labelMaxSize.x, labelAvgSize.x));
+	float maxWidth        = FRM_MAX(labelMinSize.x, FRM_MAX(labelMaxSize.x, labelAvgSize.x));
 	auto  kLabelBgColor   = IM_COLOR_ALPHA(IM_COL32_BLACK, 0.75f);
 	auto  kMinMaxAvgColor = ImGui::GetColorU32(ImGuiCol_TextDisabled);
 
@@ -961,7 +960,7 @@ static void DrawValueData(ProfilerData& _data, ProfilerData::ValueData& _valueDa
 
 void Profiler::DrawUi()
 {
-	APT_ONCE InitStyle();
+	FRM_ONCE InitStyle();
 
 	ImGui::Begin("Profiler", nullptr, 0
 		| ImGuiWindowFlags_MenuBar
@@ -1046,7 +1045,7 @@ if (g_ViewMode == ViewMode_Markers) {
 		float rangeY   = (windowEnd.y - windowBeg.y) * 0.5f;
 		gpuBegY        = windowBeg.y;
 		cpuBegY        = windowBeg.y + rangeY + 1.0f;
-		cpuBegY        = APT_MAX(cpuBegY, gpuBegY + kFrameBarHeight + 1.0f + kMarkerHeight + 1.0f);
+		cpuBegY        = FRM_MAX(cpuBegY, gpuBegY + kFrameBarHeight + 1.0f + kMarkerHeight + 1.0f);
 
 		DrawDataMarkers(g_GpuData, kGpuColor, gpuBegY, cpuBegY);
 		DrawDataMarkers(g_CpuData, kCpuColor, cpuBegY, windowEnd.y);

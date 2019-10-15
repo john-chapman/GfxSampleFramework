@@ -1,6 +1,6 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
 
 #include <EASTL/vector.h>
@@ -31,7 +31,7 @@ public:
 	void build();
 
 	void edit();
-	friend bool Serialize(apt::Serializer& _serializer_, SplinePath& _splinePath_);
+	friend bool Serialize(frm::Serializer& _serializer_, SplinePath& _splinePath_);
 
 	float getLength() const { return m_length; }
 

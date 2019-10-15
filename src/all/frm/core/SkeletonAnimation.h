@@ -1,10 +1,9 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
 #include <frm/core/Resource.h>
-
-#include <apt/String.h>
+#include <frm/core/String.h>
 
 #include <EASTL/vector.h>
 
@@ -17,7 +16,7 @@ namespace frm {
 class Skeleton
 {
 public:
-	typedef apt::String<16> BoneName;
+	typedef frm::String<16> BoneName;
 	typedef uint32          BoneId;  // hash of the bone name
 	
 	struct Bone
@@ -40,10 +39,10 @@ public:
 	      mat4*  getPose()                               { return m_pose.data(); }
 	      int    getBoneCount() const                    { return (int)m_bones.size();          }
 	      int    getBoneIndex(const Bone& _bone) const   { return (int)(&_bone - &m_bones[0]);  }
-	const Bone&  getBone(int _index) const               { APT_ASSERT(_index < getBoneCount()); return m_bones[_index];     }
-	      Bone&  getBone(int _index)                     { APT_ASSERT(_index < getBoneCount()); return m_bones[_index];     }
-	      BoneId getBoneId(int _index) const             { APT_ASSERT(_index < getBoneCount()); return m_boneIds[_index];   }
-	const char*  getBoneName(int _index) const           { APT_ASSERT(_index < getBoneCount()); return (const char*)m_boneNames[_index]; }
+	const Bone&  getBone(int _index) const               { FRM_ASSERT(_index < getBoneCount()); return m_bones[_index];     }
+	      Bone&  getBone(int _index)                     { FRM_ASSERT(_index < getBoneCount()); return m_bones[_index];     }
+	      BoneId getBoneId(int _index) const             { FRM_ASSERT(_index < getBoneCount()); return m_boneIds[_index];   }
+	const char*  getBoneName(int _index) const           { FRM_ASSERT(_index < getBoneCount()); return (const char*)m_boneNames[_index]; }
 
 	Skeleton();
 
@@ -121,7 +120,7 @@ protected:
 	~SkeletonAnimation();
 
 private:
-	apt::String<32> m_path; // empty if not from a file
+	frm::String<32> m_path; // empty if not from a file
 	eastl::vector<SkeletonAnimationTrack> m_tracks;
 	Skeleton m_baseFrame;
 

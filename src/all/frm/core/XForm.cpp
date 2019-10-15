@@ -1,17 +1,15 @@
 #include "XForm.h"
 
+#include <frm/core/log.h>
 #include <frm/core/interpolation.h>
 #include <frm/core/Scene.h>
+#include <frm/core/Serializer.h>
 #include <frm/core/Spline.h>
-
-#include <apt/log.h>
-#include <apt/Serializer.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
 
 using namespace frm;
-using namespace apt;
 
 /*******************************************************************************
 
@@ -19,7 +17,7 @@ using namespace apt;
 
 *******************************************************************************/
 
-APT_FACTORY_DEFINE(XForm);
+FRM_FACTORY_DEFINE(XForm);
 
 eastl::vector<const XForm::Callback*> XForm::s_callbackRegistry;
 
@@ -28,10 +26,10 @@ XForm::Callback::Callback(const char* _name, OnComplete* _callback)
 	, m_name(_name)
 	, m_nameHash(_name)
 {
-	APT_ASSERT(FindCallback(m_nameHash) == nullptr);
+	FRM_ASSERT(FindCallback(m_nameHash) == nullptr);
 	if (FindCallback(m_nameHash) != nullptr) {
-		APT_LOG_ERR("XForm: Callback '%s' already exists", _name);
-		APT_ASSERT(false);
+		FRM_LOG_ERR("XForm: Callback '%s' already exists", _name);
+		FRM_ASSERT(false);
 		return;
 	}
 	s_callbackRegistry.push_back(this);
@@ -73,7 +71,7 @@ bool XForm::SerializeCallback(Serializer& _serializer_, OnComplete*& _callback, 
 
 		const Callback* cbk = FindCallback(StringHash((const char*)cbkName));
 		if (cbk == nullptr) {
-			APT_LOG_ERR("XForm: Invalid callback '%s'", (const char*)cbkName);
+			FRM_LOG_ERR("XForm: Invalid callback '%s'", (const char*)cbkName);
 			_callback = nullptr;
 			return false;
 		}
@@ -91,7 +89,7 @@ bool XForm::SerializeCallback(Serializer& _serializer_, OnComplete*& _callback, 
                         XForm_PositionOrientationScale
 
 *******************************************************************************/
-APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionOrientationScale);
+FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionOrientationScale);
 
 void XForm_PositionOrientationScale::apply(float _dt)
 {
@@ -138,7 +136,7 @@ bool XForm_PositionOrientationScale::serialize(Serializer& _serializer_)
                                 XForm_FreeCamera
 
 *******************************************************************************/
-APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_FreeCamera);
+FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_FreeCamera);
 
 void XForm_FreeCamera::apply(float _dt)
 {
@@ -198,7 +196,7 @@ void XForm_FreeCamera::apply(float _dt)
 	m_velocity += dir;
 			
 	m_accelCount += isAccel ? _dt : -_dt;
-	m_accelCount = APT_CLAMP(m_accelCount, 0.0f, m_accelTime);
+	m_accelCount = FRM_CLAMP(m_accelCount, 0.0f, m_accelTime);
 	m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
 	if (gpad) {
 		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
@@ -206,7 +204,7 @@ void XForm_FreeCamera::apply(float _dt)
 	if (keyb && keyb->isDown(Keyboard::Key_LShift)) {
 		m_speed *= m_maxSpeedMul;
 	}
-	float len2 = apt::Length2(m_velocity);
+	float len2 = frm::Length2(m_velocity);
 	if (len2 > 0.0f) {
 		m_velocity = (m_velocity / sqrt(len2)) * m_speed;
 	}		
@@ -273,7 +271,7 @@ bool XForm_FreeCamera::serialize(Serializer& _serializer_)
                                  XForm_LookAt
 
 *******************************************************************************/
-APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_LookAt);
+FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_LookAt);
 
 void XForm_LookAt::apply(float _dt)
 {
@@ -326,7 +324,7 @@ bool XForm_LookAt::serialize(Serializer& _serializer_)
                                 XForm_Spin
 
 *******************************************************************************/
-APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_Spin);
+FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_Spin);
 
 void XForm_Spin::apply(float _dt)
 {
@@ -369,11 +367,11 @@ bool XForm_Spin::serialize(Serializer& _serializer_)
                               XForm_PositionTarget
 
 *******************************************************************************/
-APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionTarget);
+FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionTarget);
 
 void XForm_PositionTarget::apply(float _dt)
 {
-	m_currentTime = APT_MIN(m_currentTime + _dt, m_duration);
+	m_currentTime = FRM_MIN(m_currentTime + _dt, m_duration);
 	if (m_onComplete && m_currentTime >= m_duration) {
 		m_onComplete(this);
 	}
@@ -448,7 +446,7 @@ void XForm_PositionTarget::relativeReset()
 void XForm_PositionTarget::reverse()
 {
 	eastl::swap(m_start, m_end);
-	m_currentTime = APT_MAX(m_duration - m_currentTime, 0.0f);
+	m_currentTime = FRM_MAX(m_duration - m_currentTime, 0.0f);
 }
 
 /*******************************************************************************
@@ -456,11 +454,11 @@ void XForm_PositionTarget::reverse()
                               XForm_SplinePath
 
 *******************************************************************************/
-APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_SplinePath);
+FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_SplinePath);
 
 void XForm_SplinePath::apply(float _dt)
 {
-	m_currentTime = APT_MIN(m_currentTime + _dt, m_duration);
+	m_currentTime = FRM_MIN(m_currentTime + _dt, m_duration);
 	if (m_onComplete && m_currentTime >= m_duration) {
 		m_onComplete(this);
 	}
@@ -475,8 +473,8 @@ bool XForm_SplinePath::edit()
 
 	ImGui::PushID(this);
 	ret |= ImGui::DragFloat("Duration (s)", &m_duration, 0.1f);
-	m_duration = APT_MAX(m_duration, 0.0f);
-	m_currentTime = APT_MIN(m_currentTime, m_duration);
+	m_duration = FRM_MAX(m_duration, 0.0f);
+	m_currentTime = FRM_MIN(m_currentTime, m_duration);
 	if (ImGui::Button("Reset")) {
 		reset();
 		ret = true;
@@ -504,7 +502,7 @@ void XForm_SplinePath::reset()
 
 void XForm_SplinePath::reverse()
 {
-	APT_ASSERT(false); // \todo
+	FRM_ASSERT(false); // \todo
 }
 
 /*******************************************************************************
@@ -512,7 +510,7 @@ void XForm_SplinePath::reverse()
                               XForm_OrbitalPath
 
 *******************************************************************************/
-APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_OrbitalPath);
+FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_OrbitalPath);
 
 void XForm_OrbitalPath::apply(float _dt)
 {
@@ -649,10 +647,10 @@ struct XForm_VRGamepad: public XForm
 		m_velocity += dir;
 				
 		m_accelCount += isAccel ? _dt : -_dt;
-		m_accelCount = APT_CLAMP(m_accelCount, 0.0f, m_accelTime);
+		m_accelCount = FRM_CLAMP(m_accelCount, 0.0f, m_accelTime);
 		m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
 		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
-		float len = apt::Length(m_velocity);
+		float len = frm::Length(m_velocity);
 		if (len > 0.0f) {
 			m_velocity = (m_velocity / len) * m_speed;
 		}
@@ -684,7 +682,7 @@ struct XForm_VRGamepad: public XForm
 	}
 
 }; // struct XForm_VRGamepad
-APT_FACTORY_REGISTER_DEFAULT(XForm, XForm_VRGamepad);
+FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_VRGamepad);
 
 XFORM_REGISTER_CALLBACK(XForm::Reset);
 XFORM_REGISTER_CALLBACK(XForm::RelativeReset);

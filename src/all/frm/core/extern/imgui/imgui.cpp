@@ -200,8 +200,8 @@
     }
 
  - The examples/ folders contains many functional implementation of the pseudo-code above.
- - When calling NewFrame(), the 'io.WantCaptureMouse'/'io.WantCaptureKeyboard'/'io.WantTextInput' flags are updated. 
-   They tell you if ImGui intends to use your inputs. So for example, if 'io.WantCaptureMouse' is set you would typically want to hide 
+ - When calling NewFrame(), the 'io.WantCfrmureMouse'/'io.WantCfrmureKeyboard'/'io.WantTextInput' flags are updated. 
+   They tell you if ImGui intends to use your inputs. So for example, if 'io.WantCfrmureMouse' is set you would typically want to hide 
    mouse inputs from the rest of your application. Read the FAQ below for more information about those flags.
 
 
@@ -250,7 +250,7 @@
  - 2017/08/08 (1.51) - removed ColorEditMode() and ImGuiColorEditMode in favor of ImGuiColorEditFlags and parameters to the various Color*() functions. The SetColorEditOptions() allows to initialize default but the user can still change them with right-click context menu.
                      - changed prototype of 'ColorEdit4(const char* label, float col[4], bool show_alpha = true)' to 'ColorEdit4(const char* label, float col[4], ImGuiColorEditFlags flags = 0)', where passing flags = 0x01 is a safe no-op (hello dodgy backward compatibility!). - check and run the demo window, under "Color/Picker Widgets", to understand the various new options.
                      - changed prototype of rarely used 'ColorButton(ImVec4 col, bool small_height = false, bool outline_border = true)' to 'ColorButton(const char* desc_id, ImVec4 col, ImGuiColorEditFlags flags = 0, ImVec2 size = ImVec2(0,0))'
- - 2017/07/20 (1.51) - removed IsPosHoveringAnyWindow(ImVec2), which was partly broken and misleading. ASSERT + redirect user to io.WantCaptureMouse
+ - 2017/07/20 (1.51) - removed IsPosHoveringAnyWindow(ImVec2), which was partly broken and misleading. ASSERT + redirect user to io.WantCfrmureMouse
  - 2017/05/26 (1.50) - removed ImFontConfig::MergeGlyphCenterV in favor of a more multipurpose ImFontConfig::GlyphOffset.
  - 2017/05/01 (1.50) - renamed ImDrawList::PathFill() (rarely used directly) to ImDrawList::PathFillConvex() for clarity.
  - 2016/11/06 (1.50) - BeginChild(const char*) now applies the stack id to the provided label, consistently with other functions as it should always have been. It shouldn't affect you unless (extremely unlikely) you were appending multiple times to a same child from different locations of the stack id. If that's the case, generate an id with GetId() and use it instead of passing string to BeginChild().
@@ -488,15 +488,15 @@
        experiment and see what makes more sense!
 
  Q: How can I tell when Dear ImGui wants my mouse/keyboard inputs VS when I can pass them to my application?
- A: You can read the 'io.WantCaptureMouse'/'io.WantCaptureKeyboard'/'ioWantTextInput' flags from the ImGuiIO structure. 
-    - When 'io.WantCaptureMouse' or 'io.WantCaptureKeyboard' flags are set you may want to discard/hide the inputs from the rest of your application.
+ A: You can read the 'io.WantCfrmureMouse'/'io.WantCfrmureKeyboard'/'ioWantTextInput' flags from the ImGuiIO structure. 
+    - When 'io.WantCfrmureMouse' or 'io.WantCfrmureKeyboard' flags are set you may want to discard/hide the inputs from the rest of your application.
     - When 'io.WantTextInput' is set to may want to notify your OS to popup an on-screen keyboard, if available (e.g. on a mobile phone, or console OS).
     Preferably read the flags after calling ImGui::NewFrame() to avoid them lagging by one frame. But reading those flags before calling NewFrame() is
     also generally ok, as the bool toggles fairly rarely and you don't generally expect to interact with either Dear ImGui or your application during
     the same frame when that transition occurs. Dear ImGui is tracking dragging and widget activity that may occur outside the boundary of a window, 
-    so 'io.WantCaptureMouse' is more accurate and correct than checking if a window is hovered. 
+    so 'io.WantCfrmureMouse' is more accurate and correct than checking if a window is hovered. 
     (Advanced note: text input releases focus on Return 'KeyDown', so the following Return 'KeyUp' event that your application receive will typically 
-     have 'io.WantCaptureKeyboard=false'. Depending on your application logic it may or not be inconvenient. You might want to track which key-downs
+     have 'io.WantCfrmureKeyboard=false'. Depending on your application logic it may or not be inconvenient. You might want to track which key-downs
      were for Dear ImGui, e.g. with an array of bool, and filter out the corresponding key-ups.)
 
  Q: How can I load a different font than the default? (default is an embedded version of ProggyClean.ttf, rendered at size 13)
@@ -2425,8 +2425,8 @@ void ImGui::NewFrame()
         g.ModalWindowDarkeningRatio = 0.0f;
     }
 
-    // Update the WantCaptureMouse/WantCAptureKeyboard flags, so user can capture/discard the inputs away from the rest of their application.
-    // When clicking outside of a window we assume the click is owned by the application and won't request capture. We need to track click ownership.
+    // Update the WantCfrmureMouse/WantCfrmureKeyboard flags, so user can cfrmure/discard the inputs away from the rest of their application.
+    // When clicking outside of a window we assume the click is owned by the application and won't request cfrmure. We need to track click ownership.
     int mouse_earliest_button_down = -1;
     bool mouse_any_down = false;
     for (int i = 0; i < IM_ARRAYSIZE(g.IO.MouseDown); i++)
@@ -2439,17 +2439,17 @@ void ImGui::NewFrame()
                 mouse_earliest_button_down = i;
     }
     bool mouse_avail_to_imgui = (mouse_earliest_button_down == -1) || g.IO.MouseDownOwned[mouse_earliest_button_down];
-    if (g.WantCaptureMouseNextFrame != -1)
-        g.IO.WantCaptureMouse = (g.WantCaptureMouseNextFrame != 0);
+    if (g.WantCfrmureMouseNextFrame != -1)
+        g.IO.WantCfrmureMouse = (g.WantCfrmureMouseNextFrame != 0);
     else
-        g.IO.WantCaptureMouse = (mouse_avail_to_imgui && (g.HoveredWindow != NULL || mouse_any_down)) || (!g.OpenPopupStack.empty());
-    if (g.WantCaptureKeyboardNextFrame != -1)
-        g.IO.WantCaptureKeyboard = (g.WantCaptureKeyboardNextFrame != 0);
+        g.IO.WantCfrmureMouse = (mouse_avail_to_imgui && (g.HoveredWindow != NULL || mouse_any_down)) || (!g.OpenPopupStack.empty());
+    if (g.WantCfrmureKeyboardNextFrame != -1)
+        g.IO.WantCfrmureKeyboard = (g.WantCfrmureKeyboardNextFrame != 0);
     else
-        g.IO.WantCaptureKeyboard = (g.ActiveId != 0) || (modal_window != NULL);
+        g.IO.WantCfrmureKeyboard = (g.ActiveId != 0) || (modal_window != NULL);
     g.IO.WantTextInput = (g.WantTextInputNextFrame != -1) ? (g.WantTextInputNextFrame != 0) : 0;
     g.MouseCursor = ImGuiMouseCursor_Arrow;
-    g.WantCaptureMouseNextFrame = g.WantCaptureKeyboardNextFrame = g.WantTextInputNextFrame = -1;
+    g.WantCfrmureMouseNextFrame = g.WantCfrmureKeyboardNextFrame = g.WantTextInputNextFrame = -1;
     g.OsImePosRequest = ImVec2(1.0f, 1.0f); // OS Input Method Editor showing on top-left of our window by default
 
     // If mouse was first clicked outside of ImGui bounds we also cancel out hovering.
@@ -3587,14 +3587,14 @@ void ImGui::SetMouseCursor(ImGuiMouseCursor cursor_type)
     GImGui->MouseCursor = cursor_type;
 }
 
-void ImGui::CaptureKeyboardFromApp(bool capture)
+void ImGui::CfrmureKeyboardFromApp(bool cfrmure)
 {
-    GImGui->WantCaptureKeyboardNextFrame = capture ? 1 : 0;
+    GImGui->WantCfrmureKeyboardNextFrame = cfrmure ? 1 : 0;
 }
 
-void ImGui::CaptureMouseFromApp(bool capture)
+void ImGui::CfrmureMouseFromApp(bool cfrmure)
 {
-    GImGui->WantCaptureMouseNextFrame = capture ? 1 : 0;
+    GImGui->WantCfrmureMouseNextFrame = cfrmure ? 1 : 0;
 }
 
 bool ImGui::IsItemActive()
@@ -10697,7 +10697,7 @@ bool ImGui::IsRectVisible(const ImVec2& rect_min, const ImVec2& rect_max)
     return window->ClipRect.Overlaps(ImRect(rect_min, rect_max));
 }
 
-// Lock horizontal starting position + capture group bounding box into one "item" (so you can use IsItemHovered() or layout primitives such as SameLine() on whole group, etc.)
+// Lock horizontal starting position + cfrmure group bounding box into one "item" (so you can use IsItemHovered() or layout primitives such as SameLine() on whole group, etc.)
 void ImGui::BeginGroup()
 {
     ImGuiWindow* window = GetCurrentWindow();

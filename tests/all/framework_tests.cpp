@@ -1,20 +1,27 @@
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 
 #include <frm/core/interpolation.h>
 #include <frm/core/gl.h>
+#include <frm/core/log.h>
+#include <frm/core/memory.h>
+#include <frm/core/rand.h>
+#include <frm/core/ArgList.h>
 #include <frm/core/AppSample3d.h>
 #include <frm/core/BasicRenderer.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Curve.h>
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
+#include <frm/core/Image.h>
 #include <frm/core/Input.h>
 #include <frm/core/LuaScript.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/MeshData.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Property.h>
+#include <frm/core/Quadtree.h>
 #include <frm/core/Shader.h>
+#include <frm/core/StringHash.h>
 #include <frm/core/SkeletonAnimation.h>
 #include <frm/core/Spline.h>
 #include <frm/core/Texture.h>
@@ -25,21 +32,12 @@
 	#include <frm/audio/Audio.h>
 #endif
 
-#include <apt/log.h>
-#include <apt/memory.h>
-#include <apt/rand.h>
-#include <apt/ArgList.h>
-#include <apt/Image.h>
-#include <apt/Quadtree.h>
-#include <apt/StringHash.h>
-
 #include <frm/core/extern/imgui/imgui.h>
 #include <frm/core/extern/imgui/imgui_ext.h>
 
 #include <EASTL/vector.h>
 
 using namespace frm;
-using namespace apt;
 
 class AppSampleTest: public AppSample3d
 {
@@ -93,7 +91,7 @@ public:
 		depthTestProps.addFloat("Max Error",             0.0001f,                                 0.0f,   1.0f,   &m_depthTest.m_maxError);
 	}
 	
-	virtual bool init(const apt::ArgList& _args) override
+	virtual bool init(const frm::ArgList& _args) override
 	{
 		if (!AppBase::init(_args)) {
 			return false;
@@ -253,7 +251,7 @@ public:
 					break;
 				}
 				default:
-					APT_ASSERT(false);
+					FRM_ASSERT(false);
 					break;
 			};
 			#undef Intersect1
@@ -342,7 +340,7 @@ public:
 						break;
 					}
 					default:
-						APT_ASSERT(false);
+						FRM_ASSERT(false);
 						break;
 				};
 				#undef PerfTest1
@@ -363,13 +361,13 @@ public:
 					| LuaScript::Lib_FrmCore
 					);
 			if (script) {
-				APT_ONCE { 
+				FRM_ONCE { 
 					script->execute(); 
 					script->dbgPrintStack();
 
 					auto hashCpp = StringHash("StringHash");
 					auto hashLua = script->getValue<StringHash::HashType>("strHash");
-					APT_ASSERT(hashCpp == hashLua);
+					FRM_ASSERT(hashCpp == hashLua);
 				}
 				static bool alwaysExecute = false;
 				if (ImGui::Button("Execute") || alwaysExecute) {
@@ -396,7 +394,7 @@ public:
 					script->dbgPrintStack();
 				}
 				if (ImGui::Button("getValue(i)")) {
-					APT_LOG("getValue(%d) = %d", i, script->getValue<int>(i));
+					FRM_LOG("getValue(%d) = %d", i, script->getValue<int>(i));
 					script->dbgPrintStack();
 				}
 				if (ImGui::Button("setValue(v, i)")) {
@@ -422,11 +420,11 @@ public:
 					script->dbgPrintStack();
 				}
 				if (ImGui::Button("call()")) {
-					APT_LOG("call() = %d", script->call());
+					FRM_LOG("call() = %d", script->call());
 					script->dbgPrintStack();
 				}
 				if (ImGui::Button("popValue()")) {
-					APT_LOG("popValue() = %d", script->popValue<int>());
+					FRM_LOG("popValue() = %d", script->popValue<int>());
 					script->dbgPrintStack();
 				}
 			}	
@@ -442,7 +440,7 @@ public:
 
 				static AudioData* audio = nullptr;
 				static AudioSourceId lastPlaybackId = 0;
-				APT_ONCE {
+				FRM_ONCE {
 					audio = AudioData::Create("audio/hello_16000_mono_s16.wav");
 					Audio::Play(audio);
 				}
@@ -477,7 +475,7 @@ public:
 
 		//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Mesh/Anim")) {
-			APT_ONCE {
+			FRM_ONCE {
 				if (!m_meshTest.m_shMeshShaded) {
 					m_meshTest.m_shMeshShaded = Shader::CreateVsFs("shaders/MeshView_vs.glsl", "shaders/MeshView_fs.glsl", { "SKINNING", "SHADED" } );
 				} 
@@ -592,7 +590,7 @@ public:
 		if (ImGui::TreeNode("Depth Test")) {
 			PROFILER_MARKER("Depth Test");
 
-			APT_ONCE {
+			FRM_ONCE {
 				if (!m_depthTest.m_meshPath.isEmpty()) {
 					m_depthTest.m_mesh = Mesh::Create((const char*)m_depthTest.m_meshPath);
 				}
@@ -618,7 +616,7 @@ public:
 			static bool reconstructPosition = false;
 
 			bool reinitDepthTexture = false;
-			APT_ONCE reinitDepthTexture = true;
+			FRM_ONCE reinitDepthTexture = true;
 			
 			ImGui::SliderFloat("Max Error", &m_depthTest.m_maxError, 0.0f, 1.0f, "%0.3f", 2.0f);
 			ImGui::Checkbox("Reconstruct Position", &reconstructPosition);
@@ -651,7 +649,7 @@ public:
 					case DepthFormat_24:  glDepthFormat = GL_DEPTH_COMPONENT24;  break;
 					case DepthFormat_32:  glDepthFormat = GL_DEPTH_COMPONENT32;  break;
 					case DepthFormat_32F: glDepthFormat = GL_DEPTH_COMPONENT32F; break;
-					default:              APT_ASSERT(false); break;
+					default:              FRM_ASSERT(false); break;
 				};
 				txDepth = Texture::Create2d(m_resolution.x, m_resolution.y, glDepthFormat);
 				txDepth->setName("txDepth");
@@ -780,7 +778,7 @@ public:
 			static float t = 0.0f;
 			static Curve s_curve;
 			static CurveEditor s_curveEditor;
-			APT_ONCE {
+			FRM_ONCE {
 				s_curveEditor.addCurve(&s_curve, IM_COL32_MAGENTA);
 			}
 			s_curveEditor.drawEdit(vec2(-1.0f, 200.0f), t, CurveEditor::Flags_ShowGrid | CurveEditor::Flags_ShowRuler | CurveEditor::Flags_ShowHighlight | CurveEditor::Flags_ShowSampler);
@@ -796,7 +794,7 @@ public:
 			static Curve          s_gradient[4];
 			static GradientEditor s_gradientEditor;
 			static CurveEditor    s_curveEditor;
-			APT_ONCE {
+			FRM_ONCE {
 				s_curveEditor.addCurve(&s_gradient[0], IM_COL32_RED);
 				s_curveEditor.addCurve(&s_gradient[1], IM_COL32_GREEN);
 				s_curveEditor.addCurve(&s_gradient[2], IM_COL32_BLUE);
@@ -831,7 +829,7 @@ public:
 			static vec2     firstRead   = vec2(-1.0f); // readback after first execute
 			static vec2     thisRead    = vec2(-1.0f);
 
-			APT_ONCE {
+			FRM_ONCE {
 				shMinMax = Shader::CreateCs("shaders/MinMax_cs.glsl",      8, 8, 1);
 				shNoise  = Shader::CreateCs("shaders/Noise/Noise_cs.glsl", 8, 8, 1, { "NOISE Noise_fBm" });
 
@@ -880,7 +878,7 @@ public:
 			{	PROFILER_MARKER("Readback");
 
 				glScopedPixelStorei(GL_PACK_ALIGNMENT, 1);
-				APT_ONCE { glAssert(glGetTextureImage(txNoise->getHandle(), txNoise->getMipCount() - 1, GL_RG, GL_FLOAT, sizeof(vec2), &firstRead.x)); }
+				FRM_ONCE { glAssert(glGetTextureImage(txNoise->getHandle(), txNoise->getMipCount() - 1, GL_RG, GL_FLOAT, sizeof(vec2), &firstRead.x)); }
 				glAssert(glGetTextureImage(txNoise->getHandle(), txNoise->getMipCount() - 1, GL_RG, GL_FLOAT, sizeof(vec2), &thisRead.x));
 				ImGui::Value("firstRead", firstRead);
 				ImGui::Value("thisRead ", thisRead);
@@ -991,14 +989,14 @@ int main(int _argc, char** _argv)
 {
 	AppSample* app = AppSample::GetCurrent();
 	if (!app->init(ArgList(_argc, _argv))) {
-		APT_ASSERT(false);
+		FRM_ASSERT(false);
 		return 1;
 	}
 	Window* win = app->getWindow();
 	GlContext* ctx = app->getGlContext();
 	while (app->update()) {
 		{	PROFILER_MARKER("#main");
-			APT_VERIFY(GlContext::MakeCurrent(ctx));
+			FRM_VERIFY(GlContext::MakeCurrent(ctx));
 			ctx->setFramebuffer(nullptr);
 			ctx->setViewport(0, 0, win->getWidth(), win->getHeight());
 			glAssert(glClearColor(0.3f, 0.3f, 0.3f, 0.0f));

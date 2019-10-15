@@ -1,6 +1,6 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/gl.h>
 #include <frm/core/math.h>
 #include <frm/core/Resource.h>
@@ -9,7 +9,7 @@ namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Texture
-// \note When loading from a apt::Image, texture data is inverted in V.
+// \note When loading from a frm::Image, texture data is inverted in V.
 ////////////////////////////////////////////////////////////////////////////////
 class Texture: public Resource<Texture>
 {
@@ -26,8 +26,8 @@ public:
 
 	// Load from a file.
 	static Texture* Create(const char* _path, SourceLayout _layout = SourceLayout_Default);
-	// From apt::Image.
-	static Texture* Create(const apt::Image& _img);
+	// From frm::Image.
+	static Texture* Create(const frm::Image& _img);
 	// Init from another texture, optionally copy texture data.
 	static Texture* Create(Texture* _tx, bool _copyData = true);
 	// Create an empty texture (the resource name is unique).
@@ -45,9 +45,9 @@ public:
 	// Reload _path.
 	static void     FileModified(const char* _path);
 
-	// Create an apt::Image (download the GPU data). This a a synchronous operation via glGetTextureImage() and will stall the gpu.
-	static apt::Image* CreateImage(const Texture* _tx);
-	static void        DestroyImage(apt::Image*& _img_);
+	// Create an frm::Image (download the GPU data). This a a synchronous operation via glGetTextureImage() and will stall the gpu.
+	static frm::Image* CreateImage(const Texture* _tx);
+	static void        DestroyImage(frm::Image*& _img_);
 	
 	static GLint GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth = 1);
 
@@ -140,7 +140,7 @@ protected:
 	~Texture();
 
 private:
-	apt::String<32> m_path;  // Empty if not from a file.
+	frm::String<32> m_path;  // Empty if not from a file.
 	SourceLayout    m_sourceLayout = SourceLayout_Default;
 
 	GLuint  m_handle;
@@ -164,8 +164,8 @@ private:
 		GLenum  _format
 		);
 
-	// Load data from a apt::Image.
-	bool loadImage(const apt::Image& _img);
+	// Load data from a frm::Image.
+	bool loadImage(const frm::Image& _img);
 
 	// Update the format and dimensions of the texture via glGetTexLevelParameteriv.
 	// Assumes that the texture is bound to m_target.

@@ -1,12 +1,12 @@
 #include "MeshData.h"
 
-#include <apt/log.h>
+#include <frm/core/log.h>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tinyobjloader/tiny_obj_loader.h>
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 {
@@ -64,7 +64,7 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 		/*if (!((pcount == ncount) && (tcount ? pcount == tcount : true) && (ncount ? pcount == ncount : true))) {
 			ret = false;
 			err = "Mesh data error (position/normal/texcoord counts didn't match)";
-			APT_ASSERT(false);
+			FRM_ASSERT(false);
 			goto Mesh_LoadObj_end;
 		}*/
 		if (pcount > std::numeric_limits<uint32>::max()) {
@@ -158,7 +158,7 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 
 MeshData_ReadObj_end:
 	if (!ret) {
-		APT_LOG_ERR("obj error:\n\t'%s'", err.c_str());
+		FRM_LOG_ERR("obj error:\n\t'%s'", err.c_str());
 		return false;
 	}
 	

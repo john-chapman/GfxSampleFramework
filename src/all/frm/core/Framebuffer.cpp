@@ -1,16 +1,14 @@
 #include "Framebuffer.h"
 
 #include <frm/core/gl.h>
+#include <frm/core/memory.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Texture.h>
-
-#include <apt/memory.h>
 
 #include <cstdarg>
 #include <cstring>
 
 using namespace frm;
-using namespace apt;
 
 static const GLenum kAttachmentEnums[] =
 {
@@ -38,18 +36,19 @@ static const GLenum kAttachmentEnums[] =
 
 Framebuffer* Framebuffer::Create()
 {
-	Framebuffer* ret = APT_NEW(Framebuffer);
+	Framebuffer* ret = FRM_NEW(Framebuffer);
 	return ret;
 }
 
 Framebuffer* Framebuffer::Create(int _count, ...)
 {
-	Framebuffer* ret = APT_NEW(Framebuffer);
+	Framebuffer* ret = FRM_NEW(Framebuffer);
 
 	va_list args;
 	va_start(args, _count);
 	int colorCount = 0;
-	for (int i = 0; i < _count; ++i) {
+	for (int i = 0; i < _count; ++i)
+	{
 		Texture* tx = va_arg(args, Texture*);
 		switch (tx->getFormat()) {
 			case GL_DEPTH_COMPONENT:
@@ -65,7 +64,7 @@ Framebuffer* Framebuffer::Create(int _count, ...)
 				ret->attachImpl(tx, GL_DEPTH_STENCIL_ATTACHMENT, 0);
 				break;
 			default:
-				APT_ASSERT(kAttachmentEnums[colorCount] != GL_DEPTH_ATTACHMENT); // too many color attachments
+				FRM_ASSERT(kAttachmentEnums[colorCount] != GL_DEPTH_ATTACHMENT); // too many color attachments
 				ret->attachImpl(tx, kAttachmentEnums[colorCount++], 0);
 				break;
 		};
@@ -78,10 +77,11 @@ Framebuffer* Framebuffer::Create(int _count, ...)
 void Framebuffer::Destroy(Framebuffer*& _inst_)
 {
 	auto ctx = GlContext::GetCurrent();
-	if (ctx && _inst_ == ctx->getFramebuffer()) {
+	if (ctx && _inst_ == ctx->getFramebuffer())
+	{
 		ctx->setFramebuffer(nullptr);
 	}
-	APT_DELETE(_inst_);
+	FRM_DELETE(_inst_);
 	_inst_ = 0;
 }
 
@@ -111,12 +111,14 @@ GLenum Framebuffer::getStatus() const
 
 int Framebuffer::GetAttachmentIndex(GLenum _attachment)
 {
-	for (int i = 0; i < kMaxAttachments; ++i) {
-		if (kAttachmentEnums[i] == _attachment) {
+	for (int i = 0; i < kMaxAttachments; ++i)
+	{
+		if (kAttachmentEnums[i] == _attachment)
+		{
 			return i;
 		}
 	}
-	APT_ASSERT(false);
+	FRM_ASSERT(false);
 	return 0;
 }
 
@@ -131,13 +133,16 @@ Framebuffer::Framebuffer()
 
 Framebuffer::~Framebuffer()
 {
-	for (uint i = 0; i < kMaxAttachments; ++i) {
-		if (m_textures[i] != 0) {
+	for (uint i = 0; i < kMaxAttachments; ++i)
+	{
+		if (m_textures[i] != 0)
+		{
 			Texture::Release(m_textures[i]);
 			m_textures[i] = 0;
 		}
 	}
-	if (m_handle) {
+	if (m_handle)	
+	{
 		glAssert(glDeleteFramebuffers(1, &m_handle));
 		m_handle = 0;
 	}
@@ -146,20 +151,25 @@ Framebuffer::~Framebuffer()
 void Framebuffer::attachImpl(Texture* _texture, GLenum _attachment, GLint _mip, GLint _layer)
 {
 	int i = GetAttachmentIndex(_attachment);
-	if (m_textures[i] != 0) {
+	if (m_textures[i] != 0)
+	{
 		Texture::Release(m_textures[i]);
 		m_textures[i] = 0;
 	}
-	if (_texture) {
+	if (_texture)
+	{
 		m_textures[i] = _texture;
 		m_mipLevels[i] = _mip;
 		Texture::Use(_texture);
-		APT_ASSERT(_texture->getState() == Texture::State_Loaded);
-		APT_ASSERT(_texture->getMipCount() >= _mip);
-		if (_layer >= 0) {
-			APT_ASSERT(_texture->getDepth() >= _layer || _texture->getArrayCount() >= _layer || (_texture->getTarget() == GL_TEXTURE_CUBE_MAP && _layer < 6));
+		FRM_ASSERT(_texture->getState() == Texture::State_Loaded);
+		FRM_ASSERT(_texture->getMipCount() >= _mip);
+		if (_layer >= 0)
+		{
+			FRM_ASSERT(_texture->getDepth() >= _layer || _texture->getArrayCount() >= _layer || (_texture->getTarget() == GL_TEXTURE_CUBE_MAP && _layer < 6));
 			glAssert(glNamedFramebufferTextureLayer(m_handle, _attachment, _texture->getHandle(), _mip, _layer));
-		} else {
+		}
+		else
+		{
 			glAssert(glNamedFramebufferTexture(m_handle, _attachment, _texture->getHandle(), _mip));
 		}
 	}
@@ -170,19 +180,25 @@ void Framebuffer::update()
 {
 	GLenum drawBuffers[kMaxColorAttachments];
 	m_width = m_height = INT_MAX;
-	for (int i = 0; i < kMaxColorAttachments; ++i) {
-		if (m_textures[i]) {
+	for (int i = 0; i < kMaxColorAttachments; ++i)
+	{
+		if (m_textures[i])
+		{
 			drawBuffers[i] = kAttachmentEnums[i];
-			m_width  = APT_MIN(m_width,  m_textures[i]->getWidth() >> m_mipLevels[i]);
-			m_height = APT_MIN(m_height, m_textures[i]->getHeight() >> m_mipLevels[i]);
-		} else {
+			m_width  = FRM_MIN(m_width,  m_textures[i]->getWidth() >> m_mipLevels[i]);
+			m_height = FRM_MIN(m_height, m_textures[i]->getHeight() >> m_mipLevels[i]);
+		}
+		else
+		{
 			drawBuffers[i] = GL_NONE;
 		}
 	}
-	for (int i = kMaxColorAttachments; i < kMaxAttachments; ++i) {
-		if (m_textures[i]) {
-			m_width  = APT_MIN(m_width,  m_textures[i]->getWidth() >> m_mipLevels[i]);
-			m_height = APT_MIN(m_height, m_textures[i]->getHeight() >> m_mipLevels[i]);
+	for (int i = kMaxColorAttachments; i < kMaxAttachments; ++i)
+	{
+		if (m_textures[i])
+		{
+			m_width  = FRM_MIN(m_width,  m_textures[i]->getWidth() >> m_mipLevels[i]);
+			m_height = FRM_MIN(m_height, m_textures[i]->getHeight() >> m_mipLevels[i]);
 		}
 	}
 	glAssert(glNamedFramebufferDrawBuffers(m_handle, kMaxColorAttachments, drawBuffers));

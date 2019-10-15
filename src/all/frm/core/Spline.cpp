@@ -2,15 +2,13 @@
 
 #include <frm/core/interpolation.h>
 #include <frm/core/math.h>
-
-#include <apt/Serializer.h>
-#include <apt/Time.h>
+#include <frm/core/Serializer.h>
+#include <frm/core/Time.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
 
 using namespace frm;
-using namespace apt;
 
 // PUBLIC
 
@@ -57,7 +55,7 @@ void SplinePath::append(const vec3& _position)
 
 void SplinePath::build()
 {
-	APT_AUTOTIMER_DBG("SplinePath::build");
+	FRM_AUTOTIMER_DBG("SplinePath::build");
 	if (m_raw.empty()) {
 		return;
 	}
@@ -168,8 +166,8 @@ void SplinePath::subdiv(int _segment, float _t0, float _t1, float _maxError, int
 
 void SplinePath::getClampIndices(int _i, int& i0_, int& i1_, int& i2_, int& i3_) const
 {
-	i0_ = APT_MAX(_i - 1, 0);
+	i0_ = FRM_MAX(_i - 1, 0);
 	i1_ = _i;
-	i2_ = APT_MIN(_i + 1, (int)m_raw.size() - 1);
-	i3_ = APT_MIN(_i + 2, (int)m_raw.size() - 1);
+	i2_ = FRM_MIN(_i + 1, (int)m_raw.size() - 1);
+	i3_ = FRM_MIN(_i + 2, (int)m_raw.size() - 1);
 }

@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_geom_h
-#define frm_geom_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
 
 namespace frm {
@@ -305,4 +303,3 @@ bool Intersects(const AlignedBox& _box, const Plane& _plane);
 
 } // namespace frm
 
-#endif // frm_geom_h

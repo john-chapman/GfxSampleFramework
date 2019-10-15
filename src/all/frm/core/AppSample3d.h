@@ -1,14 +1,11 @@
 #pragma once
-#ifndef frm_AppSample3d_h
-#define frm_AppSample3d_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/geom.h>
 #include <frm/core/AppSample.h>
 #include <frm/core/Camera.h>
+#include <frm/core/FileSystem.h>
 #include <frm/core/Scene.h>
-
-#include <apt/FileSystem.h>
 
 #include <im3d/im3d.h>
 
@@ -22,7 +19,7 @@ class Scene;
 class AppSample3d: public AppSample
 {
 public:
-	virtual bool init(const apt::ArgList& _args) override;
+	virtual bool init(const ArgList& _args) override;
 	virtual void shutdown() override;
 	virtual bool update() override;
 	virtual void draw() override;
@@ -38,12 +35,12 @@ protected:
 	AppSample3d(const char* _title);
 	virtual ~AppSample3d();
 
-	Camera*      m_dbgCullCamera;
-	Scene*       m_scene;
+	Camera*  m_dbgCullCamera;
+	Scene*   m_scene;
 
-	bool         m_showHelpers;
-	bool         m_showSceneEditor;
-	apt::PathStr m_scenePath;
+	bool     m_showHelpers;
+	bool     m_showSceneEditor;
+	PathStr  m_scenePath;
 	
 private:
 
@@ -57,5 +54,3 @@ private:
 }; // class AppSample3d
 
 } // namespace frm
-
-#endif // frm_AppSample3d_h

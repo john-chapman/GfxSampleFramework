@@ -244,7 +244,7 @@
 #define ICON_FA_ANGLE_UP "\xEF\x84\x86"
 #define ICON_FA_ANGLE_DOWN "\xEF\x84\x87"
 #define ICON_FA_DESKTOP "\xEF\x84\x88"
-#define ICON_FA_LAPTOP "\xEF\x84\x89"
+#define ICON_FA_LfrmOP "\xEF\x84\x89"
 #define ICON_FA_TABLET "\xEF\x84\x8A"
 #define ICON_FA_MOBILE "\xEF\x84\x8B"
 #define ICON_FA_CIRCLE_O "\xEF\x84\x8C"

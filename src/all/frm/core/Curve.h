@@ -1,8 +1,6 @@
 #pragma once
-#ifndef frm_Curve_h
-#define frm_Curve_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
 
 #include <EASTL/vector.h>
@@ -29,7 +27,9 @@ namespace frm {
 class Curve
 {
 	friend class CurveEditor;
+
 public:
+
 	static const int kInvalidIndex = -1;
 
 	enum Wrap
@@ -64,7 +64,7 @@ public:
 	Curve();
 	~Curve() {}
 
-	friend bool Serialize(apt::Serializer& _serializer_, Curve& _curve_);
+	friend bool Serialize(frm::Serializer& _serializer_, Curve& _curve_);
 
  // Bezier
 	// Insert a new endpoint with the given value, return its index.
@@ -105,6 +105,7 @@ public:
 	const vec2* getPiecewise() const                  { return m_piecewise.data(); }
 
 private:
+
 	vec2  m_endpointMin, m_endpointMax;     // endpoint bounding box, including CPs
 	vec2  m_valueMin, m_valueMax;           // endpoint bounding box, excluding CPs
 	Wrap  m_wrap;
@@ -133,16 +134,18 @@ private:
 class CurveGradient
 {
 public:
+
 	CurveGradient();
 
 	vec4         evaluate(float _t) const;
 	
-	const Curve& operator[](int _i) const     { APT_STRICT_ASSERT(_i < 4); return m_curves[_i]; }
-	Curve&       operator[](int _i)           { APT_STRICT_ASSERT(_i < 4); return m_curves[_i]; }
+	const Curve& operator[](int _i) const     { FRM_STRICT_ASSERT(_i < 4); return m_curves[_i]; }
+	Curve&       operator[](int _i)           { FRM_STRICT_ASSERT(_i < 4); return m_curves[_i]; }
 
-	friend bool  Serialize(apt::Serializer& _serializer_, CurveGradient& _curveGradient_);
+	friend bool  Serialize(frm::Serializer& _serializer_, CurveGradient& _curveGradient_);
 
 private:
+
 	Curve m_curves[4]; // RGBA
 
 }; // class CurveGradient
@@ -214,5 +217,3 @@ private:
 }; // class CurveEditor
 
 } // namespace frm
-
-#endif // frm_Curve_h

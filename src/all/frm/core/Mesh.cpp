@@ -1,20 +1,19 @@
 #include "Mesh.h"
 
 #include <frm/core/gl.h>
+#include <frm/core/hash.h>
+#include <frm/core/log.h>
+#include <frm/core/memory.h>
+#include <frm/core/File.h>
+#include <frm/core/FileSystem.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Resource.h>
-
-#include <apt/hash.h>
-#include <apt/log.h>
-#include <apt/memory.h>
-#include <apt/File.h>
-#include <apt/FileSystem.h>
-#include <apt/Time.h>
+#include <frm/core/Time.h>
 
 #include <cstring> // memcpy
 
 using namespace frm;
-using namespace apt;
+using namespace frm;
 
 static GLenum PrimitiveToGl(MeshDesc::Primitive _prim)
 {
@@ -24,7 +23,7 @@ static GLenum PrimitiveToGl(MeshDesc::Primitive _prim)
 		case MeshDesc::Primitive_TriangleStrip: return GL_TRIANGLE_STRIP;
 		case MeshDesc::Primitive_Lines:         return GL_LINES;
 		case MeshDesc::Primitive_LineStrip:     return GL_LINE_STRIP;
-		default: APT_ASSERT(false);             return GL_INVALID_VALUE;
+		default: FRM_ASSERT(false);             return GL_INVALID_VALUE;
 	};
 }
 
@@ -41,7 +40,7 @@ Mesh* Mesh::Create(const char* _path)
 	Id id = GetHashId(_path);
 	Mesh* ret = Find(id);
 	if (!ret) {
-		ret = APT_NEW(Mesh(id, _path));
+		ret = FRM_NEW(Mesh(id, _path));
 		ret->m_path.set(_path);
 	}
 	Use(ret);
@@ -56,7 +55,7 @@ Mesh* Mesh::Create(const MeshData& _data)
 	Id id = _data.getHash();
 	Mesh* ret = Find(id);
 	if (!ret) {
-		ret = APT_NEW(Mesh(id, ""));
+		ret = FRM_NEW(Mesh(id, ""));
 		ret->load(_data); // explicit load from data
 	}
 	Use(ret);
@@ -65,7 +64,7 @@ Mesh* Mesh::Create(const MeshData& _data)
 
 Mesh* Mesh::Create(const MeshDesc& _desc)
 {
-	Mesh* ret = APT_NEW(Mesh(GetUniqueId(), ""));
+	Mesh* ret = FRM_NEW(Mesh(GetUniqueId(), ""));
 	ret->load(_desc); // explicit load from desc
 	Use(ret);
 	return ret;
@@ -73,7 +72,7 @@ Mesh* Mesh::Create(const MeshDesc& _desc)
 
 void Mesh::Destroy(Mesh*& _inst_)
 {
-	APT_DELETE(_inst_);
+	FRM_DELETE(_inst_);
 }
 
 bool Mesh::reload()
@@ -83,7 +82,7 @@ bool Mesh::reload()
 		return true;
 	}
 
-	APT_AUTOTIMER("Mesh::load(%s)", (const char*)m_path);
+	FRM_AUTOTIMER("Mesh::load(%s)", (const char*)m_path);
 
 	MeshData* data = MeshData::Create((const char*)m_path);
 	if (!data) {
@@ -96,7 +95,7 @@ bool Mesh::reload()
 
 void Mesh::setVertexData(const void* _data, uint _vertexCount, GLenum _usage)
 {
-	APT_ASSERT(m_vertexArray);
+	FRM_ASSERT(m_vertexArray);
 
 	GLint prevVao; glAssert(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVao));
 	GLint prevVbo; glAssert(glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &prevVbo));
@@ -131,7 +130,7 @@ void Mesh::setVertexData(const void* _data, uint _vertexCount, GLenum _usage)
 
 void Mesh::setIndexData(DataType _dataType, const void* _data, uint _indexCount, GLenum _usage)
 {
-	APT_ASSERT(m_vertexArray);
+	FRM_ASSERT(m_vertexArray);
 
 	GLint prevVao; glAssert(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVao));
 	GLint prevIbo; glAssert(glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &prevIbo));
@@ -153,7 +152,7 @@ void Mesh::setIndexData(DataType _dataType, const void* _data, uint _indexCount,
 void Mesh::setBindPose(const Skeleton& _skel)
 {
 	if (!m_bindPose) {
-		m_bindPose = APT_NEW(Skeleton);
+		m_bindPose = FRM_NEW(Skeleton);
 	}
 	*m_bindPose = _skel;
 }
@@ -170,7 +169,7 @@ Mesh::Mesh(uint64 _id, const char* _name)
 	, m_indexDataType(GL_NONE)
 	, m_primitive(GL_NONE)
 {
-	APT_ASSERT(GlContext::GetCurrent());
+	FRM_ASSERT(GlContext::GetCurrent());
 	m_submeshes.push_back(MeshData::Submesh());
 }
 
@@ -194,7 +193,7 @@ void Mesh::unload()
 		m_indexBuffer = 0;
 	}
 	if (m_bindPose) {
-		APT_DELETE(m_bindPose);
+		FRM_DELETE(m_bindPose);
 		m_bindPose = nullptr;
 	}
 	m_submeshes.clear();
@@ -216,7 +215,7 @@ void Mesh::load(const MeshData& _data)
 		setIndexData((DataType)_data.m_indexDataType, _data.m_indexData, _data.getIndexCount(), GL_STATIC_DRAW);
 	}
 	if (_data.m_bindPose) {
-		m_bindPose = APT_NEW(Skeleton);
+		m_bindPose = FRM_NEW(Skeleton);
 		*m_bindPose = *_data.m_bindPose;
 	}
 

@@ -255,9 +255,9 @@ void ImGui::ShowDemoWindow(bool* p_open)
             ImGui::TreePop();
         }
 
-        if (ImGui::TreeNode("Capture/Logging"))
+        if (ImGui::TreeNode("Cfrmure/Logging"))
         {
-            ImGui::TextWrapped("The logging API redirects all text output so you can easily capture the content of a window or a block. Tree nodes can be automatically expanded. You can also call ImGui::LogText() to output directly to the log without a visual output.");
+            ImGui::TextWrapped("The logging API redirects all text output so you can easily cfrmure the content of a window or a block. Tree nodes can be automatically expanded. You can also call ImGui::LogText() to output directly to the log without a visual output.");
             ImGui::LogButtons();
             ImGui::TreePop();
         }
@@ -1186,7 +1186,7 @@ void ImGui::ShowDemoWindow(bool* p_open)
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("First group hovered");
             }
-            // Capture the group size and create widgets using the same size
+            // Cfrmure the group size and create widgets using the same size
             ImVec2 size = ImGui::GetItemRectSize();
             const float values[5] = { 0.5f, 0.20f, 0.80f, 0.60f, 0.25f };
             ImGui::PlotHistogram("##values", values, IM_ARRAYSIZE(values), 0, NULL, 0.0f, 1.0f, size);
@@ -1747,8 +1747,8 @@ void ImGui::ShowDemoWindow(bool* p_open)
         ImGui::Checkbox("io.MouseDrawCursor", &io.MouseDrawCursor);
         ImGui::SameLine(); ShowHelpMarker("Request ImGui to render a mouse cursor for you in software. Note that a mouse cursor rendered via your application GPU rendering path will feel more laggy than hardware cursor, but will be more in sync with your other visuals.\n\nSome desktop applications may use both kinds of cursors (e.g. enable software cursor only when resizing/dragging something).");
 
-        ImGui::Text("WantCaptureMouse: %d", io.WantCaptureMouse);
-        ImGui::Text("WantCaptureKeyboard: %d", io.WantCaptureKeyboard);
+        ImGui::Text("WantCfrmureMouse: %d", io.WantCfrmureMouse);
+        ImGui::Text("WantCfrmureKeyboard: %d", io.WantCfrmureKeyboard);
         ImGui::Text("WantTextInput: %d", io.WantTextInput);
         ImGui::Text("WantMoveMouse: %d", io.WantMoveMouse);
 
@@ -1770,13 +1770,13 @@ void ImGui::ShowDemoWindow(bool* p_open)
             ImGui::Text("Keys mods: %s%s%s%s", io.KeyCtrl ? "CTRL " : "", io.KeyShift ? "SHIFT " : "", io.KeyAlt ? "ALT " : "", io.KeySuper ? "SUPER " : "");
 
 
-            ImGui::Button("Hovering me sets the\nkeyboard capture flag");
+            ImGui::Button("Hovering me sets the\nkeyboard cfrmure flag");
             if (ImGui::IsItemHovered())
-                ImGui::CaptureKeyboardFromApp(true);
+                ImGui::CfrmureKeyboardFromApp(true);
             ImGui::SameLine();
-            ImGui::Button("Holding me clears the\nthe keyboard capture flag");
+            ImGui::Button("Holding me clears the\nthe keyboard cfrmure flag");
             if (ImGui::IsItemActive())
-                ImGui::CaptureKeyboardFromApp(false);
+                ImGui::CfrmureKeyboardFromApp(false);
 
             ImGui::TreePop();
         }

@@ -1,12 +1,11 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
+#include <frm/core/Factory.h>
 #include <frm/core/Input.h>
 #include <frm/core/Scene.h>
-
-#include <apt/StringHash.h>
-#include <apt/Factory.h>
+#include <frm/core/StringHash.h>
 
 #include <EASTL/vector.h>
 
@@ -18,7 +17,7 @@ class Node;
 // XForm
 // Base class/factory for XForms.
 ////////////////////////////////////////////////////////////////////////////////
-class XForm: public apt::Factory<XForm>
+class XForm: public frm::Factory<XForm>
 {
 public:
 	typedef void (OnComplete)(XForm* _xform_);
@@ -26,15 +25,15 @@ public:
 	{
 		OnComplete*     m_callback  = nullptr;
 		const char*     m_name      = "";
-		apt::StringHash m_nameHash  = apt::StringHash::kInvalidHash;
+		frm::StringHash m_nameHash  = frm::StringHash::kInvalidHash;
 		
 		Callback(const char* _name, OnComplete* _callback);
 	};
 	static int             GetCallbackCount();
 	static const Callback* GetCallback(int _i);
-	static const Callback* FindCallback(apt::StringHash _nameHash);
+	static const Callback* FindCallback(frm::StringHash _nameHash);
 	static const Callback* FindCallback(OnComplete* _callback);
-	static bool            SerializeCallback(apt::Serializer& _serializer_, OnComplete*& _callback, const char* _name);
+	static bool            SerializeCallback(frm::Serializer& _serializer_, OnComplete*& _callback, const char* _name);
 
 	// Reset initial state.
 	virtual void reset() {}
@@ -54,8 +53,8 @@ public:
 
 	virtual void apply(float _dt) = 0;	
 	virtual bool edit() = 0;
-	virtual bool serialize(apt::Serializer& _serializer_) = 0;
-	friend bool Serialize(apt::Serializer& _serializer_, XForm& _xform_)
+	virtual bool serialize(frm::Serializer& _serializer_) = 0;
+	friend bool Serialize(frm::Serializer& _serializer_, XForm& _xform_)
 	{
 		return _xform_.serialize(_serializer_);
 	}
@@ -70,7 +69,7 @@ protected:
 }; // class XForm
 
 #define XFORM_REGISTER_CALLBACK(_callback) \
-	static XForm::Callback APT_UNIQUE_NAME(XForm_Callback_)(#_callback, _callback);
+	static XForm::Callback FRM_UNIQUE_NAME(XForm_Callback_)(#_callback, _callback);
 
 ////////////////////////////////////////////////////////////////////////////////
 // XForm_PositionOrientationScale
@@ -83,7 +82,7 @@ struct XForm_PositionOrientationScale: public XForm
 	
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
-	virtual bool serialize(apt::Serializer& _serializer_) override;
+	virtual bool serialize(frm::Serializer& _serializer_) override;
 	
 };
 
@@ -119,7 +118,7 @@ struct XForm_FreeCamera: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
-	virtual bool serialize(apt::Serializer& _serializer_) override;
+	virtual bool serialize(frm::Serializer& _serializer_) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -134,7 +133,7 @@ struct XForm_LookAt: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
-	virtual bool serialize(apt::Serializer& _serializer_) override;
+	virtual bool serialize(frm::Serializer& _serializer_) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +148,7 @@ struct XForm_Spin: public XForm
 	
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
-	virtual bool serialize(apt::Serializer& _serializer_) override;
+	virtual bool serialize(frm::Serializer& _serializer_) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -168,7 +167,7 @@ struct XForm_PositionTarget: public XForm
 	
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
-	virtual bool serialize(apt::Serializer& _serializer_) override;
+	virtual bool serialize(frm::Serializer& _serializer_) override;
 
 	virtual void reset() override;
 	virtual void relativeReset() override;
@@ -189,7 +188,7 @@ struct XForm_SplinePath: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
-	virtual bool serialize(apt::Serializer& _serializer_) override;
+	virtual bool serialize(frm::Serializer& _serializer_) override;
 
 	virtual void reset() override;
 	virtual void reverse() override;
@@ -212,7 +211,7 @@ struct XForm_OrbitalPath: public XForm
 
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
-	virtual bool serialize(apt::Serializer& _serializer_) override;
+	virtual bool serialize(frm::Serializer& _serializer_) override;
 
 	virtual void reset() override;
 };

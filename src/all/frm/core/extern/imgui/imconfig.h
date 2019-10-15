@@ -6,12 +6,12 @@
 
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/math.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
 
 //---- Define assertion handler. Defaults to calling assert().
-#define IM_ASSERT(_EXPR)  APT_ASSERT(_EXPR)
+#define IM_ASSERT(_EXPR)  FRM_ASSERT(_EXPR)
 
 //---- Define attributes of all API symbols declarations, e.g. for DLL under Windows.
 //#define IMGUI_API __declspec( dllexport )

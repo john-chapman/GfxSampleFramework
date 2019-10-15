@@ -1,7 +1,7 @@
 #pragma once
 
-#include <frm/core/def.h>
-#include <apt/String.h>
+#include <frm/core/frm.h>
+#include <frm/core/String.h>
 #include <EASTL/vector.h>
 
 namespace frm {
@@ -9,7 +9,7 @@ namespace frm {
 ////////////////////////////////////////////////////////////////////////////////
 // Window
 ////////////////////////////////////////////////////////////////////////////////
-class Window: private apt::non_copyable<Window>
+class Window: private frm::non_copyable<Window>
 {
 public:
 	// If _width or _height is -1, the windows size is set to the size of the primary display.
@@ -71,7 +71,7 @@ public:
 	// Return a list of files dropped onto the window during this frame.
 	// It is may be useful to call this function instead of using the OnFileDrop callback in cases where the application needs
 	// to check whether an internally rendered control is focused/hovered.
-	typedef eastl::vector<apt::String<64> > FileList;
+	typedef eastl::vector<frm::String<64> > FileList;
 	FileList    getFileDropList() const            { return m_fileDropList; }
 
 	// Return the UI scaling factor. Note that this may change if the window moves between monitors. 

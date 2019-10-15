@@ -44,7 +44,7 @@ static l_noret error(LoadState *S, const char *why) {
 
 /*
 ** All high-level loads go through LoadVector; you can change it to
-** adapt to the endianness of the input
+** adfrm to the endianness of the input
 */
 #define LoadVector(S,b,n)	LoadBlock(S,b,(n)*sizeof((b)[0]))
 

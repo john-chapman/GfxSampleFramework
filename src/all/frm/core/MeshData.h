@@ -1,12 +1,9 @@
 #pragma once
-#ifndef frm_MeshData_h
-#define frm_MeshData_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/geom.h>
 #include <frm/core/SkeletonAnimation.h>
-
-#include <apt/String.h>
+#include <frm/core/String.h>
 
 #include <EASTL/vector.h>
 
@@ -35,13 +32,13 @@ public:
 	
 	VertexAttr()
 		: m_semantic(Semantic_Count)
-		, m_dataType(apt::DataType_Invalid)
+		, m_dataType(frm::DataType_Invalid)
 		, m_count(0)
 		, m_offset(0)
 	{
 	}
 
-	VertexAttr(Semantic _semantic, apt::DataType _dataType, uint8 _count)
+	VertexAttr(Semantic _semantic, frm::DataType _dataType, uint8 _count)
 		: m_semantic(_semantic)
 		, m_dataType(_dataType)
 		, m_count(_count)
@@ -52,13 +49,13 @@ public:
 	// Null semantics may be used to indicate the end of a vertex declaration.
 	bool          isNull() const                        { return m_count == 0;         }
 	Semantic      getSemantic() const                   { return (Semantic)m_semantic; }
-	apt::DataType getDataType() const                   { return (apt::DataType)m_dataType; }
+	frm::DataType getDataType() const                   { return (frm::DataType)m_dataType; }
 	uint8         getCount() const                      { return m_count;              }
 	uint8         getOffset() const                     { return m_offset;             }
-	uint8         getSize() const                       { return m_count * (uint8)apt::DataTypeSizeBytes(getDataType()); }
+	uint8         getSize() const                       { return m_count * (uint8)frm::DataTypeSizeBytes(getDataType()); }
 
 	void          setSemantic(Semantic _semantic)       { m_semantic   = _semantic;    }
-	void          setDataType(apt::DataType _dataType)  { m_dataType   = _dataType;    }
+	void          setDataType(frm::DataType _dataType)  { m_dataType   = _dataType;    }
 	void          setCount(uint8 _count)                { m_count      = _count;       }
 	void          setOffset(uint8 _offset)              { m_offset     = _offset;      }
 
@@ -67,7 +64,7 @@ public:
 
 private:
 	Semantic      m_semantic;  // Data semantic.
-	apt::DataType m_dataType;  // Data type per component.
+	frm::DataType m_dataType;  // Data type per component.
 	uint8         m_count;     // Number of components (1,2,3 or 4).
 	uint8         m_offset;    // Byte offset of the first component.
 
@@ -102,7 +99,7 @@ public:
 	// in the vertex data. Ensures 4 byte alignment.
 	VertexAttr* addVertexAttr(
 		VertexAttr::Semantic _semantic, 
-		apt::DataType        _dataType,
+		frm::DataType        _dataType,
 		uint8                _count
 		);
 
@@ -121,8 +118,8 @@ public:
 	bool operator!=(const MeshDesc& _lhs) const  { return !(*this == _lhs); }
 
 	int getVertexAttrCount() const               { return m_vertexAttrCount; }
-	const VertexAttr& operator[](int _i) const   { APT_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
-	VertexAttr& operator[](int _i)               { APT_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
+	const VertexAttr& operator[](int _i) const   { FRM_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
+	VertexAttr& operator[](int _i)               { FRM_ASSERT(_i < (int)m_vertexAttrCount); return m_vertexDesc[_i]; }
 
 private:
 	static const int  kMaxVertexAttrCount = VertexAttr::Semantic_Count + 1;
@@ -141,7 +138,7 @@ private:
 //   submeshes are optional.
 // \todo Submesh API.
 ////////////////////////////////////////////////////////////////////////////////
-class MeshData: private apt::non_copyable<MeshData>
+class MeshData: private frm::non_copyable<MeshData>
 {
 	friend class Mesh;
 public:
@@ -221,12 +218,12 @@ public:
 	// Copy vertex data directly from _src. The layout of _src must match the MeshDesc.
 	void setVertexData(const void* _src);
 	// Copy semantic data from _src, converting from _srcType.
-	void setVertexData(VertexAttr::Semantic _semantic, apt::DataType _srcType, uint _srcCount, const void* _src);
+	void setVertexData(VertexAttr::Semantic _semantic, frm::DataType _srcType, uint _srcCount, const void* _src);
 	
 	// Copy index data from _src. The layout of _src must match the index data type/count.
 	void setIndexData(const void* _src);
 	// Copy index data from _src, converting from _srcType.
-	void setIndexData(apt::DataType _srcType, const void* _src);
+	void setIndexData(frm::DataType _srcType, const void* _src);
 
 	uint64          getHash() const;
 	const char*     getPath() const               { return (const char*)m_path; }
@@ -235,18 +232,18 @@ public:
 	const void*     getVertexData() const         { return m_vertexData; }
 	uint            getIndexCount() const         { return m_submeshes[0].m_indexCount; }
 	const void*     getIndexData() const          { return m_indexData; }
-	apt::DataType   getIndexDataType() const      { return m_indexDataType; }
+	frm::DataType   getIndexDataType() const      { return m_indexDataType; }
 
 	const Skeleton* getBindPose() const                { return m_bindPose; }
 	void            setBindPose(const Skeleton& _skel);
 
 protected:
-	apt::String<32> m_path            = ""; // empty if not from a file
+	frm::String<32> m_path            = ""; // empty if not from a file
 	Skeleton*       m_bindPose        = nullptr;
 	MeshDesc        m_desc;
 	char*           m_vertexData      = nullptr;
 	char*           m_indexData       = nullptr;
-	apt::DataType   m_indexDataType   = apt::DataType_Invalid;
+	frm::DataType   m_indexDataType   = frm::DataType_Invalid;
 
 	eastl::vector<Submesh> m_submeshes;
 
@@ -322,7 +319,7 @@ public:
 	void               addMesh(const MeshBuilder& _mesh);
 	
 	void               addVertexData(const MeshDesc& _desc, const void* _data, uint32 _count);
-	void               addIndexData(apt::DataType _type, const void* _data, uint32 _count);
+	void               addIndexData(frm::DataType _type, const void* _data, uint32 _count);
 	
 	void               setVertexCount(uint32 _count);
 	void               setTriangleCount(uint32 _count);
@@ -330,14 +327,14 @@ public:
 	MeshData::Submesh& beginSubmesh(uint _materialId); // invalidates any references previously returned
 	void               endSubmesh();
 
-	Vertex&            getVertex(uint32 _i)         { APT_ASSERT(_i < getVertexCount()); return m_vertices[_i]; }
-	const Vertex&      getVertex(uint32 _i) const   { APT_ASSERT(_i < getVertexCount()); return m_vertices[_i]; }
-	Triangle&          getTriangle(uint32 _i)       { APT_ASSERT(_i < getTriangleCount()); return m_triangles[_i]; }
-	const Triangle&    getTriangle(uint32 _i) const { APT_ASSERT(_i < getTriangleCount()); return m_triangles[_i]; }
+	Vertex&            getVertex(uint32 _i)         { FRM_ASSERT(_i < getVertexCount()); return m_vertices[_i]; }
+	const Vertex&      getVertex(uint32 _i) const   { FRM_ASSERT(_i < getVertexCount()); return m_vertices[_i]; }
+	Triangle&          getTriangle(uint32 _i)       { FRM_ASSERT(_i < getTriangleCount()); return m_triangles[_i]; }
+	const Triangle&    getTriangle(uint32 _i) const { FRM_ASSERT(_i < getTriangleCount()); return m_triangles[_i]; }
 	uint32             getVertexCount() const       { return (uint32)m_vertices.size(); }
 	uint32             getTriangleCount() const     { return (uint32)m_triangles.size(); }
 	uint32             getIndexCount() const        { return (uint32)m_triangles.size() * 3; }
-	MeshData::Submesh& getSubmesh(uint32 _i)        { APT_ASSERT(_i < getSubmeshCount()); return m_submeshes[_i]; }
+	MeshData::Submesh& getSubmesh(uint32 _i)        { FRM_ASSERT(_i < getSubmeshCount()); return m_submeshes[_i]; }
 	uint32             getSubmeshCount() const      { (uint32)m_submeshes.size(); }
 	const AlignedBox&  getBoundingBox() const       { return m_boundingBox; }
 	const Sphere&      getBoundingSphere() const    { return m_boundingSphere; }
@@ -354,5 +351,3 @@ private:
 }; // class MeshBuilder
 
 } // namespace frm
-
-#endif // frm_MeshData_h

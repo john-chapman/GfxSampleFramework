@@ -1,14 +1,12 @@
 #pragma once
-#ifndef frm_Mesh_h
-#define frm_Mesh_h
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/gl.h>
 #include <frm/core/MeshData.h>
 #include <frm/core/Resource.h>
+#include <frm/core/String.h>
 #include <frm/core/SkeletonAnimation.h>
 
-#include <apt/String.h>
 
 #include <EASTL/vector.h>
 
@@ -31,12 +29,12 @@ public:
 	bool reload();
 
 	void setVertexData(const void* _data, uint _vertexCount, GLenum _usage = GL_STREAM_DRAW);
-	void setIndexData(apt::DataType _dataType, const void* _data, uint _indexCount, GLenum _usage = GL_STREAM_DRAW);
+	void setIndexData(frm::DataType _dataType, const void* _data, uint _indexCount, GLenum _usage = GL_STREAM_DRAW);
 
 	uint getVertexCount() const                          { return getSubmesh(0).m_vertexCount; }
 	uint getIndexCount() const                           { return getSubmesh(0).m_indexCount;  }
 	int  getSubmeshCount() const                         { return (int)m_submeshes.size();     }
-	const MeshData::Submesh& getSubmesh(int _id) const   { APT_ASSERT(_id < getSubmeshCount()); return m_submeshes[_id]; };
+	const MeshData::Submesh& getSubmesh(int _id) const   { FRM_ASSERT(_id < getSubmeshCount()); return m_submeshes[_id]; };
 
 	GLuint getVertexArrayHandle() const                  { return m_vertexArray;   }
 	GLuint getVertexBufferHandle() const                 { return m_vertexBuffer;  }
@@ -51,7 +49,7 @@ public:
 	void              setBindPose(const Skeleton& _skel);
 
 private:
-	apt::String<32> m_path; // empty if not from a file
+	frm::String<32> m_path; // empty if not from a file
 
 	MeshDesc m_desc;
 	eastl::vector<MeshData::Submesh> m_submeshes;
@@ -74,5 +72,3 @@ private:
 }; // class Mesh
 
 } // namespace frm
-
-#endif // frm_Mesh_h

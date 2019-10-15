@@ -1,28 +1,25 @@
 #include "App.h"
 
+#include <frm/core/frm.h>
+#include <frm/core/log.h>
+#include <frm/core/platform.h>
+#include <frm/core/ArgList.h>
 #include <frm/core/Input.h>
 #include <frm/core/Profiler.h>
-
+#ifdef FRM_PLATFORM_WIN
+	#include <frm/core/win.h> // SetCurrentDirectory
+#endif
 #if FRM_MODULE_AUDIO
 	#include <frm/audio/Audio.h>
 #endif
 
-#include <apt/platform.h>
-#ifdef APT_PLATFORM_WIN
-	#include <apt/win.h> // SetCurrentDirectory
-	#include <apt/log.h>
-#endif
-#include <apt/ArgList.h>
-
 #include <cstring>
 
 using namespace frm;
-using namespace apt;
-
 
 // PUBLIC
 
-bool App::init(const apt::ArgList& _args)
+bool App::init(const frm::ArgList& _args)
 {
 	#if FRM_MODULE_AUDIO
 		Audio::Init();
@@ -48,7 +45,6 @@ bool App::update()
 	Timestamp thisUpdate = Time::GetTimestamp();
 	m_deltaTime = (thisUpdate - m_prevUpdate).asSeconds() * m_timeScale;
 	m_prevUpdate = thisUpdate;
-
 	
 	#if FRM_MODULE_AUDIO
 		Audio::Update();
@@ -65,16 +61,18 @@ App::App()
 {
 	m_prevUpdate = Time::GetTimestamp();
 
-#ifdef APT_PLATFORM_WIN
- // force the current working directoy to the exe location
-	TCHAR buf[MAX_PATH] = {};
-	DWORD buflen;
-	APT_PLATFORM_VERIFY(buflen = GetModuleFileName(0, buf, MAX_PATH));
-	char* pathend = strrchr(buf, (int)'\\');
-	*(++pathend) = '\0';
-	APT_PLATFORM_VERIFY(SetCurrentDirectory(buf));
-	APT_LOG("Set current directory: '%s'", buf);
-#endif
+	#ifdef FRM_PLATFORM_WIN
+	{
+	 // force the current working directoy to the exe location
+		TCHAR buf[MAX_PATH] = {};
+		DWORD buflen;
+		FRM_PLATFORM_VERIFY(buflen = GetModuleFileName(0, buf, MAX_PATH));
+		char* pathend = strrchr(buf, (int)'\\');
+		*(++pathend) = '\0';
+		FRM_PLATFORM_VERIFY(SetCurrentDirectory(buf));
+		FRM_LOG("Set current directory: '%s'", buf);
+	}
+	#endif
 }
 
 App::~App()

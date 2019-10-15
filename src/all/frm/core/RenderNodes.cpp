@@ -5,16 +5,14 @@
 #include <frm/core/Buffer.h>
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
+#include <frm/core/Json.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
 
-#include <apt/Json.h>
-
 #include <imgui/imgui.h>
 
 using namespace frm;
-using namespace apt;
 
 /*******************************************************************************
 
@@ -85,7 +83,7 @@ void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, cons
 
 	int prev = m_current;
 	m_current = (m_current + 1) % kHistorySize;
-	APT_ASSERT(prev != m_current);
+	FRM_ASSERT(prev != m_current);
 	Texture* dst = m_txLum[m_current];
 
 	{	PROFILER_MARKER("Luminance/Smooth");
@@ -112,8 +110,8 @@ void LuminanceMeter::draw(GlContext* _ctx_, float _dt, const Texture* _src, cons
 			_ctx_->bindTexture("txSrcPrev", m_txLum[prev]);
 			_ctx_->bindImage  ("txDst", dst, GL_WRITE_ONLY, ++lvl);
 			_ctx_->dispatch(
-				APT_MAX((wh + localSize.x - 1) / localSize.x, 1),
-				APT_MAX((wh + localSize.y - 1) / localSize.y, 1)
+				FRM_MAX((wh + localSize.x - 1) / localSize.x, 1),
+				FRM_MAX((wh + localSize.y - 1) / localSize.y, 1)
 				);
 			glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 			wh = wh >> 1;
