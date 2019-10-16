@@ -140,6 +140,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\SkeletonAnimation.h" />
     <ClInclude Include="..\..\src\all\frm\core\Spline.h" />
     <ClInclude Include="..\..\src\all\frm\core\StaticInitializer.h" />
+    <ClInclude Include="..\..\src\all\frm\core\StreamingQuadtree.h" />
     <ClInclude Include="..\..\src\all\frm\core\String.h" />
     <ClInclude Include="..\..\src\all\frm\core\StringHash.h" />
     <ClInclude Include="..\..\src\all\frm\core\TextParser.h" />
@@ -415,6 +416,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\SkeletonAnimation.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\SkeletonAnimation_md5.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Spline.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\StreamingQuadtree.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\String.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\StringHash.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\TextParser.cpp" />
