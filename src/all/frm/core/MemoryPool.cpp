@@ -37,7 +37,8 @@ MemoryPool::MemoryPool(uint _objectSize, uint _objectAlignment, uint _blockSize)
 MemoryPool::~MemoryPool()
 {
 	FRM_ASSERT(m_usedCount == 0); // not all objects were freed
-	for (uint i = 0; i < m_blockCount; ++i) {
+	for (uint i = 0; i < m_blockCount; ++i)
+	{
 		FRM_FREE_ALIGNED(m_blocks[i]);
 	}
 	FRM_FREE_ALIGNED(m_blocks);
@@ -45,7 +46,8 @@ MemoryPool::~MemoryPool()
 
 void* MemoryPool::alloc()
 {
-	if (m_nextFree == 0) {
+	if (m_nextFree == 0)
+	{
 		allocBlock();
 	}
 	void* ret = m_nextFree;
@@ -74,7 +76,8 @@ void MemoryPool::allocBlock()
  // init free ptrs; if m_nextFree initially points to locX, after initializing the new block (starting new0) is initialized as follows:
  //  m_nextFree -> new0 -> new1 -> new2 -> new3 -> locX
 	uint p = (uint)m_blocks[m_blockCount];
-	for (uint i = 0, n = m_blockSize - 1; i < n; ++i) {
+	for (uint i = 0, n = m_blockSize - 1; i < n; ++i)
+	{
 		*((uint*)p) = p + m_objectSize;
 		p += m_objectSize;
 	}
@@ -87,8 +90,10 @@ void MemoryPool::allocBlock()
 bool MemoryPool::isFromPool(const void* _ptr) const
 {
 	uint p = (uint)_ptr;
-	for (uint i = 0; i < m_blockCount; ++i) {
-		if (p >= (uint)m_blocks[i] && p < ((uint)m_blocks[i] + m_blockSize * m_objectSize)) {
+	for (uint i = 0; i < m_blockCount; ++i)
+	{
+		if (p >= (uint)m_blocks[i] && p < ((uint)m_blocks[i] + m_blockSize * m_objectSize))
+		{
 			return true;
 		}
 	}
@@ -99,7 +104,8 @@ bool MemoryPool::validate() const
 {
 	uint freeCount = 0;
 	void* p = m_nextFree;
-	while (p != 0) {
+	while (p != 0)
+	{
 		++freeCount;
 		p = *((void**)p);
 	}

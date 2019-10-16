@@ -18,7 +18,8 @@ extern "C" {
 static const char* HIDClass_ErrStr(int _err)
 {
 	#define CASE_ENUM(e) case e: return #e
-	switch (_err) {
+	switch (_err)
+	{
 		CASE_ENUM(HIDP_STATUS_SUCCESS);
 		CASE_ENUM(HIDP_STATUS_NULL);
 		CASE_ENUM(HIDP_STATUS_INVALID_PREPARSED_DATA);
@@ -74,8 +75,10 @@ struct ImplBase: public tDevice
 	
 	static tImpl* Find(HANDLE _handle)
 	{
-		for (int i = 0; i < kMaxCount; ++i) {
-			if (s_instances[i].m_handle == _handle) {
+		for (int i = 0; i < kMaxCount; ++i)
+		{
+			if (s_instances[i].m_handle == _handle)
+			{
 				return &s_instances[i];
 			}
 		}
@@ -84,7 +87,8 @@ struct ImplBase: public tDevice
 
 	static void PollBegin()
 	{
-		for (int i = 0; i < kMaxCount; ++i) {
+		for (int i = 0; i < kMaxCount; ++i)
+		{
 			//if (s_instances[i].isConnected()) { // process all devices to account for proxies
 				s_instances[i].pollBegin();
 			//}
@@ -93,7 +97,8 @@ struct ImplBase: public tDevice
 
 	static void PollEnd()
 	{
-		for (int i = 0; i < kMaxCount; ++i) {
+		for (int i = 0; i < kMaxCount; ++i)
+		{
 			//if (s_instances[i].isConnected()) { // process all devices to account for proxies
 				s_instances[i].pollEnd();
 			//}
@@ -130,10 +135,13 @@ struct ImplBase: public tDevice
 		FRM_LOG("%s %d disconnected (0x%x)", getName(), getIndex(), m_handle);
 		m_handle = kNullHandle;
 		m_isConnected = false;
-		if (this == s_instances) {
+		if (this == s_instances)
+		{
 		 // default was disconnected, try to move another mouse to this slot
-			for (int i = 1; i < Input::kMaxMouseCount; ++i) {
-				if (s_instances[i].m_handle != kNullHandle) {
+			for (int i = 1; i < Input::kMaxMouseCount; ++i)
+			{
+				if (s_instances[i].m_handle != kNullHandle)
+				{
 					FRM_LOG("%s %d (0x%x) moved to index 0", getName(), i, s_instances[i].m_handle);
 					eastl::swap(s_instances[i].m_handle, s_instances[0].m_handle);
 					s_instances[0].reset(); // we didn't bother to swap the state as well, so reset the device
@@ -165,7 +173,8 @@ struct KeyboardImpl: public ImplBase<Keyboard, KeyboardImpl, Input::kMaxKeyboard
 		UINT flags = _raw->data.keyboard.Flags;
 		Key key = Key_Unmapped;
 
-		if (vk == 255) {
+		if (vk == 255)
+		{
 		 // discard 'fake' escape sequence keys
 			return;
 		}
@@ -173,22 +182,32 @@ struct KeyboardImpl: public ImplBase<Keyboard, KeyboardImpl, Input::kMaxKeyboard
 		bool e0 = (flags & RI_KEY_E0) != 0;
 		bool e1 = (flags & RI_KEY_E1) != 0;
 
-		if (vk >= 0x41 && vk <= 0x5A) {
+		if (vk >= 0x41 && vk <= 0x5A)
+		{
 		 // alpha
 			key = (Key)(Key_A + vk - 0x41);
-		} else if (vk >= 0x30 && vk <= 0x39) {
+		}
+		else if (vk >= 0x30 && vk <= 0x39)
+		{
 		 // numeric
 			key = vk == 0x30 ? Key_0 : (Key)(Key_1 + vk - 0x31);
-		} else if (vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9) {
+		}
+		else if (vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9)
+		{
 		 // numpad numeric
 			key  = (Key)(Key_Numpad0 + vk - VK_NUMPAD0);
-		} else if (vk >= VK_F1 && vk <= VK_F12) {
+		}
+		else if (vk >= VK_F1 && vk <= VK_F12)
+		{
 		 // F keys
 			key = (Key)(Key_F1 + vk - VK_F1);
-		} else {
+		}
+		else
+		{
 		 // all other keys
 
-			if (vk == VK_SHIFT) {
+			if (vk == VK_SHIFT)
+			{
 				vk = MapVirtualKey(sc, MAPVK_VSC_TO_VK_EX);
 			}
 
@@ -263,14 +282,16 @@ struct MouseImpl: public ImplBase<Mouse, MouseImpl, Input::kMaxMouseCount>
 	 
 	 // buttons
 		USHORT currFlags = _raw->data.mouse.usButtonFlags;
-		if (currFlags != 0) {
+		if (currFlags != 0)
+		{
 			setIncButton(Mouse::Button_Left,   (_raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)   != 0);
 			setIncButton(Mouse::Button_Middle, (_raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) != 0);
 			setIncButton(Mouse::Button_Right,  (_raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)  != 0);
 		}
 
 	 // axes
-		if (_raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
+		if (_raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
+		{
 			m_axisStates[Mouse::Axis_Wheel] += (float)((SHORT)_raw->data.mouse.usButtonData);
 		}
 		m_axisStates[Mouse::Axis_X] += (float)_raw->data.mouse.lLastX;
@@ -306,7 +327,8 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 
 	static Button HidUsageToButton(int _hid, Type _type)
 	{
-		static const Button kButtonMap[Type_Count][Button_Count] = {
+		static const Button kButtonMap[Type_Count][Button_Count] =
+		{
 			{ Button_A, Button_B, Button_X, Button_Y, Button_Left1, Button_Right1, Button_Back, Button_Start, Button_Left3, Button_Right3, }, // Button_XBox360
 			{ Button_X, Button_A, Button_B, Button_Y, Button_Left1, Button_Right1, Button_Left2, Button_Right2, Button_Unmapped, Button_Start, Button_Left3, Button_Right3, Button_Unmapped, Button_Back }, // Button_Ps4DualShock4
 		};
@@ -314,7 +336,8 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 	}
 	static Axis HidUsageToAxis(int _hid, Type _type)
 	{
-		static const Axis kAxisMap[Type_Count][Axis_Count] = {
+		static const Axis kAxisMap[Type_Count][Axis_Count] =
+		{
 			{ Axis_LeftStickY, Axis_LeftStickX, Axis_RightStickY, Axis_RightStickX, Axis_Unmapped/*triggers*/, Axis_Unmapped/*dpad*/, }, // Axis_XBox360
 			{ Axis_RightStickY, Axis_RightStickX, Axis_LeftStickY, Axis_LeftStickX, Axis_Unmapped/*dpad*/, Axis_Unmapped, Axis_RightTrigger, Axis_LeftTrigger, Axis_Unmapped },  // Axis_Ps4DualShock4
 		};
@@ -335,9 +358,11 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 		FRM_PLATFORM_VERIFY(GetRawInputDeviceInfo(_raw->header.hDevice, RIDI_DEVICEINFO, &deviceInfo, &deviceInfoSize) >= 0);
 		m_type = Type_Count;
 	 // http://www.linux-usb.org/usb.ids
-		switch (deviceInfo.hid.dwVendorId) {
+		switch (deviceInfo.hid.dwVendorId)
+		{
 			case 0x45e: // Microsoft
-				switch (deviceInfo.hid.dwProductId) {
+				switch (deviceInfo.hid.dwProductId)
+				{
 					case 0x28e: m_type = Type_XBox360; break;
 					case 0x28f: // XBox360 wireless
 					case 0x2d1: // XBoxOne
@@ -345,7 +370,8 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 						break;
 				};
 			case 0x54c: // Sony
-				switch (deviceInfo.hid.dwProductId) {
+				switch (deviceInfo.hid.dwProductId)
+				{
 					case 0x9cc: // model 1E
 					case 0x5c4: m_type = Type_Ps4DualShock4; break; // model 2E
 					default:
@@ -355,7 +381,8 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 				break;
 		};	
 	 // automatically disconnect any unsupported devices
-		if (m_type == Type_Count) {
+		if (m_type == Type_Count)
+		{
 			FRM_LOG_ERR("Unsupported gamepad type (vendor %d product %d)", deviceInfo.hid.dwVendorId, deviceInfo.hid.dwProductId);
 			disconnect();
 			return;
@@ -383,9 +410,11 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 		USHORT vccount = (USHORT)m_valueUsageCount;
 		m_valueCaps = (PHIDP_VALUE_CAPS)new HIDP_VALUE_CAPS[vccount];
 		HIDClass_VERIFY(HidP_GetValueCaps(HidP_Input, m_valueCaps, &vccount, m_preparsedData));
-		if (m_type == Type_XBox360) {
+		if (m_type == Type_XBox360)
+		{
 		 // xbox doesn't supply the logical ranges but they're all USHORT
-			for (ULONG i = 0; i < m_valueUsageCount; ++i) {
+			for (ULONG i = 0; i < m_valueUsageCount; ++i)
+			{
 				m_valueCaps[i].LogicalMin = 0;
 				m_valueCaps[i].LogicalMax = USHRT_MAX;
 			}
@@ -415,12 +444,15 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 		
 		UINT prevUsage = (m_currentUsage + 1) % 2;
 		HIDClass_VERIFY(HidP_UsageListDifference(m_buttonUsage[prevUsage], m_buttonUsage[m_currentUsage], m_buttonBreak, m_buttonMake, m_buttonUsageCount));
-		for (UINT i = 0; i < m_buttonUsageCount; ++i) {
-			if (m_buttonMake[i] != 0) {
+		for (UINT i = 0; i < m_buttonUsageCount; ++i)
+		{
+			if (m_buttonMake[i] != 0)
+			{
 				int b = m_buttonMake[i] - m_buttonCaps->Range.UsageMin;
 				setIncButton(HidUsageToButton(b, m_type), true);
 			}
-			if (m_buttonBreak[i] != 0) {
+			if (m_buttonBreak[i] != 0)
+			{
 				int b = m_buttonBreak[i] - m_buttonCaps->Range.UsageMin;
 				setIncButton(HidUsageToButton(b, m_type), false);
 			}
@@ -428,19 +460,24 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 		m_currentUsage = prevUsage;
 		
 	 // axes
-		for (USHORT i = 0; i < m_valueUsageCount; ++i) {
+		for (USHORT i = 0; i < m_valueUsageCount; ++i)
+		{
 			ULONG val;
 			HIDClass_VERIFY(HidP_GetUsageValue(HidP_Input, m_valueCaps[i].UsagePage, 0, m_valueCaps[i].Range.UsageMin, &val, m_preparsedData, (PCHAR)_raw->data.hid.bRawData, _raw->data.hid.dwSizeHid));
 
 			Axis ax = HidUsageToAxis(i, m_type);
-			if (ax == Axis_Unmapped) {
+			if (ax == Axis_Unmapped)
+			{
 			 // special cases:
 			 // dpad: on xbox/playstation the dpad is an axis with 8 values; we convert these to the 4 cardinal buttons (up/down/left/right).
 			 // triggers: on xbox both triggers share an axes, 
-				switch (m_type) {
+				switch (m_type)
+				{
 					case Type_XBox360:
-						switch (i) {
-							case 4: { // trigger
+						switch (i)
+						{
+							case 4: // trigger
+							{
 								float fval = (float)(val - m_valueCaps[i].LogicalMin) / (float)m_valueCaps[i].LogicalMax;
 								fval = (fval <= m_deadZone) ? 0.0f : fval;
 								m_axisStates[Axis_LeftTrigger]  = FRM_CLAMP((fval - 0.5f) * 2.0f, 0.0f, 1.0f);
@@ -450,23 +487,28 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 								break;
 							};
 							case 5: // dpad
+							{
 								setIncButton(Button_Up,    val == 8 || val == 1 || val == 2);
 								setIncButton(Button_Right, val == 2 || val == 3 || val == 4);
 								setIncButton(Button_Down,  val == 4 || val == 5 || val == 6);
 								setIncButton(Button_Left,  val == 6 || val == 7 || val == 8);
 								break;
+							}
 							default:
 								break;
 						};
 						break;
 					case Type_Ps4DualShock4:
-						switch (i) {
+						switch (i)
+						{
 							case 4: // dpad
+							{
 								setIncButton(Button_Up,    val == 7 || val == 0 || val == 1);
 								setIncButton(Button_Right, val == 1 || val == 2 || val == 3);
 								setIncButton(Button_Down,  val == 3 || val == 4 || val == 5);
 								setIncButton(Button_Left,  val == 5 || val == 6 || val == 7);
 								break;
+							}
 							default:
 								break;
 						};
@@ -478,15 +520,19 @@ struct GamepadImpl: public ImplBase<Gamepad, GamepadImpl, Input::kMaxGamepadCoun
 				continue;
 			} 
 			float fval = (float)(val - m_valueCaps[i].LogicalMin) / (float)m_valueCaps[i].LogicalMax;
-			if (ax != Axis_LeftTrigger && ax != Axis_RightTrigger) {
+			if (ax != Axis_LeftTrigger && ax != Axis_RightTrigger)
+			{
 			 // move non-trigger axes to [-1,1]
 				fval = fval * 2.0f - 1.0f;
 			}
 			fval = (fabs(fval) <= m_deadZone) ? 0.0f : fval;
-			if (m_valueCaps[i].IsAbsolute) {
+			if (m_valueCaps[i].IsAbsolute)
+			{
 			 // set absolute values
 				m_axisStates[ax] = fval;
-			} else {
+			}
+			else
+			{
 			 // combine relative values
 				m_axisStates[ax] += fval;
 			}
@@ -503,51 +549,68 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 	static BYTE buf[kMaxBufferSize];
 	UINT buflen;
 	RAWINPUT* raw = (RAWINPUT*)buf;
-	if (_umsg == WM_INPUT) {
+	if (_umsg == WM_INPUT)
+	{
 		FRM_PLATFORM_VERIFY(GetRawInputData((HRAWINPUT)_lparam, RID_INPUT, NULL, &buflen, sizeof(RAWINPUTHEADER)) == 0);
 		FRM_ASSERT(buflen < kMaxBufferSize);
 		FRM_PLATFORM_VERIFY(GetRawInputData((HRAWINPUT)_lparam, RID_INPUT, buf, &buflen, sizeof(RAWINPUTHEADER)) == buflen);
 		
-		if (raw->header.dwType == RIM_TYPEMOUSE) {
+		if (raw->header.dwType == RIM_TYPEMOUSE)
+		{
 			MouseImpl* mouse;
 			mouse = MouseImpl::Find(raw->header.hDevice);
-			if_likely (mouse) {
+			if_likely (mouse)
+			{
 				mouse->update(raw);
-			} else {
+			}
+			else
+			{
 			 // device not found but in use, so set device 0
 				FRM_LOG_DBG("Set unknown device as mouse 0");
 				FRM_VERIFY(mouse = &MouseImpl::s_instances[0]);
-				if (mouse) {
+				if (mouse)
+				{
 					mouse->m_handle = raw->header.hDevice;
 					mouse->update(raw);
 				}
 			}
 
-		} else if (raw->header.dwType == RIM_TYPEKEYBOARD) {
+		} else if (raw->header.dwType == RIM_TYPEKEYBOARD)
+		{
 			KeyboardImpl* keyboard;
 			keyboard = KeyboardImpl::Find(raw->header.hDevice);
-			if_likely (keyboard) {
+			if_likely (keyboard)
+			{
 				keyboard->update(raw);
-			} else {
+			}
+			else
+			{
 			 // device not found but in use, so set device 0
 				FRM_LOG_DBG("Set unknown device as keyboard 0");
 				FRM_VERIFY(keyboard = &KeyboardImpl::s_instances[0]);
-				if (keyboard) {
+				if (keyboard)
+				{
 					keyboard->m_handle = raw->header.hDevice;
 					keyboard->update(raw);
 				}
 			}
 
-		} else if (raw->header.dwType == RIM_TYPEHID) {
+		}
+		else if (raw->header.dwType == RIM_TYPEHID)
+		{
 			GamepadImpl* gamepad;
 			gamepad = GamepadImpl::Find(raw->header.hDevice);
-			if_likely (gamepad) {
+			if_likely (gamepad)
+			{
 				gamepad->update(raw);
-			} else {
+			}
+			else
+			{
 			 // device not found but in use, so set device 0
 				FRM_LOG_DBG("Set unknown device as gamepad 0");
 				FRM_VERIFY(gamepad = &GamepadImpl::s_instances[0]);
-				if (gamepad) {
+				if (gamepad)
+				{
 					gamepad->m_handle = raw->header.hDevice;
 					gamepad->update(raw);
 				}
@@ -555,8 +618,11 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 
 		}
 
-	} else if (_umsg == WM_INPUT_DEVICE_CHANGE) {
-		if (_wparam == GIDC_ARRIVAL) {
+	} 
+	else if (_umsg == WM_INPUT_DEVICE_CHANGE)
+	{
+		if (_wparam == GIDC_ARRIVAL)
+		{
 		 // device was connected
 			RID_DEVICE_INFO info;
 			UINT sz = sizeof(info);
@@ -564,36 +630,57 @@ static LRESULT CALLBACK InputWindowProc(HWND _hwnd, UINT _umsg, WPARAM _wparam, 
 			
 			raw->header.hDevice = (HANDLE)_lparam; // connect() expects the handle to be stored here
 
-			if (info.dwType == RIM_TYPEMOUSE) {
+			if (info.dwType == RIM_TYPEMOUSE)
+			{
 				MouseImpl* mouse = MouseImpl::Find(kNullHandle);
-				if (!mouse) {
+				if (!mouse)
+				{
 					FRM_LOG("Too many mice connected, max is %d", Input::kMaxMouseCount);
-				} else {
+				}
+				else
+				{
 					mouse->connect(raw);
 				}
-			} else if (info.dwType == RIM_TYPEKEYBOARD) {
+			}
+			else if (info.dwType == RIM_TYPEKEYBOARD)
+			{
 				KeyboardImpl* keyboard = KeyboardImpl::Find(kNullHandle);
-				if (!keyboard) {
+				if (!keyboard)
+				{
 					FRM_LOG("Too many keyboards connected, max is %d", Input::kMaxKeyboardCount);
-				} else {
+				}
+				else
+				{
 					keyboard->connect(raw);
 				}
-			} else if (info.dwType == RIM_TYPEHID && info.hid.usUsagePage == 0x01 && info.hid.usUsage == 0x05) {
+			}
+			else if (info.dwType == RIM_TYPEHID && info.hid.usUsagePage == 0x01 && info.hid.usUsage == 0x05)
+			{
 				GamepadImpl* gamepad = GamepadImpl::Find(kNullHandle);
-				if (!gamepad) {
+				if (!gamepad)
+				{
 					FRM_LOG("Too many gamepads connected, max is %d", Input::kMaxGamepadCount);
-				} else {
+				}
+				else
+				{
 					gamepad->connect(raw);
 				}
 			}
 		
-		} else if (_wparam == GIDC_REMOVAL) {
+		}
+		else if (_wparam == GIDC_REMOVAL) 
+		{
 		 // device was disconnected
-			if (MouseImpl* mouse = MouseImpl::Find((HANDLE)_lparam)) {
+			if (MouseImpl* mouse = MouseImpl::Find((HANDLE)_lparam))
+			{
 				mouse->disconnect();
-			} else if (KeyboardImpl* keyboard = KeyboardImpl::Find((HANDLE)_lparam)) {
+			}
+			else if (KeyboardImpl* keyboard = KeyboardImpl::Find((HANDLE)_lparam))
+			{
 				keyboard->disconnect();
-			} else if (GamepadImpl* gamepad = GamepadImpl::Find((HANDLE)_lparam)) {
+			}
+			else if (GamepadImpl* gamepad = GamepadImpl::Find((HANDLE)_lparam))
+			{
 				gamepad->disconnect();
 			}
 		}
@@ -634,7 +721,8 @@ void Input::Init()
 	Gamepad::InitButtonNames();
 
 	static ATOM wndclassex = 0;
-	if (wndclassex == 0) {
+	if (wndclassex == 0)
+	{
 		WNDCLASSEX wc;
 		memset(&wc, 0, sizeof(wc));
 		wc.cbSize = sizeof(wc);
@@ -698,7 +786,8 @@ void Input::PollAllDevices()
 	GamepadImpl::PollBegin();
 
 	MSG msg;
-	while (PeekMessage(&msg, s_inputWindow, WM_INPUT_DEVICE_CHANGE, WM_INPUT, PM_REMOVE)) {
+	while (PeekMessage(&msg, s_inputWindow, WM_INPUT_DEVICE_CHANGE, WM_INPUT, PM_REMOVE))
+	{
 		DispatchMessage(&msg);
 	}
 

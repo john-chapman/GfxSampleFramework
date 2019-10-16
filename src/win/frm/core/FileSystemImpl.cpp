@@ -24,7 +24,8 @@ using namespace frm;
 // Windows expects a list of string pairs to pass to GetOpenFileName() (display name, filter).
 static void BuildFilterString(std::initializer_list<const char*> _filterList, StringBase& ret_)
 {
-	for (auto& filter : _filterList) {
+	for (auto& filter : _filterList)
+	{
 		ret_.appendf("%s?%s?", filter, filter);
 	}
 	ret_.replace('?', '\0'); // \hack
@@ -51,12 +52,14 @@ static bool GetFileDateTime(const char* _fullPath, DateTime& created_, DateTime&
 		0,
 		NULL
 		);
-	if (h == INVALID_HANDLE_VALUE) {
+	if (h == INVALID_HANDLE_VALUE)
+	{
 		err = GetPlatformErrorString(GetLastError());
 		goto GetFileDateTime_End;
 	}
 	FILETIME created, modified;
-	if (GetFileTime(h, &created, NULL, &modified) == 0) {
+	if (GetFileTime(h, &created, NULL, &modified) == 0)
+	{
 		err = GetPlatformErrorString(GetLastError());
 		goto GetFileDateTime_End;
 	}	
@@ -64,7 +67,8 @@ static bool GetFileDateTime(const char* _fullPath, DateTime& created_, DateTime&
 	modified_ = FileTimeToDateTime(modified);
 	
 GetFileDateTime_End:
-	if (err) {
+	if (err)
+	{
 		FRM_LOG_ERR("GetFileDateTime: %s", err);
 		FRM_ASSERT(false);
 	}
@@ -73,14 +77,16 @@ GetFileDateTime_End:
 #else
 	const char* err = nullptr;
 	WIN32_FILE_ATTRIBUTE_DATA attr;
-	if (GetFileAttributesEx(_fullPath, GetFileExInfoStandard, &attr) == 0) {
+	if (GetFileAttributesEx(_fullPath, GetFileExInfoStandard, &attr) == 0)
+	{
 		err = (const char*)GetPlatformErrorString(GetLastError());
 		goto GetFileDateTime_End;
 	}
 	created_ = FileTimeToDateTime(attr.ftCreationTime);
 	modified_ = FileTimeToDateTime(attr.ftLastWriteTime);
 GetFileDateTime_End:
-	if (err) {
+	if (err)
+	{
 		FRM_LOG_ERR("GetFileDateTime: %s", err);
 		FRM_ASSERT(false);
 	}
@@ -95,12 +101,15 @@ static void GetAppPath(TCHAR ret_[MAX_PATH], const char* _append = nullptr)
 	FRM_PLATFORM_VERIFY(GetModuleFileName(0, tmp, MAX_PATH));
 	FRM_PLATFORM_VERIFY(GetFullPathName(tmp, MAX_PATH, ret_, NULL)); // GetModuleFileName can return a relative path (e.g. when launching from the ide)
 
-	if (_append && *_append != '\0') {
+	if (_append && *_append != '\0')
+	{
 		FRM_PLATFORM_VERIFY(GetFullPathName(_append, MAX_PATH, tmp, NULL));
 		char* pathEnd = strrchr(ret_, (int)'\\');
 		++pathEnd;
 		strcpy(pathEnd, _append);
-	} else {
+	}
+	else
+	{
 		char* pathEnd = strrchr(ret_, (int)'\\');
 		++pathEnd;
 		*pathEnd = '\0';
@@ -111,9 +120,11 @@ static void GetAppPath(TCHAR ret_[MAX_PATH], const char* _append = nullptr)
 
 bool FileSystem::Delete(const char* _path)
 {
-	if (DeleteFile(_path) == 0) {
+	if (DeleteFile(_path) == 0)
+	{
 		DWORD err = GetLastError();
-		if (err != ERROR_FILE_NOT_FOUND) {
+		if (err != ERROR_FILE_NOT_FOUND)
+		{
 			FRM_LOG_ERR("DeleteFile(%s): %s", _path, GetPlatformErrorString(err));
 		}
 		return false;
@@ -124,7 +135,8 @@ bool FileSystem::Delete(const char* _path)
 DateTime FileSystem::GetTimeCreated(const char* _path, int _rootHint)
 {
 	PathStr fullPath;
-	if (!FindExisting(fullPath, _path, _rootHint)) {
+	if (!FindExisting(fullPath, _path, _rootHint))
+	{
 		return DateTime(); // \todo return invalid sentinel
 	}
 	DateTime created, modified;
@@ -135,7 +147,8 @@ DateTime FileSystem::GetTimeCreated(const char* _path, int _rootHint)
 DateTime FileSystem::GetTimeModified(const char* _path, int _rootHint)
 {
 	PathStr fullPath;
-	if (!FindExisting(fullPath, _path, _rootHint)) {
+	if (!FindExisting(fullPath, _path, _rootHint))
+	{
 		return DateTime(); // \todo return invalid sentinel
 	}
 	DateTime created, modified;
@@ -146,12 +159,15 @@ DateTime FileSystem::GetTimeModified(const char* _path, int _rootHint)
 bool FileSystem::CreateDir(const char* _path)
 {
 	TextParser tp(_path);
-	while (tp.advanceToNext("\\/") != 0) {
+	while (tp.advanceToNext("\\/") != 0)
+	{
 		String<64> mkdir;
 		mkdir.set(_path, tp.getCharCount());
-		if (CreateDirectory((const char*)mkdir, NULL) == 0) {
+		if (CreateDirectory((const char*)mkdir, NULL) == 0)
+		{
 			DWORD err = GetLastError();
-			if (err != ERROR_ALREADY_EXISTS) {
+			if (err != ERROR_ALREADY_EXISTS)
+			{
 				FRM_LOG_ERR("CreateDirectory(%s): %s", _path, GetPlatformErrorString(err));
 				return false;
 			}
@@ -169,9 +185,12 @@ PathStr FileSystem::MakeRelative(const char* _path, int _root)
  // 3. As .2 but with no common prefix, path is absolute so do nothing.
 
 	TCHAR root[MAX_PATH] = {};
-	if (IsAbsolute((const char*)(*s_roots)[_root])) {
+	if (IsAbsolute((const char*)(*s_roots)[_root]))
+	{
 		FRM_PLATFORM_VERIFY(GetFullPathName((const char*)(*s_roots)[_root], MAX_PATH, root, NULL));
-	} else {
+	}
+	else
+	{
 		GetAppPath(root, (const char*)(*s_roots)[_root]);
 	}
 
@@ -183,7 +202,8 @@ PathStr FileSystem::MakeRelative(const char* _path, int _root)
 	char* tmp = tmpbuf;
  // PathRelativePathTo will fail if tmp and root don't share a common prefix
 	FRM_VERIFY(PathRelativePathTo(tmp, root, FILE_ATTRIBUTE_DIRECTORY, path, PathIsDirectory(path) ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL));
-	while (*tmp == '.' || *tmp == '\\' || *tmp == '/') {
+	while (*tmp == '.' || *tmp == '\\' || *tmp == '/')
+	{
 		++tmp;
 	}
 	PathStr ret(tmp);
@@ -201,25 +221,32 @@ PathStr FileSystem::StripRoot(const char* _path)
 	TCHAR path[MAX_PATH] = {};
 	FRM_PLATFORM_VERIFY(GetFullPathName(_path, MAX_PATH, path, NULL));
 
-	for (auto& root : (*s_roots)) {
-		if (root.isEmpty()) {
+	for (auto& root : (*s_roots))
+	{
+		if (root.isEmpty())
+		{
 			continue;
 		}
 		TCHAR pathRoot[MAX_PATH];
-		if (IsAbsolute((const char*)root)) {
+		if (IsAbsolute((const char*)root))
+		{
 			FRM_PLATFORM_VERIFY(GetFullPathName((const char*)root, MAX_PATH, pathRoot, NULL));
-		} else {
+		}
+		else
+		{
 			GetAppPath(pathRoot, (const char*)root);
 		}
 		const char* rootBeg = strstr(path, pathRoot);
-		if (rootBeg != nullptr) {
+		if (rootBeg != nullptr)
+		{
 			PathStr ret(path + strlen(pathRoot) + 1);
 			ret.replace('\\', '/');
 			return ret;
 		}
 	}
  // no root found, strip the whole path if not absolute
-	if (!IsAbsolute(_path)) {
+	if (!IsAbsolute(_path))
+	{
 		return StripPath(_path);
 	}
 	return _path;
@@ -243,15 +270,19 @@ bool FileSystem::PlatformSelect(PathStr& ret_, std::initializer_list<const char*
 	ofn.nMaxFile        = kMaxOutputLength;
 	ofn.lpstrTitle      = "File";
 	ofn.Flags           = OFN_DONTADDTORECENT | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
-	if (GetOpenFileName(&ofn) != 0) {
+	if (GetOpenFileName(&ofn) != 0)
+	{
 		s_filterIndex = ofn.nFilterIndex;
 	 // parse s_output into results_
 		ret_.set(s_output);
 		Sanitize(ret_);
 		return true;
-	} else {
+	}
+	else
+	{
 		DWORD err = CommDlgExtendedError();
-		if (err != 0) {
+		if (err != 0)
+		{
 			FRM_LOG_ERR("GetOpenFileName (0x%x)", err);
 			FRM_ASSERT(false);
 		}		
@@ -267,13 +298,15 @@ bool FileSystem::PlatformSelectDir(PathStr& ret_, const char* _prompt)
 	bi.lParam     = (LPARAM)ret_.c_str();
 	
     LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
-	if (pidl != 0 ) {
+	if (pidl != 0 )
+	{
         TCHAR path[MAX_PATH];
         SHGetPathFromIDList(pidl, path);
 		ret_ = Sanitize(path);		
 
         IMalloc* imalloc = nullptr;
-        if (SUCCEEDED(SHGetMalloc(&imalloc))) {
+        if (SUCCEEDED(SHGetMalloc(&imalloc)))
+		{
             imalloc->Free(pidl);
             imalloc->Release();
         }
@@ -302,16 +335,19 @@ int FileSystem::PlatformSelectMulti(PathStr retList_[], int _maxResults, std::in
 	ofn.nMaxFile        = kMaxOutputLength;	
 	ofn.lpstrTitle      = "File";
 	ofn.Flags           = OFN_ALLOWMULTISELECT | OFN_DONTADDTORECENT | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
-	if (GetOpenFileName(&ofn) != 0) {
+	if (GetOpenFileName(&ofn) != 0)
+	{
 		s_filterIndex = ofn.nFilterIndex;
 
 	 // parse s_output into results_
 		int ret = 0;
 		TextParser tp(s_output);
-		while (ret < _maxResults) {
+		while (ret < _maxResults)
+		{
 			tp.advanceToNext('\0');
 			tp.advance();
-			if (*tp == '\0') {
+			if (*tp == '\0')
+			{
 				break;
 			}
 			retList_[ret].appendf("%s\\%s", s_output, (const char*)tp);
@@ -320,9 +356,12 @@ int FileSystem::PlatformSelectMulti(PathStr retList_[], int _maxResults, std::in
 		}
 		return ret;
 
-	} else {
+	}
+	else
+	{
 		DWORD err = CommDlgExtendedError();
-		if (err != 0) {
+		if (err != 0)
+		{
 			FRM_LOG_ERR("GetOpenFileName (0x%x)", err);
 			FRM_ASSERT(false);
 		}		
@@ -335,7 +374,8 @@ int FileSystem::ListFiles(PathStr retList_[], int _maxResults, const char* _path
 	eastl::vector<PathStr> dirs;
 	dirs.push_back(_path);
 	int ret = 0;
-	while (!dirs.empty()) {
+	while (!dirs.empty())
+	{
 		PathStr root = (PathStr&&)dirs.back();
 		dirs.pop_back();
 		root.replace('/', '\\'); // opposite of Sanitize()
@@ -344,24 +384,34 @@ int FileSystem::ListFiles(PathStr retList_[], int _maxResults, const char* _path
 
 		WIN32_FIND_DATA ffd;
 		HANDLE h = FindFirstFile((const char*)search, &ffd);
-		if (h == INVALID_HANDLE_VALUE) {
+		if (h == INVALID_HANDLE_VALUE)
+		{
 			DWORD err = GetLastError();
-			if (err != ERROR_FILE_NOT_FOUND) {
+			if (err != ERROR_FILE_NOT_FOUND)
+			{
 				FRM_LOG_ERR("ListFiles (FindFirstFile): %s", GetPlatformErrorString(err));
 			}
 			continue;
 		} 
 
-		do {
-			if (strcmp(ffd.cFileName, ".") != 0 && strcmp(ffd.cFileName, "..") != 0) {
-				if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-					if (_recursive) {
+		do
+		{
+			if (strcmp(ffd.cFileName, ".") != 0 && strcmp(ffd.cFileName, "..") != 0)
+			{
+				if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				{
+					if (_recursive)
+					{
 						dirs.push_back(root);
 						dirs.back().appendf("\\%s", ffd.cFileName);
 					}
-				} else {
-					if (MatchesMulti(_filterList, (const char*)ffd.cFileName)) {
-						if (ret < _maxResults) {
+				}
+				else
+				{
+					if (MatchesMulti(_filterList, (const char*)ffd.cFileName))
+					{
+						if (ret < _maxResults)
+						{
 							retList_[ret].setf("%s\\%s", (const char*)root, ffd.cFileName);
 							Sanitize(retList_[ret]);
 						}
@@ -373,7 +423,8 @@ int FileSystem::ListFiles(PathStr retList_[], int _maxResults, const char* _path
         } while (FindNextFile(h, &ffd) != 0);
 
 		DWORD err = GetLastError();
-		if (err != ERROR_NO_MORE_FILES) {
+		if (err != ERROR_NO_MORE_FILES)
+		{
 			FRM_LOG_ERR("ListFiles (FindNextFile): %s", GetPlatformErrorString(err));
 		}
 
@@ -391,7 +442,8 @@ int FileSystem::ListDirs(PathStr retList_[], int _maxResults, const char* _path,
 	// There are 2 choices of behavior here: 'direct' recursion (where sub directories appear immediately after the parent in the list), or 'deferred' 
 	// recursion, which is what is implemented. In theory, the latter is better because you can fill a small list of the first couple of levels of 
 	// the hierarchy and then manually recurse into those directories as needed.
-	while (!dirs.empty()) {
+	while (!dirs.empty())
+	{
 		PathStr root = (PathStr&&)dirs.back();
 		dirs.pop_back();
 		root.replace('/', '\\');
@@ -400,23 +452,31 @@ int FileSystem::ListDirs(PathStr retList_[], int _maxResults, const char* _path,
 	
 		WIN32_FIND_DATA ffd;
 		HANDLE h = FindFirstFile((const char*)search, &ffd);
-		if (h == INVALID_HANDLE_VALUE) {
+		if (h == INVALID_HANDLE_VALUE)
+		{
 			DWORD err = GetLastError();
-			if (err != ERROR_FILE_NOT_FOUND) {
+			if (err != ERROR_FILE_NOT_FOUND)	
+			{
 				FRM_LOG_ERR("ListFiles (FindFirstFile): %s", GetPlatformErrorString(err));
 			}
 			continue;
 		}
 
-		do {
-			if (strcmp(ffd.cFileName, ".") != 0 && strcmp(ffd.cFileName, "..") != 0) {
-				if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-					if (_recursive) {
+		do
+		{
+			if (strcmp(ffd.cFileName, ".") != 0 && strcmp(ffd.cFileName, "..") != 0)
+			{
+				if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				{
+					if (_recursive)
+					{
 						dirs.push_back(root);
 						dirs.back().appendf("\\%s", ffd.cFileName);
 					}
-					if (MatchesMulti(_filterList, (const char*)ffd.cFileName)) {
-						if (ret < _maxResults) {
+					if (MatchesMulti(_filterList, (const char*)ffd.cFileName))
+					{
+						if (ret < _maxResults)
+						{
 							retList_[ret].setf("%s\\%s", (const char*)root, ffd.cFileName);
 							Sanitize(retList_[ret]);
 						}
@@ -427,7 +487,8 @@ int FileSystem::ListDirs(PathStr retList_[], int _maxResults, const char* _path,
         } while (FindNextFile(h, &ffd) != 0);
 
 		DWORD err = GetLastError();
-		if (err != ERROR_NO_MORE_FILES) {
+		if (err != ERROR_NO_MORE_FILES)
+		{
 			FRM_LOG_ERR("ListFiles (FindNextFile): %s", GetPlatformErrorString(err));
 		}
 
@@ -472,14 +533,17 @@ namespace {
 
 	void CALLBACK WatchCompletion(DWORD _err, DWORD _bytes, LPOVERLAPPED _overlapped)
 	{
-		if (_err == ERROR_OPERATION_ABORTED) { // CancellIo was called
+		if (_err == ERROR_OPERATION_ABORTED) // CancellIo was called
+		{
 			return;
 		}
-		if (_err != ERROR_SUCCESS) {
+		if (_err != ERROR_SUCCESS)
+		{
 			FRM_LOG_ERR("FileSystem: completion routine error '%s'", GetPlatformErrorString(_err));
 			return;
 		}
-		if (_bytes == 0) { // overflow? notifications lost in this case?
+		if (_bytes == 0) // overflow? notifications lost in this case?
+		{
 			FRM_LOG("FileSystem: completion routine called with 0 bytes");
 			return;
 		}
@@ -487,7 +551,8 @@ namespace {
 		Watch* watch = (Watch*)_overlapped; // m_overlapped is the first member, so this works
 
 		TCHAR fileName[MAX_PATH];
-		for (DWORD off = 0;;) {
+		for (DWORD off = 0;;)
+		{
 			PFILE_NOTIFY_INFORMATION info = (PFILE_NOTIFY_INFORMATION)(watch->m_buf + off);		
 			off += info->NextEntryOffset;
 
@@ -497,7 +562,8 @@ namespace {
 
 			FileSystem::FileAction action = FileSystem::FileAction_Count;
 //char* actionStr = "UNKNOWN";
-			switch (info->Action) {
+			switch (info->Action)
+			{
 				case FILE_ACTION_ADDED: 
 				case FILE_ACTION_RENAMED_NEW_NAME:
 					action = FileSystem::FileAction_Created;
@@ -519,20 +585,25 @@ namespace {
 			bool duplicate = false;
 			std::replace(fileName, fileName + count, '\\', '/');
 			auto& prev = watch->m_prevAction;
-			if (prev.second == action) { // action matches
-				if (prev.first.getLength() == count) { // path length matches
-					if (memcmp(prev.first.c_str(), fileName, count) == 0) { // compare the strings
+			if (prev.second == action) // action matches
+			{
+				if (prev.first.getLength() == count) // path length matches
+				{
+					if (memcmp(prev.first.c_str(), fileName, count) == 0) // compare the strings
+					{
 						duplicate = true;
 					}
 				}
 			}
 //FRM_LOG_DBG("%s -- %s%s", internal::StripPath(fileName), actionStr, duplicate ? " (DUPLICATE)" : "");
-			if (!duplicate) {
+			if (!duplicate)
+			{
 				watch->m_prevAction = eastl::make_pair(PathStr(fileName), action);
 				watch->m_dispatchQueue.push_back(watch->m_prevAction);
 			}
 			
-			if (info->NextEntryOffset == 0) {
+			if (info->NextEntryOffset == 0)
+			{
 				break;
 			}
 		}
@@ -560,7 +631,8 @@ namespace {
 void FileSystem::BeginNotifications(const char* _dir, FileActionCallback* _callback)
 {
 	StringHash dirHash(_dir);
-	if (s_WatchMap.find(dirHash) != s_WatchMap.end()) {
+	if (s_WatchMap.find(dirHash) != s_WatchMap.end())
+	{
 		FRM_ASSERT(false);
 		return;
 	}
@@ -596,7 +668,8 @@ void FileSystem::EndNotifications(const char* _dir)
 {
 	StringHash dirHash(_dir);
 	auto it = s_WatchMap.find(dirHash);
-	if (it == s_WatchMap.end()) {
+	if (it == s_WatchMap.end())
+	{
 		FRM_ASSERT(false);
 		return;
 	}
@@ -612,16 +685,21 @@ void FileSystem::EndNotifications(const char* _dir)
 void FileSystem::DispatchNotifications(const char* _dir)
 {
  // clear 'prevAction' - identical consecutive actions *between* calls to DispatchNotifications are allowed
-	if (_dir) {
+	if (_dir)
+	{
 		auto it = s_WatchMap.find(StringHash(_dir));
-		if (it == s_WatchMap.end()) {
+		if (it == s_WatchMap.end())
+		{
 			FRM_ASSERT(false);
 			return;
 		}
 		it->second->m_prevAction.second = FileAction_Count;
 
-	} else {
-		for (auto& it : s_WatchMap) {
+	}
+	else
+	{
+		for (auto& it : s_WatchMap)
+		{
 			it.second->m_prevAction.second = FileAction_Count;
 		}
 	}
@@ -630,19 +708,25 @@ void FileSystem::DispatchNotifications(const char* _dir)
 	SleepEx(0, TRUE);
 
  // dispatch
-	if (_dir) {
+	if (_dir)
+	{
 		auto it = s_WatchMap.find(StringHash(_dir));
 		Watch& watch = *it->second;
-		for (auto& file : watch.m_dispatchQueue) {
+		for (auto& file : watch.m_dispatchQueue)
+		{
 			PathStr filePath("%s/%s", watch.m_dirPath.c_str(), file.first.c_str());
 			watch.m_dispatchCallback(filePath.c_str(), file.second);
 		}
 		watch.m_dispatchQueue.clear();
 
-	} else {
-		for (auto& it : s_WatchMap) {
+	}
+	else
+	{
+		for (auto& it : s_WatchMap)
+		{
 			Watch& watch = *it.second;
-			for (auto& file : watch.m_dispatchQueue) {
+			for (auto& file : watch.m_dispatchQueue)
+			{
 				PathStr filePath("%s/%s", watch.m_dirPath.c_str(), file.first.c_str());
 				watch.m_dispatchCallback(filePath.c_str(), file.second);
 			}

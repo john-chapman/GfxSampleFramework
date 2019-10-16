@@ -48,14 +48,17 @@ const char* GetPlatformInfoString()
 		VS_FIXEDFILEINFO* osinf;
 		UINT osinfsz;
 		DWORD sz = GetFileVersionInfoSize("kernel32.dll", NULL);
-		if (sz == 0) {
+		if (sz == 0)
+		{
 			goto osver_failure;
 		}
 		verinf = FRM_MALLOC(sz);
-		if (!GetFileVersionInfo("kernel32.dll", (DWORD)0, sz, verinf)) {
+		if (!GetFileVersionInfo("kernel32.dll", (DWORD)0, sz, verinf))
+		{
 			goto osver_failure;
 		}
-		if (!VerQueryValue(verinf, "\\", (LPVOID*)&osinf, &osinfsz)) {
+		if (!VerQueryValue(verinf, "\\", (LPVOID*)&osinf, &osinfsz))
+		{
 			goto osver_failure;
 		}
 		ret.appendf("Windows %u.%u.%u", HIWORD(osinf->dwProductVersionMS), LOWORD(osinf->dwProductVersionMS), HIWORD(osinf->dwProductVersionLS));

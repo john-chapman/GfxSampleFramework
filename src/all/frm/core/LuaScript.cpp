@@ -37,7 +37,8 @@ static void* lua_alloc(void* _ud, void* _ptr, size_t _osize, size_t _nsize)
 {
 	FRM_UNUSED(_ud);
 	FRM_UNUSED(_osize);
-	if (_nsize == 0) {
+	if (_nsize == 0)
+	{
 		FRM_FREE(_ptr);
 		return nullptr;
 	}
@@ -53,7 +54,8 @@ static int lua_panic(lua_State* _L)
 
 static LuaScript::ValueType GetValueType(int _luaType)
 {
-	switch (_luaType) {
+	switch (_luaType)
+	{
 		case LUA_TNIL:      return LuaScript::ValueType_Nil;
 		case LUA_TTABLE:    return LuaScript::ValueType_Table;
 		case LUA_TBOOLEAN:  return LuaScript::ValueType_Bool;
@@ -77,10 +79,12 @@ static LuaScript::ValueType GetValueType(int _luaType)
 LuaScript* LuaScript::CreateAndExecute(const char* _path, Lib _libs)
 {
 	LuaScript* ret = Create(_path, _libs);
-	if (!ret) {
+	if (!ret)
+	{
 		return nullptr;
 	}
-	if (ret->m_err == 0) {
+	if (ret->m_err == 0)
+	{
 		ret->execute();
 	}
 	return ret;
@@ -89,12 +93,14 @@ LuaScript* LuaScript::CreateAndExecute(const char* _path, Lib _libs)
 LuaScript* LuaScript::Create(const char* _path, Lib _libs)
 {
 	File f;
-	if (!FileSystem::ReadIfExists(f, _path)) {
+	if (!FileSystem::ReadIfExists(f, _path))
+	{
 		return nullptr;
 	}
 
 	LuaScript* ret = FRM_NEW(LuaScript(_path, _libs));
-	if (!ret->loadText(f.getData(), f.getDataSize(), f.getPath())) {
+	if (!ret->loadText(f.getData(), f.getDataSize(), f.getPath()))
+	{
 		goto LuaScript_Create_end;
 	}
 
@@ -114,15 +120,20 @@ void LuaScript::Destroy(LuaScript*& _script_)
 
 bool LuaScript::find(const char* _name)
 {
-	if (m_currentTable != 1) {
+	if (m_currentTable != 1)
+	{
 		popToCurrentTable();
 		lua_pushstring(m_state, _name);
-		if (lua_rawget(m_state, m_currentTable) == LUA_TNIL) {
+		if (lua_rawget(m_state, m_currentTable) == LUA_TNIL)
+		{
 			return false;
 		}
-	} else {
+	}
+	else
+	{
 		popAll();
-		if (lua_getglobal(m_state, _name) == LUA_TNIL) {
+		if (lua_getglobal(m_state, _name) == LUA_TNIL)
+		{
 			return false;
 		}
 	}
@@ -132,20 +143,26 @@ bool LuaScript::find(const char* _name)
 
 bool LuaScript::next()
 {
-	if (m_currentTable == 1) {
+	if (m_currentTable == 1)
+	{
 		FRM_LOG_ERR("LuaScript::next(): not in a table");
 		return false;
 	}
 	popToCurrentTable();
 
-	if (lua_rawlen(m_state, -1) == 0) {
+	if (lua_rawlen(m_state, -1) == 0)
+	{
 	 // assume table has non-integer keys
-		if (m_tableField[m_currentTable].isEmpty()) {
+		if (m_tableField[m_currentTable].isEmpty())
+		{
 			lua_pushnil(m_state);
-		} else {
+		}
+		else
+		{
 			lua_pushstring(m_state, m_tableField[m_currentTable].c_str());
 		}
-		if (lua_next(m_state, m_currentTable) == 0) {
+		if (lua_next(m_state, m_currentTable) == 0)
+		{
 			return false;
 		}
 		FRM_ASSERT(lua_type(m_state, -2) == LUA_TSTRING);
@@ -154,7 +171,8 @@ bool LuaScript::next()
 
 	} else {
 	 // assume table has integer keys
-		if (lua_rawgeti(m_state, -1, ++m_tableIndex[m_currentTable]) == LUA_TNIL) {
+		if (lua_rawgeti(m_state, -1, ++m_tableIndex[m_currentTable]) == LUA_TNIL)
+		{
 			lua_pop(m_state, 1);
 			return false;
 		}
@@ -164,11 +182,13 @@ bool LuaScript::next()
 
 bool LuaScript::enterTable()
 {
-	if (lua_gettop(m_state) == 0) {
+	if (lua_gettop(m_state) == 0)
+	{
 		FRM_LOG_ERR("LuaScript::enterTable(): stack empty");
 		return false;
 	}
-	if (lua_type(m_state, -1) != LUA_TTABLE) {
+	if (lua_type(m_state, -1) != LUA_TTABLE)
+	{
 		FRM_LOG_ERR("LuaScript::enterTable(): not a table");
 		return false;
 	}
@@ -183,7 +203,8 @@ bool LuaScript::enterTable()
 
 void LuaScript::leaveTable()
 {
-	if (m_currentTable == 1) {
+	if (m_currentTable == 1)
+	{
 		FRM_LOG_ERR("LuaScript::leaveTable(): not in a table");
 		return;
 	}
@@ -204,17 +225,20 @@ const char* LuaScript::getName() const
 
 int LuaScript::getTableLength() const
 {
-	if (m_currentTable == 1) {
+	if (m_currentTable == 1)
+	{
 		return -1;
 	}
 
-	if (m_tableLength[m_currentTable] > 0) {
+	if (m_tableLength[m_currentTable] > 0)
+	{
 		return m_tableLength[m_currentTable];
 	}
 
  // either in an empty table or a table with non-integer keys, compute the size by traversing the table with lua_next
 	lua_pushnil(m_state); // first key
-	while (lua_next(m_state, m_currentTable) != 0) { // pushes key,value on the stack
+	while (lua_next(m_state, m_currentTable) != 0) // pushes key,value on the stack
+	{
 		lua_pop(m_state, 1); // pop value
 		++m_tableLength[m_currentTable];
 	}
@@ -225,11 +249,13 @@ template <>
 bool LuaScript::getValue<bool>(int _i) const
 {
 	bool needPop = gotoIndex(_i);
-	if (!lua_isboolean(m_state, -1)) {
+	if (!lua_isboolean(m_state, -1))
+	{
 		FRM_LOG_ERR("LuaScript::getValue<bool>(%d): not a boolean", _i);
 	}
 	bool ret = lua_toboolean(m_state, -1) != 0;
-	if (needPop) {
+	if (needPop)
+	{
 		lua_pop(m_state, 1);
 	}
 	return ret;
@@ -264,11 +290,13 @@ template <>
 const char* LuaScript::getValue<const char*>(int _i) const
 {
 	bool needPop = gotoIndex(_i);
-	if (!lua_isstring(m_state, -1)) {
+	if (!lua_isstring(m_state, -1))
+	{
 		FRM_LOG_ERR("LuaScript::getValue<const char*>(%d): not a string", _i);
 	}
 	auto ret = lua_tostring(m_state, -1);
-	if (needPop) {
+	if (needPop)
+	{
 		lua_pop(m_state, 1);
 	}
 	return ret;
@@ -277,11 +305,13 @@ const char* LuaScript::getValue<const char*>(int _i) const
 template <>
 void LuaScript::setValue<bool>(bool _value, int _i)
 {
-	if (m_currentTable == 1) {
+	if (m_currentTable == 1)
+	{
 		FRM_LOG_ERR("LuaScript::setValue<bool>(%s, %d): not in a table", _value ? "true" : "false", _i);
 		return;
 	}
-	if (_i == 0 && m_tableIndex[m_currentTable] == 0) {
+	if (_i == 0 && m_tableIndex[m_currentTable] == 0)
+	{
 		FRM_LOG_ERR("LuaScript::setValue<bool>(%s, %d): stack empty", _value ? "true" : "false", _i);
 		return;
 	}
@@ -320,11 +350,13 @@ FRM_DataType_decl(LuaScript_setValue_Number_i)
 template <>
 void LuaScript::setValue<const char*>(const char* _value, int _i)
 {
-	if (m_currentTable == 1) {
+	if (m_currentTable == 1)
+	{
 		FRM_LOG_ERR("LuaScript::setValue<const char*>(%s, %d): not in a table", _value, _i);
 		return;
 	}
-	if (_i == 0 && m_tableIndex[m_currentTable] == 0) {
+	if (_i == 0 && m_tableIndex[m_currentTable] == 0)
+	{
 		FRM_LOG_ERR("LuaScript::setValue<const char*>(%s, %d): stack empty", _value, _i);
 		return;
 	}
@@ -371,10 +403,13 @@ int LuaScript::call()
 
 	int top = lua_gettop(m_state);
 	int nargs = top;
-	if (m_currentTable != 1) {
+	if (m_currentTable != 1)
+	{
 	 // arg count is everything on the stack within the current table
 		nargs = FRM_MAX(0, nargs - m_currentTable - 1); // -1 = account for the LUA_TFUNCTION
-	} else {
+	}
+	else
+	{
 	 // arg count is everything on the stack
 		nargs = FRM_MAX(0, nargs - 2); // -2 = account for the LUA_TFUNCTION and the script chunk
 	}
@@ -383,7 +418,8 @@ int LuaScript::call()
 	
  // ret count is the difference between the new top and the position of the LUA_TFUNCTION before the call to lua_pcall
 	int nrets = lua_gettop(m_state) - (top - (nargs + 1));
-	if (m_err) {
+	if (m_err)
+	{
 		lua_pop(m_state, nrets);
 		return -1;
 	}
@@ -412,7 +448,8 @@ void LuaScript::pushValue<const char*>(const char* _value)
 template <>
 bool LuaScript::popValue<bool>()
 {
-	if (!lua_isboolean(m_state, -1)) {
+	if (!lua_isboolean(m_state, -1))
+	{
 		FRM_LOG_ERR("LuaScript::popValue<bool>): not a boolean");
 	}
 	bool ret = lua_toboolean(m_state, -1) != 0;
@@ -420,7 +457,7 @@ bool LuaScript::popValue<bool>()
 	return ret;
 }
 #define LuaScript_popValue_Number(_type, _enum) \
-	template <> _type LuaScript::popValue<_type>() { \
+	template <> _type LuaScript::popValue<_type>(){ \
 		if (!lua_isnumber(m_state, -1)) \
 			FRM_LOG_ERR("LuaScript::popValue<%s>(): not a number", frm::DataTypeString(_enum)); \
 		auto ret = (_type)lua_tonumber(m_state, -1); \
@@ -432,7 +469,8 @@ FRM_DataType_decl(LuaScript_popValue_Number)
 template <>
 const char* LuaScript::popValue<const char*>()
 {
-	if (!lua_isstring(m_state, -1)) {
+	if (!lua_isstring(m_state, -1))
+	{
 		FRM_LOG_ERR("LuaScript::popValue<const char*>(): not a string");
 	}
 	auto ret = lua_tostring(m_state, -1);
@@ -444,10 +482,12 @@ void LuaScript::dbgPrintStack()
 {
 	int top = lua_gettop(m_state);
 	String<128> msg("\n===");
-	if (m_currentTable != 1) {
+	if (m_currentTable != 1)
+	{
 		msg.appendf(" current table = %d, index = %d, field = '%s' length = %d", m_currentTable, m_tableIndex[m_currentTable], m_tableField[m_currentTable].c_str(), m_tableLength[m_currentTable]);
 	}
-	for (int i = 1; i <= top; ++i) {
+	for (int i = 1; i <= top; ++i)
+	{
 		msg.appendf("\n%d: ", i);
 		int type = lua_type(m_state, i);
 		switch (type) {
@@ -508,50 +548,61 @@ bool LuaScript::loadLibs(Lib _libs)
 	luaL_requiref(m_state, "_G", luaopen_base, 1);
 	lua_pop(m_state, 1);
 
-	if ((_libs & Lib_LuaTable) != 0) {
+	if ((_libs & Lib_LuaTable) != 0)
+	{
 		luaL_requiref(m_state, LUA_TABLIBNAME, luaopen_table, 1);
 		lua_pop(m_state, 1);
 	}
-	if ((_libs & Lib_LuaString) != 0) {
+	if ((_libs & Lib_LuaString) != 0)
+	{
 		luaL_requiref(m_state, LUA_STRLIBNAME, luaopen_string, 1);
 		lua_pop(m_state, 1);
 	}
-	if ((_libs & Lib_LuaUtf8) != 0) {
+	if ((_libs & Lib_LuaUtf8) != 0)
+	{
 		luaL_requiref(m_state, LUA_UTF8LIBNAME, luaopen_utf8, 1);
 		lua_pop(m_state, 1);
 	}
-	if ((_libs & Lib_LuaMath) != 0) {
+	if ((_libs & Lib_LuaMath) != 0)
+	{
 		luaL_requiref(m_state, LUA_MATHLIBNAME, luaopen_math, 1);
 		lua_pop(m_state, 1);
 	}
-	if ((_libs & Lib_LuaIo) != 0) {
+	if ((_libs & Lib_LuaIo) != 0)
+	{
 		luaL_requiref(m_state, LUA_IOLIBNAME, luaopen_io, 1);
 		lua_pop(m_state, 1);
 	}
-	if ((_libs & Lib_LuaOs) != 0) {
+	if ((_libs & Lib_LuaOs) != 0)
+	{
 		luaL_requiref(m_state, LUA_OSLIBNAME, luaopen_os, 1);
 		lua_pop(m_state, 1);
 	}
-	if ((_libs & Lib_LuaPackage) != 0) {
+	if ((_libs & Lib_LuaPackage) != 0)
+	{
 		luaL_requiref(m_state, LUA_LOADLIBNAME, luaopen_package, 1);
 		lua_pop(m_state, 1);
 	}
-	if ((_libs & Lib_LuaCoroutine) != 0) {
+	if ((_libs & Lib_LuaCoroutine) != 0)
+	{
 		luaL_requiref(m_state, LUA_COLIBNAME, luaopen_coroutine, 1);
 		lua_pop(m_state, 1);
 	}
-	if ((_libs & Lib_LuaDebug) != 0) {
+	if ((_libs & Lib_LuaDebug) != 0)
+	{
 		luaL_requiref(m_state, LUA_DBLIBNAME, luaopen_debug, 1);
 		lua_pop(m_state, 1);
 	}
 
  // framework
 
-	if ((_libs & Lib_FrmCore) != 0) {
+	if ((_libs & Lib_FrmCore) != 0)
+	{
 		luaL_requiref(m_state, "FrmCore", luaopen_FrmCore, 1);
 		lua_pop(m_state, 1);
 	}
-	if ((_libs & Lib_FrmFileSystem) != 0) {
+	if ((_libs & Lib_FrmFileSystem) != 0)
+	{
 		FRM_ASSERT(false); // \todo
 	}
 
@@ -589,7 +640,8 @@ void LuaScript::setValue(int _i)
 	_i = _i ? _i : m_tableIndex[m_currentTable];
 	m_tableLength[m_currentTable] = FRM_MAX(_i, m_tableLength[m_currentTable]);
 	lua_seti(m_state, m_currentTable, _i);
-	if (_i == 0 || _i == m_tableIndex[m_currentTable]) {
+	if (_i == 0 || _i == m_tableIndex[m_currentTable])
+	{
 		popToCurrentTable();
 		gotoIndex(m_tableIndex[m_currentTable]);
 	}
@@ -597,17 +649,22 @@ void LuaScript::setValue(int _i)
 
 void LuaScript::setValue(const char* _name)
 {
-	if (m_currentTable != 1) {
+	if (m_currentTable != 1)
+	{
 		lua_setfield(m_state, m_currentTable, _name);
-		if (m_tableField[m_currentTable] == _name) {
+		if (m_tableField[m_currentTable] == _name)
+		{
 			popToCurrentTable();
 			lua_pushstring(m_state, _name);
 			FRM_VERIFY(lua_rawget(m_state, m_currentTable) != LUA_TNIL);
 		}
 
-	} else {
+	}
+	else
+	{
 		lua_setglobal(m_state, _name);
-		if (m_tableField[m_currentTable] == _name) {
+		if (m_tableField[m_currentTable] == _name)
+		{
 			popAll();
 			FRM_VERIFY(lua_getglobal(m_state, _name) != LUA_TNIL);
 		}
@@ -618,8 +675,10 @@ void LuaScript::setValue(const char* _name)
 
 bool LuaScript::gotoIndex(int _i) const
 {
-	if (_i > 0) {
-		if (m_currentTable == 1) {
+	if (_i > 0)
+	{
+		if (m_currentTable == 1)
+		{
 			FRM_LOG_ERR("LuaScript::gotoIndex(%d): not in a table", _i);
 			return false;
 		}
@@ -646,21 +705,24 @@ extern "C"
 
 static int FrmCore_Log(lua_State* _L)
 {
-	if (lua_gettop(_L) > 0) {
+	if (lua_gettop(_L) > 0)
+	{
 		FRM_LOG(luaL_optstring(_L, 1, "nil"));
 	}
 	return 0;
 }
 static int FrmCore_LogDbg(lua_State* _L)
 {
-	if (lua_gettop(_L) > 0) {
+	if (lua_gettop(_L) > 0)
+	{
 		FRM_LOG_DBG(luaL_optstring(_L, 1, "nil"));
 	}
 	return 0;
 }
 static int FrmCore_LogErr(lua_State* _L)
 {
-	if (lua_gettop(_L) > 0) {
+	if (lua_gettop(_L) > 0)
+	{
 		FRM_LOG_ERR(luaL_optstring(_L, 1, "nil"));
 	}
 	return 0;
@@ -676,7 +738,8 @@ static int FrmCore_StringHash(lua_State* _L)
 
 static int luaopen_FrmCore(lua_State* _L)
 {
-	static const struct luaL_Reg FrmCore[] = {
+	static const struct luaL_Reg FrmCore[] = 
+	{
 		{ "Log",        FrmCore_Log        },
 		{ "LogDbg",     FrmCore_LogDbg     },
 		{ "LogErr",     FrmCore_LogErr     },
@@ -689,7 +752,8 @@ static int luaopen_FrmCore(lua_State* _L)
 
 static int lua_print(lua_State* _L)
 {
-	if (lua_gettop(_L) > 0) {
+	if (lua_gettop(_L) > 0)
+	{
 		FRM_LOG(luaL_optstring(_L, 1, "nil"));
 	}
 	return 0;
@@ -700,15 +764,18 @@ static int lua_include(lua_State* _L)
 	const char* path = luaL_optstring(_L, 1, "");
 	
 	File f;
-	if (!FileSystem::Read(f, path)) {
+	if (!FileSystem::Read(f, path))
+	{
 		return 1;
 	}
 
-	if (luaL_loadbuffer(_L, f.getData(), f.getDataSize(), path) != LUA_OK) {
+	if (luaL_loadbuffer(_L, f.getData(), f.getDataSize(), path) != LUA_OK)
+	{
 		return 1;
 	}
 	
-	if (lua_pcall(_L, 0, LUA_MULTRET, 0) != LUA_OK) {
+	if (lua_pcall(_L, 0, LUA_MULTRET, 0) != LUA_OK)
+	{
 		FRM_LOG_ERR("Lua error: %s", lua_tostring(_L, -1));
 		lua_pop(_L, 1);
 		return 1;

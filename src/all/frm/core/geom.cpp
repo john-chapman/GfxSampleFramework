@@ -178,7 +178,8 @@ AlignedBox::AlignedBox(const Frustum& _frustum)
 {
 	m_min = vec3(FLT_MAX);
 	m_max = vec3(-FLT_MAX);
-	for (int i = 0; i < 8; ++i) {
+	for (int i = 0; i < 8; ++i)
+	{
 		m_min = Min(m_min, _frustum.m_vertices[i]);
 		m_max = Max(m_max, _frustum.m_vertices[i]);
 	}
@@ -303,7 +304,8 @@ Frustum::Frustum(float _up, float _down, float _right, float _left, float _near,
 	float nd = _down;
 	float nr = _right;
 	float nl = _left;
-	if (!_isOrtho) {
+	if (!_isOrtho) 
+	{
 		nu *= _near;
 		nd *= _near;
 		nr *= _near;
@@ -319,7 +321,8 @@ Frustum::Frustum(float _up, float _down, float _right, float _left, float _near,
 	float fd = _down;
 	float fr = _right;
 	float fl = _left;
-	if (!_isOrtho) {
+	if (!_isOrtho) 
+	{
 		fu *= _far;
 		fd *= _far;
 		fr *= _far;
@@ -351,7 +354,8 @@ Frustum::Frustum(const Frustum& _base, float _nearOffset, float _farOffset)
 	float d = length(_base.m_planes[Plane_Far].getOrigin() - _base.m_planes[Plane_Near].getOrigin());
 	float n = _nearOffset / d;
 	float f = _farOffset  / d;
-	for (int i = 0; i < 4; ++i) {
+	for (int i = 0; i < 4; ++i) 
+	{
 		m_vertices[i]     = lerp(_base.m_vertices[i], _base.m_vertices[i + 4], n);
 		m_vertices[i + 4] = lerp(_base.m_vertices[i], _base.m_vertices[i + 4], 1.0f + f);
 	}
@@ -360,18 +364,23 @@ Frustum::Frustum(const Frustum& _base, float _nearOffset, float _farOffset)
 
 void Frustum::transform(const mat4& _mat)
 {
-	for (int i = 0; i < Plane_Count; ++i) {
+	for (int i = 0; i < Plane_Count; ++i) 
+	{
 		m_planes[i].transform(_mat);
 	}
-	for (int i = 0; i < 8; ++i) {
+
+	for (int i = 0; i < 8; ++i) 
+	{
 		m_vertices[i] = TransformPosition(_mat, m_vertices[i]);
 	}
 }
 
 bool Frustum::inside(const Sphere& _sphere) const
 {
-	for (int i = 0; i < Plane_Count; ++i) {
-		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
+	for (int i = 0; i < Plane_Count; ++i) 
+	{
+		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) 
+		{
 			return false;
 		}
 	}
@@ -380,8 +389,10 @@ bool Frustum::inside(const Sphere& _sphere) const
 
 bool Frustum::insideIgnoreNear(const Sphere& _sphere) const
 {
-	for (int i = 1; i < Plane_Count; ++i) {
-		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) {
+	for (int i = 1; i < Plane_Count; ++i)
+	{
+		if (Distance(m_planes[i], _sphere.m_origin) < -_sphere.m_radius) 
+		{
 			return false;
 		}
 	}
@@ -391,7 +402,8 @@ bool Frustum::insideIgnoreNear(const Sphere& _sphere) const
 bool Frustum::inside(const AlignedBox& _box) const
 {
 #if 0
-	vec3 points[] = {
+	vec3 points[] = 
+	{
 		vec3(_box.m_min.x, _box.m_min.y, _box.m_min.z),
 		vec3(_box.m_max.x, _box.m_min.y, _box.m_min.z),
 		vec3(_box.m_max.x, _box.m_max.y, _box.m_min.z),
@@ -403,21 +415,26 @@ bool Frustum::inside(const AlignedBox& _box) const
 		vec3(_box.m_min.x, _box.m_max.y, _box.m_max.z)
 	};
 
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < 6; ++i) 
+	{
 		bool inside = false;
-		for (int j = 0; j < 8; ++j) {
-			if (Distance(m_planes[i], points[j]) > 0.0f) {
+		for (int j = 0; j < 8; ++j)
+		{
+			if (Distance(m_planes[i], points[j]) > 0.0f) 
+			{
 				inside = true;
 				break;
 			}
 		}
-		if (!inside) {
+		if (!inside) 
+		{
 			return false;
 		}
 	}
 	return true;
 #else
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < 6; ++i)
+	{
 		vec3 n = m_planes[i].m_normal;
 		float d = 
 			Max(_box.m_min.x * n.x, _box.m_max.x * n.x) +
@@ -425,7 +442,8 @@ bool Frustum::inside(const AlignedBox& _box) const
 			Max(_box.m_min.z * n.z, _box.m_max.z * n.z) -
 			m_planes[i].m_offset
 			;
-		if (d < 0.0f) {
+		if (d < 0.0f)
+		{
 			return false;
 		}
 	}
@@ -470,13 +488,19 @@ vec3 frm::Nearest(const LineSegment& _segment, const vec3& _point)
 	vec3 dir = _segment.m_end - _segment.m_start;
 	vec3 p = _point - _segment.m_start;
 	float q = dot(p, dir);
-	if (q <= 0.0f) {
+	if (q <= 0.0f)
+	{
 		return _segment.m_start;
-	} else {
+	}
+	else
+	{
 		float r = length2(dir);
-		if (q >= r) {
+		if (q >= r)
+		{
 			return _segment.m_end;
-		} else {
+		}
+		else
+		{
 			return _segment.m_start + dir * (q / r);
 		}
 	}
@@ -492,12 +516,15 @@ vec3 frm::Nearest(const Plane& _plane, const vec3& _point)
 vec3 frm::Nearest(const AlignedBox& _box, const vec3& _point)
 {
 	vec3 ret;
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < 3; ++i)	
+	{
 		float v = _point[i];
-		if (v < _box.m_min[i]) {
+		if (v < _box.m_min[i])
+		{
 			v = _box.m_min[i];
 		}
-		if (v > _box.m_max[i]) {
+		if (v > _box.m_max[i])
+		{
 			v = _box.m_max[i];
 		}
 		ret[i] = v;
@@ -511,10 +538,13 @@ void frm::Nearest(const Line& _line0, const Line& _line1, float& t0_, float& t1_
 	float s = dot(_line1.m_direction, p);
 
 	float d = 1.0f - q * q;
-	if (d < FLT_EPSILON) { // lines are parallel
+	if (d < FLT_EPSILON) // lines are parallel
+	{
 		t0_ = 0.0f;
 		t1_ = s;
-	} else {
+	}
+	else
+	{
 		float r = dot(_line0.m_direction, p);
 		t0_ = (q * s - r) / d;
 		t1_ = (s - q * r) / d;
@@ -536,19 +566,25 @@ vec3 frm::Nearest(const Ray& _ray, const LineSegment& _segment, float& tr_)
 
 	float sn, sd, tn, td;
 	float denom = q - r * r;
-	if (denom < FLT_EPSILON) {
+	if (denom < FLT_EPSILON)
+	{
 		sd = td = 1.0f;
 		sn = 0.0f;
 		tn = t;
-	} else {
+	}
+	else
+	{
 		sd = td = denom;
 		sn = r * t - s;
 		tn = q * t - r * s;
-		if (sn < 0.0f) {
+		if (sn < 0.0f)
+		{
 		    sn = 0.0f;
 		    tn = t;
 		    td = 1.0f;
-		} else if (sn > sd) {
+		}
+		else if (sn > sd)
+		{
 			sn = sd;
 			tn = t + r;
 			td = 1.0f;
@@ -556,16 +592,24 @@ vec3 frm::Nearest(const Ray& _ray, const LineSegment& _segment, float& tr_)
 	}
 
 	float ts;
-	if (tn < 0.0f) {
+	if (tn < 0.0f)
+	{
 		tr_ = 0.0f;
-		if (r >= 0.0f) {
+		if (r >= 0.0f)
+		{
 		    ts = 0.0f;
-		} else if (s <= q) {
+		}
+		else if (s <= q)
+		{
 		    ts = 1.0f;
-		} else {
+		}
+		else
+		{
 		    ts = -s / q;
 		}
-	} else {
+	}
+	else
+	{
 		tr_ = tn / td;
 		ts = sn / sd;
 	}
@@ -581,7 +625,8 @@ float frm::Distance2(const Ray& _ray, const vec3& _point)
 {
 	vec3 p = _point - _ray.m_origin;
 	float q = dot(p, _ray.m_direction);
-	if (q < 0.0f) {
+	if (q < 0.0f)
+	{
 		return length2(p);
 	}
 	return length2(p) - (q * q);
@@ -591,13 +636,19 @@ float frm::Distance2(const LineSegment& _segment, const vec3& _point)
 	vec3 dir = _segment.m_end - _segment.m_start;
 	vec3 p = _point - _segment.m_start;
 	float q = dot(p, dir);
-	if (q <= 0.0f) {
+	if (q <= 0.0f)
+	{
 		return length2(p);
-	} else {
+	}
+	else
+	{
 		float r = length2(dir);
-		if (q >= r) {
+		if (q >= r)
+		{
 			return length2(_point - _segment.m_end);
-		} else {
+		}
+		else
+		{
 			return length2(p) - q * q / r;
 		}
 	}
@@ -609,9 +660,12 @@ float frm::Distance2(const Line& _line0, const Line& _line1)
 	float s = dot(_line1.m_direction, p);
 
 	float d = 1.0f - q * q;
-	if (d < FLT_EPSILON) { // lines are parallel
+	if (d < FLT_EPSILON) // lines are parallel
+	{
 		return length2(p - s * _line1.m_direction);
-	} else {
+	}
+	else
+	{
 		float r = dot(_line0.m_direction, p);		
 		return length2(p + ((q * s - r) / d) * _line0.m_direction - ((s - q * r) / d) * _line1.m_direction);
 	}
@@ -630,20 +684,26 @@ float frm::Distance2(const LineSegment& _segment0, const LineSegment& _segment1)
 	float denom = q * s - r * r;
 	float sn, sd, tn, td;
 
-	if (denom < FLT_EPSILON) {
+	if (denom < FLT_EPSILON)
+	{
 		sd = td = s;
 		sn = 0.0f;
 		tn = u;
-	} else {
+	}
+	else
+	{
 		sd = td = denom;
 		sn = r * u - s * t;
 		tn = q * u - r * t;
 	
-		if (sn < 0.0f) {
+		if (sn < 0.0f)
+		{
 			sn = 0.0f;
 			tn = u;
 			td = s;
-		} else if (sn > sd) {
+		}
+		else if (sn > sd)
+		{
 			sn = sd;
 			tn = u + r;
 			td = s;
@@ -651,25 +711,40 @@ float frm::Distance2(const LineSegment& _segment0, const LineSegment& _segment1)
 	}
 	
 	float t0, t1;
-	if (tn < 0.0f) {
+	if (tn < 0.0f)
+	{
 		t1 = 0.0f;
-		if (-t < 0.0f) {
+		if (-t < 0.0f)
+		{
 			t0 = 0.0f;
-		} else if (-t > q) {
+		}
+		else if (-t > q)
+		{
 			t0 = 1.0f;
-		} else {
+		}
+		else
+		{
 			t0 = -t / q;
 		}
-	} else if (tn > td) {
+	}
+	else if (tn > td)
+	{
 	    t1 = 1.0f;
-	    if ((-t + r) < 0.0f) {
+	    if ((-t + r) < 0.0f)
+		{
 			t0 = 0.0f;
-	    } else if ((-t + r) > q) {
+	    }
+		else if ((-t + r) > q)
+		{
 			t0 = 1.0f;
-	    } else {
+	    }
+		else
+		{
 			t0 = (-t + r) / q;
 	    }
-	} else {
+	}
+	else
+	{
 		t0 = sn / sd;
 		t1 = tn / td;
 	}
@@ -690,13 +765,16 @@ float frm::Distance(const Plane& _plane, const vec3& _point)
 float frm::Distance2(const AlignedBox& _box, const vec3& _point)
 {
 	float ret = 0.0f;
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < 3; ++i)
+	{
 		float v = _point[i];
 		float d = 0.0f;
-		if (v < _box.m_min[i]) {
+		if (v < _box.m_min[i])
+		{
 			d = _box.m_min[i] - v;
 		}
-		if (v > _box.m_max[i]) {
+		if (v > _box.m_max[i])
+		{
 			d = v - _box.m_max[i];
 		}
 		ret += d * d;
@@ -708,10 +786,13 @@ inline static void OrderByMagnitude(float& _t0_, float& _t1_)
 {
 	float a = _t0_;
 	float b = _t1_;
-	if (fabs(a) < fabs(b)) {
+	if (fabs(a) < fabs(b))
+	{
 		_t0_ = a;
 		_t1_ = b;
-	} else {
+	}
+	else
+	{
 		_t1_ = a;
 		_t0_ = b;
 	}
@@ -720,7 +801,8 @@ inline static void OrderByMagnitude(float& _t0_, float& _t1_)
 inline static bool SolveQuadratic(float _a, float _b, float _c, float& x0_, float &x1_) 
 {
 	float d = _b * _b - 4.0f * _a * _c; 
-    if (d <= 0.0f) {
+    if (d <= 0.0f)
+	{
 		return false;
 	}
 	d = sqrtf(d);
@@ -749,7 +831,8 @@ bool frm::Intersect(const Line& _line, const Sphere& _sphere, float& t0_, float&
 	float c = length2(p) - (_sphere.m_radius * _sphere.m_radius);
 
 	float t0, t1;
-	if (!SolveQuadratic(a, b, c, t0, t1)) {
+	if (!SolveQuadratic(a, b, c, t0, t1))
+	{
 		return false;
 	}
 	t0_ = t0;
@@ -763,7 +846,8 @@ bool frm::Intersects(const Line& _line, const Plane& _plane)
 bool frm::Intersect(const Line& _line, const Plane& _plane, float& t0_)
 {
 	float x = dot(_plane.m_normal, _line.m_direction);
-	if (Abs(x) < FLT_EPSILON) {
+	if (Abs(x) < FLT_EPSILON)
+	{
 		return false;
 	} 
 	t0_ = dot(_plane.m_normal, (_plane.m_normal * _plane.m_offset) - _line.m_origin) / x;
@@ -783,7 +867,8 @@ bool frm::Intersect(const Line& _line, const AlignedBox& _box, float& t0_, float
 	vec3 tmin = Min(omax, omin);
 	float t1 = Min(tmax.x, Min(tmax.y, tmax.z));
 	float t0 = Max(tmin.x, Max(tmin.y, tmin.z));
-	if (t1 < t0) {
+	if (t1 < t0)	
+	{
 		return false;
 	}
 	OrderByMagnitude(t0, t1);
@@ -809,7 +894,8 @@ bool frm::Intersect(const Line& _line, const Capsule& _capsule, float& t0_, floa
 	float b = dot( oc, _line.m_direction) - caoc * card;
 	float c = length2(oc) - caoc * caoc - r2;
 	float d = b * b - a * c;
-	if (d <= 0.0f) {
+	if (d <= 0.0f)
+	{
 		return false;
 	}
 	d = sqrtf(d);
@@ -817,7 +903,8 @@ bool frm::Intersect(const Line& _line, const Capsule& _capsule, float& t0_, floa
     float t = (-b - d) / a;
 	float y = caoc + t * card;
 
-    if (fabs(y) < ch) {
+    if (fabs(y) < ch)
+	{
 	 // t0 intersects the body
 		t0_ = t;
 		t1_ = (-b + d) / a; // second solution for the infinite cylinder
@@ -827,7 +914,8 @@ bool frm::Intersect(const Line& _line, const Capsule& _capsule, float& t0_, floa
 		b = dot(_line.m_direction, oc);
 		c = length2(oc) - r2;
 		d = b * b - c;
-		if (d > 0.0f) {
+		if (d > 0.0f)
+		{
 			d = sqrtf(d);
 			t1_ = -b + d;
 			//t1_ = Min(t1_, -b + d);
@@ -840,7 +928,8 @@ bool frm::Intersect(const Line& _line, const Capsule& _capsule, float& t0_, floa
 	b = dot(_line.m_direction, oc);
 	c = length2(oc) - r2;
 	d = b * b - c;
-	if (d > 0.0f) {
+	if (d > 0.0f)
+	{
 	 // t0 intersects a cap
 		d = sqrtf(d);
 		t0_ = -b - d;
@@ -880,16 +969,20 @@ bool frm::Intersect(const Line& _line, const Cylinder& _cylinder, float& t0_, fl
 	float b = 2.0f * dot(r, q);
 	float c = length2(q) - (_cylinder.m_radius * _cylinder.m_radius * length2(cdir));
 	float t0, t1;
-	if (SolveQuadratic(a, b, c, t0, t1)) { // intersects the infinite cylinder
+	if (SolveQuadratic(a, b, c, t0, t1)) // intersects the infinite cylinder
+	{
 	 // clamp t at endpoint planes
 		vec3 nrm = normalize(cdir);
 		float t2, t3;
 		Intersect(_line, Plane(nrm, _cylinder.m_end), t2);
 		Intersect(_line, Plane(-nrm, _cylinder.m_start), t3);
-		if (t3 < t2) {
+		if (t3 < t2)
+		{
 			t0 = FRM_CLAMP(t0, t3, t2);
 			t1 = FRM_CLAMP(t1, t3, t2);
-		} else {
+		}
+		else
+		{
 			t0 = FRM_CLAMP(t0, t2, t3);
 			t1 = FRM_CLAMP(t1, t2, t3);
 		}
@@ -917,7 +1010,8 @@ bool frm::Intersects(const Ray& _ray, const Sphere& _sphere)
 	float p2 = length2(p);
 	float q  = dot(p, _ray.m_direction);
 	float r2 = _sphere.m_radius * _sphere.m_radius;
-	if (q < 0.0f && p2 > r2) {
+	if (q < 0.0f && p2 > r2)
+	{
 		return false;
 	}
 	return p2 - (q * q) <= r2;
@@ -925,12 +1019,16 @@ bool frm::Intersects(const Ray& _ray, const Sphere& _sphere)
 bool frm::Intersect(const Ray& _ray, const Sphere& _sphere, float& t0_, float& t1_)
 {
 	float t0, t1;
-	if (!frm::Intersect(Line(_ray.m_origin, _ray.m_direction), _sphere, t0, t1)) {
+	if (!frm::Intersect(Line(_ray.m_origin, _ray.m_direction), _sphere, t0, t1))
+	{
 		return false;
 	}
-	if (t0 < 0.0f && t1 < 0.0f) { // sphere behind ray origin
+	if (t0 < 0.0f && t1 < 0.0f) // sphere behind ray origin
+	{
 		return false;
-	} else if (t0 < 0.0f || t1 < 0.0f) { // ray origin inside sphere
+	}
+	else if (t0 < 0.0f || t1 < 0.0f) // ray origin inside sphere
+	{
 		float tmax = Max(t0, t1);
 		t0 = t1 = tmax;
 	}
@@ -968,12 +1066,16 @@ bool frm::Intersect(const Ray& _ray, const AlignedBox& _box, float& t0_, float& 
 	vec3 tmin = Min(omax, omin);
 	float t1 = Min(tmax.x, Min(tmax.y, tmax.z));
 	float t0 = Max(tmin.x, Max(tmin.y, tmin.z));
-	if (t0 >= t1) {
+	if (t0 >= t1)
+	{
 		return false;
 	}
-	if (t0 < 0.0f && t1 < 0.0f) { // box behind ray origin
+	if (t0 < 0.0f && t1 < 0.0f) // box behind ray origin
+	{
 		return false;
-	} else if (t0 < 0.0f || t1 < 0.0f) { // ray origin inside box
+	}
+	else if (t0 < 0.0f || t1 < 0.0f) // ray origin inside box
+	{
 		float tmax = Max(t0, t1);
 		t0 = t1 = tmax;
 	}
@@ -1004,12 +1106,15 @@ bool frm::Intersects(const Ray& _ray, const Cylinder& _cylinder)
 bool frm::Intersect(const Ray& _ray, const Cylinder& _cylinder, float& t0_, float& t1_)
 {
 	float t0, t1;
-	if (!frm::Intersect(Line(_ray.m_origin, _ray.m_direction), _cylinder, t0, t1)) {
+	if (!frm::Intersect(Line(_ray.m_origin, _ray.m_direction), _cylinder, t0, t1))
+	{
 		return false;
 	}
-	if (t0 < 0.0f && t1 < 0.0f) { // sphere behind ray origin
+	if (t0 < 0.0f && t1 < 0.0f) // sphere behind ray origin
+	{
 		return false;
-	} else if (t0 < 0.0f || t1 < 0.0f) { // ray origin inside sphere
+	} else if (t0 < 0.0f || t1 < 0.0f) // ray origin inside sphere
+	{
 		float tmax = Max(t0, t1);
 		t0 = t1 = tmax;
 	}
@@ -1051,22 +1156,28 @@ bool frm::Intersects(const AlignedBox& _box0, const AlignedBox& _box1)
 bool frm::Intersects(const AlignedBox& _box, const Plane& _plane)
 {
 	vec3 dmax, dmin;
-	for (int i = 0; i < 3; ++i) {
-		if (_plane.m_normal[i] >= 0.0f) {
+	for (int i = 0; i < 3; ++i)
+	{
+		if (_plane.m_normal[i] >= 0.0f)
+		{
 			dmin[i] = _box.m_min[i];
 			dmax[i] = _box.m_max[i];
-		} else {
+		}
+		else
+		{
 			dmin[i] = _box.m_max[i];
 			dmax[i] = _box.m_min[i];
 		}
 	}
 
 	float d = dot(_plane.m_normal, dmin) - _plane.m_offset;
-	if (d > 0.0f) {
+	if (d > 0.0f)
+	{
 		return false;
 	}	
 	d = dot(_plane.m_normal, dmax) - _plane.m_offset;
-	if (d >= 0.0f) {
+	if (d >= 0.0f)
+	{
 		return true;
 	}
 

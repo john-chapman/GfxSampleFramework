@@ -139,10 +139,13 @@ frm::DateTime::DateTime(const char* _str, const char* _format)
 	_format = _format ? _format : "%Y-%m-%dT%H:%M:%SZ"; // default ISO 8601
 
 	SYSTEMTIME st = {};
-	while (*_format) {
-		if (*_format == '%') {
+	while (*_format)
+	{
+		if (*_format == '%')
+		{
 			char* str;
-			switch (*(++_format)) {
+			switch (*(++_format))
+			{
 				case 'Y':
 					st.wYear = (WORD)strtol(_str, &str, 0);
 					break;
@@ -170,7 +173,9 @@ frm::DateTime::DateTime(const char* _str, const char* _format)
 			++_format;
 			_str = str;
 
-		} else {
+		} 
+		else 
+		{
 			FRM_ASSERT(*_str == *_format); // mismatch
 			++_format;
 			++_str;
@@ -184,13 +189,19 @@ const char* frm::DateTime::asString(const char* _format) const
 {
 	static String<128> s_buf;
 	SYSTEMTIME st = ToSystemTime(m_raw);
-	if (!_format) { // default ISO 8601 format
+	if (!_format) // default ISO 8601 format
+	{
 		s_buf.setf("%.4d-%.2d-%.2dT%.2d:%.2d:%.2dZ", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
-	} else {
+	}
+	else
+	{
 		s_buf.clear();
-		for (int i = 0; _format[i] != 0; ++i) {
-			if (_format[i] == '%') {
-				switch (_format[++i]) {
+		for (int i = 0; _format[i] != 0; ++i)
+		{
+			if (_format[i] == '%')
+			{
+				switch (_format[++i])
+				{
 					case 'Y': s_buf.appendf("%.4d", st.wYear);         break;
 					case 'm': s_buf.appendf("%.2d", st.wMonth);        break;
 					case 'd': s_buf.appendf("%.2d", st.wDay);          break;
@@ -199,11 +210,14 @@ const char* frm::DateTime::asString(const char* _format) const
 					case 'S': s_buf.appendf("%.2d", st.wSecond);       break;
 					case 's': s_buf.appendf("%.2d", st.wMilliseconds); break;
 					default:
-						if (_format[i] != 0) {
+						if (_format[i] != 0)
+						{
 							s_buf.append(&_format[i], 1);
 						}
 				};
-			} else {
+			}
+			else
+			{
 				s_buf.append(&_format[i], 1);
 			}
 		}

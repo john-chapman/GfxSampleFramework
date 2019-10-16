@@ -27,7 +27,8 @@ XForm::Callback::Callback(const char* _name, OnComplete* _callback)
 	, m_nameHash(_name)
 {
 	FRM_ASSERT(FindCallback(m_nameHash) == nullptr);
-	if (FindCallback(m_nameHash) != nullptr) {
+	if (FindCallback(m_nameHash) != nullptr)
+	{
 		FRM_LOG_ERR("XForm: Callback '%s' already exists", _name);
 		FRM_ASSERT(false);
 		return;
@@ -45,8 +46,10 @@ const XForm::Callback* XForm::GetCallback(int _i)
 }
 const XForm::Callback* XForm::FindCallback(StringHash _nameHash)
 {
-	for (auto& ret : s_callbackRegistry) {
-		if (ret->m_nameHash == _nameHash) {
+	for (auto& ret : s_callbackRegistry)
+	{
+		if (ret->m_nameHash == _nameHash)
+		{
 			return ret;
 		}
 	}
@@ -54,8 +57,10 @@ const XForm::Callback* XForm::FindCallback(StringHash _nameHash)
 }
 const XForm::Callback* XForm::FindCallback(OnComplete* _callback)
 {
-	for (auto& ret : s_callbackRegistry) {
-		if (ret->m_callback == _callback) {
+	for (auto& ret : s_callbackRegistry)
+	{
+		if (ret->m_callback == _callback)
+		{
 			return ret;
 		}
 	}
@@ -63,21 +68,26 @@ const XForm::Callback* XForm::FindCallback(OnComplete* _callback)
 }
 bool XForm::SerializeCallback(Serializer& _serializer_, OnComplete*& _callback, const char* _name)
 {
-	if (_serializer_.getMode() == Serializer::Mode_Read) {
+	if (_serializer_.getMode() == Serializer::Mode_Read)
+	{
 		String<64> cbkName;
-		if (!Serialize(_serializer_, cbkName, _name)) {
+		if (!Serialize(_serializer_, cbkName, _name))
+		{
 			return false;
 		}
 
 		const Callback* cbk = FindCallback(StringHash((const char*)cbkName));
-		if (cbk == nullptr) {
+		if (cbk == nullptr)
+		{
 			FRM_LOG_ERR("XForm: Invalid callback '%s'", (const char*)cbkName);
 			_callback = nullptr;
 			return false;
 		}
 		_callback = cbk->m_callback;
 		return true;
-	} else {
+	}
+	else
+	{
 		String<64> cbkName = FindCallback(_callback)->m_name;
 		return Serialize(_serializer_, cbkName, _name);
 	}
@@ -140,7 +150,8 @@ FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_FreeCamera);
 
 void XForm_FreeCamera::apply(float _dt)
 {
- 	if (!m_node->isSelected()) {
+ 	if (!m_node->isSelected())
+	{
 		return;
 	}
 
@@ -148,13 +159,15 @@ void XForm_FreeCamera::apply(float _dt)
 
 	const Gamepad* gpad = Input::GetGamepad();
 	const Keyboard* keyb = Input::GetKeyboard();
-	if (keyb && keyb->isDown(Keyboard::Key_LCtrl)) {
+	if (keyb && keyb->isDown(Keyboard::Key_LCtrl))
+	{
 		keyb = nullptr; // disable keyboard input on lctrl
 	}
 
 	bool isAccel = false;
 	vec3 dir = vec3(0.0);		
-	if (gpad) {			
+	if (gpad)
+	{			
 		float x = gpad->getAxisState(Gamepad::Axis_LeftStickX);
 		float y = gpad->getAxisState(Gamepad::Axis_LeftStickY);
 		float z = gpad->isDown(Gamepad::Button_Right1) ? 1.0f : (gpad->isDown(Gamepad::Button_Left1) ? -1.0f : 0.0f);
@@ -163,33 +176,41 @@ void XForm_FreeCamera::apply(float _dt)
 		dir += localMatrix[1].xyz() * z;
 		isAccel = abs(x + y + z) > 0.0f;
 	}
-	if (keyb) {
-		if (keyb->isDown(Keyboard::Key_W)) {
+	if (keyb)
+	{
+		if (keyb->isDown(Keyboard::Key_W))
+		{
 			dir -= localMatrix[2].xyz();
 			isAccel = true;
 		}
-		if (keyb->isDown(Keyboard::Key_A)) {
+		if (keyb->isDown(Keyboard::Key_A))
+		{
 			dir -= localMatrix[0].xyz();
 			isAccel = true;
 		}
-		if (keyb->isDown(Keyboard::Key_S)) {
+		if (keyb->isDown(Keyboard::Key_S))
+		{
 			dir += localMatrix[2].xyz();
 			isAccel = true;
 		}
-		if (keyb->isDown(Keyboard::Key_D)) {
+		if (keyb->isDown(Keyboard::Key_D))
+		{
 			dir += localMatrix[0].xyz();
 			isAccel = true;
 		}
-		if (keyb->isDown(Keyboard::Key_Q)) {
+		if (keyb->isDown(Keyboard::Key_Q))
+		{
 			dir -= localMatrix[1].xyz();
 			isAccel = true;
 		}
-		if (keyb->isDown(Keyboard::Key_E)) {
+		if (keyb->isDown(Keyboard::Key_E))
+		{
 			dir += localMatrix[1].xyz();
 			isAccel = true;
 		}
 	}
-	if (isAccel) {
+	if (isAccel)
+	{
 	 // if accelerating, zero the velocity here to allow instantaneous direction changes
 		m_velocity = vec3(0.0f);
 	}
@@ -198,25 +219,30 @@ void XForm_FreeCamera::apply(float _dt)
 	m_accelCount += isAccel ? _dt : -_dt;
 	m_accelCount = FRM_CLAMP(m_accelCount, 0.0f, m_accelTime);
 	m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
-	if (gpad) {
+	if (gpad)
+	{
 		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
 	}
-	if (keyb && keyb->isDown(Keyboard::Key_LShift)) {
+	if (keyb && keyb->isDown(Keyboard::Key_LShift))
+	{
 		m_speed *= m_maxSpeedMul;
 	}
-	float len2 = frm::Length2(m_velocity);
-	if (len2 > 0.0f) {
+	float len2 = Length2(m_velocity);
+	if (len2 > 0.0f)
+	{
 		m_velocity = (m_velocity / sqrt(len2)) * m_speed;
 	}		
 	m_position += m_velocity * _dt;
 
 
 	Mouse* mouse = Input::GetMouse();
-	if (gpad) {
+	if (gpad)
+	{
 		m_pitchYawRoll.x -= gpad->getAxisState(Gamepad::Axis_RightStickY) * 16.0f * _dt;//* m_rotationInputMul * 6.0f; // \todo setter for this?
 		m_pitchYawRoll.y -= gpad->getAxisState(Gamepad::Axis_RightStickX) * 16.0f * _dt;//* m_rotationInputMul * 6.0f;
 	}
-	if (mouse->isDown(Mouse::Button_Right)) {
+	if (mouse->isDown(Mouse::Button_Right))
+	{
 		m_pitchYawRoll.x -= mouse->getAxisState(Mouse::Axis_Y) * m_rotationInputMul;
 		m_pitchYawRoll.y -= mouse->getAxisState(Mouse::Axis_X) * m_rotationInputMul;
 	}
@@ -277,10 +303,12 @@ void XForm_LookAt::apply(float _dt)
 {
 	vec3 posW = GetTranslation(m_node->getWorldMatrix());
 	vec3 targetW = m_offset;
-	if_unlikely (m_targetId != Node::kInvalidId && m_target == nullptr) {
+	if_unlikely (m_targetId != Node::kInvalidId && m_target == nullptr)
+	{
 		m_target = Scene::GetCurrent()->findNode(m_targetId);
 	}
-	if (m_target) {
+	if (m_target)
+	{
 		targetW += GetTranslation(m_target->getWorldMatrix());
 	}
 	m_node->setWorldMatrix(LookAt(posW, targetW));
@@ -293,11 +321,13 @@ bool XForm_LookAt::edit()
 	ImGui::PushID(this);
 	Im3d::PushId(this);
 	Scene& scene = *Scene::GetCurrent();
-	if (ImGui::Button("Target Node")) {
+	if (ImGui::Button("Target Node"))
+	{
 		scene.beginSelectNode();
 	}
 	m_target = scene.selectNode(m_target);
-	if (m_target) {
+	if (m_target)
+	{
 		ImGui::SameLine();
 		ImGui::Text(m_target->getName());
 		m_targetId = m_target->getId();
@@ -372,7 +402,8 @@ FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_PositionTarget);
 void XForm_PositionTarget::apply(float _dt)
 {
 	m_currentTime = FRM_MIN(m_currentTime + _dt, m_duration);
-	if (m_onComplete && m_currentTime >= m_duration) {
+	if (m_onComplete && m_currentTime >= m_duration)
+	{
 		m_onComplete(this);
 	}
 	m_currentPosition = smooth(m_start, m_end, m_currentTime / m_duration);
@@ -387,17 +418,20 @@ bool XForm_PositionTarget::edit()
 	Im3d::PushId(this);
 
 	ret |= ImGui::SliderFloat("Duration (s)", &m_duration, 0.0f, 10.0f);
-	if (ImGui::Button("Reset")) {
+	if (ImGui::Button("Reset"))
+	{
 		reset();
 		ret = true;
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("Relative Reset")) {
+	if (ImGui::Button("Relative Reset"))
+	{
 		relativeReset();
 		ret = true;
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("Reverse")) {
+	if (ImGui::Button("Reverse"))
+	{
 		reverse();
 		ret = true;
 	}
@@ -459,7 +493,8 @@ FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_SplinePath);
 void XForm_SplinePath::apply(float _dt)
 {
 	m_currentTime = FRM_MIN(m_currentTime + _dt, m_duration);
-	if (m_onComplete && m_currentTime >= m_duration) {
+	if (m_onComplete && m_currentTime >= m_duration)
+	{
 		m_onComplete(this);
 	}
 	vec3 position;
@@ -475,7 +510,8 @@ bool XForm_SplinePath::edit()
 	ret |= ImGui::DragFloat("Duration (s)", &m_duration, 0.1f);
 	m_duration = FRM_MAX(m_duration, 0.0f);
 	m_currentTime = FRM_MIN(m_currentTime, m_duration);
-	if (ImGui::Button("Reset")) {
+	if (ImGui::Button("Reset"))
+	{
 		reset();
 		ret = true;
 	}
@@ -615,11 +651,13 @@ struct XForm_VRGamepad: public XForm
 
 	void XForm_VRGamepad::apply(float _dt)
 	{
- 		if (!m_node->isSelected()) {
+ 		if (!m_node->isSelected())
+		{
 			return;
 		}
 		const Gamepad* gpad = Input::GetGamepad();
-		if (!gpad) {
+		if (!gpad)
+		{
 			return;
 		}
 
@@ -632,15 +670,18 @@ struct XForm_VRGamepad: public XForm
 		dir += vec3(cosTheta, 0.0f, -sinTheta) * x;
 		float y = gpad->getAxisState(Gamepad::Axis_LeftStickY);
 		dir += vec3(sinTheta, 0.0f, cosTheta) * y;
-		if (gpad->isDown(Gamepad::Button_Left1)) {
+		if (gpad->isDown(Gamepad::Button_Left1))
+		{
 			dir -= vec3(0.0f, 1.0f, 0.0f);
 		}
-		if (gpad->isDown(Gamepad::Button_Right1)) {
+		if (gpad->isDown(Gamepad::Button_Right1))
+		{
 			dir += vec3(0.0f, 1.0f, 0.0f);
 		}
 		isAccel = true;
 
-		if (isAccel) {
+		if (isAccel)
+		{
 		 // if we're accelerating, zero the velocity here to allow instantaneous direction changes
 			m_velocity = vec3(0.0f);
 		}
@@ -650,8 +691,9 @@ struct XForm_VRGamepad: public XForm
 		m_accelCount = FRM_CLAMP(m_accelCount, 0.0f, m_accelTime);
 		m_speed = (m_accelCount / m_accelTime) * m_maxSpeed;
 		m_speed *= 1.0f + m_maxSpeedMul * gpad->getAxisState(Gamepad::Axis_RightTrigger);
-		float len = frm::Length(m_velocity);
-		if (len > 0.0f) {
+		float len = Length(m_velocity);
+		if (len > 0.0f)
+		{
 			m_velocity = (m_velocity / len) * m_speed;
 		}
 		m_position += m_velocity * _dt;

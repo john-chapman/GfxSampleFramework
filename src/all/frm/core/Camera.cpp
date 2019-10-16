@@ -446,7 +446,9 @@ void Camera::update()
 	{
 		updateProj();	
 	}
+
 	updateView();
+
 	if (m_gpuBuffer)
 	{
 		updateGpuBuffer();

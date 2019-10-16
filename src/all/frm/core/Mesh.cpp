@@ -39,12 +39,14 @@ Mesh* Mesh::Create(const char* _path)
 {
 	Id id = GetHashId(_path);
 	Mesh* ret = Find(id);
-	if (!ret) {
+	if (!ret)
+	{
 		ret = FRM_NEW(Mesh(id, _path));
 		ret->m_path.set(_path);
 	}
 	Use(ret);
-	if (ret->getState() != State_Loaded) {
+	if (ret->getState() != State_Loaded)
+	{
 	 // \todo replace with default
 	}
 	return ret;
@@ -54,7 +56,8 @@ Mesh* Mesh::Create(const MeshData& _data)
 {
 	Id id = _data.getHash();
 	Mesh* ret = Find(id);
-	if (!ret) {
+	if (!ret) 
+	{
 		ret = FRM_NEW(Mesh(id, ""));
 		ret->load(_data); // explicit load from data
 	}
@@ -77,7 +80,8 @@ void Mesh::Destroy(Mesh*& _inst_)
 
 bool Mesh::reload()
 {
-	if (m_path.isEmpty()) {
+	if (m_path.isEmpty())
+	{
 	 // mesh not from a file, do nothing
 		return true;
 	}
@@ -85,7 +89,8 @@ bool Mesh::reload()
 	FRM_AUTOTIMER("Mesh::load(%s)", (const char*)m_path);
 
 	MeshData* data = MeshData::Create((const char*)m_path);
-	if (!data) {
+	if (!data)
+	{
 		return false;
 	}
 	load(*data);
@@ -101,23 +106,30 @@ void Mesh::setVertexData(const void* _data, uint _vertexCount, GLenum _usage)
 	GLint prevVbo; glAssert(glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &prevVbo));
 
 	glAssert(glBindVertexArray(m_vertexArray));
-	if (!m_vertexBuffer) {
+	if (!m_vertexBuffer)
+	{
 		glAssert(glGenBuffers(1, &m_vertexBuffer));
 		glAssert(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
 		
 	 // glVertexAttribPointer() calls are where the vao associates the vertex attributes with the currently bound vertex buffer, which is why we bind the vertex buffer first
-		for (GLuint i = 0; i < m_desc.m_vertexAttrCount; ++i) {
+		for (GLuint i = 0; i < m_desc.m_vertexAttrCount; ++i)
+		{
 			const VertexAttr& attr = m_desc.m_vertexDesc[i];
 			glAssert(glEnableVertexAttribArray(i));
-			if (DataTypeIsInt(attr.getDataType()) && !DataTypeIsNormalized(attr.getDataType())) {
+			if (DataTypeIsInt(attr.getDataType()) && !DataTypeIsNormalized(attr.getDataType()))
+			{
 			 // non-normalized integer types bind as ints
 				glAssert(glVertexAttribIPointer(i, attr.getCount(), internal::DataTypeToGLenum(attr.getDataType()), m_desc.m_vertexSize, (const GLvoid*)attr.getOffset()));
-			} else {
+			}
+			else
+			{
 			 // else bind as floats
 				glAssert(glVertexAttribPointer(i, attr.getCount(), internal::DataTypeToGLenum(attr.getDataType()), (GLboolean)DataTypeIsNormalized(attr.getDataType()), m_desc.m_vertexSize, (const GLvoid*)attr.getOffset()));
 			}
 		}
-	} else {
+	}
+	else
+	{
 		glAssert(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
 	}
 	glAssert(glBufferData(GL_ARRAY_BUFFER, _vertexCount * m_desc.getVertexSize(), _data, _usage));
@@ -136,7 +148,8 @@ void Mesh::setIndexData(DataType _dataType, const void* _data, uint _indexCount,
 	GLint prevIbo; glAssert(glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &prevIbo));
 
 	glAssert(glBindVertexArray(m_vertexArray));
-	if (!m_indexBuffer) {
+	if (!m_indexBuffer)
+	{
 		glAssert(glGenBuffers(1, &m_indexBuffer));
 	}
 	glAssert(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer));
@@ -151,7 +164,8 @@ void Mesh::setIndexData(DataType _dataType, const void* _data, uint _indexCount,
 
 void Mesh::setBindPose(const Skeleton& _skel)
 {
-	if (!m_bindPose) {
+	if (!m_bindPose)
+	{
 		m_bindPose = FRM_NEW(Skeleton);
 	}
 	*m_bindPose = _skel;
@@ -180,19 +194,23 @@ Mesh::~Mesh()
 
 void Mesh::unload()
 {
-	if (m_vertexArray) {
+	if (m_vertexArray)
+	{
 		glAssert(glDeleteVertexArrays(1, &m_vertexArray));
 		m_vertexArray = 0;
 	}
-	if (m_vertexBuffer) {
+	if (m_vertexBuffer)
+	{
 		glAssert(glDeleteBuffers(1, &m_vertexBuffer));
 		m_vertexBuffer = 0;
 	}
-	if (m_indexBuffer) {
+	if (m_indexBuffer)
+	{
 		glAssert(glDeleteBuffers(1, &m_indexBuffer));
 		m_indexBuffer = 0;
 	}
-	if (m_bindPose) {
+	if (m_bindPose)
+	{
 		FRM_DELETE(m_bindPose);
 		m_bindPose = nullptr;
 	}
@@ -208,13 +226,16 @@ void Mesh::load(const MeshData& _data)
 	m_path = _data.m_path;
 	m_submeshes = _data.m_submeshes;
 
-	if (_data.m_vertexData) {
+	if (_data.m_vertexData)
+	{
 		setVertexData(_data.m_vertexData, _data.getVertexCount(), GL_STATIC_DRAW);
 	}
-	if (_data.m_indexData) {
+	if (_data.m_indexData)
+	{
 		setIndexData((DataType)_data.m_indexDataType, _data.m_indexData, _data.getIndexCount(), GL_STATIC_DRAW);
 	}
-	if (_data.m_bindPose) {
+	if (_data.m_bindPose)
+	{
 		m_bindPose = FRM_NEW(Skeleton);
 		*m_bindPose = *_data.m_bindPose;
 	}

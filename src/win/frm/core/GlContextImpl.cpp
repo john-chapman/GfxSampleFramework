@@ -15,7 +15,8 @@
 using namespace frm;
 
 // force Nvidia/AMD drivers to use the discrete GPU
-extern "C" {
+extern "C"
+{
 	__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
@@ -25,14 +26,16 @@ static thread_local GlContext* g_currentCtx;
 static void GlDebugMessageCallback(GLenum _source, GLenum _type, GLuint _id, GLenum _severity, GLsizei _length, const GLchar* _message, const void* _user)
 {
  // filter messages
-	if (_severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
+	if (_severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+	{
 		return;
 	}
 
  // log
 	frm::String<512> msg("[%s] [%s] [%s] (%u): ", internal::GlEnumStr(_source), internal::GlEnumStr(_type), internal::GlEnumStr(_severity), _id);
 	msg.append(_message, _length);
-	switch (_type) {
+	switch (_type)
+	{
 		case GL_DEBUG_TYPE_ERROR:
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
 		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
@@ -100,7 +103,8 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 	glAssert(glGetIntegerv(GL_MINOR_VERSION, &platformVMin));
 	_vmaj = _vmaj < 0 ? platformVMaj : _vmaj;
 	_vmin = _vmin < 0 ? platformVMin : _vmin;
-	if (platformVMaj < _vmaj || (platformVMaj >= _vmaj && platformVMin < _vmin)) {
+	if (platformVMaj < _vmaj || (platformVMaj >= _vmaj && platformVMin < _vmin))
+	{
 		FRM_LOG_ERR("OpenGL version %d.%d is not available (available version is %d.%d).", _vmaj, _vmin, platformVMaj, platformVMin);
 		FRM_LOG("This error may occur if the platform has an integrated GPU.");
 		FRM_ASSERT(false);
@@ -118,7 +122,8 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
  // create true context
 	int profileMask = ((_flags & CreateFlags_Compatibility) != 0) ? WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 	int ctxFlags    = ((_flags & CreateFlags_Debug) != 0) ? WGL_CONTEXT_DEBUG_BIT_ARB : 0;
-	int attr[] = {
+	int attr[] = 
+	{
 		WGL_CONTEXT_MAJOR_VERSION_ARB,	_vmaj,
 		WGL_CONTEXT_MINOR_VERSION_ARB,	_vmin,
 		WGL_CONTEXT_PROFILE_MASK_ARB,	profileMask,
@@ -146,7 +151,8 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 		internal::GlGetString(GL_VENDOR),
 		internal::GlGetString(GL_RENDERER)
 		);
-	if ((_flags & CreateFlags_Debug) != 0) {
+	if ((_flags & CreateFlags_Debug) != 0)
+	{
 		FRM_ASSERT(glewIsExtensionSupported("GL_ARB_debug_output"));
 		glAssert(glDebugMessageCallback(GlDebugMessageCallback, 0));
 		glAssert(glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS));
@@ -193,8 +199,10 @@ bool GlContext::MakeCurrent(GlContext* _ctx)
 {
 	FRM_ASSERT(_ctx != 0);
 
-	if (_ctx != g_currentCtx) {
-		if (!wglMakeCurrent(_ctx->m_impl->m_hdc, _ctx->m_impl->m_hglrc)) {
+	if (_ctx != g_currentCtx)
+	{
+		if (!wglMakeCurrent(_ctx->m_impl->m_hdc, _ctx->m_impl->m_hglrc))
+		{
 			return false;
 		}
 		g_currentCtx = _ctx;
@@ -214,7 +222,8 @@ void GlContext::present()
 
 void GlContext::setVsync(Vsync _mode)
 {
-	if (m_vsync	!= _mode) {
+	if (m_vsync	!= _mode)
+	{
 		m_vsync = _mode;
 		FRM_PLATFORM_VERIFY(wglSwapIntervalEXT((int)_mode));
 	}

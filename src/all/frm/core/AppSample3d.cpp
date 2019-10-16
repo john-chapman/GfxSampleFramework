@@ -35,7 +35,8 @@ bool AppSample3d::init(const frm::ArgList& _args)
 	m_scene = new Scene;
 	Scene::SetCurrent(m_scene);
 
-	if (!Scene::Load((const char*)m_scenePath, *m_scene)) {
+	if (!Scene::Load((const char*)m_scenePath, *m_scene)) 
+	{
  		Camera* defaultCamera = m_scene->createCamera(Camera());
 		defaultCamera->setPerspective(Radians(45.0f), 1.0f, 0.1f, 1000.0f, Camera::ProjFlag_Infinite);
 		defaultCamera->updateGpuBuffer(); // alloc the gpu buffer

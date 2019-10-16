@@ -27,25 +27,36 @@ static Keyboard::Key ButtonFromVk(WPARAM _vk, LPARAM _lparam)
  // map special cases
 	UINT sc = (_lparam & 0x00ff0000) >> 16;
     bool e0 = (_lparam & 0x01000000) != 0;
-	if (_vk == VK_SHIFT) {
+	if (_vk == VK_SHIFT)
+	{
 		_vk = MapVirtualKey(sc, MAPVK_VSC_TO_VK_EX);
 	}
 
-	if (_vk >= 0x41 && _vk <= 0x5A) {
+	if (_vk >= 0x41 && _vk <= 0x5A)
+	{
 	 // alpha
 		return (Keyboard::Key)(Keyboard::Key_A + _vk - 0x41);
-	} else if (_vk >= 0x30 && _vk <= 0x39) {
+	}
+	else if (_vk >= 0x30 && _vk <= 0x39)
+	{
 	 // numeric
 		return _vk == 0x30 ? Keyboard::Key_0 : (Keyboard::Key)(Keyboard::Key_1 + _vk - 0x31);
-	} else if (_vk >= VK_NUMPAD0 && _vk <= VK_NUMPAD9) {
+	}
+	else if (_vk >= VK_NUMPAD0 && _vk <= VK_NUMPAD9)
+	{
 	 // numpad numeric
 		return (Keyboard::Key)(Keyboard::Key_Numpad0 + _vk - VK_NUMPAD0);
-	} else if (_vk >= VK_F1 && _vk <= VK_F12) {
+	}
+	else if (_vk >= VK_F1 && _vk <= VK_F12)
+	{
 	 // F keys
 		return (Keyboard::Key)(Keyboard::Key_F1 + _vk - VK_F1);
-	} else {
+	}
+	else
+	{
 	 // all other keys
-		switch (_vk) {
+		switch (_vk)
+		{
 			case VK_CONTROL:     return e0 ? Keyboard::Key_RCtrl       : Keyboard::Key_LCtrl;
 			case VK_MENU:        return e0 ? Keyboard::Key_RAlt        : Keyboard::Key_LAlt;
 			case VK_RETURN:      return e0 ? Keyboard::Key_NumpadEnter : Keyboard::Key_Return;
@@ -113,22 +124,28 @@ struct Window::Impl
 					return 0; \
 				} \
 			}
-		if (window) {
-			switch (_umsg) {
-				case WM_SIZE: {
+		if (window)
+		{
+			switch (_umsg)
+			{
+				case WM_SIZE:
+				{
 					int w = (int)LOWORD(_lparam), h = (int)HIWORD(_lparam);
-					if (window->m_width != w || window->m_height != h) {
+					if (window->m_width != w || window->m_height != h)
+					{
 						window->m_width  = w;
 						window->m_height = h;
 						WindowImpl_DISPATCH_CALLBACK(OnResize, window->m_width, window->m_height);
 					}
 					break;
 				}
-				case WM_SIZING: {
+				case WM_SIZING:
+				{
 					RECT* r = (RECT*)_lparam;
 					int w = (int)(r->right - r->left);
 					int h = (int)(r->bottom - r->top);
-					if (window->m_width != w || window->m_height != h) {
+					if (window->m_width != w || window->m_height != h)
+					{
 						window->m_width  = w;
 						window->m_height = h;
 						WindowImpl_DISPATCH_CALLBACK(OnResize, window->m_width, window->m_height);
@@ -136,9 +153,12 @@ struct Window::Impl
 					break;
 				}
 				case WM_SHOWWINDOW:
-					if (_wparam) {
+					if (_wparam)
+					{
 						WindowImpl_DISPATCH_CALLBACK(OnShow);
-					} else {
+					}
+					else
+					{
 						WindowImpl_DISPATCH_CALLBACK(OnHide);
 					}
 					break;
@@ -171,15 +191,18 @@ struct Window::Impl
 					WindowImpl_DISPATCH_CALLBACK(OnChar, (char)_wparam);
 					break;
 
-				case WM_DROPFILES: {
+				case WM_DROPFILES:
+				{
 					HDROP hdrop = (HDROP)_wparam;
 					UINT fileCount = DragQueryFile(hdrop, 0xffffffff, NULL, NULL);
-					for (UINT i = 0; i < fileCount; ++i) {
+					for (UINT i = 0; i < fileCount; ++i)
+					{
 						TCHAR fileName[MAX_PATH];
 						FRM_PLATFORM_VERIFY(DragQueryFile(hdrop, i, fileName, MAX_PATH));
 					 // don't use the DISPATCH_CALLBACK macro as we want to dispatch once per file
 						//WindowImpl_DISPATCH_CALLBACK(OnFileDrop, fileName);
-						if (window->m_callbacks.m_OnFileDrop) {
+						if (window->m_callbacks.m_OnFileDrop)
+						{
 							window->m_callbacks.m_OnFileDrop(window, fileName);
 						}
 						window->m_fileDropList.push_back(fileName);
@@ -189,7 +212,8 @@ struct Window::Impl
 				}
 
 				#ifndef USE_OLD_DPI_API
-				case WM_DPICHANGED: {
+				case WM_DPICHANGED:
+				{
 					auto dpi = HIWORD(_wparam);
 					RECT* rect = (RECT*)_lparam;
 					SetWindowPos((
@@ -210,7 +234,8 @@ struct Window::Impl
 		}
 		#undef WindowImpl_DISPATCH_CALLBACK
 	
-		switch (_umsg) {
+		switch (_umsg)
+		{
 			case WM_PAINT:
 				//FRM_ASSERT(false); // should be suppressed by calling ValidateRect()
 				break;
@@ -252,7 +277,8 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	#endif
 
 	static ATOM wndclassex = 0;
-	if (wndclassex == 0) {
+	if (wndclassex == 0)
+	{
 		WNDCLASSEX wc;
 		memset(&wc, 0, sizeof(wc));
 		wc.cbSize = sizeof(wc);
@@ -268,7 +294,8 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	DWORD dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
 	DWORD dwStyle = WS_OVERLAPPEDWINDOW | WS_MINIMIZEBOX | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 
-	if (_width == -1 || _height == -1) {
+	if (_width == -1 || _height == -1)
+	{
 	 // auto size; get the dimensions of the primary screen area and subtract the non-client area
 		RECT r;
 		FRM_PLATFORM_VERIFY(SystemParametersInfo(SPI_GETWORKAREA, 0, &r, 0));
@@ -317,7 +344,8 @@ bool Window::pollEvents()
 	m_fileDropList.clear();
 
 	MSG msg;
-	while (PeekMessage(&msg, (HWND)m_handle, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
+	while (PeekMessage(&msg, (HWND)m_handle, 0, 0, PM_REMOVE) && msg.message != WM_QUIT)
+	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -328,7 +356,8 @@ bool Window::waitEvents()
 	m_fileDropList.clear();
 
 	MSG msg;
-	if (GetMessage(&msg, (HWND)m_handle, 0, 0)) {
+	if (GetMessage(&msg, (HWND)m_handle, 0, 0))
+	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}

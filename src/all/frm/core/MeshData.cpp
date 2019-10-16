@@ -74,14 +74,17 @@ VertexAttr* MeshDesc::addVertexAttr(
 	
  // roll back padding if present
 	uint8 offset = m_vertexSize;
-	if (m_vertexAttrCount > 0) {
-		if (m_vertexDesc[m_vertexAttrCount - 1].getSemantic() == VertexAttr::Semantic_Padding) {
+	if (m_vertexAttrCount > 0)
+	{
+		if (m_vertexDesc[m_vertexAttrCount - 1].getSemantic() == VertexAttr::Semantic_Padding)
+		{
 			--m_vertexAttrCount;
 			m_vertexSize -= m_vertexDesc[m_vertexAttrCount].getSize();
 		}
 	 // modify offset to add implicit padding
 		offset = m_vertexSize;
-		if (offset % kVertexAttrAlignment != 0) {
+		if (offset % kVertexAttrAlignment != 0)
+		{
 			offset += kVertexAttrAlignment - (offset % kVertexAttrAlignment); 
 		}
 	}
@@ -96,7 +99,8 @@ VertexAttr* MeshDesc::addVertexAttr(
 	
  // update vertex size, add padding if required
 	m_vertexSize = ret->getOffset() + ret->getSize();
-	if (m_vertexSize % kVertexAttrAlignment != 0) {
+	if (m_vertexSize % kVertexAttrAlignment != 0)
+	{
 		++m_vertexAttrCount;
 		m_vertexDesc[m_vertexAttrCount].setOffset(m_vertexSize);
 		m_vertexDesc[m_vertexAttrCount].setSemantic(VertexAttr::Semantic_Padding);
@@ -121,8 +125,10 @@ VertexAttr* MeshDesc::addVertexAttr(VertexAttr& _attr)
 
 const VertexAttr* MeshDesc::findVertexAttr(VertexAttr::Semantic _semantic) const
 {
-	for (int i = 0; i < kMaxVertexAttrCount; ++i) {
-		if (m_vertexDesc[i].getSemantic() == _semantic) {
+	for (int i = 0; i < kMaxVertexAttrCount; ++i)
+	{
+		if (m_vertexDesc[i].getSemantic() == _semantic)
+		{
 			return &m_vertexDesc[i];
 		}
 	}
@@ -138,11 +144,14 @@ uint64 MeshDesc::getHash() const
 
 bool MeshDesc::operator==(const MeshDesc& _rhs) const
 {
-	if (m_vertexAttrCount != _rhs.m_vertexAttrCount) {
+	if (m_vertexAttrCount != _rhs.m_vertexAttrCount)
+	{
 		return false;
 	}
-	for (uint8 i = 0; i < m_vertexAttrCount; ++i) {
-		if (m_vertexDesc[i] != _rhs.m_vertexDesc[i]) {
+	for (uint8 i = 0; i < m_vertexAttrCount; ++i)
+	{
+		if (m_vertexDesc[i] != _rhs.m_vertexDesc[i])
+		{
 			return false;
 		}
 	}
@@ -169,21 +178,29 @@ MeshData::Submesh::Submesh()
 MeshData* MeshData::Create(const char* _path)
 {
 	File f;
-	if (!FileSystem::Read(f, _path)) {
+	if (!FileSystem::Read(f, _path))
+	{
 		return nullptr;
 	}
 	MeshData* ret = FRM_NEW(MeshData);
 	ret->m_path.set(_path);
 
-	if        (FileSystem::CompareExtension("obj", _path)) {
-		if (!ReadObj(*ret, f.getData(), f.getDataSize())) {
+	if (FileSystem::CompareExtension("obj", _path))
+	{
+		if (!ReadObj(*ret, f.getData(), f.getDataSize()))
+		{
 			goto MeshData_Create_error;
 		}
-	} else if (FileSystem::CompareExtension("md5mesh", _path)) {
-		if (!ReadMd5(*ret, f.getData(), f.getDataSize())) {
+	}
+	else if (FileSystem::CompareExtension("md5mesh", _path))
+	{
+		if (!ReadMd5(*ret, f.getData(), f.getDataSize()))
+		{
 			goto MeshData_Create_error;
 		}
-	} else {
+	}
+	else
+	{
 		FRM_ASSERT(false); // unsupported format
 		goto MeshData_Create_error;
 	}
@@ -207,15 +224,18 @@ MeshData* MeshData::Create(
 	
 	ret->m_vertexData = (char*)FRM_MALLOC(_desc.getVertexSize() * _vertexCount);
 	ret->m_submeshes[0].m_vertexCount = _vertexCount;
-	if (_vertexData) {
+	if (_vertexData)
+	{
 		ret->setVertexData(_vertexData);
 	}
 
-	if (_indexCount > 0) {
+	if (_indexCount > 0)
+	{
 		ret->m_indexDataType = GetIndexDataType(_vertexCount);
 		ret->m_indexData = (char*)FRM_MALLOC(DataTypeSizeBytes(ret->m_indexDataType) * _indexCount);
 		ret->m_submeshes[0].m_indexCount = _indexCount;
-		if (_indexData) {
+		if (_indexData) 
+		{
 			ret->setIndexData(_indexData);
 		}
 	}
@@ -234,8 +254,10 @@ MeshData* MeshData::Create(
 
 static void BuildPlane(MeshBuilder& mesh_, float _sizeX, float _sizeZ, int _segsX, int _segsZ)
 {
-	for (int x = 0; x <= _segsX; ++x) {
-		for (int z = 0; z <= _segsZ; ++z) {
+	for (int x = 0; x <= _segsX; ++x)
+	{
+		for (int z = 0; z <= _segsZ; ++z)
+		{
 			MeshBuilder::Vertex vert;
 			vert.m_position = vec3(
 				_sizeX * -0.5f + (_sizeX / (float)_segsX) * (float)x,
@@ -269,8 +291,10 @@ static void BuildPlane(MeshBuilder& mesh_, float _sizeX, float _sizeZ, int _segs
   //  | \ | / | \ |
   //  +---+---+---+
 	int zoff = _segsZ + 1;
-	for (int x = 0; x < _segsX; ++x) {
-		for (int z = 0; z < _segsZ; ++z) {
+	for (int x = 0; x < _segsX; ++x)
+	{
+		for (int z = 0; z < _segsZ; ++z)
+		{
 			uint32 a, b, c, d;
 		
 			#if 1
@@ -381,7 +405,8 @@ MeshData* MeshData::CreateSphere(
 {
 	MeshBuilder mesh;
 	BuildPlane(mesh, kTwoPi, kPi, _segsLong, _segsLat);
-	for (uint32 i = 0; i < mesh.getVertexCount(); ++i) {
+	for (uint32 i = 0; i < mesh.getVertexCount(); ++i)
+	{
 		MeshBuilder::Vertex& v = mesh.getVertex(i);
 		float x = sinf(v.m_position.x) * sinf(v.m_position.z + kHalfPi);
 		float y = cosf(v.m_position.x) * sinf(v.m_position.z + kHalfPi);
@@ -389,7 +414,8 @@ MeshData* MeshData::CreateSphere(
 		v.m_normal = normalize(vec3(x, -z, y)); // swap yz to align the poles along y
 		v.m_position = v.m_normal * _radius;
 	}
-	if (_desc.findVertexAttr(VertexAttr::Semantic_Tangents)) {
+	if (_desc.findVertexAttr(VertexAttr::Semantic_Tangents))
+	{
 		mesh.generateTangents();
 	}
 	mesh.updateBounds();
@@ -408,7 +434,8 @@ MeshData* MeshData::CreateCylinder(
 {
 	MeshBuilder mesh;
 	BuildPlane(mesh, kTwoPi, _length, _sides, _segs);
-	for (uint32 i = 0; i < mesh.getVertexCount(); ++i) {
+	for (uint32 i = 0; i < mesh.getVertexCount(); ++i)
+	{
 		MeshBuilder::Vertex& v = mesh.getVertex(i);
 		float x = sinf(v.m_position.x);
 		float y = cosf(v.m_position.x);
@@ -416,11 +443,13 @@ MeshData* MeshData::CreateCylinder(
 		v.m_position = vec3(x * _radius, -z, y * _radius); // swap yz to align on y
 		v.m_normal = normalize(vec3(v.m_position.x, 0.0f, v.m_position.z));
 	}
-	if (_capped) {
+	if (_capped)
+	{
 		FRM_ASSERT(false); // \todo
 	}
 
-	if (_desc.findVertexAttr(VertexAttr::Semantic_Tangents)) {
+	if (_desc.findVertexAttr(VertexAttr::Semantic_Tangents))
+	{
 		mesh.generateTangents();
 	}
 	mesh.updateBounds();
@@ -465,15 +494,19 @@ void MeshData::setVertexData(VertexAttr::Semantic _semantic, DataType _srcType, 
 	const char* src = (const char*)_src;
 	char* dst = (char*)m_vertexData;
 	dst += attr->getOffset();
-	if (_srcType == attr->getDataType()) {
+	if (_srcType == attr->getDataType())
+	{
 	 // type match, copy directly
-		for (auto i = 0; i < getVertexCount(); ++i) {
+		for (auto i = 0; i < getVertexCount(); ++i)
+		{
 			memcpy(dst, src, DataTypeSizeBytes(_srcType) * attr->getCount());
 			src += DataTypeSizeBytes(_srcType) * _srcCount;
 			dst += m_desc.getVertexSize();
 		}
 
-	} else {
+	}
+	else
+	{
 	 // type mismatch, convert
 		for (auto i = 0; i < getVertexCount(); ++i) {
 			DataTypeConvert(_srcType, attr->getDataType(), src, dst, attr->getCount());
@@ -495,13 +528,17 @@ void MeshData::setIndexData(DataType _srcType, const void* _src)
 {
 	FRM_ASSERT(_src);
 	FRM_ASSERT(m_indexData);
-	if (_srcType == m_indexDataType) {
+	if (_srcType == m_indexDataType)
+	{
 		setIndexData(_src);
 
-	} else {
+	}
+	else
+	{
 		const char* src = (char*)_src;
 		char* dst = (char*)m_indexData;
-		for (auto i = 0; i < getIndexCount(); ++i) {
+		for (auto i = 0; i < getIndexCount(); ++i)
+		{
 			DataTypeConvert(_srcType,	m_indexDataType, src, dst);
 			src += DataTypeSizeBytes(_srcType);
 			dst += DataTypeSizeBytes(m_indexDataType);
@@ -514,7 +551,8 @@ void MeshData::beginSubmesh(uint _materialId)
 {
 	Submesh submesh;
 	submesh.m_materialId = _materialId;
-	if (!m_submeshes.empty()) {
+	if (!m_submeshes.empty())
+	{
 		const Submesh& prevSubmesh = m_submeshes.back();
 		submesh.m_indexOffset = prevSubmesh.m_indexOffset + prevSubmesh.m_indexCount * DataTypeSizeBytes(m_indexDataType);
 		submesh.m_vertexOffset = prevSubmesh.m_vertexOffset + prevSubmesh.m_vertexCount * m_desc.getVertexSize();
@@ -553,18 +591,25 @@ void MeshData::endSubmesh()
 
 uint64 MeshData::getHash() const
 {
-	if (!m_path.isEmpty()) {
+	if (!m_path.isEmpty())
+	{
 		return HashString<uint64>((const char*)m_path);
-	} else {
+	}
+	else
+	{
 		uint64 ret = m_desc.getHash();
-		if (m_vertexData) {
+		if (m_vertexData)
+		{
 			ret = Hash<uint64>(m_vertexData, m_desc.getVertexSize() * getVertexCount(), ret);
 		}
-		if (m_indexData) {
+		if (m_indexData)
+		{
 			ret = Hash<uint64>(m_indexData, DataTypeSizeBytes(m_indexDataType) * getIndexCount(), ret);
 		}
-		if (m_bindPose) {
-			for (int i = 0; i < m_bindPose->getBoneCount(); ++i) {
+		if (m_bindPose)
+		{
+			for (int i = 0; i < m_bindPose->getBoneCount(); ++i)
+			{
 				const Skeleton::Bone& bone = m_bindPose->getBone(i);
 				ret = HashString<uint64>(m_bindPose->getBoneName(i), ret);
 			}
@@ -575,7 +620,8 @@ uint64 MeshData::getHash() const
 
 void MeshData::setBindPose(const Skeleton& _skel)
 {
-	if (!m_bindPose) {
+	if (!m_bindPose)
+	{
 		m_bindPose = FRM_NEW(Skeleton);
 	}
 	*m_bindPose = _skel;
@@ -604,30 +650,38 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	const VertexAttr* boneWeightsAttr = m_desc.findVertexAttr(VertexAttr::Semantic_BoneWeights);
 	const VertexAttr* boneIndicesAttr = m_desc.findVertexAttr(VertexAttr::Semantic_BoneIndices);
 	m_vertexData = (char*)FRM_MALLOC(m_desc.getVertexSize() * _meshBuilder.getVertexCount());
-	for (uint32 i = 0, n = _meshBuilder.getVertexCount(); i < n; ++i) {
+	for (uint32 i = 0, n = _meshBuilder.getVertexCount(); i < n; ++i)
+	{
 		char* dst = m_vertexData + i * m_desc.getVertexSize();
 		const MeshBuilder::Vertex& src = _meshBuilder.getVertex(i);
-		if (positionsAttr) {
+		if (positionsAttr)
+		{
 			DataTypeConvert(DataType_Float32, positionsAttr->getDataType(), &src.m_position, dst + positionsAttr->getOffset(), FRM_MIN(3, (int)positionsAttr->getCount()));
 		}
-		if (texcoordsAttr) {
+		if (texcoordsAttr)
+		{
 			DataTypeConvert(DataType_Float32, texcoordsAttr->getDataType(), &src.m_texcoord, dst + texcoordsAttr->getOffset(), FRM_MIN(2, (int)positionsAttr->getCount()));
 		}
-		if (normalsAttr) {
+		if (normalsAttr)
+		{
 			DataTypeConvert(DataType_Float32, normalsAttr->getDataType(), &src.m_normal, dst + normalsAttr->getOffset(), FRM_MIN(3, (int)normalsAttr->getCount()));
 		}
-		if (tangentsAttr) {
+		if (tangentsAttr)
+		{
 			DataTypeConvert(DataType_Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), FRM_MIN(4, (int)tangentsAttr->getCount()));
 		}
-		if (boneWeightsAttr) {
+		if (boneWeightsAttr)
+		{
 			DataTypeConvert(DataType_Float32, boneWeightsAttr->getDataType(), &src.m_boneWeights, dst + boneWeightsAttr->getOffset(), FRM_MIN(4, (int)boneWeightsAttr->getCount()));
 		}
-		if (boneIndicesAttr) {
+		if (boneIndicesAttr)
+		{
 			DataTypeConvert(DataType_Uint32, boneIndicesAttr->getDataType(), &src.m_boneIndices, dst + boneIndicesAttr->getOffset(), FRM_MIN(4, (int)boneIndicesAttr->getCount()));
 		}
 	}
 
-	if (_meshBuilder.getIndexCount() > 0) {
+	if (_meshBuilder.getIndexCount() > 0)
+	{
 		m_indexDataType = GetIndexDataType(_meshBuilder.getVertexCount());
 		m_indexData = (char*)FRM_MALLOC(_meshBuilder.getIndexCount() * DataTypeSizeBytes(m_indexDataType));
 		DataTypeConvert(DataType_Uint32, m_indexDataType, _meshBuilder.m_triangles.data(), m_indexData, _meshBuilder.getIndexCount());
@@ -640,7 +694,8 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	m_submeshes.back().m_boundingBox    = _meshBuilder.getBoundingBox();
 	m_submeshes.back().m_boundingSphere = _meshBuilder.getBoundingSphere();
 
-	for (auto& submesh : _meshBuilder.m_submeshes) {
+	for (auto& submesh : _meshBuilder.m_submeshes)
+	{
 		m_submeshes.push_back(submesh);
 
 	 // convert MeshBuilder offsets to bytes
@@ -651,7 +706,8 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 
 MeshData::~MeshData()
 {
-	if (m_bindPose) {
+	if (m_bindPose)
+	{
 		FRM_DELETE(m_bindPose);
 	}
 	FRM_FREE(m_vertexData);
@@ -666,9 +722,11 @@ void MeshData::updateSubmeshBounds(Submesh& _submesh)
 	const char* data = m_vertexData + posAttr->getOffset() + _submesh.m_vertexOffset;
 	_submesh.m_boundingBox.m_min = vec3(FLT_MAX);
 	_submesh.m_boundingBox.m_max = vec3(-FLT_MAX);
-	for (auto i = 0; i < _submesh.m_vertexCount; ++i) {
+	for (auto i = 0; i < _submesh.m_vertexCount; ++i)
+	{
 		vec3 v;
-		for (auto j = 0; j < FRM_MIN(posAttr->getCount(), (uint8)3); ++j) {
+		for (auto j = 0; j < FRM_MIN(posAttr->getCount(), (uint8)3); ++j)
+		{
 			DataTypeConvert(
 				posAttr->getDataType(),
 				DataType_Float32,
@@ -701,7 +759,8 @@ void MeshBuilder::transform(const mat4& _mat)
 {
 	mat3 nmat = transpose(inverse(mat3(_mat)));
 
-	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert)
+	{
 		vert->m_position = TransformPosition(_mat, vert->m_position);
 		vert->m_normal   = normalize(nmat * vert->m_normal);
 
@@ -712,21 +771,24 @@ void MeshBuilder::transform(const mat4& _mat)
 
 void MeshBuilder::transformTexcoords(const mat3& _mat)
 {
-	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert)
+	{
 		vert->m_texcoord = TransformPosition(_mat, vert->m_texcoord);
 	}
 }
 
 void MeshBuilder::transformColors(const mat4& _mat)
 {
-	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert)
+	{
 		vert->m_color = _mat * vert->m_color;
 	}
 }
 
 void MeshBuilder::normalizeBoneWeights()
 {
-	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert)
+	{
 		vert->m_boneWeights = normalize(vert->m_boneWeights);
 	}
 }
@@ -734,12 +796,14 @@ void MeshBuilder::normalizeBoneWeights()
 void MeshBuilder::generateNormals()
 {
  // zero normals for accumulation
-	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert)
+	{
 		vert->m_normal = vec3(0.0f);
 	}
 
  // generate normals
-	for (auto tri = m_triangles.begin(); tri != m_triangles.end(); ++tri) {
+	for (auto tri = m_triangles.begin(); tri != m_triangles.end(); ++tri)
+	{
 		Vertex& va = getVertex(tri->a);
 		Vertex& vb = getVertex(tri->b);
 		Vertex& vc = getVertex(tri->c);
@@ -754,7 +818,8 @@ void MeshBuilder::generateNormals()
 	}
 
  // normalize results
-	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert)
+	{
 		vert->m_normal = normalize(vert->m_normal);
 	}
 }
@@ -762,12 +827,14 @@ void MeshBuilder::generateNormals()
 void MeshBuilder::generateTangents()
 {
  // zero tangents for accumulation
-	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert)
+	{
 		vert->m_tangent = vec4(0.0f);
 	}
 
  // generate normals
-	for (auto tri = m_triangles.begin(); tri != m_triangles.end(); ++tri) {
+	for (auto tri = m_triangles.begin(); tri != m_triangles.end(); ++tri)
+	{
 		Vertex& va = getVertex(tri->a);
 		Vertex& vb = getVertex(tri->b);
 		Vertex& vc = getVertex(tri->c);
@@ -790,7 +857,8 @@ void MeshBuilder::generateTangents()
 	}
 
  // normalize results
-	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin(); vert != m_vertices.end(); ++vert)
+	{
 		vert->m_tangent = normalize(vert->m_tangent);
 		vert->m_tangent.w = 1.0f;
 	}
@@ -798,11 +866,13 @@ void MeshBuilder::generateTangents()
 
 void MeshBuilder::updateBounds()
 {
-	if (m_vertices.empty()) {
+	if (m_vertices.empty())
+	{
 		return;
 	}
 	m_boundingBox.m_min = m_boundingBox.m_max = m_vertices[0].m_position;
-	for (auto vert = m_vertices.begin() + 1; vert != m_vertices.end(); ++vert) {
+	for (auto vert = m_vertices.begin() + 1; vert != m_vertices.end(); ++vert)
+	{
 		m_boundingBox.m_min = min(m_boundingBox.m_min, vert->m_position);
 		m_boundingBox.m_max = max(m_boundingBox.m_max, vert->m_position);
 	}
@@ -838,7 +908,8 @@ void MeshBuilder::addMesh(const MeshBuilder& _mesh)
 	m_vertices.reserve(m_vertices.size() + _mesh.m_vertices.size());
 	m_vertices.insert(m_vertices.end(), _mesh.m_vertices.begin(), _mesh.m_vertices.end());
 
-	for (const Triangle& triangle : _mesh.m_triangles) {
+	for (const Triangle& triangle : _mesh.m_triangles)
+	{
 		Triangle newTriangle = triangle;
 		newTriangle.a += indexOffset;
 		newTriangle.b += indexOffset;
@@ -850,11 +921,14 @@ void MeshBuilder::addMesh(const MeshBuilder& _mesh)
 void MeshBuilder::addVertexData(const MeshDesc& _desc, const void* _data, uint32 _count)
 {
 	char* src = (char*)_data;
-	for (uint32 i = 0; i < _count; ++i) {
+	for (uint32 i = 0; i < _count; ++i)
+	{
 		Vertex v;
-		for (int j = 0; j < _desc.getVertexAttrCount(); ++j) {
+		for (int j = 0; j < _desc.getVertexAttrCount(); ++j)
+		{
 			const VertexAttr& srcAttr = _desc[j];
-			switch (srcAttr.getSemantic()) {
+			switch (srcAttr.getSemantic())
+			{
 				case VertexAttr::Semantic_Positions: 
 					FRM_ASSERT(srcAttr.getCount() <= 3);
 					DataTypeConvert(srcAttr.getDataType(), DataType_Float32, src + srcAttr.getOffset(), &v.m_position.x, srcAttr.getCount());
@@ -898,7 +972,8 @@ void MeshBuilder::addIndexData(DataType _type, const void* _data, uint32 _count)
 	uint32* tmp = FRM_NEW_ARRAY(uint32, _count);
 	DataTypeConvert(_type, DataType_Uint32, _data, tmp, _count);
 	uint32 off = (uint32)m_submeshes.back().m_vertexOffset;
-	for (uint32 i = 0; i < _count; i += 3) {
+	for (uint32 i = 0; i < _count; i += 3)
+	{
 		m_triangles.push_back(Triangle(tmp[i] + off, tmp[i + 1] + off, tmp[i + 2] + off));
 	}
 	FRM_DELETE_ARRAY(tmp);
@@ -917,7 +992,8 @@ MeshData::Submesh& MeshBuilder::beginSubmesh(uint _materialId)
 {
 	MeshData::Submesh submesh;
 	submesh.m_materialId = _materialId;
-	if (!m_submeshes.empty()) {
+	if (!m_submeshes.empty())
+	{
 		const MeshData::Submesh& prevSubmesh = m_submeshes.back();
 		submesh.m_vertexOffset = prevSubmesh.m_vertexOffset + prevSubmesh.m_vertexCount;
 		submesh.m_indexOffset  = prevSubmesh.m_indexOffset  + prevSubmesh.m_indexCount;
@@ -930,11 +1006,13 @@ void MeshBuilder::endSubmesh()
 	MeshData::Submesh& submesh = m_submeshes.back();
 	submesh.m_vertexCount = m_vertices.size() - submesh.m_vertexOffset;
 	submesh.m_indexCount  = m_triangles.size() * 3 - submesh.m_indexOffset;
-	if (submesh.m_vertexCount == 0) {
+	if (submesh.m_vertexCount == 0)
+	{
 		return;
 	}
 	submesh.m_boundingBox.m_min = submesh.m_boundingBox.m_max = m_vertices[submesh.m_vertexOffset].m_position;
-	for (uint i = submesh.m_vertexOffset + 1, n = submesh.m_vertexOffset + submesh.m_vertexCount; i < n; ++i) {
+	for (uint i = submesh.m_vertexOffset + 1, n = submesh.m_vertexOffset + submesh.m_vertexCount; i < n; ++i)
+	{
 		submesh.m_boundingBox.m_min = min(submesh.m_boundingBox.m_min, m_vertices[i].m_position);
 		submesh.m_boundingBox.m_max = max(submesh.m_boundingBox.m_max, m_vertices[i].m_position);
 	}
