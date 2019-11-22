@@ -532,8 +532,10 @@ bool ShaderDesc::StageDesc::isEnabled() const
 
 bool ShaderDesc::StageDesc::hasDependency(const char* _path) const
 {
+ // need to compare the path/dep with the root stripped; we store deps with the full root but _path doesn't necessarily contain it
 	for (auto& dep : m_dependencies) {
-		if (dep == _path) {
+		const PathStr depNoRoot = FileSystem::StripRoot(dep.c_str());
+		if (dep == _path || depNoRoot == _path) {
 			return true;
 		}
 	}
@@ -547,6 +549,7 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 		m_dependencies.clear();
 		_path = (const char*)m_path;
 	}
+
 	if (hasDependency(_path)) {
 	 // already included, it's not an error we just skip it
 		return true; 
