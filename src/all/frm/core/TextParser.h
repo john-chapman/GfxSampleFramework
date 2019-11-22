@@ -27,7 +27,7 @@ public:
 	bool isLineEnd() const;
 
 	// advance*() and skip*() functions return the character they stop on (0 if the function reached the end of the sequence).
-	char advance(sint _n = 1) { m_pos += _n; return *m_pos;  }
+	char advance(sint _n = 1) { m_pos += _n; return *m_pos;  } // \todo never advance beyond the null terminator
 	char advanceToNext(char _c); // advance to next occurence of _c
 	char advanceToNext(const char* _list); // advance to next occurence of any char in _list
 	char advanceToNextWhitespace();

@@ -121,8 +121,10 @@ char TextParser::advanceToNextNonAlphaNum()
 
 char TextParser::skipLine() 
 {
-	advanceToNext('\n');
-	return advance();
+	if (advanceToNext('\n') == '\n') {
+		advance();
+	}
+	return *m_pos;
 }
 
 char TextParser::skipWhitespace()
