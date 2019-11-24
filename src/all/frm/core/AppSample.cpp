@@ -249,6 +249,7 @@ bool AppSample::update()
 	}
 
 	Window* window = getWindow();
+	m_windowSize = ivec2(m_window->getWidth(), m_window->getHeight());
 	ImGui::GetIO().MousePos = ImVec2(-1.0f, -1.0f);
 	if (window->hasFocus()) 
 	{
