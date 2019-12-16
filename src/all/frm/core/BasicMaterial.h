@@ -17,6 +17,7 @@ class BasicMaterial: public Resource<BasicMaterial>
 public:
 	enum Map_
 	{
+	 // must match BasicMaterial.glsl
 		Map_BaseColor,
 		Map_Metallic,
 		Map_Roughness,
@@ -25,10 +26,20 @@ public:
 		Map_Normal,
 		Map_Height,
 		Map_Emissive,
+		Map_Alpha, 
 
 		Map_Count
 	};
 	typedef int Map;
+
+	enum Flag_
+	{
+	 // must match BasicMaterial.glsl
+		Flag_AlphaTest,
+
+		Flag_Count
+	};
+	typedef uint32 Flag;
 
 	static BasicMaterial* Create();
 	static BasicMaterial* Create(const char* _path);
@@ -39,12 +50,14 @@ public:
 	bool                  reload();
 	bool                  edit();
 	bool                  serialize(frm::Serializer& _serializer_);
+	void                  bind() const;
 
 	friend bool Serialize(frm::Serializer& _serializer_, BasicMaterial& _basicMaterial_) { return _basicMaterial_.serialize(_serializer_); }
 
 	int                   getIndex() const           { return m_index; }
 	const char*           getPath() const            { return m_path.c_str(); }
 	Texture*              getMap(Map _mapName) const { return m_maps[_mapName]; }
+	uint32                getFlags() const           { return m_flags; }
 	const vec3&           getBaseColor() const       { return m_baseColor; }
 	const vec3&           getEmissiveColor() const   { return m_emissiveColor; }
 	float                 getAlpha() const           { return m_alpha; }
@@ -61,13 +74,13 @@ protected:
 	~BasicMaterial();
 
 	int                                   m_index           = -1; // global index (see BasicRenderer)
-	frm::PathStr                          m_path            = "";
+	PathStr                               m_path            = "";
 	eastl::array<Texture*, Map_Count>     m_maps            = { nullptr };
 	eastl::array<frm::PathStr, Map_Count> m_mapPaths        = { "" };
 	vec3                                  m_baseColor       = vec3(1.0f);
 	vec3                                  m_emissiveColor   = vec3(0.0f);
 	float                                 m_alpha           = 1.0f;
-	bool                                  m_alphaTest       = false;
+	uint32                                m_flags           = 0u;
 
 	// \todo use textures for everything?
 	float                                 m_metallic        = 1.0f;

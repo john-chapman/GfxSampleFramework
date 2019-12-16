@@ -35,12 +35,13 @@ private:
 
 	struct MaterialInstance
 	{
-		vec4  baseColorAlpha = vec4(1.0f);
-		vec4  emissiveColor  = vec4(0.0f);
-		float metallic       = 1.0f;
-		float roughness      = 1.0f;
-		float reflectance    = 1.0f;
-		float height         = 1.0f;
+		vec4    baseColorAlpha = vec4(1.0f);
+		vec4    emissiveColor  = vec4(0.0f);
+		float   metallic       = 1.0f;
+		float   roughness      = 1.0f;
+		float   reflectance    = 1.0f;
+		float   height         = 1.0f;
+		uint32  flags          = 0u;
 	};
 	eastl::vector<MaterialInstance> materialInstances;
 	void updateMaterialInstances();

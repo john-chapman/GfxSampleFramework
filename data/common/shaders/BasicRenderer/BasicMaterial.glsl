@@ -46,11 +46,20 @@ struct MaterialInstance
 	float roughness;
 	float reflectance;
 	float height;
+	uint  flags; // see Flag_ below
 };
 layout(std430) restrict readonly buffer bfMaterials
 {
 	MaterialInstance uMaterials[];
 };
+
+#define Flag_AlphaTest    0
+#define Flag_Count        1
+
+bool BasicMaterial_CheckFlag(in uint _flag)
+{
+	return (uMaterials[uMaterialIndex].flags & _flag) == 1;
+}
 
 #ifdef Scene_OUT
 	layout(std430) restrict readonly buffer bfLights
@@ -105,20 +114,37 @@ void main()
 
 #ifdef FRAGMENT_SHADER /////////////////////////////////////////////////////////
 
-uniform sampler2D txBaseColor;
-uniform sampler2D txMetallic;
-uniform sampler2D txRoughness;
-uniform sampler2D txReflectance;
-uniform sampler2D txOcclusion;
-uniform sampler2D txNormal;
-uniform sampler2D txHeight;
-uniform sampler2D txEmissive;
+#define Map_BaseColor     0
+#define Map_Metallic      1
+#define Map_Roughness     2
+#define Map_Reflectance   3
+#define Map_Occlusion     4
+#define Map_Normal        5
+#define Map_Height        6
+#define Map_Emissive      7
+#define Map_Alpha         8
+#define Map_Count         9
+uniform sampler2D uMaps[Map_Count];
+
+void BasicMaterial_ApplyAlphaTest()
+{
+	if (BasicMaterial_CheckFlag(Flag_AlphaTest))
+	{
+		float alphaThreshold = uMaterials[uMaterialIndex].baseColorAlpha.a;
+		if (texture(uMaps[Map_Alpha], vUv).x < alphaThreshold)
+		{
+			discard;
+		}
+	}
+}
 
 void main()
 {
 	#ifdef GBuffer_OUT
 	{
-		vec3 normalT = normalize(texture(txNormal, vUv).xyz * 2.0 - 1.0);
+		BasicMaterial_ApplyAlphaTest();
+
+		vec3 normalT = normalize(texture(uMaps[Map_Normal], vUv).xyz * 2.0 - 1.0);
 		vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
 		GBuffer_WriteNormal(normalV);
 
@@ -139,11 +165,11 @@ void main()
 		     N = normalize(TransformDirection(bfCamera.m_world, N)); // world space
 
 		Lighting_In lightingIn;
-		vec3  baseColor   = texture(txBaseColor,   vUv).rgb * uMaterials[uMaterialIndex].baseColorAlpha.rgb * uBaseColorAlpha.rgb;
+		vec3  baseColor   = texture(uMaps[Map_BaseColor], vUv).rgb * uMaterials[uMaterialIndex].baseColorAlpha.rgb * uBaseColorAlpha.rgb;
 		      baseColor   = Gamma_Apply(baseColor);
-		float metallic    = texture(txMetallic,    vUv).x   * uMaterials[uMaterialIndex].metallic;
-		float roughness   = texture(txRoughness,   vUv).x   * uMaterials[uMaterialIndex].roughness;
-		float reflectance = texture(txReflectance, vUv).x   * uMaterials[uMaterialIndex].reflectance;
+		float metallic    = texture(uMaps[Map_Metallic],    vUv).x   * uMaterials[uMaterialIndex].metallic;
+		float roughness   = texture(uMaps[Map_Roughness],   vUv).x   * uMaterials[uMaterialIndex].roughness;
+		float reflectance = texture(uMaps[Map_Reflectance], vUv).x   * uMaterials[uMaterialIndex].reflectance;
 		Lighting_Init(lightingIn, N, V, roughness, baseColor, metallic, reflectance);
 		vec3 ret = vec3(0.0);
 		
@@ -178,6 +204,7 @@ void main()
 
 	#ifdef Shadow_OUT
 	{
+		BasicMaterial_ApplyAlphaTest();
 	}
 	#endif
 

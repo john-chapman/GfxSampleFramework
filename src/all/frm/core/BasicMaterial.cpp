@@ -3,6 +3,7 @@
 #include <frm/core/log.h>
 #include <frm/core/memory.h>
 #include <frm/core/FileSystem.h>
+#include <frm/core/GlContext.h>
 #include <frm/core/Json.h>
 #include <frm/core/Serializer.h>
 #include <frm/core/Texture.h>
@@ -27,7 +28,8 @@ static constexpr const char* kMapStr[] =
 	"Occlusion",
 	"Normal",
 	"Height",
-	"Emissive"
+	"Emissive",
+	"Alpha",
 };
 
 static constexpr const char* kDefaultMaps[] =
@@ -40,6 +42,12 @@ static constexpr const char* kDefaultMaps[] =
 	"textures/BasicMaterial/default_normal.png",
 	"textures/BasicMaterial/default_height.png",
 	"textures/BasicMaterial/default_emissive.png",
+	"textures/BasicMaterial/default_alpha.png",
+};
+
+static constexpr const char* kFlagStr[] =
+{
+	"AlphaTest",
 };
 
 
@@ -204,7 +212,9 @@ bool BasicMaterial::edit()
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Flags"))
 	{
-		ret |= ImGui::Checkbox("Alpha Test", &m_alphaTest);
+		bool alphaTest = BitfieldGet(m_flags, (uint32)Flag_AlphaTest);
+		ret |= ImGui::Checkbox("Alpha Test", &alphaTest);
+		m_flags = BitfieldSet(m_flags, (uint32)Flag_AlphaTest, alphaTest);
 		ImGui::TreePop();
 	}
 
@@ -221,7 +231,19 @@ bool BasicMaterial::serialize(Serializer& _serializer_)
 	Serialize(_serializer_, m_roughness,     "Roughness");
 	Serialize(_serializer_, m_reflectance,   "Reflectance");
 	Serialize(_serializer_, m_height,        "Height");
-	Serialize(_serializer_, m_alphaTest,     "AlphaTest");
+	
+	if (_serializer_.beginObject("Flags"))
+	{
+		
+		for (int i = 0; i < Flag_Count; ++i)
+		{
+			bool value = BitfieldGet(m_flags, (uint32)i);
+			Serialize(_serializer_, value, kFlagStr[i]);
+			m_flags = BitfieldSet(m_flags, (uint32)i, value);
+		}
+		_serializer_.endObject();
+	}
+
 	if (_serializer_.beginObject("Maps"))
 	{
 		for (int i = 0; i < Map_Count; ++i)
@@ -242,10 +264,23 @@ bool BasicMaterial::serialize(Serializer& _serializer_)
 	return true;
 }
 
+void BasicMaterial::bind() const
+{
+	GlContext* ctx = GlContext::GetCurrent();
+
+	String<32> mapName;
+	for (int i = 0; i < Map_Count; ++i)
+	{
+		mapName.setf("uMaps[%d]", i);
+		ctx->bindTexture(mapName.c_str(), m_maps[i]);
+	}
+}
+
 void BasicMaterial::setMap(Map _map, const char* _path)
 {
 	if (!_path || *_path == '\0')
 	{
+		FRM_ASSERT(kDefaultMaps[_map]);
 		setMap(_map, kDefaultMaps[_map]);
 		return;
 	}

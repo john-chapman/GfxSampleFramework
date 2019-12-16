@@ -39,9 +39,15 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 {
 	PROFILER_MARKER("BasicRenderer::draw");
 
+ // \todo can skip updates if nothing changed
 	updateMaterialInstances();
 	updateDrawInstances(_camera);
 	updateLightInstances(_camera);
+
+	if (drawInstances.empty())
+	{
+		return;
+	}
 
 	GlContext* ctx = GlContext::GetCurrent();
 	
@@ -64,16 +70,9 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 				continue;
 			}
 
-			BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
 			ctx->setUniform ("uMaterialIndex", materialIndex);
-			ctx->bindTexture("txBaseColor",    material->getMap(BasicMaterial::Map_BaseColor));
-			ctx->bindTexture("txMetallic",     material->getMap(BasicMaterial::Map_Metallic));
-			ctx->bindTexture("txRoughness",    material->getMap(BasicMaterial::Map_Roughness));
-			ctx->bindTexture("txReflectance",  material->getMap(BasicMaterial::Map_Reflectance));
-			ctx->bindTexture("txOcclusion",    material->getMap(BasicMaterial::Map_Occlusion));
-			ctx->bindTexture("txNormal",       material->getMap(BasicMaterial::Map_Normal));
-			ctx->bindTexture("txHeight",       material->getMap(BasicMaterial::Map_Height));
-			ctx->bindTexture("txEmissive",     material->getMap(BasicMaterial::Map_Emissive));
+			BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
+			material->bind();
 
 			for (DrawInstance& drawInstance : drawInstances[materialIndex])
 			{
@@ -114,16 +113,9 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 				continue;
 			}
 
-			BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
 			ctx->setUniform ("uMaterialIndex", materialIndex);
-			ctx->bindTexture("txBaseColor",    material->getMap(BasicMaterial::Map_BaseColor));
-			ctx->bindTexture("txMetallic",     material->getMap(BasicMaterial::Map_Metallic));
-			ctx->bindTexture("txRoughness",    material->getMap(BasicMaterial::Map_Roughness));
-			ctx->bindTexture("txReflectance",  material->getMap(BasicMaterial::Map_Reflectance));
-			ctx->bindTexture("txOcclusion",    material->getMap(BasicMaterial::Map_Occlusion));
-			ctx->bindTexture("txNormal",       material->getMap(BasicMaterial::Map_Normal));
-			ctx->bindTexture("txHeight",       material->getMap(BasicMaterial::Map_Height));
-			ctx->bindTexture("txEmissive",     material->getMap(BasicMaterial::Map_Emissive));
+			BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
+			material->bind();
 
 			for (DrawInstance& drawInstance : drawInstances[materialIndex])
 			{
@@ -209,6 +201,7 @@ void BasicRenderer::updateMaterialInstances()
 		materialInstance.roughness         = material->getRoughness();
 		materialInstance.reflectance       = material->getReflectance();
 		materialInstance.height            = material->getHeight();
+		materialInstance.flags             = material->getFlags();
 	}
 
 	GLsizei bfMaterialsSize = (GLsizei)(sizeof(MaterialInstance) * materialInstances.size());
