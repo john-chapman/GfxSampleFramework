@@ -20,20 +20,22 @@ class Node;
 class XForm: public frm::Factory<XForm>
 {
 public:
-	typedef void (OnComplete)(XForm* _xform_);
-	struct Callback
+	typedef void (Callback)(XForm* _xform_);
+	struct CallbackMeta
 	{
-		OnComplete*     m_callback  = nullptr;
-		const char*     m_name      = "";
-		frm::StringHash m_nameHash  = frm::StringHash::kInvalidHash;
+		Callback*    m_callback  = nullptr;
+		const char*  m_name      = "";
+		StringHash   m_nameHash  = frm::StringHash::kInvalidHash;
 		
-		Callback(const char* _name, OnComplete* _callback);
+		CallbackMeta(const char* _name, Callback* _callback);
 	};
-	static int             GetCallbackCount();
-	static const Callback* GetCallback(int _i);
-	static const Callback* FindCallback(frm::StringHash _nameHash);
-	static const Callback* FindCallback(OnComplete* _callback);
-	static bool            SerializeCallback(frm::Serializer& _serializer_, OnComplete*& _callback, const char* _name);
+	static int                 GetCallbackCount();
+	static const CallbackMeta* GetCallback(int _i);
+	static const CallbackMeta* FindCallback(frm::StringHash _nameHash);
+	static const CallbackMeta* FindCallback(Callback* _callback);
+	static bool                SerializeCallback(frm::Serializer& _serializer_, Callback*& _callback, const char* _name);
+	static void                BeginSelectCallback();
+	static Callback*           SelectCallback(Callback* _current);
 
 	// Reset initial state.
 	virtual void reset() {}
@@ -60,7 +62,7 @@ public:
 	}
 
 protected:
-	static eastl::vector<const Callback*> s_callbackRegistry;
+	static eastl::vector<const CallbackMeta*> s_callbackRegistry;
 
 	XForm(): m_node(nullptr)      {}
 
@@ -69,7 +71,7 @@ protected:
 }; // class XForm
 
 #define XFORM_REGISTER_CALLBACK(_callback) \
-	static XForm::Callback FRM_UNIQUE_NAME(XForm_Callback_)(#_callback, _callback);
+	static XForm::CallbackMeta FRM_UNIQUE_NAME(XForm_Callback_)(#_callback, _callback);
 
 ////////////////////////////////////////////////////////////////////////////////
 // XForm_PositionOrientationScale
@@ -163,7 +165,7 @@ struct XForm_PositionTarget: public XForm
 	float m_duration          = 1.0f;
 	float m_currentTime       = 0.0f;
 
-	OnComplete* m_onComplete  = nullptr;
+	Callback* m_onComplete    = nullptr;
 	
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;
@@ -184,7 +186,7 @@ struct XForm_SplinePath: public XForm
 	float       m_duration      = 1.0f;
 	float       m_currentTime   = 0.0f;
 
-	OnComplete* m_onComplete    = nullptr;
+	Callback* m_onComplete      = nullptr;
 
 	virtual void apply(float _dt) override;
 	virtual bool edit() override;

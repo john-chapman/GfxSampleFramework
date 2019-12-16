@@ -19,9 +19,9 @@ using namespace frm;
 
 FRM_FACTORY_DEFINE(XForm);
 
-eastl::vector<const XForm::Callback*> XForm::s_callbackRegistry;
+eastl::vector<const XForm::CallbackMeta*> XForm::s_callbackRegistry;
 
-XForm::Callback::Callback(const char* _name, OnComplete* _callback)
+XForm::CallbackMeta::CallbackMeta(const char* _name, Callback* _callback)
 	: m_callback(_callback)
 	, m_name(_name)
 	, m_nameHash(_name)
@@ -40,11 +40,11 @@ int XForm::GetCallbackCount()
 {
 	return (int)s_callbackRegistry.size();
 }
-const XForm::Callback* XForm::GetCallback(int _i)
+const XForm::CallbackMeta* XForm::GetCallback(int _i)
 {
 	return s_callbackRegistry[_i];
 }
-const XForm::Callback* XForm::FindCallback(StringHash _nameHash)
+const XForm::CallbackMeta* XForm::FindCallback(StringHash _nameHash)
 {
 	for (auto& ret : s_callbackRegistry)
 	{
@@ -55,7 +55,7 @@ const XForm::Callback* XForm::FindCallback(StringHash _nameHash)
 	}
 	return nullptr;
 }
-const XForm::Callback* XForm::FindCallback(OnComplete* _callback)
+const XForm::CallbackMeta* XForm::FindCallback(Callback* _callback)
 {
 	for (auto& ret : s_callbackRegistry)
 	{
@@ -66,7 +66,7 @@ const XForm::Callback* XForm::FindCallback(OnComplete* _callback)
 	}
 	return nullptr;
 }
-bool XForm::SerializeCallback(Serializer& _serializer_, OnComplete*& _callback, const char* _name)
+bool XForm::SerializeCallback(Serializer& _serializer_, Callback*& _callback, const char* _name)
 {
 	if (_serializer_.getMode() == Serializer::Mode_Read)
 	{
@@ -76,23 +76,59 @@ bool XForm::SerializeCallback(Serializer& _serializer_, OnComplete*& _callback, 
 			return false;
 		}
 
-		const Callback* cbk = FindCallback(StringHash((const char*)cbkName));
-		if (cbk == nullptr)
+		const CallbackMeta* meta = FindCallback(StringHash((const char*)cbkName));
+		if (!meta)
 		{
 			FRM_LOG_ERR("XForm: Invalid callback '%s'", (const char*)cbkName);
 			_callback = nullptr;
 			return false;
 		}
-		_callback = cbk->m_callback;
-		return true;
+		_callback = meta->m_callback;
 	}
 	else
 	{
-		String<64> cbkName = FindCallback(_callback)->m_name;
-		return Serialize(_serializer_, cbkName, _name);
+		const CallbackMeta* meta = FindCallback(_callback);
+		if (meta)
+		{
+			String<64> cbkName = meta->m_name;
+			return Serialize(_serializer_, cbkName, _name);
+		}
 	}
+	return true;
 }
 
+void XForm::BeginSelectCallback()
+{
+	ImGui::OpenPopup("Select Callback");
+}
+
+XForm::Callback* XForm::SelectCallback(Callback* _current)
+{
+	Callback* ret = _current;
+
+	if (ImGui::BeginPopup("Select Callback"))
+	{
+		if (ImGui::Selectable("NONE"))
+		{
+			ret = nullptr;
+		}
+		for (const CallbackMeta* meta : s_callbackRegistry)
+		{
+			if (meta->m_callback != _current)
+			{
+				if (ImGui::Selectable(meta->m_name))
+				{
+					ret = meta->m_callback;
+					break;
+				}
+			}
+		}
+
+		ImGui::EndPopup();
+	}
+
+	return ret;
+}
 
 /*******************************************************************************
 
@@ -418,24 +454,18 @@ bool XForm_PositionTarget::edit()
 	Im3d::PushId(this);
 
 	ret |= ImGui::SliderFloat("Duration (s)", &m_duration, 0.0f, 10.0f);
-	if (ImGui::Button("Reset"))
+	
+	if (ImGui::Button("On Complete"))
 	{
-		reset();
-		ret = true;
+		BeginSelectCallback();
 	}
+	const CallbackMeta* meta = FindCallback(m_onComplete);
+	Callback* newCallback = SelectCallback(meta ? meta->m_callback : nullptr);
+	ret |= newCallback != m_onComplete;
+	m_onComplete = newCallback;
 	ImGui::SameLine();
-	if (ImGui::Button("Relative Reset"))
-	{
-		relativeReset();
-		ret = true;
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Reverse"))
-	{
-		reverse();
-		ret = true;
-	}
-
+	ImGui::Text(m_onComplete ? FindCallback(m_onComplete)->m_name : "NONE");
+	
 	ret |= Im3d::GizmoTranslation("XForm_PositionTarget::m_start", &m_start.x);
 	ret |= Im3d::GizmoTranslation("XForm_PositionTarget::m_end",   &m_end.x);
 	Im3d::PushDrawState();
@@ -510,11 +540,18 @@ bool XForm_SplinePath::edit()
 	ret |= ImGui::DragFloat("Duration (s)", &m_duration, 0.1f);
 	m_duration = FRM_MAX(m_duration, 0.0f);
 	m_currentTime = FRM_MIN(m_currentTime, m_duration);
-	if (ImGui::Button("Reset"))
+	
+	if (ImGui::Button("On Complete"))
 	{
-		reset();
-		ret = true;
+		BeginSelectCallback();
 	}
+	const CallbackMeta* meta = FindCallback(m_onComplete);
+	Callback* newCallback = SelectCallback(meta ? meta->m_callback : nullptr);
+	ret |= newCallback != m_onComplete;
+	m_onComplete = newCallback;
+	ImGui::SameLine();
+	ImGui::Text(m_onComplete ? FindCallback(m_onComplete)->m_name : "NONE");
+
 	ImGui::Text("Current Time: %.3fs", m_currentTime);
 	ImGui::Text("Path hint:    %d",    m_pathHint);
 	ImGui::PopID();
@@ -526,7 +563,7 @@ bool XForm_SplinePath::serialize(Serializer& _serializer_)
 {
 	bool ret = true;
 	ret &= Serialize(_serializer_, m_duration, "Duration");
-	ret &= SerializeCallback(_serializer_, m_onComplete, "OnComplete");
+	ret &= SerializeCallback(_serializer_, m_onComplete, "Callback");
 	return ret;
 }
 
