@@ -358,6 +358,20 @@ inline tType BitfieldReverse(tType _bits)
 	return ret;
 }
 
+// Get/set a single bit as bool.
+template <typename tType>
+inline bool BitfieldGet(tType _bits, tType _offset)
+{
+	tType mask = tType(1) << _offset;
+	return (_bits & mask) != 0;
+}
+template <typename tType>
+inline tType BitfieldSet(tType _bits, int _offset, bool _value)
+{
+	tType mask = tType(1) << _offset;
+	return _value ? (_bits | mask) : (_bits & ~mask);
+}
+
 namespace internal {
 	union iee754_f32
 	{
