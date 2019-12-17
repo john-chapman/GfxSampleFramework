@@ -444,11 +444,11 @@ void AppSample::drawMainMenuBar()
 			
 			ImGui::EndMenu();
 		}
-		float vsyncWidth = (float)sizeof("Adfrmive") * ImGui::GetFontSize();
+		float vsyncWidth = (float)sizeof("Adaptive") * ImGui::GetFontSize();
 		ImGui::PushItemWidth(vsyncWidth);
 		float cursorX = ImGui::GetCursorPosX();
 		ImGui::SetCursorPosX(ImGui::GetContentRegionAvailWidth() - vsyncWidth);
-		if (ImGui::Combo("VSYNC", &m_vsyncMode, "Adfrmive\0Off\0On\0On1\0On2\0On3\0")) 
+		if (ImGui::Combo("VSYNC", &m_vsyncMode, "Adaptive\0Off\0On\0On1\0On2\0On3\0")) 
 		{
 			getGlContext()->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 		}
