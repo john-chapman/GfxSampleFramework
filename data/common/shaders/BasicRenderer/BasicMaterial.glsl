@@ -58,7 +58,7 @@ layout(std430) restrict readonly buffer bfMaterials
 
 bool BasicMaterial_CheckFlag(in uint _flag)
 {
-	return (uMaterials[uMaterialIndex].flags & _flag) == 1;
+	return (uMaterials[uMaterialIndex].flags & (1 << _flag)) == 1;
 }
 
 #ifdef Scene_OUT
@@ -131,7 +131,7 @@ void BasicMaterial_ApplyAlphaTest()
 	if (BasicMaterial_CheckFlag(Flag_AlphaTest))
 	{
 		float alphaThreshold = uMaterials[uMaterialIndex].baseColorAlpha.a;
-		if (texture(uMaps[Map_Alpha], vUv).x < alphaThreshold)
+		if (texture(uMaps[Map_Alpha], vUv).x < 0.3)
 		{
 			discard;
 		}

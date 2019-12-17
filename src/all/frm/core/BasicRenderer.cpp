@@ -53,7 +53,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 	
 	{	PROFILER_MARKER("GBuffer");
 
-		ctx->setFramebuffer(fbGBuffer);
+		ctx->setFramebufferAndViewport(fbGBuffer);
 	 // \todo set the depth clear value based on the camera's projection mode, clear the color buffer?
 		glAssert(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
@@ -76,7 +76,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 			for (DrawInstance& drawInstance : drawInstances[materialIndex])
 			{
-				ctx->setMesh    (drawInstance.mesh,     drawInstance.submeshIndex);
+				ctx->setMesh    (drawInstance.mesh, drawInstance.submeshIndex);
 				ctx->setUniform ("uWorld",          drawInstance.world);
 				ctx->setUniform ("uPrevWorld",      drawInstance.prevWorld);
 				ctx->setUniform ("uBaseColorAlpha", drawInstance.colorAlpha);
@@ -87,7 +87,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 	{	PROFILER_MARKER("Scene");
 
-		ctx->setFramebuffer(fbScene);
+		ctx->setFramebufferAndViewport(fbScene);
 		glAssert(glClear(GL_COLOR_BUFFER_BIT));
 		glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 		glAssert(glDepthFunc(GL_EQUAL));
@@ -129,14 +129,20 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 	}
 
 	//m_luminanceMeter.draw(ctx, _dt, txScene);
+	txScene->setMagFilter(GL_NEAREST);
 	m_colorCorrection.draw(ctx, txScene, nullptr);
+	txScene->setMagFilter(GL_LINEAR);
 }
 
 bool BasicRenderer::edit()
 {
 	bool ret = false;
 
-	m_colorCorrection.edit();
+	if (ImGui::TreeNode("Color Correction"))
+	{
+		m_colorCorrection.edit();
+		ImGui::TreePop();
+	}
 
 	return ret;
 }

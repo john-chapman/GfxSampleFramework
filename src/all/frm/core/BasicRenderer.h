@@ -33,7 +33,7 @@ private:
 	BasicRenderer(int _resolutionX, int _resolutionY);
 	~BasicRenderer();
 
-	struct MaterialInstance
+	struct alignas(16) MaterialInstance 
 	{
 		vec4    baseColorAlpha = vec4(1.0f);
 		vec4    emissiveColor  = vec4(0.0f);
