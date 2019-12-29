@@ -69,7 +69,7 @@ struct Component_BasicRenderable: public Component
 	Mesh*                                  m_mesh        = nullptr;
 	PathStr                                m_meshPath    = "";
 	eastl::fixed_vector<BasicMaterial*, 1> m_materials;      // per submesh
-	eastl::fixed_vector<PathStr, 1>   m_materialPaths;  //     "
+	eastl::fixed_vector<PathStr, 1>        m_materialPaths;  //     "
 
 	static eastl::vector<Component_BasicRenderable*> s_instances;
 
@@ -82,6 +82,7 @@ struct Component_BasicRenderable: public Component
 
 ////////////////////////////////////////////////////////////////////////////////
 // Component_BasicLight
+// Basic analytical light type.
 ////////////////////////////////////////////////////////////////////////////////
 struct Component_BasicLight: public Component
 {
@@ -97,9 +98,9 @@ struct Component_BasicLight: public Component
 
 	Type m_type                   = Type_Direct;
 	vec4 m_colorBrightness        = vec4(1.0f);
-	bool m_castShadows            = false;
 	vec2 m_linearAttenuation      = vec2(0.0f); // start, stop in meters
 	vec2 m_radialAttenuation      = vec2(0.0f); // start, stop in degrees
+	bool m_castShadows            = false;
 
 	static eastl::vector<Component_BasicLight*> s_instances;
 
@@ -108,6 +109,36 @@ struct Component_BasicLight: public Component
 	virtual void update(float _dt) override;
 	virtual bool edit() override;
 	virtual bool serialize(Serializer& _serializer_) override;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// Component_ImageLight
+// Image-based light. Supports cubemap and rectilinear projected source images.
+//
+// \todo
+// - Store all cubemaps in a single global array texture + use world space
+//   extents and bounds for parallax correction + filtering.
+// - BC6H compression?
+////////////////////////////////////////////////////////////////////////////////
+struct Component_ImageLight: public Component
+{
+	float    m_brightness   = 1.0f;
+	bool     m_isBackground = false;  // if true, use to fill the background of the scene buffer
+	Texture* m_texture      = nullptr;
+	PathStr  m_texturePath  = "";
+	
+	static eastl::vector<Component_ImageLight*> s_instances;
+
+	virtual bool init() override;
+	virtual void shutdown() override;
+	virtual void update(float _dt) override;
+	virtual bool edit() override;
+	virtual bool serialize(Serializer& _serializer_) override;
+
+private:
+
+	// Call during init() or whenever the texture path changes.
+	bool loadAndFilter();
 };
 
 } // namespace frm

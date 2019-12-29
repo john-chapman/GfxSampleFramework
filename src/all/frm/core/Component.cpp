@@ -3,9 +3,12 @@
 #include <frm/core/log.h>
 #include <frm/core/BasicMaterial.h>
 #include <frm/core/FileSystem.h>
+#include <frm/core/GlContext.h>
+#include <frm/core/Image.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/Scene.h>
 #include <frm/core/Serializer.h>
+#include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
 
 #include <imgui/imgui.h>
@@ -274,4 +277,140 @@ bool Component_BasicLight::serialize(frm::Serializer& _serializer_)
 	Serialize(_serializer_, m_linearAttenuation, "LinearAttenuation");
 	Serialize(_serializer_, m_radialAttenuation, "RadialAttenuation");
 	return _serializer_.getError() == nullptr;
+}
+
+
+/*******************************************************************************
+
+                            Component_ImageLight
+
+*******************************************************************************/
+
+FRM_FACTORY_REGISTER_DEFAULT(Component, Component_ImageLight);
+
+eastl::vector<Component_ImageLight*> Component_ImageLight::s_instances;
+
+bool Component_ImageLight::init()
+{
+	if (!m_texturePath.isEmpty())
+	{
+		s_instances.push_back(this);
+		return loadAndFilter();
+	}
+	return true;
+}
+
+void Component_ImageLight::shutdown()
+{
+	auto it = eastl::find(s_instances.begin(), s_instances.end(), this);
+	if (it != s_instances.end())
+	{
+		s_instances.erase_unsorted(it);
+	}
+
+	Texture::Release(m_texture);
+}
+
+void Component_ImageLight::update(float _dt)
+{
+}
+
+bool Component_ImageLight::edit()
+{
+	bool ret = false;
+	ImGui::PushID(this);
+
+	if (ImGui::Button("Source"))
+	{
+		if (FileSystem::PlatformSelect(m_texturePath, { "*.exr", "*.hdr", "*.dds", "*.psd", "*.tga", "*.png" }))
+		{
+			m_texturePath = FileSystem::MakeRelative(m_texturePath.c_str());
+			ret |= loadAndFilter();
+		}
+	}
+	ImGui::SameLine();
+	ImGui::Text("'%s'", m_texturePath.c_str());
+
+	ret |= ImGui::DragFloat("Brightness", &m_brightness, 0.1f);
+	ret |= ImGui::Checkbox("Is Background", &m_isBackground);
+
+	if (ImGui::Button("Refilter"))
+	{
+		ret |= loadAndFilter();
+	}
+
+	ImGui::PopID();
+	return ret;
+}
+
+bool Component_ImageLight::serialize(Serializer& _serializer_)
+{
+	Serialize(_serializer_, m_texturePath, "Path");
+	Serialize(_serializer_, m_isBackground, "IsBackground");
+	Serialize(_serializer_, m_brightness, "Brightness");
+	return _serializer_.getError() == nullptr;
+}
+
+// PRIVATE
+
+bool Component_ImageLight::loadAndFilter()
+{
+	FRM_AUTOTIMER("Component_ImageLight::loadAndFilter");
+
+	if (m_texturePath.isEmpty())
+	{
+		return false;
+	}
+
+	File srcFile;
+	if (!FileSystem::Read(srcFile, m_texturePath.c_str()))
+	{
+		return false;
+	}
+
+	Image srcImage;
+	if (!Image::Read(srcImage, srcFile))
+	{
+		return false;
+	}
+
+	Texture* srcTexture = Texture::Create(srcImage);
+	if (srcImage.getType() != Image::Type_Cubemap)
+	{
+		// convert to cubemap, assume rectilinear (sphere) projection
+		if (!Texture::ConvertSphereToCube(*srcTexture, srcTexture->getHeight()))
+		{
+			return false;
+		}
+	}
+	Texture* dstTexture = Texture::CreateCubemap(srcTexture->getWidth(), GL_RGBA16F, 99);
+
+	// \todo handle gamma correction for LDR source images
+	{	FRM_AUTOTIMER("Filter");
+		srcTexture->generateMipmap();
+
+		GlContext* ctx = GlContext::GetCurrent();
+		Shader* shFilter = Shader::CreateCs("shaders/BasicRenderer/FilterImageLight.glsl", 8, 8);
+		FRM_ASSERT(shFilter && shFilter->getState() == Shader::State_Loaded);
+		
+		for (int i = 0; i < dstTexture->getMipCount(); ++i)
+		{
+			ctx->setShader(shFilter);
+			ctx->setUniform("uLevel", i);
+			ctx->setUniform("uMaxLevel", (int)dstTexture->getMipCount());
+			ctx->bindTexture("txSrc", srcTexture);
+			ctx->bindImage("txDst", dstTexture, GL_WRITE_ONLY, i);
+			ctx->dispatch(dstTexture, 6);
+		}
+		glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+		glAssert(glFinish());
+
+		Shader::Release(shFilter);
+		Texture::Release(srcTexture);
+	}
+
+	Texture::Release(m_texture);
+	m_texture = dstTexture;
+
+	return true;
 }

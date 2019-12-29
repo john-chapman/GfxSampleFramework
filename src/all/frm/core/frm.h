@@ -109,6 +109,9 @@ namespace frm {
 	class  Buffer;
 	class  Camera;
 	class  Component;
+		struct Component_BasicRenderable;
+		struct Component_BasicLight;
+		struct Component_EnvironmentLight;
 	class  Curve;
 	class  CurveEditor;
 	class  CurveGradient;

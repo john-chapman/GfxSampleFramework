@@ -43,6 +43,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 	updateMaterialInstances();
 	updateDrawInstances(_camera);
 	updateLightInstances(_camera);
+	updateImageLightInstances(_camera);
 
 	if (drawInstances.empty())
 	{
@@ -59,9 +60,6 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 		glAssert(glDepthFunc(GL_LESS));
 		glScopedEnable(GL_CULL_FACE, GL_TRUE); // \todo per material?
-		ctx->setShader(shGBuffer);
-		ctx->bindBuffer(_camera->m_gpuBuffer);
-		ctx->bindBuffer(bfMaterials);
 		
 		for (int materialIndex = 0; materialIndex < (int)drawInstances.size(); ++materialIndex)
 		{
@@ -70,7 +68,11 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 				continue;
 			}
 
-			ctx->setUniform ("uMaterialIndex", materialIndex);
+			// reset shader because we want to clear all the bindings to avoid running out of slots
+			ctx->setShader(shGBuffer);
+			ctx->bindBuffer(_camera->m_gpuBuffer);
+			ctx->bindBuffer(bfMaterials);
+			ctx->setUniform("uMaterialIndex", materialIndex);
 			BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
 			material->bind();
 
@@ -88,29 +90,47 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 	{	PROFILER_MARKER("Scene");
 
 		ctx->setFramebufferAndViewport(fbScene);
-		glAssert(glClear(GL_COLOR_BUFFER_BIT));
+
 		glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 		glAssert(glDepthFunc(GL_EQUAL));
-		glScopedEnable(GL_CULL_FACE, GL_TRUE); // \todo per material?
-		ctx->setShader(shScene);
-		ctx->bindTexture(txGBuffer0);
-		ctx->bindTexture(txGBufferDepth);
-		ctx->setUniform("uLightCount", (int)lightInstances.size());
-		if (bfLights)
-		{
-			ctx->bindBuffer("bfLights", bfLights);
-		}
-		if (bfMaterials)
-		{
-			ctx->bindBuffer("bfMaterials", bfMaterials);
-		}
-		
 
+		if (imageLightInstances.size() > 0 && imageLightInstances[0].isBackground)
+		{
+			ctx->setShader(shImageLightBg);
+			ctx->bindTexture("txEnvmap", imageLightInstances[0].texture);
+			ctx->drawNdcQuad(_camera);
+		}
+		else
+		{
+			glAssert(glClear(GL_COLOR_BUFFER_BIT));
+		}
+
+		glScopedEnable(GL_CULL_FACE, GL_TRUE); // \todo per material?
 		for (int materialIndex = 0; materialIndex < (int)drawInstances.size(); ++materialIndex)
 		{
 			if (drawInstances[materialIndex].empty())
 			{
 				continue;
+			}
+
+			// reset shader because we want to clear all the bindings to avoid running out of slots
+			ctx->setShader(shScene);
+			ctx->bindTexture(txGBuffer0);
+			ctx->bindTexture(txGBufferDepth);
+			ctx->setUniform("uLightCount", (int)lightInstances.size());
+			if (bfLights)
+			{
+				ctx->bindBuffer("bfLights", bfLights);
+			}
+			if (bfMaterials)
+			{
+				ctx->bindBuffer("bfMaterials", bfMaterials);
+			}
+			ctx->setUniform("uImageLightCount", (int)imageLightInstances.size());
+			if (imageLightInstances.size() > 0)
+			{
+				ctx->bindTexture("txImageLight", imageLightInstances[0].texture);
+				ctx->setUniform("uImageLightBrightness", imageLightInstances[0].brightness);
 			}
 
 			ctx->setUniform ("uMaterialIndex", materialIndex);
@@ -151,8 +171,9 @@ bool BasicRenderer::edit()
 
 BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY)
 {
-	shGBuffer = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
-	shScene   = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "Scene_OUT" });
+	shGBuffer       = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
+	shScene         = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "Scene_OUT" });
+	shImageLightBg	= Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
 
 	txGBuffer0 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA16);
 	txGBuffer0->setName("txGBuffer0");
@@ -317,6 +338,31 @@ void BasicRenderer::updateLightInstances(const Camera* _camera)
 		}
 
 		bfLights->setData(bfLightsSize, lightInstances.data());
+	}
+}
+
+void BasicRenderer::updateImageLightInstances(const Camera* _camera)
+{
+	PROFILER_MARKER_CPU("updateImageLightInstances");
+
+	// \todo need a separate system for this, see Component_ImageLight
+
+	FRM_ASSERT(Component_ImageLight::s_instances.size() <= 1); // only 1 image light is currently supported
+	
+	imageLightInstances.clear();
+
+	for (Component_ImageLight* light : Component_ImageLight::s_instances)
+	{
+		Node* sceneNode = light->getNode();
+		if (!sceneNode->isActive())
+		{
+			continue;
+		}
+
+		ImageLightInstance& lightInstance = imageLightInstances.push_back();
+		lightInstance.brightness   = light->m_brightness;
+		lightInstance.isBackground = light->m_isBackground;
+		lightInstance.texture      = light->m_texture;
 	}
 }
 

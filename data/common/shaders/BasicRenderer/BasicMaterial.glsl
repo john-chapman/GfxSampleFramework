@@ -68,6 +68,11 @@ bool BasicMaterial_CheckFlag(in uint _flag)
 	};
 	uniform int uLightCount;
 
+	// \todo see Component_ImageLight
+	uniform int uImageLightCount;
+	uniform float uImageLightBrightness;
+	uniform samplerCube txImageLight;
+
 	_FRAGMENT_OUT(0, vec4, fResult);
 #endif
 
@@ -196,6 +201,16 @@ void main()
 					break;
 				}
 			};
+		}
+
+		if (uImageLightCount > 0)
+		{
+		 // \todo rewrite this as per Filament
+			float maxLevel = 6.0; // depends on envmap size, limit to 8x8 face to prevent filtering artefacts
+			ret += (textureLod(txImageLight, N, maxLevel).rgb * uImageLightBrightness) * lightingIn.diffuse;
+
+			vec3 R = reflect(-V, N);
+			ret += lightingIn.f0 * textureLod(txImageLight, R, sqrt(roughness) * maxLevel).rgb * uImageLightBrightness;
 		}
 
 		fResult = vec4(ret, 1.0);

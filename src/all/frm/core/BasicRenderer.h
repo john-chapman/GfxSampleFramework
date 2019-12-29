@@ -10,6 +10,10 @@ namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // BasicRenderer
+//
+// \todo 
+// - Shadow system (gather shadow casting light components, allocate shadow map
+//   resolution from an atlas).
 ////////////////////////////////////////////////////////////////////////////////
 struct BasicRenderer
 {
@@ -28,6 +32,8 @@ struct BasicRenderer
 	Shader*      shScene        = nullptr;
 	Buffer*      bfMaterials    = nullptr;
 	Buffer*      bfLights       = nullptr;
+	Buffer*      bfImageLights  = nullptr;
+	Shader*      shImageLightBg = nullptr;
 
 private:
 	BasicRenderer(int _resolutionX, int _resolutionY);
@@ -69,6 +75,15 @@ private:
 	};
 	eastl::vector<LightInstance> lightInstances;
 	void updateLightInstances(const Camera* _camera);
+
+	struct ImageLightInstance
+	{
+		float    brightness   = 1.0f;
+		bool     isBackground = false;
+		Texture* texture      = nullptr;
+	};
+	eastl::vector<ImageLightInstance> imageLightInstances;
+	void updateImageLightInstances(const Camera* _camera);
 
  	//LuminanceMeter  m_luminanceMeter;
 	ColorCorrection m_colorCorrection;

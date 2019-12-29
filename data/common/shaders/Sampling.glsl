@@ -47,7 +47,7 @@ vec3 Sampling_Hemisphere_Cosine(in vec2 _uv)
 vec3 Sampling_Hemisphere(in vec2 _uv, in float _a) 
 {
 	float phi = _uv.y * 2.0 * kPi;
-	float ct = sqrt((1.0 - _uv.y) / (1.0 + (_a * _a - 1.0) * _uv.y ));
+	float ct = sqrt((1.0 - _uv.x) / (1.0 + (_a * _a - 1.0) * _uv.x));
 	float st = sqrt(1.0 - ct * ct);
 	return vec3(cos(phi) * st, sin(phi) * st, ct);
 }
