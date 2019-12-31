@@ -21,6 +21,7 @@ layout(std140) uniform _bfData
 	Data bfData;
 };
 
+layout(location=0) out vec3 fResult;
 
 /*******************************************************************************
 
@@ -31,9 +32,6 @@ layout(std140) uniform _bfData
 #ifdef AUTO_EXPOSURE
 	uniform sampler2D txLuminance;
 #endif
-
-layout(location=0) out vec3 fResult;
-
 
 float Luminance(in vec3 _x)
 {

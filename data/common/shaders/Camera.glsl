@@ -48,23 +48,31 @@ bool Camera_GetProjFlag(in uint _flag)
 }
 
 // Recover view space depth from a depth buffer value.
-// This may return INF for infinite perspective projections.
+// This may return INF for infinite perspective projections -- this was causing a lot of hard-to-track issues so it's now handled by returning m_far.
 float Camera_GetDepthV(in float _depth)
 {
-	if (Camera_GetProjFlag(Camera_ProjFlag_Perspective)) {
-		return GetDepthV_Perspective(_depth, bfCamera.m_proj);
-	} else {
-		return GetDepthV_Orthographic(_depth, bfCamera.m_proj);
+	float ret = 0.0;
+	if (Camera_GetProjFlag(Camera_ProjFlag_Perspective))
+	{
+		ret = GetDepthV_Perspective(_depth, bfCamera.m_proj);
 	}
+	else
+	{
+		ret = GetDepthV_Orthographic(_depth, bfCamera.m_proj);
+	}
+	return isinf(ret) ? uCamera.m_far : ret; // inf = far plane for infinite perspective projections
 }
 
 // Recover a frustum ray from _ndc (in [-1,1]). Ray * linear depth = view space position.
 vec3 Camera_GetFrustumRay(in vec2 _ndc)
 {
-	if (Camera_GetProjFlag(Camera_ProjFlag_Asymmetrical)) {
+	if (Camera_GetProjFlag(Camera_ProjFlag_Asymmetrical)) 
+	{
 	 // \todo interpolate between frustum edges in XY
 		return vec3(0.0, 0.0, 0.0);
-	} else {
+	}
+	else
+	{
 		return vec3(_ndc.x * bfCamera.m_up * bfCamera.m_aspectRatio, _ndc.y * bfCamera.m_up, -1.0);
 	}
 }

@@ -23,17 +23,26 @@ struct BasicRenderer
 	void draw(Camera* _camera, float _dt);
 	bool edit();
 
-	Texture*     txGBuffer0     = nullptr;
-	Texture*     txGBufferDepth = nullptr;
-	Framebuffer* fbGBuffer      = nullptr;
-	Shader*      shGBuffer      = nullptr;
-	Texture*     txScene        = nullptr;
-	Framebuffer* fbScene        = nullptr;
-	Shader*      shScene        = nullptr;
-	Buffer*      bfMaterials    = nullptr;
-	Buffer*      bfLights       = nullptr;
-	Buffer*      bfImageLights  = nullptr;
-	Shader*      shImageLightBg = nullptr;
+	Texture*     txGBuffer0             = nullptr;
+	Texture*     txGBufferDepth         = nullptr;
+	Framebuffer* fbGBuffer              = nullptr;
+	Shader*      shGBuffer              = nullptr;
+
+	Texture*     txScene                = nullptr;
+	Framebuffer* fbScene                = nullptr;
+	Shader*      shImageLightBg         = nullptr;
+	Shader*      shScene                = nullptr;
+
+	Texture*     txFinal                = nullptr;
+	Framebuffer* fbFinal                = nullptr;
+	Shader*      shPostProcess          = nullptr;
+
+	Buffer*      bfMaterials            = nullptr;
+	Buffer*      bfLights               = nullptr;
+	Buffer*      bfImageLights          = nullptr;
+	Buffer*      bfPostProcessData	    = nullptr;
+
+	float        motionBlurTargetFps    = 50.0f;
 
 private:
 	BasicRenderer(int _resolutionX, int _resolutionY);
@@ -52,7 +61,7 @@ private:
 	eastl::vector<MaterialInstance> materialInstances;
 	void updateMaterialInstances();
 
-	struct DrawInstance
+	struct alignas(16) DrawInstance
 	{
 		Mesh*  mesh          = nullptr;
 		mat4   world         = identity;
@@ -65,7 +74,7 @@ private:
 	DrawInstanceMap drawInstances;
 	void updateDrawInstances(const Camera* _camera);
 
-	struct LightInstance
+	struct alignas(16) LightInstance
 	{
 	 // \todo pack
 		vec4 position      = vec4(0.0f); // A = type.
@@ -76,7 +85,7 @@ private:
 	eastl::vector<LightInstance> lightInstances;
 	void updateLightInstances(const Camera* _camera);
 
-	struct ImageLightInstance
+	struct alignas(16) ImageLightInstance
 	{
 		float    brightness   = 1.0f;
 		bool     isBackground = false;
@@ -85,8 +94,14 @@ private:
 	eastl::vector<ImageLightInstance> imageLightInstances;
 	void updateImageLightInstances(const Camera* _camera);
 
- 	//LuminanceMeter  m_luminanceMeter;
-	ColorCorrection m_colorCorrection;
+	struct alignas(16) PostProcessData
+	{
+		mat4  motionBlurCurrentToPrevious = identity; // previous view-proj * current inverse view-proj
+		float motionBlurScale             = 0.0f;     // current fps / target fps
+	};
+	PostProcessData postProcessData;
+
+ 	LuminanceMeter luminanceMeter;
 
 }; // class BasicRenderer
 

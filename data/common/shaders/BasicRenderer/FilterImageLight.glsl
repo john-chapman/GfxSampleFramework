@@ -26,16 +26,13 @@ shared float s_invSampleWeightSum;
 
 void main()
 {
-	ivec2 txSize = ivec2(imageSize(txDst).xy);
+	const ivec2 txSize = ivec2(imageSize(txDst).xy);
 	if (any(greaterThanEqual(gl_GlobalInvocationID.xy, txSize)))
     {
 		return;
 	}
-
-	vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize);
-	uv += 0.5 / vec2(txSize); // add half a texel (all rays to texel centers)
-	vec3 uvw = Envmap_GetCubeFaceUvw(uv, int(gl_WorkGroupID.z));
-	uvw = normalize(uvw);
+	const vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize) + 0.5 / vec2(txSize);
+	const vec3 uvw = normalize(Envmap_GetCubeFaceUvw(uv, int(gl_WorkGroupID.z)));
     
     if (uLevel == 0)
     {

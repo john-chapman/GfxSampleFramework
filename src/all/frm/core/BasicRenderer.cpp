@@ -39,6 +39,12 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 {
 	PROFILER_MARKER("BasicRenderer::draw");
 
+	static mat4 previousViewProj = _camera->m_viewProj;
+	postProcessData.motionBlurCurrentToPrevious = previousViewProj;// * Inverse(_camera->m_viewProj);
+	previousViewProj = _camera->m_viewProj;
+	postProcessData.motionBlurScale = motionBlurTargetFps * _dt;
+	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
+
  // \todo can skip updates if nothing changed
 	updateMaterialInstances();
 	updateDrawInstances(_camera);
@@ -56,6 +62,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 		ctx->setFramebufferAndViewport(fbGBuffer);
 	 // \todo set the depth clear value based on the camera's projection mode, clear the color buffer?
+		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		glAssert(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 		glAssert(glDepthFunc(GL_LESS));
@@ -149,20 +156,27 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 	}
 
 	//m_luminanceMeter.draw(ctx, _dt, txScene);
-	txScene->setMagFilter(GL_NEAREST);
-	m_colorCorrection.draw(ctx, txScene, nullptr);
-	txScene->setMagFilter(GL_LINEAR);
+	
+	{	PROFILER_MARKER("Post Process");
+
+		ctx->setShader(shPostProcess);
+		ctx->bindBuffer(bfPostProcessData);
+		ctx->bindBuffer(_camera->m_gpuBuffer);
+		ctx->bindTexture(txScene);
+		ctx->bindTexture(txGBuffer0);
+		ctx->bindTexture(txGBufferDepth);
+		ctx->bindImage("txFinal", txFinal, GL_WRITE_ONLY);
+		ctx->dispatch(txFinal);
+	}
+
+	ctx->blitFramebuffer(fbFinal, nullptr, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
 bool BasicRenderer::edit()
 {
 	bool ret = false;
 
-	if (ImGui::TreeNode("Color Correction"))
-	{
-		m_colorCorrection.edit();
-		ImGui::TreePop();
-	}
+	ret &= ImGui::SliderFloat("Motion Blur Target FPS", &motionBlurTargetFps, 0.0f, 90.0f);
 
 	return ret;
 }
@@ -174,6 +188,7 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY)
 	shGBuffer       = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
 	shScene         = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "Scene_OUT" });
 	shImageLightBg	= Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
+	shPostProcess   = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl");
 
 	txGBuffer0 = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA16);
 	txGBuffer0->setName("txGBuffer0");
@@ -187,28 +202,42 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY)
 	txScene->setName("txScene");
 	txScene->setWrap(GL_CLAMP_TO_EDGE);
 
+	txFinal = Texture::Create2d(_resolutionX, _resolutionY, GL_RGBA8);
+	txFinal->setName("txFinal");
+	txFinal->setWrap(GL_CLAMP_TO_EDGE);
+
 	fbGBuffer = Framebuffer::Create(2, txGBuffer0, txGBufferDepth);
 	fbScene   = Framebuffer::Create(2, txScene, txGBufferDepth);
+	fbFinal   = Framebuffer::Create(2, txFinal, txGBufferDepth);
+
+	bfPostProcessData = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(PostProcessData), GL_DYNAMIC_STORAGE_BIT);
+	bfPostProcessData->setName("bfPostProcessData");
 
 	//FRM_VERIFY(m_luminanceMeter.init(_resolutionY / 2));
 	//m_colorCorrection.m_luminanceMeter = &m_luminanceMeter;
-	FRM_VERIFY(m_colorCorrection.init());	
 }
 
 BasicRenderer::~BasicRenderer()
 {
-	m_colorCorrection.shutdown();
 	//m_luminanceMeter.shutdown();
 
 	Texture::Release(txGBuffer0);
 	Texture::Release(txGBufferDepth);
-	Framebuffer::Destroy(fbGBuffer);
 	Texture::Release(txScene);
+	Texture::Release(txFinal);
+
+	Framebuffer::Destroy(fbGBuffer);
 	Framebuffer::Destroy(fbScene);
+	Framebuffer::Destroy(fbFinal);
+
 	Shader::Release(shGBuffer);
 	Shader::Release(shScene);
+	Shader::Release(shImageLightBg);
+	Shader::Release(shPostProcess);
+
 	Buffer::Destroy(bfMaterials);
 	Buffer::Destroy(bfLights);
+	Buffer::Destroy(bfPostProcessData);
 }
 
 void BasicRenderer::updateMaterialInstances()
