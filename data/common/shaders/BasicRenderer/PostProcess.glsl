@@ -73,7 +73,7 @@ void main()
 			vec2 velocity = texelFetch(txGBuffer0, iuv, 0).zw;
 			if (length2(velocity) < 1e-7)
 			{
-				vec4 prev = uMotionBlurCurrentToPrevious * vec4(positionW, 1.0);
+				vec4 prev = uMotionBlurCurrentToPrevious * vec4(positionW, 1.0); // \todo Camera_GetFrustumRayW() requires a matrix mul which can be folded into this
 				prev.xy /= prev.w;
 				velocity = uv - (prev.xy * 0.5 + 0.5);
 			}

@@ -157,7 +157,9 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 	//m_luminanceMeter.draw(ctx, _dt, txScene);
 	
-	{	PROFILER_MARKER("Post Process");
+	if (BitfieldGet(flags, (uint32)Flag_PostProcess))
+	{	
+		PROFILER_MARKER("Post Process");
 
 		ctx->setShader(shPostProcess);
 		ctx->bindBuffer(bfPostProcessData);
@@ -169,7 +171,10 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		ctx->dispatch(txFinal);
 	}
 
-	ctx->blitFramebuffer(fbFinal, nullptr, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	if (BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer))
+	{
+		ctx->blitFramebuffer(fbFinal, nullptr, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	}
 }
 
 bool BasicRenderer::edit()
@@ -177,6 +182,21 @@ bool BasicRenderer::edit()
 	bool ret = false;
 
 	ret &= ImGui::SliderFloat("Motion Blur Target FPS", &motionBlurTargetFps, 0.0f, 90.0f);
+
+	ImGui::SetNextTreeNodeOpen(true);
+	if (ImGui::TreeNode("Flags"))
+	{
+		bool flagPostProcess       = BitfieldGet(flags, (uint32)Flag_PostProcess);
+		bool flagWriteToBackBuffer = BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer);
+
+		ret |= ImGui::Checkbox("Post Process",        &flagPostProcess);
+		ret |= ImGui::Checkbox("Write To Backbuffer", &flagWriteToBackBuffer);
+
+		flags = BitfieldSet(flags, Flag_PostProcess,       flagPostProcess);
+		flags = BitfieldSet(flags, Flag_WriteToBackBuffer, flagWriteToBackBuffer);
+
+		ImGui::TreePop();
+	}
 
 	return ret;
 }
