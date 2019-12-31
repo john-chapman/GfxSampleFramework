@@ -83,7 +83,7 @@ void main()
 			}
 
 		velocity *= uMotionBlurScale;
-		velocity *= mix(0.9, 1.1, Noise_InterleavedGradient(vec2(iuv))); // add some noise to reduce banding
+		velocity *= mix(0.5, 1.5, Noise_InterleavedGradient(vec2(iuv))); // add some noise to reduce banding
 
         const int kSampleCount = 8;
         for (int i = 1; i < kSampleCount; ++i)
