@@ -475,6 +475,12 @@ Texture* Texture::Create(const Image& _img)
 Texture* Texture::Create(Texture* _tx, bool _copyData)
 {
 	Texture* ret = Create(_tx->m_target, _tx->m_width, _tx->m_height, _tx->m_depth, _tx->m_arrayCount, _tx->m_mipCount, _tx->m_format);
+	ret->setMinFilter(_tx->getMinFilter());
+	ret->setMagFilter(_tx->getMagFilter());
+	ret->setAnisotropy(_tx->getAnisotropy());
+	ret->setWrapU(_tx->getWrapU());
+	ret->setWrapV(_tx->getWrapV());
+	ret->setWrapW(_tx->getWrapW());
 	if (!_copyData) {
 		return ret;
 	}
