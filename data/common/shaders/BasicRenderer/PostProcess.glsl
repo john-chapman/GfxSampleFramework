@@ -9,13 +9,17 @@ uniform writeonly image2D txFinal;
 
 layout(std140) uniform bfPostProcessData
 {
-	mat4  uMotionBlurCurrentToPrevious;
 	float uMotionBlurScale;
 };
 
 vec3 Gamma(in vec3 _x)
 {
 	return pow(_x, vec3(1.0 / 2.2));
+}
+
+float Luminance(in vec3 _x)
+{
+	return dot(_x, vec3(0.25, 0.50, 0.25));
 }
 
 // Interleaved gradient noise.
@@ -65,25 +69,10 @@ void main()
     
     ret = textureLod(txScene, uv, 0.0).rgb;
 
-	const vec3 frustumRayW = Camera_GetFrustumRayW(uv * 2.0 - 1.0);
-	const vec3 positionW   = Camera_GetPosition() - frustumRayW * Camera_GetDepthV(GBuffer_ReadDepth(iuv));
     #if 1 // motion blur
-		// don't call GBuffer_ReadVelocity - we want to detect 0 velocity and apply static velocity \todo write stencil for dynamic objects and do this as a separate pass
-        //vec2 velocity = GBuffer_ReadVelocity(iuv) * uMotionBlurScale;
-			vec2 velocity = texelFetch(txGBuffer0, iuv, 0).zw;
-			if (length2(velocity) < 1e-7)
-			{
-				vec4 prev = uMotionBlurCurrentToPrevious * vec4(positionW, 1.0); // \todo Camera_GetFrustumRayW() requires a matrix mul which can be folded into this
-				prev.xy /= prev.w;
-				velocity = uv - (prev.xy * 0.5 + 0.5);
-			}
-			else
-			{
-				velocity = velocity * 2.0 - 1.0;
-			}
-
-		velocity *= uMotionBlurScale;
-		velocity *= mix(0.5, 1.5, Noise_InterleavedGradient(vec2(iuv))); // add some noise to reduce banding
+		const vec2 velocity = GBuffer_ReadVelocity(iuv) * uMotionBlurScale
+			* mix(0.5, 1.5, Noise_InterleavedGradient(vec2(iuv))) // add some noise to reduce banding
+			;
 
         const int kSampleCount = 8;
         for (int i = 1; i < kSampleCount; ++i)
@@ -96,5 +85,7 @@ void main()
 
 	ret = Tonemap_ACES_Narkowicz(ret);
 
-	imageStore(txFinal, iuv, vec4(ret, 1.0));
+	float luminance = Luminance(ret); // write luminance to alpha, useful for e.g. FXAA
+
+	imageStore(txFinal, iuv, vec4(ret, luminance));
 }

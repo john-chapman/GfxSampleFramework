@@ -62,6 +62,20 @@ void Lighting_Init(
 	_in_.f0      = 0.16 * _reflectance * _reflectance * (1.0 - _metal) + _baseColor * _metal;
     _in_.f90     = 1.0; // \todo
     _in_.alpha   = clamp(_perceptualRoughness * _perceptualRoughness, Lighting_EPSILON, 1.0);
+
+    // \todo http://www.jp.square-enix.com/tech/library/pdf/ImprovedGeometricSpecularAA.pdf
+    #if 0
+    {
+        #ifdef FRAGMENT_SHADER
+            vec3  dNx = dFdx(_N);
+            vec3  dNy = dFdy(_N);
+            float variance = 0.25 * (length2(dNx) + length2(dNy));
+        
+            float sigma = min(2.0 * variance , 0.1);
+            _in_.alpha = sqrt(_in_.alpha * _in_.alpha + sigma);
+        #endif
+    }
+    #endif
 }
 
 void Lighting_InitLight(

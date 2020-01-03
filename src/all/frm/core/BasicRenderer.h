@@ -18,27 +18,32 @@ namespace frm {
 ////////////////////////////////////////////////////////////////////////////////
 struct BasicRenderer
 {
-	static BasicRenderer* Create(int _resolutionX, int _resolutionY);
-	static void Destroy(BasicRenderer*& _inst_);
-
-	void draw(Camera* _camera, float _dt);
-	bool edit();
-
 	enum Flag_
 	{
 		Flag_PostProcess,       // Enable default post processor (motion blur, tonemap). If disabled, txFinal must be written manually.
 		Flag_WriteToBackBuffer, // Copy txFinal to the back buffer. Disable for custom upsampling/antialiasing.
 
 		Flags_Default = 0
-			| (1 << Flag_PostProcess)
-			| (1 << Flag_WriteToBackBuffer)
+		| (1 << Flag_PostProcess)
+		| (1 << Flag_WriteToBackBuffer)
 	};
 	typedef uint32 Flag;
+
+	static BasicRenderer* Create(int _resolutionX, int _resolutionY, uint32 _flags = Flags_Default);
+	static void Destroy(BasicRenderer*& _inst_);
+
+	void draw(Camera* _camera, float _dt);
+	bool edit();
+
+	void         setResolution(int _resolutionX, int _resolutionY);
+	void         setFlag(Flag _flag, bool _value) { flags = BitfieldSet(flags, (int)_flag, _value); }
+	bool         getFlag(Flag _flag) const        { return BitfieldGet(flags, (uint32)_flag); }
 
 	Texture*     txGBuffer0             = nullptr;
 	Texture*     txGBufferDepth         = nullptr;
 	Framebuffer* fbGBuffer              = nullptr;
 	Shader*      shGBuffer              = nullptr;
+	Shader*      shStaticVelocity       = nullptr;
 
 	Texture*     txScene                = nullptr;
 	Framebuffer* fbScene                = nullptr;
@@ -55,14 +60,15 @@ struct BasicRenderer
 	Buffer*      bfPostProcessData	    = nullptr;
 
 	float        motionBlurTargetFps    = 50.0f;
+	ivec2        resolution             = ivec2(-1);
 	uint32       flags                  = Flags_Default;
 
-	void         setFlag(Flag _flag, bool _value) { flags = BitfieldSet(flags, (int)_flag, _value); }
-	bool         getFlag(Flag _flag) const        { return BitfieldGet(flags, (uint32)_flag); }
-
 private:
-	BasicRenderer(int _resolutionX, int _resolutionY);
+	BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags);
 	~BasicRenderer();
+
+	void initRenderTargets();
+	void shutdownRenderTargets();
 
 	struct alignas(16) MaterialInstance 
 	{
@@ -112,8 +118,7 @@ private:
 
 	struct alignas(16) PostProcessData
 	{
-		mat4  motionBlurCurrentToPrevious = identity; // previous view-proj * current inverse view-proj
-		float motionBlurScale             = 0.0f;     // current fps / target fps
+		float motionBlurScale = 0.0f;     // current fps / target fps
 	};
 	PostProcessData postProcessData;
 

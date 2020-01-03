@@ -26,10 +26,10 @@ _VERTEX_IN(3, vec2, aTexcoord);
 
 _VARYING(smooth, vec2, vUv);
 #ifdef GBuffer_OUT
+	_VARYING(smooth, vec3, vPrevPositionP);
 	_VARYING(smooth, vec3, vNormalV);
 	_VARYING(smooth, vec3, vTangentV);
 	_VARYING(smooth, vec3, vBitangentV);
-	_VARYING(smooth, vec2, vVelocityP);
 #endif
 
 // per-instance uniforms \todo bufferize
@@ -37,6 +37,8 @@ uniform mat4  uWorld;
 uniform mat4  uPrevWorld;
 uniform vec4  uBaseColorAlpha;
 uniform int   uMaterialIndex;
+
+uniform vec2 uTexelSize; // 1/framebuffer size
 
 struct MaterialInstance
 {
@@ -88,7 +90,7 @@ void main()
 	{ // \todo
 	}
 	#endif
-	gl_Position = bfCamera.m_viewProj * vec4(positionW, 1.0);
+	gl_Position = uCamera.m_viewProj * vec4(positionW, 1.0);
 	#ifdef Shadow_OUT
 	{
 	 // project clipped vertices onto the near plane
@@ -103,13 +105,11 @@ void main()
 
 	#ifdef GBuffer_OUT
 	{
-		vec3 prevPositionW = TransformPosition(uPrevWorld, aPosition.xyz);
-		vec3 prevPositionP = (bfCamera.m_viewProj * vec4(prevPositionW, 1.0)).xyw;
-		vec3 currPositionP = gl_Position.xyw; // \todo already interpolated by default?
-		vVelocityP = (currPositionP.xy / currPositionP.z) - (prevPositionP.xy / prevPositionP.z); // \todo interpolation may be incorrect for large tris
+		//vPositionP = gl_Position.xyw; // save the interpolant, use gl_FragCoord.xy / uTexelSize instead
+		vPrevPositionP = (uCamera.m_prevViewProj * (uPrevWorld * vec4(aPosition.xyz, 1.0))).xyw;
 
-		vNormalV = TransformDirection(bfCamera.m_view, TransformDirection(uWorld, aNormal.xyz));
-		vTangentV = TransformDirection(bfCamera.m_view, TransformDirection(uWorld, aTangent.xyz));
+		vNormalV = TransformDirection(uCamera.m_view, TransformDirection(uWorld, aNormal.xyz));
+		vTangentV = TransformDirection(uCamera.m_view, TransformDirection(uWorld, aTangent.xyz));
 		vBitangentV = cross(vNormalV, vTangentV);
 	}
 	#endif
@@ -153,7 +153,15 @@ void main()
 		vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
 		GBuffer_WriteNormal(normalV);
 
-		vec2 velocity = vVelocityP; // \todo scale to [-127,127] range (pixel space)
+		vec2 positionP = gl_FragCoord.xy * uTexelSize;
+		vec2 prevPositionP = vPrevPositionP.xy / vPrevPositionP.z * 0.5 + 0.5;
+		vec2 velocity = positionP - prevPositionP;
+		
+		// Correct for any jitter in the projection matrices.
+    	// Here we need to account for the current and previous jitter since both positionP and prevPositionP have jitter applied.
+		vec2 jitterVelocity = (uCamera.m_prevProj[2].xy - uCamera.m_proj[2].xy) * 0.5;
+    	velocity -= jitterVelocity;
+    	
 		GBuffer_WriteVelocity(velocity);
 	}
 	#endif
@@ -167,7 +175,7 @@ void main()
 		vec3 P = Camera_GetPosition() + V * abs(Camera_GetDepthV(GBuffer_ReadDepth(ivec2(iuv))));
              V = normalize(-V);	
 		vec3 N = GBuffer_ReadNormal(ivec2(iuv)); // view space
-		     N = normalize(TransformDirection(bfCamera.m_world, N)); // world space
+		     N = normalize(TransformDirection(uCamera.m_world, N)); // world space
 
 		Lighting_In lightingIn;
 		vec3  baseColor   = texture(uMaps[Map_BaseColor], vUv).rgb * uMaterials[uMaterialIndex].baseColorAlpha.rgb * uBaseColorAlpha.rgb;
