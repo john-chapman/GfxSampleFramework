@@ -461,6 +461,9 @@ void Camera::updateView()
 	{
 		m_world = m_parent->getWorldMatrix();
 	}
+	m_prevProj = m_proj;
+	m_prevViewProj = m_viewProj;
+
 	m_view = AffineInverse(m_world);
 	m_viewProj = m_proj * m_view;
 	m_worldFrustum = m_localFrustum;
@@ -599,6 +602,8 @@ void Camera::updateGpuBuffer(Buffer* _buffer_)
 	data.m_viewProj        = m_viewProj;
 	data.m_inverseProj     = m_inverseProj;
 	data.m_inverseViewProj = m_world * m_inverseProj;
+	data.m_prevProj        = m_prevProj;
+	data.m_prevViewProj    = m_prevViewProj;
 	data.m_up              = m_up;
 	data.m_down            = m_down;
 	data.m_right           = m_right;

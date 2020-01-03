@@ -66,7 +66,6 @@ public:
 	// Set a world matrix with position = _from and -Z = (_to - _from).
 	void lookAt(const vec3& _from, const vec3& _to, const vec3& _up = vec3(0.0f, 1.0f, 0.0f));
 
-	
 	// Update the derived members (view matrix + world frustum, proj matrix + local frustum if dirty).
 	// Update m_gpuBuffer if != null (else call updateGpuBuffer()).
 	void update();
@@ -107,12 +106,14 @@ public:
 	mat4    m_proj;
 	mat4    m_viewProj;
 	mat4    m_inverseProj;
+	mat4    m_prevProj;
+	mat4    m_prevViewProj;
 	float   m_aspectRatio;    // Derived from the projection parameters.
 
 	Frustum m_localFrustum;   // Derived from the projection parameters.
 	Frustum m_worldFrustum;   // World space frustum (use for culling).
 
-	struct GpuBuffer
+	struct alignas(16) GpuBuffer
 	{
 		mat4   m_world;
 		mat4   m_view;
@@ -120,6 +121,8 @@ public:
 		mat4   m_viewProj;
 		mat4   m_inverseProj;
 		mat4   m_inverseViewProj;
+		mat4   m_prevProj;
+		mat4   m_prevViewProj;
 		float  m_up;
 		float  m_down;
 		float  m_right;

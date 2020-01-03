@@ -17,6 +17,8 @@ struct Camera
 	mat4   m_viewProj;
 	mat4   m_inverseProj;
 	mat4   m_inverseViewProj;
+	mat4   m_prevProj;
+	mat4   m_prevViewProj;
 	float  m_up;
 	float  m_down;
 	float  m_right;
