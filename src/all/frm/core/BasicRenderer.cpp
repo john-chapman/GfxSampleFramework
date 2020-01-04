@@ -54,11 +54,11 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 	}
 
 	GlContext* ctx = GlContext::GetCurrent();
+	const vec2 texelSize = vec2(1.0f) / vec2(fbGBuffer->getWidth(), fbGBuffer->getHeight());
 	
 	{	PROFILER_MARKER("GBuffer");
 
 		ctx->setFramebufferAndViewport(fbGBuffer);
-		const vec2 texelSize = vec2(1.0f) / vec2(fbGBuffer->getWidth(), fbGBuffer->getHeight());
 
 		{	PROFILER_MARKER("Geometry");
 
@@ -109,7 +109,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 			glAssert(glColorMask(false, false, true, true));
 
 			ctx->setShader(shStaticVelocity);
-			ctx->bindTexture(txGBufferDepth);
+			ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
 			ctx->drawNdcQuad(_camera);
 
 			glAssert(glColorMask(true, true, true, true));
@@ -144,8 +144,8 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 			// reset shader because we want to clear all the bindings to avoid running out of slots
 			ctx->setShader(shScene);
-			ctx->bindTexture(txGBuffer0);
-			ctx->bindTexture(txGBufferDepth);
+			ctx->bindTexture("txGBuffer0", txGBuffer0);
+			ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
 			ctx->setUniform("uLightCount", (int)lightInstances.size());
 			if (bfLights)
 			{
@@ -162,6 +162,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 				ctx->setUniform("uImageLightBrightness", imageLightInstances[0].brightness);
 			}
 
+			ctx->setUniform("uTexelSize", texelSize);
 			ctx->setUniform ("uMaterialIndex", materialIndex);
 			BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
 			material->bind();
@@ -186,9 +187,9 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		ctx->setShader(shPostProcess);
 		ctx->bindBuffer(bfPostProcessData);
 		ctx->bindBuffer(_camera->m_gpuBuffer);
-		ctx->bindTexture(txScene);
-		ctx->bindTexture(txGBuffer0);
-		ctx->bindTexture(txGBufferDepth);
+		ctx->bindTexture("txScene", txScene);
+		ctx->bindTexture("txGBuffer0", txGBuffer0);
+		ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
 		ctx->bindImage("txFinal", txFinal, GL_WRITE_ONLY);
 		ctx->dispatch(txFinal);
 	}
@@ -237,8 +238,8 @@ void BasicRenderer::setResolution(int _resolutionX, int _resolutionY)
 
 BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags)
 {
-	resolution = ivec2(_resolutionX, _resolutionY);
-	flags = _flags;
+	resolution       = ivec2(_resolutionX, _resolutionY);
+	flags            = _flags;
 
 	shGBuffer        = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
 	shStaticVelocity = Shader::CreateVsFs("shaders/NdcQuad_vs.glsl", "shaders/BasicRenderer/StaticVelocity.glsl");
@@ -261,15 +262,15 @@ BasicRenderer::~BasicRenderer()
 
 	shutdownRenderTargets();
 
+	Buffer::Destroy(bfMaterials);
+	Buffer::Destroy(bfLights);
+	Buffer::Destroy(bfPostProcessData);
+	
 	Shader::Release(shGBuffer);
 	Shader::Release(shStaticVelocity);
 	Shader::Release(shScene);
 	Shader::Release(shImageLightBg);
 	Shader::Release(shPostProcess);
-
-	Buffer::Destroy(bfMaterials);
-	Buffer::Destroy(bfLights);
-	Buffer::Destroy(bfPostProcessData);
 }
 
 void BasicRenderer::initRenderTargets()
@@ -277,35 +278,41 @@ void BasicRenderer::initRenderTargets()
 	shutdownRenderTargets();
 
 	txGBuffer0 = Texture::Create2d(resolution.x, resolution.y, GL_RGBA16);
-	txGBuffer0->setName("txGBuffer0");
+	txGBuffer0->setName("#BasicRenderer_txGBuffer0");
+	txGBuffer0->setFilter(GL_NEAREST); // usually sample via texelFetch(), but just in case...
 	txGBuffer0->setWrap(GL_CLAMP_TO_EDGE);
 
-	txGBufferDepth = Texture::Create2d(resolution.x, resolution.y, GL_DEPTH32F_STENCIL8);
-	txGBufferDepth->setName("txGBufferDepth");
-	txGBufferDepth->setWrap(GL_CLAMP_TO_EDGE);
+	txGBufferDepthStencil = Texture::Create2d(resolution.x, resolution.y, GL_DEPTH32F_STENCIL8);
+	txGBufferDepthStencil->setName("#BasicRenderer_txGBufferDepth");
+	txGBufferDepthStencil->setWrap(GL_CLAMP_TO_EDGE);
+		
+	fbGBuffer = Framebuffer::Create(2, txGBuffer0, txGBufferDepthStencil);
+
 
 	txScene = Texture::Create2d(resolution.x, resolution.y, GL_RGBA16F);
-	txScene->setName("txScene");
+	txScene->setName("#BasicRenderer_txScene");
 	txScene->setWrap(GL_CLAMP_TO_EDGE);
 
+	fbScene = Framebuffer::Create(2, txScene, txGBufferDepthStencil);
+
+
 	txFinal = Texture::Create2d(resolution.x, resolution.y, GL_RGBA8);
-	txFinal->setName("txFinal");
+	txFinal->setName("#BasicRenderer_txFinal");
 	txFinal->setWrap(GL_CLAMP_TO_EDGE);
 
-	fbGBuffer = Framebuffer::Create(2, txGBuffer0, txGBufferDepth);
-	fbScene   = Framebuffer::Create(2, txScene, txGBufferDepth);
-	fbFinal   = Framebuffer::Create(2, txFinal, txGBufferDepth);
+	fbFinal = Framebuffer::Create(2, txFinal, txGBufferDepthStencil);
 }
 
 void BasicRenderer::shutdownRenderTargets()
-{	
+{
 	Texture::Release(txGBuffer0);
-	Texture::Release(txGBufferDepth);
-	Texture::Release(txScene);
-	Texture::Release(txFinal);
-
+	Texture::Release(txGBufferDepthStencil);
 	Framebuffer::Destroy(fbGBuffer);
+		
+	Texture::Release(txScene);
 	Framebuffer::Destroy(fbScene);
+
+	Texture::Release(txFinal);
 	Framebuffer::Destroy(fbFinal);
 }
 

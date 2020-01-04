@@ -12,52 +12,61 @@ namespace frm {
 ////////////////////////////////////////////////////////////////////////////////
 // BasicRenderer
 //
+// Basic scene renderer with a prepass for depth, normal, velocity. 
+// See Component_BasicRenderable, Component_BasicLight, Component_ImageLight.
+//
+// - Velocity rendering uses the camera's current and previous projection 
+//   matrices to extract and compensate for XY jitter.
+//
 // \todo 
 // - Shadow system (gather shadow casting light components, allocate shadow map
 //   resolution from an atlas).
 ////////////////////////////////////////////////////////////////////////////////
 struct BasicRenderer
 {
+	// Flags control some pipeline behaviour.
 	enum Flag_
 	{
 		Flag_PostProcess,       // Enable default post processor (motion blur, tonemap). If disabled, txFinal must be written manually.
 		Flag_WriteToBackBuffer, // Copy txFinal to the back buffer. Disable for custom upsampling/antialiasing.
 
 		Flags_Default = 0
-		| (1 << Flag_PostProcess)
-		| (1 << Flag_WriteToBackBuffer)
+			| (1 << Flag_PostProcess)
+			| (1 << Flag_WriteToBackBuffer)
 	};
 	typedef uint32 Flag;
 
 	static BasicRenderer* Create(int _resolutionX, int _resolutionY, uint32 _flags = Flags_Default);
-	static void Destroy(BasicRenderer*& _inst_);
+	static void           Destroy(BasicRenderer*& _inst_);
 
-	void draw(Camera* _camera, float _dt);
-	bool edit();
+	void       draw(Camera* _camera, float _dt);
+	bool       edit();
 
-	void         setResolution(int _resolutionX, int _resolutionY);
-	void         setFlag(Flag _flag, bool _value) { flags = BitfieldSet(flags, (int)_flag, _value); }
-	bool         getFlag(Flag _flag) const        { return BitfieldGet(flags, (uint32)_flag); }
+	void       setResolution(int _resolutionX, int _resolutionY);
 
-	Texture*     txGBuffer0             = nullptr;
-	Texture*     txGBufferDepth         = nullptr;
-	Framebuffer* fbGBuffer              = nullptr;
+	void       setFlag(Flag _flag, bool _value)                     { flags = BitfieldSet(flags, (int)_flag, _value); }
+	bool       getFlag(Flag _flag) const                            { return BitfieldGet(flags, (uint32)_flag); }
+	
+	Texture*     txGBuffer0             = nullptr; // Normal, velocity.
+	Texture*     txGBufferDepthStencil  = nullptr; // Depth, stencil.
+	Framebuffer* fbGBuffer              = nullptr; // txGBuffer0 + txGBufferDepthStencil.
+
+	Texture*     txScene                = nullptr; // Lighting accumulation, etc.
+	Framebuffer* fbScene                = nullptr; // txScene + txGBufferDepth.
+
+	Texture*     txFinal                = nullptr; // Post processing result, alpha = luminance.
+	Framebuffer* fbFinal                = nullptr; // fbFinal + txGBufferDepthStencil.
+
+	Buffer*      bfMaterials            = nullptr; // Material instance data.
+	Buffer*      bfLights               = nullptr; // Basic light instance data.
+	Buffer*      bfImageLights          = nullptr; // Image light instance data.
+	Buffer*      bfPostProcessData	    = nullptr; // Data for the post process shader.
+	
 	Shader*      shGBuffer              = nullptr;
 	Shader*      shStaticVelocity       = nullptr;
-
-	Texture*     txScene                = nullptr;
-	Framebuffer* fbScene                = nullptr;
 	Shader*      shImageLightBg         = nullptr;
 	Shader*      shScene                = nullptr;
-
-	Texture*     txFinal                = nullptr;
-	Framebuffer* fbFinal                = nullptr;
 	Shader*      shPostProcess          = nullptr;
-
-	Buffer*      bfMaterials            = nullptr;
-	Buffer*      bfLights               = nullptr;
-	Buffer*      bfImageLights          = nullptr;
-	Buffer*      bfPostProcessData	    = nullptr;
 
 	float        motionBlurTargetFps    = 50.0f;
 	ivec2        resolution             = ivec2(-1);

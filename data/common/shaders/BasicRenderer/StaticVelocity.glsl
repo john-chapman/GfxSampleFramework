@@ -4,7 +4,7 @@
 #define GBuffer_OUT
 #include "shaders/BasicRenderer/GBuffer.glsl"
 
-uniform sampler2D txGBufferDepth;
+uniform sampler2D txGBufferDepthStencil;
 
 _VARYING(noperspective, vec2, vUv);
 _VARYING(noperspective, vec3, vFrustumRay);
@@ -12,7 +12,7 @@ _VARYING(noperspective, vec3, vFrustumRayW);
 
 void main()
 {
-    const float depth = texelFetch(txGBufferDepth, ivec2(gl_FragCoord.xy), 0).x;
+    const float depth = texelFetch(txGBufferDepthStencil, ivec2(gl_FragCoord.xy), 0).x;
     const vec3 P = Camera_GetPosition() - vFrustumRayW * Camera_GetDepthV(depth);
     vec4 prev = uCamera.m_prevViewProj * vec4(P, 1.0);
     prev.xy /= prev.w;

@@ -6,7 +6,7 @@
 	          +---------------------------------------------------------------+
 			  
 	- Normal is stored in view space.
-	- Velocity is stored in screen space, ±127 pixels.
+	- Velocity is stored in screen space.
 */
 
 #include "shaders/def.glsl"
@@ -15,7 +15,7 @@
 #ifdef GBuffer_IN //////////////////////////////////////////////////////////////
 
 uniform sampler2D txGBuffer0;
-uniform sampler2D txGBufferDepth;
+uniform sampler2D txGBufferDepthStencil;
 
 vec3 GBuffer_ReadNormal(in ivec2 _iuv)
 {
@@ -31,7 +31,7 @@ vec2 GBuffer_ReadVelocity(in ivec2 _iuv)
 
 float GBuffer_ReadDepth(in ivec2 _iuv)
 {
-	return texelFetch(txGBufferDepth, _iuv, 0).x;
+	return texelFetch(txGBufferDepthStencil, _iuv, 0).x;
 }
 
 #endif // GBuffer_IN

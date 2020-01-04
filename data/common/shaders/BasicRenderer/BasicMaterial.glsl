@@ -168,10 +168,9 @@ void main()
 
 	#ifdef Scene_OUT
 	{
-		const vec2 txSize = vec2(textureSize(txGBufferDepth, 0)); // \todo more efficient to pass as a constant?
 		const vec2 iuv = gl_FragCoord.xy;
 
-		vec3 V = Camera_GetFrustumRayW(iuv / txSize * 2.0 - 1.0);
+		vec3 V = Camera_GetFrustumRayW(iuv * uTexelSize * 2.0 - 1.0);
 		vec3 P = Camera_GetPosition() + V * abs(Camera_GetDepthV(GBuffer_ReadDepth(ivec2(iuv))));
              V = normalize(-V);	
 		vec3 N = GBuffer_ReadNormal(ivec2(iuv)); // view space
