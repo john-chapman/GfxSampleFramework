@@ -70,8 +70,9 @@ void main()
     ret = textureLod(txScene, uv, 0.0).rgb;
 
     #if 1 // motion blur
+		const vec2 jitterVelocity = uCamera.m_prevProj[2].xy * vec2(txSize);
 		const vec2 velocity = GBuffer_ReadVelocity(iuv) * uMotionBlurScale
-			* mix(0.5, 1.5, Noise_InterleavedGradient(vec2(iuv))) // add some noise to reduce banding
+			* mix(0.5, 1.5, Noise_InterleavedGradient(vec2(iuv) + jitterVelocity)) // add some noise to reduce banding
 			;
 
         const int kSampleCount = 8;
@@ -86,6 +87,5 @@ void main()
 	ret = Tonemap_ACES_Narkowicz(ret);
 
 	float luminance = Luminance(ret); // write luminance to alpha, useful for e.g. FXAA
-
 	imageStore(txFinal, iuv, vec4(ret, luminance));
 }
