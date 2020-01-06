@@ -75,7 +75,8 @@ vec3 Camera_GetFrustumRay(in vec2 _ndc)
 	}
 	else
 	{
-		return vec3(_ndc.x * bfCamera.m_up * bfCamera.m_aspectRatio, _ndc.y * bfCamera.m_up, -1.0);
+		vec2 ndcJittered = _ndc + uCamera.m_proj[2].xy; // incorporate jitter from the proj matrix
+		return vec3(ndcJittered.x * bfCamera.m_up * bfCamera.m_aspectRatio, ndcJittered.y * bfCamera.m_up, -1.0);
 	}
 }
 // World space frustum ray.
