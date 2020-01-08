@@ -42,12 +42,14 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 	postProcessData.motionBlurScale = motionBlurTargetFps * _dt;
 	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
 
- // \todo can skip updates if nothing changed
-	updateMaterialInstances();
-	updateDrawInstances(_camera);
-	updateLightInstances(_camera);
-	updateImageLightInstances(_camera);
-
+	if (!pauseUpdate)
+	{
+	 // \todo can skip updates if nothing changed
+		updateMaterialInstances();
+		updateDrawInstances(_camera);
+		updateLightInstances(_camera);
+		updateImageLightInstances(_camera);
+	}
 	if (drawInstances.empty())
 	{
 		return;
@@ -114,6 +116,30 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 			glAssert(glColorMask(true, true, true, true));
 		}
+
+		{	PROFILER_MARKER("Velocity Dilation");
+
+			{	PROFILER_MARKER("Tile Min/Max");
+
+				FRM_ASSERT(shVelocityMinMax->getLocalSize().x == motionBlurTileWidth);
+
+				ctx->setShader(shVelocityMinMax);
+				ctx->bindTexture("txGBuffer0", txGBuffer0);
+				ctx->bindImage("txVelocityTileMinMax", txVelocityTileMinMax, GL_WRITE_ONLY);
+				ctx->dispatch(txVelocityTileMinMax->getWidth(), txVelocityTileMinMax->getHeight());
+
+				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+			}
+			{	PROFILER_MARKER("Neighborhood Max");
+
+				ctx->setShader(shVelocityNeighborMax);
+				ctx->bindTexture("txVelocityTileMinMax", txVelocityTileMinMax);
+				ctx->bindImage("txVelocityTileNeighborMax", txVelocityTileNeighborMax, GL_WRITE_ONLY);
+				ctx->dispatch(txVelocityTileNeighborMax);
+
+				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+			}
+		}
 	}
 
 	{	PROFILER_MARKER("Scene");
@@ -131,7 +157,9 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		}
 		else
 		{
+			glAssert(glClearColor(0.0f, 0.0f, 0.0f, Abs(_camera->m_far)));
 			glAssert(glClear(GL_COLOR_BUFFER_BIT));
+			glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		}
 
 		glScopedEnable(GL_CULL_FACE, GL_TRUE); // \todo per material?
@@ -189,9 +217,12 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		ctx->bindBuffer(_camera->m_gpuBuffer);
 		ctx->bindTexture("txScene", txScene);
 		ctx->bindTexture("txGBuffer0", txGBuffer0);
+		ctx->bindTexture("txVelocityTileNeighborMax", txVelocityTileNeighborMax);
 		ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
 		ctx->bindImage("txFinal", txFinal, GL_WRITE_ONLY);
 		ctx->dispatch(txFinal);
+
+		glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 	}
 
 	if (BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer))
@@ -204,7 +235,8 @@ bool BasicRenderer::edit()
 {
 	bool ret = false;
 
-	ret &= ImGui::SliderFloat("Motion Blur Target FPS", &motionBlurTargetFps, 0.0f, 90.0f);
+	ret |= ImGui::Checkbox("Pause Update", &pauseUpdate);
+	ret |= ImGui::SliderFloat("Motion Blur Target FPS", &motionBlurTargetFps, 0.0f, 90.0f);
 
 	ImGui::SetNextTreeNodeOpen(true);
 	if (ImGui::TreeNode("Flags"))
@@ -238,14 +270,16 @@ void BasicRenderer::setResolution(int _resolutionX, int _resolutionY)
 
 BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags)
 {
-	resolution       = ivec2(_resolutionX, _resolutionY);
-	flags            = _flags;
+	resolution = ivec2(_resolutionX, _resolutionY);
+	flags      = _flags;
 
-	shGBuffer        = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
-	shStaticVelocity = Shader::CreateVsFs("shaders/NdcQuad_vs.glsl", "shaders/BasicRenderer/StaticVelocity.glsl");
-	shScene          = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "Scene_OUT" });
-	shImageLightBg	 = Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
-	shPostProcess    = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8);
+	shGBuffer             = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
+	shStaticVelocity      = Shader::CreateVsFs("shaders/NdcQuad_vs.glsl", "shaders/BasicRenderer/StaticVelocity.glsl");
+	shVelocityMinMax      = Shader::CreateCs("shaders/BasicRenderer/VelocityMinMax.glsl", motionBlurTileWidth);
+	shVelocityNeighborMax = Shader::CreateCs("shaders/BasicRenderer/VelocityNeighborMax.glsl", 8, 8);
+	shScene               = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "Scene_OUT" });
+	shImageLightBg	      = Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
+	shPostProcess         = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8);
 
 	bfPostProcessData = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(PostProcessData), GL_DYNAMIC_STORAGE_BIT);
 	bfPostProcessData->setName("bfPostProcessData");
@@ -268,6 +302,8 @@ BasicRenderer::~BasicRenderer()
 	
 	Shader::Release(shGBuffer);
 	Shader::Release(shStaticVelocity);
+	Shader::Release(shVelocityMinMax);
+	Shader::Release(shVelocityNeighborMax);
 	Shader::Release(shScene);
 	Shader::Release(shImageLightBg);
 	Shader::Release(shPostProcess);
@@ -288,8 +324,20 @@ void BasicRenderer::initRenderTargets()
 		
 	fbGBuffer = Framebuffer::Create(2, txGBuffer0, txGBufferDepthStencil);
 
+	
+	FRM_ASSERT(resolution.x % motionBlurTileWidth == 0 && resolution.y % motionBlurTileWidth == 0);
+	txVelocityTileMinMax = Texture::Create2d(resolution.x / motionBlurTileWidth, resolution.y / motionBlurTileWidth, GL_RGBA16);
+	txVelocityTileMinMax->setName("#BasicRenderer_txVelocityTileMinMax");
+	txVelocityTileMinMax->setFilter(GL_NEAREST);
+	txVelocityTileMinMax->setWrap(GL_CLAMP_TO_EDGE);
 
-	txScene = Texture::Create2d(resolution.x, resolution.y, GL_RGBA16F);
+	txVelocityTileNeighborMax = Texture::Create2d(resolution.x / motionBlurTileWidth, resolution.y / motionBlurTileWidth, GL_RG16);
+	txVelocityTileNeighborMax->setName("#BasicRenderer_txVelocityTileNeighborMax");
+	txVelocityTileNeighborMax->setFilter(GL_NEAREST);
+	txVelocityTileNeighborMax->setWrap(GL_CLAMP_TO_EDGE);
+
+
+	txScene = Texture::Create2d(resolution.x, resolution.y, GL_RGBA16F); // RGB = color, A = abs(linear depth)
 	txScene->setName("#BasicRenderer_txScene");
 	txScene->setWrap(GL_CLAMP_TO_EDGE);
 
@@ -308,6 +356,9 @@ void BasicRenderer::shutdownRenderTargets()
 	Texture::Release(txGBuffer0);
 	Texture::Release(txGBufferDepthStencil);
 	Framebuffer::Destroy(fbGBuffer);
+
+	Texture::Release(txVelocityTileMinMax);
+	Texture::Release(txVelocityTileNeighborMax);
 		
 	Texture::Release(txScene);
 	Framebuffer::Destroy(fbScene);

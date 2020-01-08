@@ -1,5 +1,6 @@
 #include "shaders/def.glsl"
 #include "shaders/Envmap.glsl"
+#include "shaders/Camera.glsl"
 
 noperspective in vec2 vUv;
 noperspective in vec3 vFrustumRay;
@@ -11,7 +12,7 @@ noperspective in vec3 vFrustumRayW;
 	uniform sampler2D txEnvmap;
 #endif
 
-layout(location=0) out vec3 fResult;
+layout(location=0) out vec4 fResult;
 
 void main()
 {
@@ -25,5 +26,8 @@ void main()
 	ret = Gamma_Apply(ret);
 #endif
 
-	fResult = ret;
+	// BasicRenderer writes linear depth to the scene buffer's alpha channel, hence write a sensible value when this shader is used to clear the screen
+	float alpha = abs(uCamera.m_far);
+
+	fResult = vec4(ret, alpha);
 }

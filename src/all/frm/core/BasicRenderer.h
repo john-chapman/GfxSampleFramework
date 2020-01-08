@@ -19,6 +19,10 @@ namespace frm {
 //   matrices to extract and compensate for XY jitter.
 //
 // \todo 
+// - Motion blur https://casual-effects.com/research/McGuire2012Blur/McGuire12Blur.pdf
+//   - Polar representation for V? Allows direct loading of the vector magnitude.
+//   - Tile min/max, neighborhood velocities at lower precision?
+//   - Tile classification as per Jimenez.
 // - Shadow system (gather shadow casting light components, allocate shadow map
 //   resolution from an atlas).
 ////////////////////////////////////////////////////////////////////////////////
@@ -47,30 +51,37 @@ struct BasicRenderer
 	void       setFlag(Flag _flag, bool _value)                     { flags = BitfieldSet(flags, (int)_flag, _value); }
 	bool       getFlag(Flag _flag) const                            { return BitfieldGet(flags, (uint32)_flag); }
 	
-	Texture*     txGBuffer0             = nullptr; // Normal, velocity.
-	Texture*     txGBufferDepthStencil  = nullptr; // Depth, stencil.
-	Framebuffer* fbGBuffer              = nullptr; // txGBuffer0 + txGBufferDepthStencil.
+	Texture*     txGBuffer0                 = nullptr; // Normal, velocity.
+	Texture*     txGBufferDepthStencil      = nullptr; // Depth, stencil.
+	Framebuffer* fbGBuffer                  = nullptr; // txGBuffer0 + txGBufferDepthStencil.
 
-	Texture*     txScene                = nullptr; // Lighting accumulation, etc.
-	Framebuffer* fbScene                = nullptr; // txScene + txGBufferDepth.
+	Texture*     txVelocityTileMinMax       = nullptr;
+	Texture*     txVelocityTileNeighborMax  = nullptr;
 
-	Texture*     txFinal                = nullptr; // Post processing result, alpha = luminance.
-	Framebuffer* fbFinal                = nullptr; // fbFinal + txGBufferDepthStencil.
+	Texture*     txScene                    = nullptr; // Lighting accumulation, etc.
+	Framebuffer* fbScene                    = nullptr; // txScene + txGBufferDepth.
 
-	Buffer*      bfMaterials            = nullptr; // Material instance data.
-	Buffer*      bfLights               = nullptr; // Basic light instance data.
-	Buffer*      bfImageLights          = nullptr; // Image light instance data.
-	Buffer*      bfPostProcessData	    = nullptr; // Data for the post process shader.
+	Texture*     txFinal                    = nullptr; // Post processing result, alpha = luminance.
+	Framebuffer* fbFinal                    = nullptr; // fbFinal + txGBufferDepthStencil.	
+
+	Buffer*      bfMaterials                = nullptr; // Material instance data.
+	Buffer*      bfLights                   = nullptr; // Basic light instance data.
+	Buffer*      bfImageLights              = nullptr; // Image light instance data.
+	Buffer*      bfPostProcessData	        = nullptr; // Data for the post process shader.
 	
-	Shader*      shGBuffer              = nullptr;
-	Shader*      shStaticVelocity       = nullptr;
-	Shader*      shImageLightBg         = nullptr;
-	Shader*      shScene                = nullptr;
-	Shader*      shPostProcess          = nullptr;
+	Shader*      shGBuffer                  = nullptr;
+	Shader*      shStaticVelocity           = nullptr;
+	Shader*      shVelocityMinMax           = nullptr;
+	Shader*      shVelocityNeighborMax      = nullptr;
+	Shader*      shImageLightBg             = nullptr;
+	Shader*      shScene                    = nullptr;
+	Shader*      shPostProcess              = nullptr;
 
-	float        motionBlurTargetFps    = 50.0f;
-	ivec2        resolution             = ivec2(-1);
-	uint32       flags                  = Flags_Default;
+	float        motionBlurTargetFps        = 50.0f;
+	int          motionBlurTileWidth        = 20;
+	ivec2        resolution                 = ivec2(-1);
+	uint32       flags                      = Flags_Default;
+	bool         pauseUpdate                = false;
 
 private:
 	BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags);

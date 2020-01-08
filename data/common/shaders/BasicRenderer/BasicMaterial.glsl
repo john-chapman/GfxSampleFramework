@@ -170,11 +170,13 @@ void main()
 	{
 		const vec2 iuv = gl_FragCoord.xy;
 
-		vec3 V = Camera_GetFrustumRayW(iuv * uTexelSize * 2.0 - 1.0);
-		vec3 P = Camera_GetPosition() + V * abs(Camera_GetDepthV(GBuffer_ReadDepth(ivec2(iuv))));
-             V = normalize(-V);	
-		vec3 N = GBuffer_ReadNormal(ivec2(iuv)); // view space
-		     N = normalize(TransformDirection(uCamera.m_world, N)); // world space
+		vec3  V = Camera_GetFrustumRayW(iuv * uTexelSize * 2.0 - 1.0);
+		float D = abs(Camera_GetDepthV(GBuffer_ReadDepth(ivec2(iuv))));
+		vec3  P = Camera_GetPosition() + V * D;
+              V = normalize(-V);	
+		vec3  N = GBuffer_ReadNormal(ivec2(iuv)); // view space
+		      N = normalize(TransformDirection(uCamera.m_world, N)); // world space
+		fResult.a = D;
 
 		Lighting_In lightingIn;
 		vec3  baseColor   = texture(uMaps[Map_BaseColor], vUv).rgb * uMaterials[uMaterialIndex].baseColorAlpha.rgb * uBaseColorAlpha.rgb;
@@ -220,7 +222,7 @@ void main()
 			ret += lightingIn.f0 * textureLod(txImageLight, R, sqrt(roughness) * maxLevel).rgb * uImageLightBrightness;
 		}
 
-		fResult = vec4(ret, 1.0);
+		fResult.rgb = ret;
 	}
 	#endif
 
