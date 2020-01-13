@@ -24,7 +24,7 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 	VertexAttr* positionAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 3);
 	VertexAttr* normalAttr   = retDesc.addVertexAttr(VertexAttr::Semantic_Normals,   DataType_Sint8N,  3);
 	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  DataType_Sint8N,  3);
-	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Uint16N, 2);
+	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float32, 2);
 	
 	MeshBuilder tmpMesh; // append vertices/indices here
 
