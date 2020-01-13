@@ -1050,6 +1050,7 @@ void Scene::editNodes()
 			};
 			m_editNode = newEditNode;
 			m_editXForm = nullptr;
+			m_editComponent = nullptr;
 		}
 	}
 }
