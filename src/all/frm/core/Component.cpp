@@ -378,6 +378,7 @@ bool Component_ImageLight::loadAndFilter()
 	if (srcImage.getType() != Image::Type_Cubemap)
 	{
 		// convert to cubemap, assume rectilinear (sphere) projection
+		srcTexture->setWrapV(GL_CLAMP_TO_EDGE);
 		if (!Texture::ConvertSphereToCube(*srcTexture, srcTexture->getHeight()))
 		{
 			return false;
