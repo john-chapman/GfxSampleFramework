@@ -83,6 +83,10 @@ public:
 
 	// Set base/max level for mipmap access.
 	void setMipRange(GLint _base, GLint _max);
+
+	// Bias for mip selection (negative bias sharpens the image).
+	void  setMipBias(float _bias);
+	float getMipBias() const;
 	
 	// Filter mode.
 	void        setFilter(GLenum _mode);    // mipmap filter modes cannot be applied globally
@@ -173,6 +177,58 @@ private:
 		
 }; // class Texture
 
+class TextureSampler
+{
+public:
+
+	static TextureSampler* Create();
+	static TextureSampler* Create(GLenum _wrap, GLenum _filter, GLfloat _anisotropy = 1.0f, GLfloat _lodBias = 0.0f);
+	static void            Destroy(TextureSampler*& _sampler_);
+
+	GLuint  getHandle() const { return m_handle; }
+
+	void    setWrap(GLenum _wrapUVW);
+	void    setWrap(GLenum _wrapU, GLenum _wrapV, GLenum _wrapW = GL_REPEAT);
+	void    setWrapU(GLenum _wrapU);
+	void    setWrapV(GLenum _wrapV);
+	void    setWrapW(GLenum _wrapW);
+	GLenum  getWrapU() const { return m_wrap[0]; }
+	GLenum  getWrapV() const { return m_wrap[1]; }
+	GLenum  getWrapW() const { return m_wrap[2]; }
+
+	void    setFilter(GLenum _filterMinMag);
+	void    setFilter(GLenum _filterMin, GLenum _filterMag);
+	void    setMinFilter(GLenum _filterMin);
+	void    setMagFilter(GLenum _filterMag);
+	GLenum  getMinFilter() const { return m_minFilter; }
+	GLenum  getMagFilter() const { return m_magFilter; }
+
+	void    setAnisotropy(GLfloat _anisotropy);
+	GLfloat getAnisotropy() const { return m_anisotropy; }
+
+	void    setLodBias(GLfloat _lodBias);
+	GLfloat getLodBias() const { return m_lodBias; }
+
+	void    setMipRange(GLfloat _min, GLfloat _max);
+	GLfloat getMipRangeMin() const { return m_mipRange[0]; }
+	GLfloat getMipRangeMax() const { return m_mipRange[1]; }
+
+
+private:
+
+	TextureSampler();
+	~TextureSampler();
+
+	GLuint  m_handle      = GL_NONE;
+
+	GLenum  m_wrap[3]     = { GL_REPEAT, GL_REPEAT, GL_REPEAT };
+	GLenum  m_minFilter   = GL_LINEAR;
+	GLenum  m_magFilter   = GL_LINEAR;
+	GLfloat m_anisotropy  = 1.0f;
+	GLfloat m_lodBias     = 0.0f;
+	GLfloat m_mipRange[2] = { -1000.0f, 1000.0f };
+
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // TextureView

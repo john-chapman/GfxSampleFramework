@@ -144,6 +144,7 @@ namespace frm {
 	class  SplinePath;
 	class  Texture;
 	class  TextureAtlas;
+	class  TextureSampler;
 	struct TextureView;
 	class  ValueCurve;
 	class  ValueCurveEditor;

@@ -342,6 +342,14 @@ struct TextureViewer
 			if (ImGui::Combo("Mag Filter", &fm, "NEAREST\0LINEAR\0")) { // must match order of internal::kTextureWrapModes (gl.cpp)
 				tx.setMagFilter(kTextureFilterModes[fm]);
 			}
+
+		 // mip bias
+			if (tx.getMipCount() > 1) {
+				float mipBias = tx.getMipBias();
+				if (ImGui::SliderFloat("Mip Bias", &mipBias, (float)-tx.getMipCount(), (float)tx.getMipCount())) {
+					tx.setMipBias(mipBias);
+				}
+			}
 	
 		 // anisotropy
 			float aniso = tx.getAnisotropy();
@@ -964,11 +972,24 @@ void Texture::setMipRange(GLint _base, GLint _max)
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAX_LEVEL,  (GLint)_max));
 }
 
-void Texture::setFilter(GLenum _mode)
+void Texture::setMipBias(float _bias)
 {
 	FRM_ASSERT(m_handle);
-	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MIN_FILTER, (GLint)_mode));
-	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAG_FILTER, (GLint)_mode));
+	glAssert(glTextureParameterf(m_handle, GL_TEXTURE_LOD_BIAS, (GLfloat)_bias));
+}
+
+float Texture::getMipBias() const
+{
+	FRM_ASSERT(m_handle);
+	GLfloat ret;
+	glAssert(glGetTextureParameterfv(m_handle, GL_TEXTURE_LOD_BIAS, &ret));
+	return (float)ret;
+}
+
+void Texture::setFilter(GLenum _mode)
+{
+	setMinFilter(_mode);
+	setMagFilter(_mode);
 }
 void Texture::setMinFilter(GLenum _mode)
 {
@@ -978,6 +999,21 @@ void Texture::setMinFilter(GLenum _mode)
 void Texture::setMagFilter(GLenum _mode)
 {
 	FRM_ASSERT(m_handle);
+
+	// convert any mipmap filters to an appropriate mag filter
+	switch (_mode)
+	{
+		default:
+			break;
+		case GL_LINEAR_MIPMAP_LINEAR:
+		case GL_LINEAR_MIPMAP_NEAREST:
+			_mode = GL_LINEAR;
+			break;
+		case GL_NEAREST_MIPMAP_LINEAR:
+		case GL_NEAREST_MIPMAP_NEAREST:
+			_mode = GL_NEAREST;
+			break;
+	};
 	glAssert(glTextureParameteri(m_handle, GL_TEXTURE_MAG_FILTER, (GLint)_mode));
 }
 GLenum Texture::getMinFilter() const 
@@ -999,20 +1035,20 @@ GLenum Texture::getMagFilter() const
 void Texture::setAnisotropy(GLfloat _anisotropy)
 {
 	FRM_ASSERT(m_handle);
-	//if (GLEW_EXT_texture_filter_anisotropic) {
-		float mx;
+	if (GLEW_EXT_texture_filter_anisotropic) {
+		static float mx;
 		FRM_ONCE glAssert(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &mx));
 		glAssert(glTextureParameterf(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, FRM_CLAMP(_anisotropy, 1.0f, mx)));
-	//}
+	}
 }
 
 GLfloat Texture::getAnisotropy() const
 {
 	FRM_ASSERT(m_handle);
 	GLfloat ret = -1.0f;
-	//if (GLEW_EXT_texture_filter_anisotropic) {
+	if (GLEW_EXT_texture_filter_anisotropic) {
 		glAssert(glGetTextureParameterfv(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, &ret));
-	//}
+	}
 	return ret;
 }
 
@@ -1432,8 +1468,22 @@ bool Texture::loadImage(const Image& _img)
 
 	setWrap(GL_REPEAT);
 	setMagFilter(GL_LINEAR);
-	setMinFilter(_img.getMipmapCount() > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-	setMipRange(0, (GLint)_img.getMipmapCount() - 1);
+	#if 1
+	 // generate mips if not present
+		if (_img.getMipmapCount() == 1)
+		{
+			generateMipmap();
+		}
+		else
+		{
+			setMinFilter(_img.getMipmapCount() > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+			setMipRange(0, (GLint)_img.getMipmapCount() - 1);
+		}
+	#else
+	 // don't generate mips
+		setMinFilter(_img.getMipmapCount() > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+		setMipRange(0, (GLint)_img.getMipmapCount() - 1);
+	#endif
 
 	TextureView* txView = g_textureViewer.findTextureView(this);
 	if (txView)
@@ -1450,4 +1500,147 @@ void Texture::updateParams()
 	glAssert(glGetTextureLevelParameteriv(m_handle, 0, GL_TEXTURE_WIDTH,  &m_width));
 	glAssert(glGetTextureLevelParameteriv(m_handle, 0, GL_TEXTURE_HEIGHT, &m_height));
 	glAssert(glGetTextureLevelParameteriv(m_handle, 0, GL_TEXTURE_DEPTH, m_arrayCount > 1 ? &m_arrayCount : &m_depth));
+}
+
+
+/*******************************************************************************
+
+                              TextureSampler
+
+*******************************************************************************/
+
+// PUBLIC
+
+TextureSampler* TextureSampler::Create()
+{
+	TextureSampler* ret = FRM_NEW(TextureSampler);
+	return ret;
+}
+
+TextureSampler* TextureSampler::Create(GLenum _wrap, GLenum _filter, GLfloat _anisotropy, GLfloat _lodBias)
+{
+	TextureSampler* ret = FRM_NEW(TextureSampler);
+	ret->setWrap(_wrap);
+	ret->setFilter(_filter);
+	ret->setAnisotropy(_anisotropy);
+	ret->setLodBias(_lodBias);
+	return ret;
+}
+
+void TextureSampler::Destroy(TextureSampler*& _sampler_)
+{
+	FRM_DELETE(_sampler_);
+	_sampler_ = nullptr;
+}
+
+void TextureSampler::setWrap(GLenum _wrapUVW)
+{
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_WRAP_S, (GLint)_wrapUVW));
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_WRAP_T, (GLint)_wrapUVW));
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_WRAP_R, (GLint)_wrapUVW));
+	m_wrap[0] = m_wrap[1] = m_wrap[2] = _wrapUVW;
+}
+
+void TextureSampler::setWrap(GLenum _wrapU, GLenum _wrapV, GLenum _wrapW)
+{
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_WRAP_S, (GLint)_wrapU));
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_WRAP_T, (GLint)_wrapV));
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_WRAP_R, (GLint)_wrapW));
+	m_wrap[0] = _wrapU;
+	m_wrap[1] = _wrapV;
+	m_wrap[2] = _wrapW;
+}
+
+void TextureSampler::setWrapU(GLenum _wrapU)
+{
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_WRAP_S, (GLint)_wrapU));
+	m_wrap[0] = _wrapU;
+}
+
+void TextureSampler::setWrapV(GLenum _wrapV)
+{
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_WRAP_T, (GLint)_wrapV));
+	m_wrap[1] = _wrapV;
+}
+
+void TextureSampler::setWrapW(GLenum _wrapW)
+{
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_WRAP_R, (GLint)_wrapW));
+	m_wrap[2] = _wrapW;
+}
+
+void TextureSampler::setFilter(GLenum _filterMinMag)
+{
+	setMinFilter(_filterMinMag);
+	setMagFilter(_filterMinMag);
+}
+
+void TextureSampler::setFilter(GLenum _filterMin, GLenum _filterMag)
+{
+	setMinFilter(_filterMin);
+	setMagFilter(_filterMag);
+}
+
+void TextureSampler::setMinFilter(GLenum _filterMin)
+{
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_MIN_FILTER, _filterMin));
+	m_minFilter = _filterMin;
+}
+
+void TextureSampler::setMagFilter(GLenum _filterMag)
+{
+	// convert any mipmap filters to an appropriate mag filter
+	switch (_filterMag)
+	{
+		default:
+			break;
+		case GL_LINEAR_MIPMAP_LINEAR:
+		case GL_LINEAR_MIPMAP_NEAREST:
+			_filterMag = GL_LINEAR;
+			break;
+		case GL_NEAREST_MIPMAP_LINEAR:
+		case GL_NEAREST_MIPMAP_NEAREST:
+			_filterMag = GL_NEAREST;
+			break;
+	};
+	glAssert(glSamplerParameteri(m_handle, GL_TEXTURE_MAG_FILTER, _filterMag));
+	m_magFilter = _filterMag;
+}
+
+void TextureSampler::setAnisotropy(GLfloat _anisotropy)
+{
+	if (GLEW_EXT_texture_filter_anisotropic)
+	{
+		static float mx;
+		FRM_ONCE glAssert(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &mx));
+		glAssert(glSamplerParameterf(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, FRM_CLAMP(_anisotropy, 1.0f, mx)));
+		m_anisotropy = _anisotropy;
+	}
+}
+
+void TextureSampler::setLodBias(GLfloat _lodBias)
+{
+	glAssert(glSamplerParameterf(m_handle, GL_TEXTURE_LOD_BIAS, _lodBias));
+	m_lodBias = _lodBias;
+}
+
+void TextureSampler::setMipRange(GLfloat _min, GLfloat _max)
+{
+	glAssert(glSamplerParameterf(m_handle, GL_TEXTURE_MIN_LOD, _min));
+	glAssert(glSamplerParameterf(m_handle, GL_TEXTURE_MAX_LOD, _max));
+	m_mipRange[0] = _min;
+	m_mipRange[1] = _max;
+}
+
+// PRIVATE
+
+TextureSampler::TextureSampler()
+{
+	glAssert(glCreateSamplers(1, &m_handle));
+}
+
+TextureSampler::~TextureSampler()
+{
+	glAssert(glDeleteSamplers(1, &m_handle));
+	m_handle = GL_NONE;
 }
