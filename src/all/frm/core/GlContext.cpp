@@ -447,7 +447,7 @@ void GlContext::clearBufferBindings()
 #endif
 }
 
-void GlContext::bindTexture(const char* _location, const Texture* _texture)
+void GlContext::bindTexture(const char* _location, const Texture* _texture, const TextureSampler* _sampler)
 {
 	FRM_ASSERT(_location);
 	FRM_ASSERT(m_currentShader);
@@ -458,20 +458,23 @@ void GlContext::bindTexture(const char* _location, const Texture* _texture)
 		glAssert(glUniform1i(loc, m_nextTextureSlot));
 		glAssert(glActiveTexture(GL_TEXTURE0 + m_nextTextureSlot));
 		glAssert(glBindTexture(_texture->getTarget(), _texture->getHandle()));
+		glAssert(glBindSampler(m_nextTextureSlot, _sampler ? _sampler->getHandle() : 0));
 		m_currentTextures[m_nextTextureSlot] = _texture;
+		m_currentTextureSamplers[m_nextTextureSlot] = _sampler;
 		++m_nextTextureSlot;
 	}
 }
 
-void GlContext::bindTexture(const Texture* _texture)
+void GlContext::bindTexture(const Texture* _texture, const TextureSampler* _sampler)
 {
-	bindTexture(_texture->getName(), _texture);
+	bindTexture(_texture->getName(), _texture, _sampler);
 }
 
 void GlContext::clearTextureBindings()
 {
 	m_nextTextureSlot = 0;
-	memset(m_currentTextures,  0, sizeof(m_currentTextures)); // not necessary but nice for debugging
+	memset(m_currentTextures, 0, sizeof(m_currentTextures)); // not necessary but nice for debugging
+	memset(m_currentTextureSamplers, 0, sizeof(m_currentTextureSamplers));
 
 #if GlContext_ACTUALLY_CLEAR_TEXTURE_BINDINGS
 	for (int slot = 0; slot < kTextureSlotCount; ++slot) {
@@ -479,6 +482,7 @@ void GlContext::clearTextureBindings()
 		for (int target = 0; target < internal::kTextureTargetCount; ++target) {
 			glAssert(glBindTexture(internal::kTextureTargets[target], 0));
 		}
+		glAssert(glBindSampler(slot, 0));
 	}
 #endif
 }

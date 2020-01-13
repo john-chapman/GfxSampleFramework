@@ -135,11 +135,12 @@ public:
  // TEXTURE
 
 	// Bind _texture to a named _location on the current shader. Binding indices are managed automatically; they are reset only when the current shader 
-	// changes. If _location is not active on the current shader, do  nothing.
-	void bindTexture(const char* _location, const Texture* _texture);
+	// changes. If _location is not active on the current shader, do nothing. _sampler is an optional TextureSampler which overrides the texture's internal
+	// sampling parameters.
+	void bindTexture(const char* _location, const Texture* _texture, const TextureSampler* _sampler = nullptr);
 
 	// As bindTexture() but use _texture->getName() as the location.
-	void bindTexture(const Texture* _texture);
+	void bindTexture(const Texture* _texture, const TextureSampler* _sampler = nullptr);
 
 	// Clear all texture bindings. 
 	void clearTextureBindings();
@@ -153,34 +154,35 @@ public:
 	void clearImageBindings();
 	
 private:
-	const Window*       m_window         = nullptr;
-	Vsync               m_vsync          = Vsync_On;
-	uint64              m_frameIndex     = 0;
-	uint32              m_drawCount      = 0;
-	uint32              m_dispatchCount  = 0;
+	const Window*         m_window         = nullptr;
+	Vsync                 m_vsync          = Vsync_On;
+	uint64                m_frameIndex     = 0;
+	uint32                m_drawCount      = 0;
+	uint32                m_dispatchCount  = 0;
 
-	int                 m_viewportX, m_viewportY, m_viewportWidth, m_viewportHeight;
+	int                   m_viewportX, m_viewportY, m_viewportWidth, m_viewportHeight;
 
- 	const Framebuffer*  m_currentFramebuffer;
-	const Shader*       m_currentShader;
-	const Mesh*         m_currentMesh;
-	int                 m_currentSubmesh;
+ 	const Framebuffer*    m_currentFramebuffer;
+	const Shader*         m_currentShader;
+	const Mesh*           m_currentMesh;
+	int                   m_currentSubmesh;
 
 	// Tracking state for all targets is redundant as only a subset use an indexed binding model
-	static const int    kBufferSlotCount  = 16;
-	const Buffer*       m_currentBuffers [internal::kBufferTargetCount][kBufferSlotCount];
-	GLint               m_nextBufferSlots[internal::kBufferTargetCount];
-	GLint               kMaxBufferSlots  [internal::kBufferTargetCount];
+	static const int      kBufferSlotCount  = 16;
+	const Buffer*         m_currentBuffers [internal::kBufferTargetCount][kBufferSlotCount];
+	GLint                 m_nextBufferSlots[internal::kBufferTargetCount];
+	GLint                 kMaxBufferSlots  [internal::kBufferTargetCount];
 
-	static const int    kTextureSlotCount = 24;
-	const Texture*      m_currentTextures[kTextureSlotCount];
-	GLint               m_nextTextureSlot;
+	static const int      kTextureSlotCount = 24;
+	const Texture*        m_currentTextures[kTextureSlotCount];
+	const TextureSampler* m_currentTextureSamplers[kTextureSlotCount];
+	GLint                 m_nextTextureSlot;
 
-	static const int    kImageSlotCount = 8;
-	const Texture*      m_currentImages[kImageSlotCount];
-	GLint               m_nextImageSlot;
+	static const int      kImageSlotCount = 8;
+	const Texture*        m_currentImages[kImageSlotCount];
+	GLint                 m_nextImageSlot;
 	
-	Mesh*               m_ndcQuadMesh;
+	Mesh*                 m_ndcQuadMesh;
 
 	struct Impl;
 	Impl* m_impl;
