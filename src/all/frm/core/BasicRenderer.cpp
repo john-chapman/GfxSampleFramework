@@ -90,7 +90,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 				ctx->setUniform("uTexelSize", texelSize);
 				ctx->setUniform("uMaterialIndex", materialIndex);
 				BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
-				material->bind();
+				material->bind(ssMaterial);
 
 				for (DrawInstance& drawInstance : drawInstances[materialIndex])
 				{
@@ -193,7 +193,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 			ctx->setUniform("uTexelSize", texelSize);
 			ctx->setUniform ("uMaterialIndex", materialIndex);
 			BasicMaterial* material = BasicMaterial::GetInstance(materialIndex);
-			material->bind();
+			material->bind(ssMaterial);
 
 			for (DrawInstance& drawInstance : drawInstances[materialIndex])
 			{
@@ -238,7 +238,25 @@ bool BasicRenderer::edit()
 	ret |= ImGui::Checkbox("Pause Update", &pauseUpdate);
 	ret |= ImGui::SliderFloat("Motion Blur Target FPS", &motionBlurTargetFps, 0.0f, 90.0f);
 
-	ImGui::SetNextTreeNodeOpen(true);
+	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+	if (ImGui::TreeNode("Material Sampler"))
+	{
+		float lodBias = ssMaterial->getLodBias();
+		if (ImGui::SliderFloat("LOD Bias", &lodBias, -4.0f, 4.0f))
+		{
+			ssMaterial->setLodBias(lodBias);
+		}
+
+		float anisotropy = ssMaterial->getAnisotropy();
+		if (ImGui::SliderFloat("Anisotropy", &anisotropy, 1.0f, 16.0f))
+		{
+			ssMaterial->setAnisotropy(anisotropy);
+		}
+
+		ImGui::TreePop();
+	}
+
+	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Flags"))
 	{
 		bool flagPostProcess       = BitfieldGet(flags, (uint32)Flag_PostProcess);
@@ -283,6 +301,8 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags)
 
 	bfPostProcessData = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(PostProcessData), GL_DYNAMIC_STORAGE_BIT);
 	bfPostProcessData->setName("bfPostProcessData");
+
+	ssMaterial = TextureSampler::Create(GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, 4.0f); // \todo global anisotropy config
 
 	initRenderTargets();
 

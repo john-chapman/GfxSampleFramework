@@ -51,37 +51,39 @@ struct BasicRenderer
 	void       setFlag(Flag _flag, bool _value)                     { flags = BitfieldSet(flags, (int)_flag, _value); }
 	bool       getFlag(Flag _flag) const                            { return BitfieldGet(flags, (uint32)_flag); }
 	
-	Texture*     txGBuffer0                 = nullptr; // Normal, velocity.
-	Texture*     txGBufferDepthStencil      = nullptr; // Depth, stencil.
-	Framebuffer* fbGBuffer                  = nullptr; // txGBuffer0 + txGBufferDepthStencil.
+	TextureSampler* ssMaterial                 = nullptr; // Sampler for material textures.
 
-	Texture*     txVelocityTileMinMax       = nullptr;
-	Texture*     txVelocityTileNeighborMax  = nullptr;
+	Texture*        txGBuffer0                 = nullptr; // Normal, velocity.
+	Texture*        txGBufferDepthStencil      = nullptr; // Depth, stencil.
+	Framebuffer*    fbGBuffer                  = nullptr; // txGBuffer0 + txGBufferDepthStencil.
 
-	Texture*     txScene                    = nullptr; // Lighting accumulation, etc.
-	Framebuffer* fbScene                    = nullptr; // txScene + txGBufferDepth.
+	Texture*        txVelocityTileMinMax       = nullptr;
+	Texture*        txVelocityTileNeighborMax  = nullptr;
 
-	Texture*     txFinal                    = nullptr; // Post processing result, alpha = luminance.
-	Framebuffer* fbFinal                    = nullptr; // fbFinal + txGBufferDepthStencil.	
+	Texture*        txScene                    = nullptr; // Lighting accumulation, etc.
+	Framebuffer*    fbScene                    = nullptr; // txScene + txGBufferDepth.
 
-	Buffer*      bfMaterials                = nullptr; // Material instance data.
-	Buffer*      bfLights                   = nullptr; // Basic light instance data.
-	Buffer*      bfImageLights              = nullptr; // Image light instance data.
-	Buffer*      bfPostProcessData	        = nullptr; // Data for the post process shader.
+	Texture*        txFinal                    = nullptr; // Post processing result, alpha = luminance.
+	Framebuffer*    fbFinal                    = nullptr; // fbFinal + txGBufferDepthStencil.	
+
+	Buffer*         bfMaterials                = nullptr; // Material instance data.
+	Buffer*         bfLights                   = nullptr; // Basic light instance data.
+	Buffer*         bfImageLights              = nullptr; // Image light instance data.
+	Buffer*         bfPostProcessData	        = nullptr; // Data for the post process shader.
 	
-	Shader*      shGBuffer                  = nullptr;
-	Shader*      shStaticVelocity           = nullptr;
-	Shader*      shVelocityMinMax           = nullptr;
-	Shader*      shVelocityNeighborMax      = nullptr;
-	Shader*      shImageLightBg             = nullptr;
-	Shader*      shScene                    = nullptr;
-	Shader*      shPostProcess              = nullptr;
+	Shader*         shGBuffer                  = nullptr;
+	Shader*         shStaticVelocity           = nullptr;
+	Shader*         shVelocityMinMax           = nullptr;
+	Shader*         shVelocityNeighborMax      = nullptr;
+	Shader*         shImageLightBg             = nullptr;
+	Shader*         shScene                    = nullptr;
+	Shader*         shPostProcess              = nullptr;
 
-	float        motionBlurTargetFps        = 50.0f;
-	int          motionBlurTileWidth        = 20;
-	ivec2        resolution                 = ivec2(-1);
-	uint32       flags                      = Flags_Default;
-	bool         pauseUpdate                = false;
+	float           motionBlurTargetFps        = 50.0f;
+	int             motionBlurTileWidth        = 20;
+	ivec2           resolution                 = ivec2(-1);
+	uint32          flags                      = Flags_Default;
+	bool            pauseUpdate                = false;
 
 private:
 	BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags);
