@@ -54,8 +54,9 @@ public:
 	static Derived* Find(Id _id);
 	static Derived* Find(const char* _name);
 	static int      GetInstanceCount()               { return (int)s_instances.size(); }
-	static Derived* GetInstance(int _i)              { FRM_ASSERT(_i < GetInstanceCount()); return s_instances[_i]; }
+	static Derived* GetInstance(int _index)          { FRM_ASSERT(_index < GetInstanceCount()); return s_instances[_index]; }
 
+	int             getIndex() const                 { return m_index;             }
 	Id              getId() const                    { return m_id;                }
 	const char*     getName() const                  { return (const char*)m_name; }
 	State           getState() const                 { return m_state;             }
@@ -88,6 +89,7 @@ private:
 	static InstanceList s_instances;
 	static uint32       s_nextUniqueId;
 	State               m_state;
+	int                 m_index;
 	Id                  m_id;
 	sint64              m_refs;
 

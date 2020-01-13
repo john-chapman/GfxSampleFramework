@@ -106,6 +106,7 @@ Resource<tDerived>::~Resource()
 {
 	FRM_ASSERT(m_refs == 0); // resource still in use
 	auto it = eastl::find(s_instances.begin(), s_instances.end(), (Derived*)this);
+	s_instances.back()->m_index = m_index;
 	s_instances.erase_unsorted(it);
 }
 
@@ -134,6 +135,7 @@ void Resource<tDerived>::init(Id _id, const char* _name)
 	m_id = _id;
 	m_name.set(_name);
 	m_refs = 0;
+	m_index = (int)s_instances.size();
 	s_instances.push_back((Derived*)this);
 }
 

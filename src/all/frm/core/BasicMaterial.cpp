@@ -264,7 +264,7 @@ bool BasicMaterial::serialize(Serializer& _serializer_)
 	return true;
 }
 
-void BasicMaterial::bind() const
+void BasicMaterial::bind(TextureSampler* _sampler) const
 {
 	GlContext* ctx = GlContext::GetCurrent();
 
@@ -272,7 +272,7 @@ void BasicMaterial::bind() const
 	for (int i = 0; i < Map_Count; ++i)
 	{
 		mapName.setf("uMaps[%d]", i);
-		ctx->bindTexture(mapName.c_str(), m_maps[i]);
+		ctx->bindTexture(mapName.c_str(), m_maps[i], _sampler);
 	}
 }
 
@@ -302,7 +302,6 @@ void BasicMaterial::setMap(Map _map, const char* _path)
 BasicMaterial::BasicMaterial(Id _id, const char* _name)
 	: Resource(_id, _name)
 {
-	m_index = GetInstanceCount() - 1;
 	FRM_STATIC_ASSERT(FRM_ARRAY_COUNT(kMapStr) == Map_Count);
 }
 

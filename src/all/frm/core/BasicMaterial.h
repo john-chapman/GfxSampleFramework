@@ -49,12 +49,11 @@ public:
 	bool                  load()                     { return reload(); }
 	bool                  reload();
 	bool                  edit();
-	bool                  serialize(frm::Serializer& _serializer_);
-	void                  bind() const;
+	bool                  serialize(Serializer& _serializer_);
+	void                  bind(TextureSampler* _sampler = nullptr) const;
 
-	friend bool Serialize(frm::Serializer& _serializer_, BasicMaterial& _basicMaterial_) { return _basicMaterial_.serialize(_serializer_); }
+	friend bool Serialize(Serializer& _serializer_, BasicMaterial& _basicMaterial_) { return _basicMaterial_.serialize(_serializer_); }
 
-	int                   getIndex() const           { return m_index; }
 	const char*           getPath() const            { return m_path.c_str(); }
 	Texture*              getMap(Map _mapName) const { return m_maps[_mapName]; }
 	uint32                getFlags() const           { return m_flags; }
@@ -73,10 +72,9 @@ protected:
 	BasicMaterial(Id _id, const char* _name);
 	~BasicMaterial();
 
-	int                                   m_index           = -1; // global index (see BasicRenderer)
 	PathStr                               m_path            = "";
 	eastl::array<Texture*, Map_Count>     m_maps            = { nullptr };
-	eastl::array<frm::PathStr, Map_Count> m_mapPaths        = { "" };
+	eastl::array<PathStr, Map_Count>      m_mapPaths        = { "" };
 	vec3                                  m_baseColor       = vec3(1.0f);
 	vec3                                  m_emissiveColor   = vec3(0.0f);
 	float                                 m_alpha           = 1.0f;
