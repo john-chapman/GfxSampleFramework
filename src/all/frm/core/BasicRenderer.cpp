@@ -39,25 +39,65 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 {
 	PROFILER_MARKER("BasicRenderer::draw");
 
-	postProcessData.motionBlurScale = motionBlurTargetFps * _dt;
-	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
+	GlContext* ctx = GlContext::GetCurrent();
+
+	camera.copyFrom(*_camera);
+	const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
+	if (isTAA)
+	{
+		const int kFrameIndex = (int)(ctx->getFrameIndex() & 1);
+		const vec2 kOffsets[2] = { vec2(0.5f, 0.0f), vec2(0.0f, 0.5f) };
+		float jitterScale = 1.0f;
+		camera.m_proj[2][0] = kOffsets[kFrameIndex].x * 2.0f / (float)resolution.x * jitterScale;
+		camera.m_proj[2][1] = kOffsets[kFrameIndex].y * 2.0f / (float)resolution.y * jitterScale;
+		camera.m_viewProj = camera.m_proj * camera.m_view;
+	}
+	camera.updateGpuBuffer();
 
 	if (!pauseUpdate)
 	{
 	 // \todo can skip updates if nothing changed
 		updateMaterialInstances();
-		updateDrawInstances(_camera);
-		updateLightInstances(_camera);
-		updateImageLightInstances(_camera);
+		updateDrawInstances(&camera);
+		updateLightInstances(&camera);
+		updateImageLightInstances(&camera);
 	}
 	if (drawInstances.empty())
 	{
 		return;
 	}
 
-	GlContext* ctx = GlContext::GetCurrent();
+	postProcessData.motionBlurScale = motionBlurTargetFps * _dt;
+	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
+
 	const vec2 texelSize = vec2(1.0f) / vec2(fbGBuffer->getWidth(), fbGBuffer->getHeight());
 	
+	for (int i = 0; i < Target_Count; ++i)
+	{
+		renderTargets[i].nextFrame();
+	}
+
+	// Get current render targets.
+	Texture* txGBuffer0 = renderTargets[Target_GBuffer0].getTexture(0);
+	Texture* txGBufferDepthStencil = renderTargets[Target_GBufferDepthStencil].getTexture(0);
+	Texture* txVelocityTileMinMax = renderTargets[Target_VelocityTileMinMax].getTexture(0);
+	Texture* txVelocityTileNeighborMax = renderTargets[Target_VelocityTileNeighborMax].getTexture(0);
+	Texture* txScene = renderTargets[Target_Scene].getTexture(0);
+	Texture* txPostProcessResult = renderTargets[Target_PostProcessResult].getTexture(0);
+	Texture* txFXAAResult = renderTargets[Target_FXAAResult].getTexture(0);
+	Texture* txFinal = renderTargets[Target_Final].getTexture(0);
+
+	// Init framebuffers.
+	fbGBuffer->attach(txGBuffer0, GL_COLOR_ATTACHMENT0);
+	fbGBuffer->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
+	fbScene->attach(txScene, GL_COLOR_ATTACHMENT0);
+	fbScene->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
+	fbPostProcessResult->attach(txPostProcessResult, GL_COLOR_ATTACHMENT0);
+	fbPostProcessResult->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
+	fbFXAAResult->attach(txFXAAResult, GL_COLOR_ATTACHMENT0);
+	fbFinal->attach(txFinal, GL_COLOR_ATTACHMENT0);
+	fbFinal->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
+
 	{	PROFILER_MARKER("GBuffer");
 
 		ctx->setFramebufferAndViewport(fbGBuffer);
@@ -85,7 +125,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 				// reset shader because we want to clear all the bindings to avoid running out of slots
 				ctx->setShader(shGBuffer);
-				ctx->bindBuffer(_camera->m_gpuBuffer);
+				ctx->bindBuffer(camera.m_gpuBuffer);
 				ctx->bindBuffer(bfMaterials);
 				ctx->setUniform("uTexelSize", texelSize);
 				ctx->setUniform("uMaterialIndex", materialIndex);
@@ -112,7 +152,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 			ctx->setShader(shStaticVelocity);
 			ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
-			ctx->drawNdcQuad(_camera);
+			ctx->drawNdcQuad(&camera);
 
 			glAssert(glColorMask(true, true, true, true));
 		}
@@ -123,10 +163,11 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 				FRM_ASSERT(shVelocityMinMax->getLocalSize().x == motionBlurTileWidth);
 
+
 				ctx->setShader(shVelocityMinMax);
 				ctx->bindTexture("txGBuffer0", txGBuffer0);
 				ctx->bindImage("txVelocityTileMinMax", txVelocityTileMinMax, GL_WRITE_ONLY);
-				ctx->dispatch(txVelocityTileMinMax->getWidth(), txVelocityTileMinMax->getHeight());
+				ctx->dispatch(txVelocityTileMinMax->getWidth(), txVelocityTileMinMax->getHeight()); // 1 group per texel
 
 				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 			}
@@ -153,11 +194,11 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		{
 			ctx->setShader(shImageLightBg);
 			ctx->bindTexture("txEnvmap", imageLightInstances[0].texture);
-			ctx->drawNdcQuad(_camera);
+			ctx->drawNdcQuad(&camera);
 		}
 		else
 		{
-			glAssert(glClearColor(0.0f, 0.0f, 0.0f, Abs(_camera->m_far)));
+			glAssert(glClearColor(0.0f, 0.0f, 0.0f, Abs(camera.m_far)));
 			glAssert(glClear(GL_COLOR_BUFFER_BIT));
 			glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		}
@@ -214,15 +255,66 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 		ctx->setShader(shPostProcess);
 		ctx->bindBuffer(bfPostProcessData);
-		ctx->bindBuffer(_camera->m_gpuBuffer);
+		ctx->bindBuffer(camera.m_gpuBuffer);
 		ctx->bindTexture("txScene", txScene);
 		ctx->bindTexture("txGBuffer0", txGBuffer0);
 		ctx->bindTexture("txVelocityTileNeighborMax", txVelocityTileNeighborMax);
 		ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
-		ctx->bindImage("txFinal", txFinal, GL_WRITE_ONLY);
-		ctx->dispatch(txFinal);
+		ctx->bindImage("txOut", txPostProcessResult, GL_WRITE_ONLY);
+		ctx->dispatch(txPostProcessResult);
 
 		glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+	}
+	else
+	{
+		ctx->blitFramebuffer(fbScene, fbPostProcessResult, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	}
+
+	if (BitfieldGet(flags, (uint32)Flag_FXAA))
+	{
+		PROFILER_MARKER("FXAA");
+		
+		ctx->setShader(shFXAA);
+		ctx->bindTexture("txIn", txPostProcessResult);
+		ctx->bindImage("txOut", txFXAAResult, GL_WRITE_ONLY);
+		ctx->dispatch(txFXAAResult);
+
+		glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+	}
+	else if (!BitfieldGet(flags, (uint32)Flag_TAA))
+	{
+		ctx->blitFramebuffer(fbPostProcessResult, fbFinal, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	}
+
+	if (BitfieldGet(flags, (uint32)Flag_TAA))
+	{
+		PROFILER_MARKER("TAA Resolve");
+		
+		ctx->setShader(shTAAResolve);
+
+float sharpening = 0.4f;
+const vec2 resolveKernel = vec2(-sharpening, (1.0f + (2.0f * sharpening)) / 2.0f);
+
+		Texture* txCurrent = BitfieldGet(flags, (uint32)Flag_FXAA) ? txFXAAResult : txPostProcessResult;
+		Texture* txCurrentResolve  = renderTargets[Target_TAAResolve].getTexture(0);
+		Texture* txPreviousResolve = renderTargets[Target_TAAResolve].getTexture(-1);
+				
+		ctx->setUniform("uFrameIndex", (int)(ctx->getFrameIndex() & 1));
+		ctx->setUniform("uResolveKernel", resolveKernel);
+		ctx->bindBuffer(camera.m_gpuBuffer);
+		ctx->bindTexture("txGBuffer0", txGBuffer0);
+		ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
+		ctx->bindTexture("txCurrent", txCurrent);
+		ctx->bindTexture("txPreviousResolve", txPreviousResolve);
+		ctx->bindImage("txCurrentResolve", txCurrentResolve, GL_WRITE_ONLY);
+		ctx->bindImage("txFinal", txFinal, GL_WRITE_ONLY);
+		ctx->dispatch(txFinal);
+		
+		glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+	}
+	else if (BitfieldGet(flags, (uint32)Flag_FXAA))
+	{
+		ctx->blitFramebuffer(fbFXAAResult, fbFinal, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 	}
 
 	if (BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer))
@@ -259,14 +351,23 @@ bool BasicRenderer::edit()
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Flags"))
 	{
-		bool flagPostProcess       = BitfieldGet(flags, (uint32)Flag_PostProcess);
-		bool flagWriteToBackBuffer = BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer);
-
-		ret |= ImGui::Checkbox("Post Process",        &flagPostProcess);
-		ret |= ImGui::Checkbox("Write To Backbuffer", &flagWriteToBackBuffer);
-
-		flags = BitfieldSet(flags, Flag_PostProcess,       flagPostProcess);
-		flags = BitfieldSet(flags, Flag_WriteToBackBuffer, flagWriteToBackBuffer);
+		ret |= editFlag("Post Process", Flag_PostProcess);
+		ret |= editFlag("FXAA", Flag_FXAA);
+		if (editFlag("TAA", Flag_TAA))
+		{
+			ret = true;
+			initRenderTargets();
+			const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
+			if (isTAA)
+			{
+				ssMaterial->setLodBias(-1.0f);
+			}
+			else
+			{
+				ssMaterial->setLodBias(0.0f);
+			}
+		}
+		ret |= editFlag("Write to Backbuffer", Flag_WriteToBackBuffer);
 
 		ImGui::TreePop();
 	}
@@ -291,20 +392,19 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags)
 	resolution = ivec2(_resolutionX, _resolutionY);
 	flags      = _flags;
 
-	shGBuffer             = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
-	shStaticVelocity      = Shader::CreateVsFs("shaders/NdcQuad_vs.glsl", "shaders/BasicRenderer/StaticVelocity.glsl");
-	shVelocityMinMax      = Shader::CreateCs("shaders/BasicRenderer/VelocityMinMax.glsl", motionBlurTileWidth);
-	shVelocityNeighborMax = Shader::CreateCs("shaders/BasicRenderer/VelocityNeighborMax.glsl", 8, 8);
-	shScene               = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "Scene_OUT" });
-	shImageLightBg	      = Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
-	shPostProcess         = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8);
+	initShaders();
+	initRenderTargets();
 
 	bfPostProcessData = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(PostProcessData), GL_DYNAMIC_STORAGE_BIT);
 	bfPostProcessData->setName("bfPostProcessData");
 
 	ssMaterial = TextureSampler::Create(GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, 4.0f); // \todo global anisotropy config
 
-	initRenderTargets();
+	fbGBuffer           = Framebuffer::Create(2, renderTargets[Target_GBuffer0].getTexture(0), renderTargets[Target_GBufferDepthStencil].getTexture(0));
+	fbScene             = Framebuffer::Create(2, renderTargets[Target_Scene].getTexture(0), renderTargets[Target_GBufferDepthStencil].getTexture(0));
+	fbPostProcessResult = Framebuffer::Create(2, renderTargets[Target_PostProcessResult].getTexture(0), renderTargets[Target_GBufferDepthStencil].getTexture(0));
+	fbFXAAResult        = Framebuffer::Create(1, renderTargets[Target_FXAAResult].getTexture(0));
+	fbFinal             = Framebuffer::Create(2, renderTargets[Target_Final].getTexture(0), renderTargets[Target_GBufferDepthStencil].getTexture(0));
 
 	//FRM_VERIFY(m_luminanceMeter.init(_resolutionY / 2));
 	//m_colorCorrection.m_luminanceMeter = &m_luminanceMeter;
@@ -315,11 +415,85 @@ BasicRenderer::~BasicRenderer()
 	//m_luminanceMeter.shutdown();
 
 	shutdownRenderTargets();
+	shutdownShaders();
+
+	Framebuffer::Destroy(fbGBuffer);
+	Framebuffer::Destroy(fbScene);
+	Framebuffer::Destroy(fbPostProcessResult);
+	Framebuffer::Destroy(fbFXAAResult);
+	Framebuffer::Destroy(fbFinal);
 
 	Buffer::Destroy(bfMaterials);
 	Buffer::Destroy(bfLights);
 	Buffer::Destroy(bfPostProcessData);
-	
+}
+
+bool BasicRenderer::editFlag(const char* _name, Flag _flag)
+{
+	bool flagValue = BitfieldGet(flags, (uint32)_flag);
+	bool ret =ImGui::Checkbox(_name, &flagValue);
+	flags = BitfieldSet(flags, _flag, flagValue);
+	return ret;
+}
+
+void BasicRenderer::initRenderTargets()
+{
+	shutdownRenderTargets();
+
+	const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
+
+	renderTargets[Target_GBuffer0].init(resolution.x, resolution.y, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	renderTargets[Target_GBuffer0].setName("#BasicRenderer_txGBuffer0");
+
+	renderTargets[Target_GBufferDepthStencil].init(resolution.x, resolution.y, GL_DEPTH32F_STENCIL8, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	renderTargets[Target_GBufferDepthStencil].setName("#BasicRenderer_txGBufferDepth");
+		
+	FRM_ASSERT(resolution.x % motionBlurTileWidth == 0 && resolution.y % motionBlurTileWidth == 0);
+	renderTargets[Target_VelocityTileMinMax].init(resolution.x / motionBlurTileWidth, resolution.y / motionBlurTileWidth, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	renderTargets[Target_VelocityTileMinMax].setName("#BasicRenderer_txVelocityTileMinMax");
+
+	renderTargets[Target_VelocityTileNeighborMax].init(resolution.x / motionBlurTileWidth, resolution.y / motionBlurTileWidth, GL_RG16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	renderTargets[Target_VelocityTileNeighborMax].setName("#BasicRenderer_txVelocityTileNeighborMax");
+
+	renderTargets[Target_Scene].init(resolution.x, resolution.y, GL_RGBA16F, GL_CLAMP_TO_EDGE, GL_LINEAR, 1); // RGB = color, A = abs(linear depth)
+	renderTargets[Target_Scene].setName("#BasicRenderer_txScene");
+
+	renderTargets[Target_PostProcessResult].init(resolution.x, resolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, 1);
+	renderTargets[Target_PostProcessResult].setName("#BasicRenderer_txPostProcessResult");
+
+	renderTargets[Target_FXAAResult].init(resolution.x, resolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, 1);
+	renderTargets[Target_FXAAResult].setName("#BasicRenderer_txFXAAResult");
+
+	renderTargets[Target_TAAResolve].init(resolution.x, resolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, isTAA ? 2 : 1);
+	renderTargets[Target_TAAResolve].setName("#BasicRenderer_txTAAResolve");
+
+	renderTargets[Target_Final].init(resolution.x, resolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, 1);
+	renderTargets[Target_Final].setName("#BasicRenderer_txFinal");
+}
+
+void BasicRenderer::shutdownRenderTargets()
+{
+	for (int i = 0; i < Target_Count; ++i)
+	{
+		renderTargets[i].shutdown();
+	}
+}
+
+void BasicRenderer::initShaders()
+{
+	shGBuffer             = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
+	shStaticVelocity      = Shader::CreateVsFs("shaders/NdcQuad_vs.glsl", "shaders/BasicRenderer/StaticVelocity.glsl");
+	shVelocityMinMax      = Shader::CreateCs("shaders/BasicRenderer/VelocityMinMax.glsl", motionBlurTileWidth);
+	shVelocityNeighborMax = Shader::CreateCs("shaders/BasicRenderer/VelocityNeighborMax.glsl", 8, 8);
+	shScene               = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "Scene_OUT" });
+	shImageLightBg	      = Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
+	shPostProcess         = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8);
+	shFXAA                = Shader::CreateCs("shaders/BasicRenderer/FXAA.glsl", 8, 8);
+	shTAAResolve          = Shader::CreateCs("shaders/BasicRenderer/TAAResolve.glsl", 8, 8);
+}
+
+void BasicRenderer::shutdownShaders()
+{
 	Shader::Release(shGBuffer);
 	Shader::Release(shStaticVelocity);
 	Shader::Release(shVelocityMinMax);
@@ -327,64 +501,8 @@ BasicRenderer::~BasicRenderer()
 	Shader::Release(shScene);
 	Shader::Release(shImageLightBg);
 	Shader::Release(shPostProcess);
-}
-
-void BasicRenderer::initRenderTargets()
-{
-	shutdownRenderTargets();
-
-	txGBuffer0 = Texture::Create2d(resolution.x, resolution.y, GL_RGBA16);
-	txGBuffer0->setName("#BasicRenderer_txGBuffer0");
-	txGBuffer0->setFilter(GL_NEAREST); // usually sample via texelFetch(), but just in case...
-	txGBuffer0->setWrap(GL_CLAMP_TO_EDGE);
-
-	txGBufferDepthStencil = Texture::Create2d(resolution.x, resolution.y, GL_DEPTH32F_STENCIL8);
-	txGBufferDepthStencil->setName("#BasicRenderer_txGBufferDepth");
-	txGBufferDepthStencil->setWrap(GL_CLAMP_TO_EDGE);
-		
-	fbGBuffer = Framebuffer::Create(2, txGBuffer0, txGBufferDepthStencil);
-
-	
-	FRM_ASSERT(resolution.x % motionBlurTileWidth == 0 && resolution.y % motionBlurTileWidth == 0);
-	txVelocityTileMinMax = Texture::Create2d(resolution.x / motionBlurTileWidth, resolution.y / motionBlurTileWidth, GL_RGBA16);
-	txVelocityTileMinMax->setName("#BasicRenderer_txVelocityTileMinMax");
-	txVelocityTileMinMax->setFilter(GL_NEAREST);
-	txVelocityTileMinMax->setWrap(GL_CLAMP_TO_EDGE);
-
-	txVelocityTileNeighborMax = Texture::Create2d(resolution.x / motionBlurTileWidth, resolution.y / motionBlurTileWidth, GL_RG16);
-	txVelocityTileNeighborMax->setName("#BasicRenderer_txVelocityTileNeighborMax");
-	txVelocityTileNeighborMax->setFilter(GL_NEAREST);
-	txVelocityTileNeighborMax->setWrap(GL_CLAMP_TO_EDGE);
-
-
-	txScene = Texture::Create2d(resolution.x, resolution.y, GL_RGBA16F); // RGB = color, A = abs(linear depth)
-	txScene->setName("#BasicRenderer_txScene");
-	txScene->setWrap(GL_CLAMP_TO_EDGE);
-
-	fbScene = Framebuffer::Create(2, txScene, txGBufferDepthStencil);
-
-
-	txFinal = Texture::Create2d(resolution.x, resolution.y, GL_RGBA8);
-	txFinal->setName("#BasicRenderer_txFinal");
-	txFinal->setWrap(GL_CLAMP_TO_EDGE);
-
-	fbFinal = Framebuffer::Create(2, txFinal, txGBufferDepthStencil);
-}
-
-void BasicRenderer::shutdownRenderTargets()
-{
-	Texture::Release(txGBuffer0);
-	Texture::Release(txGBufferDepthStencil);
-	Framebuffer::Destroy(fbGBuffer);
-
-	Texture::Release(txVelocityTileMinMax);
-	Texture::Release(txVelocityTileNeighborMax);
-		
-	Texture::Release(txScene);
-	Framebuffer::Destroy(fbScene);
-
-	Texture::Release(txFinal);
-	Framebuffer::Destroy(fbFinal);
+	Shader::Release(shFXAA);
+	Shader::Release(shTAAResolve);
 }
 
 void BasicRenderer::updateMaterialInstances()

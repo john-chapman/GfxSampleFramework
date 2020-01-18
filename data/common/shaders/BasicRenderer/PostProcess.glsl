@@ -6,7 +6,7 @@
 
 uniform sampler2D txScene;
 uniform sampler2D txVelocityTileNeighborMax;
-uniform writeonly image2D txFinal;
+uniform writeonly image2D txOut;
 
 layout(std140) uniform bfPostProcessData
 {
@@ -75,7 +75,7 @@ float SoftStep(in float _a, in float _b, in float _radius)
 
 void main()
 {
-	const ivec2 txSize = ivec2(imageSize(txFinal).xy);
+	const ivec2 txSize = ivec2(imageSize(txOut).xy);
 	if (any(greaterThanEqual(gl_GlobalInvocationID.xy, txSize)))
     {
 		return;
@@ -142,5 +142,5 @@ void main()
 	ret = Tonemap_ACES_Narkowicz(ret);
 
 	float luminance = Luminance(ret); // write luminance to alpha, useful for e.g. FXAA
-	imageStore(txFinal, iuv, vec4(ret, luminance));
+	imageStore(txOut, iuv, vec4(ret, luminance));
 }

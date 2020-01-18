@@ -45,6 +45,8 @@ public:
 	Camera& operator=(Camera&& _rhs);
 	friend void swap(Camera& _a_, Camera& _b_);
 
+	// Copies settings from _other, preserves m_gpuBuffer. Does *not* call updateGpuBuffer().
+	void copyFrom(const Camera& _other);
 
 	friend bool Serialize(frm::Serializer& _serializer_, Camera& _camera_);
 	void edit();

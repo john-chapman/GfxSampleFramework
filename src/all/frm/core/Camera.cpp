@@ -51,6 +51,13 @@ Camera& Camera::operator=(Camera&& _rhs)
 	return *this;
 }
 
+void Camera::copyFrom(const Camera& _other)
+{
+	Buffer* gpuBuffer = m_gpuBuffer;
+	memcpy(this, &_other, sizeof(Camera));
+	m_gpuBuffer = gpuBuffer;
+}
+
 void frm::swap(Camera& _a_, Camera& _b_)
 {
 	using eastl::swap;

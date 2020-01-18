@@ -106,6 +106,7 @@ namespace frm {
 	class  AppSample;
 	class  AppSample3d;
 	class  BasicMaterial;
+	struct BasicRenderer;
 	class  Buffer;
 	class  Camera;
 	class  Component;
@@ -135,6 +136,7 @@ namespace frm {
 	class  ProxyGamepad;
 	class  ProxyKeyboard;
 	class  ProxyMouse;
+	struct RenderTarget;
 	class  Scene;
 	class  Shader;
 	class  ShaderDesc;

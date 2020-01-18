@@ -8,6 +8,7 @@
 #include <frm/core/Framebuffer.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/MeshData.h>
+#include <frm/core/Profiler.h>
 #include <frm/core/Resource.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
@@ -212,6 +213,8 @@ void GlContext::setFramebufferAndViewport(const Framebuffer* _framebuffer)
 
 void GlContext::blitFramebuffer(const Framebuffer* _src, const Framebuffer* _dst, GLbitfield _mask, GLenum _filter)
 {
+	PROFILER_MARKER("#GlContext::blitFramebuffer");
+
 	glAssert(glBlitNamedFramebuffer(
 		_src ? _src->getHandle() : 0,
 		_dst ? _dst->getHandle() : 0,
