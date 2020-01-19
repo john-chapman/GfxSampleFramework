@@ -55,7 +55,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=0;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
@@ -77,7 +77,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=0;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Full</Optimization>
@@ -132,6 +132,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\Property.h" />
     <ClInclude Include="..\..\src\all\frm\core\Quadtree.h" />
     <ClInclude Include="..\..\src\all\frm\core\RenderNodes.h" />
+    <ClInclude Include="..\..\src\all\frm\core\RenderTarget.h" />
     <ClInclude Include="..\..\src\all\frm\core\Resource.h" />
     <ClInclude Include="..\..\src\all\frm\core\RingBuffer.h" />
     <ClInclude Include="..\..\src\all\frm\core\Scene.h" />
@@ -409,6 +410,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\Profiler.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Property.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\RenderNodes.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\RenderTarget.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Resource.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Scene.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Serializer.cpp" />

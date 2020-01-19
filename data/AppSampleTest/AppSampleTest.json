@@ -18,7 +18,7 @@
 		"ShowLogNotifications": false,
 		"ShowTextureViewer": false,
 		"WindowSize": [-1, -1],
-		"Resolution": [-1, -1],
+		"Resolution": [1920, 1080],
 		"ShowLog": false
 	},
 	"GlContext": {
@@ -28,7 +28,7 @@
 	},
 	"AppSample3d": {
 		"Scene Path": "Scene.json",
-		"Show Helpers": false,
+		"Show Helpers": true,
 		"Show Scene Editor": true
 	},
 	"DepthTest": {
