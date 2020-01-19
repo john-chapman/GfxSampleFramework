@@ -75,7 +75,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		updateLightInstances(&camera);
 		updateImageLightInstances(&camera);
 	}
-	if (drawInstances.empty())
+	if (drawInstances.empty() && imageLightInstances.empty())
 	{
 		return;
 	}
@@ -436,7 +436,7 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags)
 	bfPostProcessData = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(PostProcessData), GL_DYNAMIC_STORAGE_BIT);
 	bfPostProcessData->setName("bfPostProcessData");
 
-	ssMaterial = TextureSampler::Create(GL_REPEAT, GL_NEAREST_MIPMAP_NEAREST, 4.0f); // \todo global anisotropy config
+	ssMaterial = TextureSampler::Create(GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, 4.0f); // \todo global anisotropy config
 	if (BitfieldGet(flags, (uint32)Flag_TAA))
 	{
 		ssMaterial->setLodBias(-1.0f);

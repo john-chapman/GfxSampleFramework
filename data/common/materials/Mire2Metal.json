@@ -1,0 +1,8 @@
+{
+	"Maps" :
+	{
+		"BaseColor" : "textures/BasicMaterial/Mire2Metal_basecolor.png",
+		"Roughness" : "textures/BasicMaterial/Mire2_roughness.png",
+		"Metallic" : "textures/BasicMaterial/Default_alpha.png"
+	}
+}

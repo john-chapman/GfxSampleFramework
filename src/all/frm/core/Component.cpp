@@ -292,9 +292,9 @@ eastl::vector<Component_ImageLight*> Component_ImageLight::s_instances;
 
 bool Component_ImageLight::init()
 {
+	s_instances.push_back(this);
 	if (!m_texturePath.isEmpty())
 	{
-		s_instances.push_back(this);
 		return loadAndFilter();
 	}
 	return true;

@@ -1,0 +1,7 @@
+{
+	"Maps" :
+	{
+		"BaseColor" : "textures/BasicMaterial/Mire2Dielectric_basecolor.png",
+		"Roughness" : "textures/BasicMaterial/Mire2_roughness.png"
+	}
+}

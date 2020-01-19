@@ -34,15 +34,15 @@ static constexpr const char* kMapStr[] =
 
 static constexpr const char* kDefaultMaps[] =
 {
-	"textures/BasicMaterial/default_basecolor.png",
-	"textures/BasicMaterial/default_metallic.png",
-	"textures/BasicMaterial/default_roughness.png",
-	"textures/BasicMaterial/default_reflectance.png",
-	"textures/BasicMaterial/default_occlusion.png",
-	"textures/BasicMaterial/default_normal.png",
-	"textures/BasicMaterial/default_height.png",
-	"textures/BasicMaterial/default_emissive.png",
-	"textures/BasicMaterial/default_alpha.png",
+	"textures/BasicMaterial/Default_basecolor.png",
+	"textures/BasicMaterial/Default_metallic.png",
+	"textures/BasicMaterial/Default_roughness.png",
+	"textures/BasicMaterial/Default_reflectance.png",
+	"textures/BasicMaterial/Default_occlusion.png",
+	"textures/BasicMaterial/Default_normal.png",
+	"textures/BasicMaterial/Default_height.png",
+	"textures/BasicMaterial/Default_emissive.png",
+	"textures/BasicMaterial/Default_alpha.png",
 };
 
 static constexpr const char* kFlagStr[] =

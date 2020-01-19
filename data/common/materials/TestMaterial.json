@@ -1,8 +1,0 @@
-{
-	"BaseColor" : [ 1.0, 1.0, 1.0, 1.0 ],
-	"Maps" :
-	{
-		"BaseColor" : "textures/BasicMaterial/test_basecolor.png",
-		"Normal"    : "textures/BasicMaterial/test_normal.png",
-	}
-}

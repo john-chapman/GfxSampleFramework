@@ -1,0 +1,8 @@
+{
+	"Maps" :
+	{
+		"BaseColor" : "textures/BasicMaterial/Mire1_basecolor.png",
+		"Roughness" : "textures/BasicMaterial/Mire1_roughness.png",
+		"Reflectance" : "textures/BasicMaterial/Mire1_reflectance.png"
+	}
+}
