@@ -23,6 +23,11 @@ struct RenderTarget
 
 	Texture* getTexture(int _offset)
 	{
+		if (m_textures.empty())
+		{
+			return nullptr;
+		}
+		
 		const int size = (int)m_textures.size();
 		int i = ((m_current + _offset) % size + size) % size;
 		FRM_ASSERT(i >= 0 && i < m_textures.size());
@@ -31,7 +36,8 @@ struct RenderTarget
 
 	void nextFrame()
 	{
-		m_current = (m_current + 1) % m_textures.size();
+		size_t size = FRM_MAX((size_t)1, m_textures.size()); // prevent DBZ in case m_textures is empty
+		m_current = (m_current + 1) % size;
 	}
 
 private:

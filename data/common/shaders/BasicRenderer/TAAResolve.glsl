@@ -3,11 +3,20 @@
 
 #define GBuffer_IN
 #include "shaders/BasicRenderer/GBuffer.glsl"
+uniform sampler2D txPreviousGBuffer0;
 
-uniform sampler2D txCurrent;          // current scene rendering
-uniform sampler2D txPreviousResolve;         // previous resolve
+#ifndef TAA
+    #define TAA 0
+#endif
+#ifndef INTERLACED
+    #define INTERLACED 0
+#endif
+
+uniform sampler2D txCurrent;                 // current scene rendering/FXAA result
+uniform sampler2D txPrevious;                // previous scene rendering/FXAA result
+uniform sampler2D txPreviousResolve;         // previous resolve result
 uniform writeonly image2D txCurrentResolve;  // current resolve output
-uniform writeonly image2D txFinal;    // blend history/current resolve
+uniform writeonly image2D txFinal;           // blend history/current resolve
 
 uniform int uFrameIndex; // 0 = even frame, horizontal; 1 = odd frame, vertical
 uniform vec2 uResolveKernel;
@@ -68,33 +77,59 @@ void main()
 	const vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize) + 0.5 / vec2(txSize);
     const ivec2 iuv = ivec2(gl_GlobalInvocationID.xy);
     
-    vec3 retResolve = vec3(0.0);
-    
-   // 4-tap sharpening filter
-    // \todo single bilinear lookup?
-    const int kKernelSize = 4;
-    const float kKernelOffsets[kKernelSize] = { -2.0, -1.0, 0.0, 1.0 };
-    const float kKernelWeights[kKernelSize] = { uResolveKernel.x, uResolveKernel.y, uResolveKernel.y, uResolveKernel.x };
-
-    vec2 texelSize = vec2(1.0) / txSize;
-    for (int i = 0; i < kKernelSize; ++i)
-    {
-        vec2 sampleUv = uv;
-        sampleUv[uFrameIndex] += kKernelOffsets[i] * texelSize[uFrameIndex] * 1.0;
-        retResolve += textureLod(txCurrent, sampleUv, 0.0).rgb * kKernelWeights[i];
-    }
-    
     vec3 retFinal = vec3(0.0);
-    vec3 localMin, localMax, center;
-	GetNeighborhoodBounds(txCurrent, iuv, localMin, localMax, center);
 
-	vec2 velocity = GBuffer_ReadVelocity(iuv);
-	vec2 prevUv = uv - velocity;
-	vec3 prevColor = textureLod(txPreviousResolve, prevUv, 0.0).rgb;
+    #if INTERLACED
+    {
+        const ivec2 iuv2 = ivec2(iuv.x / 2, iuv.y);
+        
+        retFinal = texelFetch(txCurrent, iuv2, 0).rgb;
 
-	prevColor = clamp(prevColor, localMin, localMax); // \todo this reintroduces introduces jitter?
-	retFinal = mix(retResolve, prevColor, 0.5);
+        if ((iuv.x & 1) != uFrameIndex)
+        {
+            const vec2 velocity = GBuffer_ReadVelocity(iuv2);
+	        const vec2 prevUv = uv - velocity;
+            const ivec2 iuvPrev = ivec2(prevUv.x * txSize.x / 2.0, prevUv.y * txSize.y);
 
-	imageStore(txCurrentResolve, iuv, vec4(retResolve, 1.0));
-    imageStore(txFinal,   iuv, vec4(retFinal, 1.0));
+            float weight = any(greaterThanEqual(abs(prevUv * 2.0 - 1.0), vec2(1.0))) ? 0.0 : 1.0;
+            retFinal = mix(retFinal, texelFetch(txPrevious, iuvPrev, 0).rgb, weight);
+        }
+    
+        imageStore(txFinal, iuv, vec4(retFinal, 1.0));
+    }
+    #endif
+
+    #if TAA
+    {
+        vec3 retResolve = vec3(0.0);
+    
+        // 4-tap sharpening filter
+        // \todo bilinear lookup?
+        const int kKernelSize = 4;
+        const float kKernelOffsets[kKernelSize] = { -2.0, -1.0, 0.0, 1.0 };
+        const float kKernelWeights[kKernelSize] = { uResolveKernel.x, uResolveKernel.y, uResolveKernel.y, uResolveKernel.x };
+
+        vec2 texelSize = vec2(1.0) / txSize;
+        for (int i = 0; i < kKernelSize; ++i)
+        {
+            vec2 sampleUv = uv;
+            sampleUv[uFrameIndex] += kKernelOffsets[i] * texelSize[uFrameIndex] * 1.0;
+            retResolve += textureLod(txCurrent, sampleUv, 0.0).rgb * kKernelWeights[i];
+        }
+    
+        vec3 retFinal = vec3(0.0);
+        vec3 localMin, localMax, center;
+        GetNeighborhoodBounds(txCurrent, iuv, localMin, localMax, center);
+
+        const vec2 velocity = GBuffer_ReadVelocity(iuv);
+	    const vec2 prevUv = uv - velocity;
+	    vec3 prevColor = textureLod(txPreviousResolve, prevUv, 0.0).rgb;
+
+    	prevColor = clamp(prevColor, localMin, localMax); // \todo this introduces jitter?
+	    retFinal = mix(retResolve, prevColor, 0.5);
+
+	    imageStore(txCurrentResolve, iuv, vec4(retResolve, 1.0));
+        imageStore(txFinal, iuv, vec4(retFinal, 1.0));
+    }
+    #endif
 }

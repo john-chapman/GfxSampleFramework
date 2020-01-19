@@ -26,8 +26,13 @@ namespace frm {
 //   - Polar representation for V? Allows direct loading of the vector magnitude.
 //   - Tile min/max, neighborhood velocities at lower precision?
 //   - Tile classification as per Jimenez.
+// - TAA + interlacing not supported.
 // - Shadow system (gather shadow casting light components, allocate shadow map
 //   resolution from an atlas).
+// - Memory consumption/perf issues: some redundant render targets are allocated
+//   to simplify the pipeline logic, there are also redundant calls to 
+//   GlContext::blitFramebuffer() for the same reason (which have a not 
+//   insignificant cost).
 ////////////////////////////////////////////////////////////////////////////////
 struct BasicRenderer
 {
@@ -37,7 +42,7 @@ struct BasicRenderer
 		Flag_PostProcess,       // Enable default post processor (motion blur, tonemap). If disabled, txFinal must be written manually.
 		Flag_TAA,               // Enable temporal antialiasing.
 		Flag_FXAA,              // Enable FXAA.
-		Flag_Interleaved,       // Enable interleaved rendering.
+		Flag_Interlaced,        // Enable interlaced rendering.
 		Flag_WriteToBackBuffer, // Copy txFinal to the back buffer. Disable for custom upsampling/antialiasing.
 
 		Flags_Default = 0
@@ -88,7 +93,7 @@ struct BasicRenderer
 	Framebuffer*    fbScene                    = nullptr; // txScene + txGBufferDepth.
 	Framebuffer*    fbPostProcessResult        = nullptr; // txPostProcessResult + txGBufferDepthStencil.
 	Framebuffer*    fbFXAAResult               = nullptr; // txFXAAResult.
-	Framebuffer*    fbFinal                    = nullptr; // txFinal + txGBufferDepthStencil.
+	Framebuffer*    fbFinal                    = nullptr; // txFinal.
 
 	TextureSampler* ssMaterial                 = nullptr; // Sampler for material textures.
 	Buffer*         bfMaterials                = nullptr; // Material instance data.
@@ -108,6 +113,7 @@ struct BasicRenderer
 
 	float           motionBlurTargetFps        = 60.0f;
 	int             motionBlurTileWidth        = 20;
+	float           taaSharpen                 = 0.4f;
 	ivec2           resolution                 = ivec2(-1);
 	uint32          flags                      = Flags_Default;
 	bool            pauseUpdate                = false;

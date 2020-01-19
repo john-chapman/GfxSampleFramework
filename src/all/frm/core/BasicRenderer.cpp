@@ -41,8 +41,13 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 	GlContext* ctx = GlContext::GetCurrent();
 
+	const bool isPostProcess       = BitfieldGet(flags, (uint32)Flag_PostProcess);
+	const bool isFXAA              = BitfieldGet(flags, (uint32)Flag_FXAA);
+	const bool isTAA               = BitfieldGet(flags, (uint32)Flag_TAA);
+	const bool isInterlaced        = BitfieldGet(flags, (uint32)Flag_Interlaced);
+	const bool isWriteToBackBuffer = BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer);
+
 	camera.copyFrom(*_camera);
-	const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
 	if (isTAA)
 	{
 		const int kFrameIndex = (int)(ctx->getFrameIndex() & 1);
@@ -50,8 +55,16 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		float jitterScale = 1.0f;
 		camera.m_proj[2][0] = kOffsets[kFrameIndex].x * 2.0f / (float)resolution.x * jitterScale;
 		camera.m_proj[2][1] = kOffsets[kFrameIndex].y * 2.0f / (float)resolution.y * jitterScale;
-		camera.m_viewProj = camera.m_proj * camera.m_view;
 	}
+	if (isInterlaced)
+	{
+		// NB offset by the full target res, *not* the checkerboard res
+		const int kFrameIndex = (int)(ctx->getFrameIndex() & 1);
+		const vec2 kOffsets[2] = { vec2(0.0f, 0.0f), vec2(1.0f, 0.0f) };
+		camera.m_proj[2][0] += kOffsets[kFrameIndex].x * 2.0f / (float)resolution.x;
+		camera.m_proj[2][1] += kOffsets[kFrameIndex].y * 2.0f / (float)resolution.y;
+	}
+	camera.m_viewProj = camera.m_proj * camera.m_view;
 	camera.updateGpuBuffer();
 
 	if (!pauseUpdate)
@@ -96,7 +109,6 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 	fbPostProcessResult->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
 	fbFXAAResult->attach(txFXAAResult, GL_COLOR_ATTACHMENT0);
 	fbFinal->attach(txFinal, GL_COLOR_ATTACHMENT0);
-	fbFinal->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
 
 	{	PROFILER_MARKER("GBuffer");
 
@@ -249,7 +261,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 	//m_luminanceMeter.draw(ctx, _dt, txScene);
 	
-	if (BitfieldGet(flags, (uint32)Flag_PostProcess))
+	if (isPostProcess)
 	{	
 		PROFILER_MARKER("Post Process");
 
@@ -270,7 +282,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		ctx->blitFramebuffer(fbScene, fbPostProcessResult, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 	}
 
-	if (BitfieldGet(flags, (uint32)Flag_FXAA))
+	if (isFXAA)
 	{
 		PROFILER_MARKER("FXAA");
 		
@@ -281,30 +293,31 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 
 		glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 	}
-	else if (!BitfieldGet(flags, (uint32)Flag_TAA))
+	else if (!isTAA && !isInterlaced)
 	{
 		ctx->blitFramebuffer(fbPostProcessResult, fbFinal, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 	}
 
-	if (BitfieldGet(flags, (uint32)Flag_TAA))
+	if (isTAA || isInterlaced)
 	{
 		PROFILER_MARKER("TAA Resolve");
 		
-		ctx->setShader(shTAAResolve);
-
-float sharpening = 0.4f;
-const vec2 resolveKernel = vec2(-sharpening, (1.0f + (2.0f * sharpening)) / 2.0f);
-
-		Texture* txCurrent = BitfieldGet(flags, (uint32)Flag_FXAA) ? txFXAAResult : txPostProcessResult;
+		const vec2 resolveKernel = vec2(-taaSharpen, (1.0f + (2.0f * taaSharpen)) / 2.0f);
+		Texture* txCurrent = isFXAA ? txFXAAResult : txPostProcessResult;
+		Texture* txPrevious = isInterlaced ? (isFXAA ? renderTargets[Target_FXAAResult].getTexture(-1) : renderTargets[Target_PostProcessResult].getTexture(-1)) : nullptr;
 		Texture* txCurrentResolve  = renderTargets[Target_TAAResolve].getTexture(0);
 		Texture* txPreviousResolve = renderTargets[Target_TAAResolve].getTexture(-1);
+		Texture* txPreviousGBuffer0 = renderTargets[Target_GBuffer0].getTexture(-1);
 				
+		ctx->setShader(shTAAResolve);
 		ctx->setUniform("uFrameIndex", (int)(ctx->getFrameIndex() & 1));
 		ctx->setUniform("uResolveKernel", resolveKernel);
 		ctx->bindBuffer(camera.m_gpuBuffer);
 		ctx->bindTexture("txGBuffer0", txGBuffer0);
+		ctx->bindTexture("txPreviousGBuffer0", txPreviousGBuffer0);
 		ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
 		ctx->bindTexture("txCurrent", txCurrent);
+		ctx->bindTexture("txPrevious", txPrevious);
 		ctx->bindTexture("txPreviousResolve", txPreviousResolve);
 		ctx->bindImage("txCurrentResolve", txCurrentResolve, GL_WRITE_ONLY);
 		ctx->bindImage("txFinal", txFinal, GL_WRITE_ONLY);
@@ -312,12 +325,12 @@ const vec2 resolveKernel = vec2(-sharpening, (1.0f + (2.0f * sharpening)) / 2.0f
 		
 		glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 	}
-	else if (BitfieldGet(flags, (uint32)Flag_FXAA))
+	else if (isFXAA)
 	{
 		ctx->blitFramebuffer(fbFXAAResult, fbFinal, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 	}
 
-	if (BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer))
+	if (isWriteToBackBuffer)
 	{
 		ctx->blitFramebuffer(fbFinal, nullptr, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 	}
@@ -329,8 +342,12 @@ bool BasicRenderer::edit()
 
 	ret |= ImGui::Checkbox("Pause Update", &pauseUpdate);
 	ret |= ImGui::SliderFloat("Motion Blur Target FPS", &motionBlurTargetFps, 0.0f, 90.0f);
+	if (BitfieldGet(flags, (uint32)Flag_TAA))
+	{
+		ret |= ImGui::SliderFloat("TAA Sharpen", &taaSharpen, 0.0f, 2.0f);
+	}
 
-	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+	//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Material Sampler"))
 	{
 		float lodBias = ssMaterial->getLodBias();
@@ -352,22 +369,43 @@ bool BasicRenderer::edit()
 	if (ImGui::TreeNode("Flags"))
 	{
 		ret |= editFlag("Post Process", Flag_PostProcess);
-		ret |= editFlag("FXAA", Flag_FXAA);
+		if (editFlag("FXAA", Flag_FXAA))
+		{
+			ret = true;
+			initRenderTargets();
+		}
 		if (editFlag("TAA", Flag_TAA))
 		{
 			ret = true;
 			initRenderTargets();
+		}
+		if (editFlag("Interlaced", Flag_Interlaced))
+		{
+			ret = true;
+			initRenderTargets();
+		}
+
+		ret |= editFlag("Write to Backbuffer", Flag_WriteToBackBuffer);
+
+		if (ret)
+		{
+			// update material sampeler if interleaved or TAA
 			const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
-			if (isTAA)
+			const bool isInterlaced = BitfieldGet(flags, (uint32)Flag_Interlaced);
+			if (isTAA || isInterlaced)
 			{
 				ssMaterial->setLodBias(-1.0f);
 			}
 			else
 			{
-				ssMaterial->setLodBias(0.0f);
+				ssMaterial->setLodBias(0.0f);					
 			}
+
+			shTAAResolve->addGlobalDefines({ 
+				String<32>("TAA %d", !!isTAA).c_str(), 
+				String<32>("INTERLACED %d", !!isInterlaced).c_str() 
+				});
 		}
-		ret |= editFlag("Write to Backbuffer", Flag_WriteToBackBuffer);
 
 		ImGui::TreePop();
 	}
@@ -398,13 +436,17 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags)
 	bfPostProcessData = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(PostProcessData), GL_DYNAMIC_STORAGE_BIT);
 	bfPostProcessData->setName("bfPostProcessData");
 
-	ssMaterial = TextureSampler::Create(GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, 4.0f); // \todo global anisotropy config
+	ssMaterial = TextureSampler::Create(GL_REPEAT, GL_NEAREST_MIPMAP_NEAREST, 4.0f); // \todo global anisotropy config
+	if (BitfieldGet(flags, (uint32)Flag_TAA))
+	{
+		ssMaterial->setLodBias(-1.0f);
+	}
 
-	fbGBuffer           = Framebuffer::Create(2, renderTargets[Target_GBuffer0].getTexture(0), renderTargets[Target_GBufferDepthStencil].getTexture(0));
-	fbScene             = Framebuffer::Create(2, renderTargets[Target_Scene].getTexture(0), renderTargets[Target_GBufferDepthStencil].getTexture(0));
-	fbPostProcessResult = Framebuffer::Create(2, renderTargets[Target_PostProcessResult].getTexture(0), renderTargets[Target_GBufferDepthStencil].getTexture(0));
-	fbFXAAResult        = Framebuffer::Create(1, renderTargets[Target_FXAAResult].getTexture(0));
-	fbFinal             = Framebuffer::Create(2, renderTargets[Target_Final].getTexture(0), renderTargets[Target_GBufferDepthStencil].getTexture(0));
+	fbGBuffer           = Framebuffer::Create();
+	fbScene             = Framebuffer::Create();
+	fbPostProcessResult = Framebuffer::Create();
+	fbFXAAResult        = Framebuffer::Create();
+	fbFinal             = Framebuffer::Create();
 
 	//FRM_VERIFY(m_luminanceMeter.init(_resolutionY / 2));
 	//m_colorCorrection.m_luminanceMeter = &m_luminanceMeter;
@@ -440,34 +482,38 @@ void BasicRenderer::initRenderTargets()
 {
 	shutdownRenderTargets();
 
+	const bool isFXAA = BitfieldGet(flags, (uint32)Flag_FXAA);
 	const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
+	const bool isInterlaced = BitfieldGet(flags, (uint32)Flag_Interlaced);
+	const ivec2 fullResolution = resolution;
+	const ivec2 interlacedResolution = isInterlaced ? ivec2(fullResolution.x / 2, fullResolution.y) : fullResolution;
 
-	renderTargets[Target_GBuffer0].init(resolution.x, resolution.y, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	renderTargets[Target_GBuffer0].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, isInterlaced ? 2 : 1);
 	renderTargets[Target_GBuffer0].setName("#BasicRenderer_txGBuffer0");
 
-	renderTargets[Target_GBufferDepthStencil].init(resolution.x, resolution.y, GL_DEPTH32F_STENCIL8, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	renderTargets[Target_GBufferDepthStencil].init(interlacedResolution.x, interlacedResolution.y, GL_DEPTH32F_STENCIL8, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_GBufferDepthStencil].setName("#BasicRenderer_txGBufferDepth");
 		
-	FRM_ASSERT(resolution.x % motionBlurTileWidth == 0 && resolution.y % motionBlurTileWidth == 0);
-	renderTargets[Target_VelocityTileMinMax].init(resolution.x / motionBlurTileWidth, resolution.y / motionBlurTileWidth, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	FRM_ASSERT(interlacedResolution.x % motionBlurTileWidth == 0 && interlacedResolution.y % motionBlurTileWidth == 0);
+	renderTargets[Target_VelocityTileMinMax].init(interlacedResolution.x / motionBlurTileWidth, interlacedResolution.y / motionBlurTileWidth, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_VelocityTileMinMax].setName("#BasicRenderer_txVelocityTileMinMax");
 
-	renderTargets[Target_VelocityTileNeighborMax].init(resolution.x / motionBlurTileWidth, resolution.y / motionBlurTileWidth, GL_RG16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	renderTargets[Target_VelocityTileNeighborMax].init(interlacedResolution.x / motionBlurTileWidth, interlacedResolution.y / motionBlurTileWidth, GL_RG16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_VelocityTileNeighborMax].setName("#BasicRenderer_txVelocityTileNeighborMax");
 
-	renderTargets[Target_Scene].init(resolution.x, resolution.y, GL_RGBA16F, GL_CLAMP_TO_EDGE, GL_LINEAR, 1); // RGB = color, A = abs(linear depth)
+	renderTargets[Target_Scene].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA16F, GL_CLAMP_TO_EDGE, GL_LINEAR, 1); // RGB = color, A = abs(linear depth)
 	renderTargets[Target_Scene].setName("#BasicRenderer_txScene");
 
-	renderTargets[Target_PostProcessResult].init(resolution.x, resolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, 1);
+	renderTargets[Target_PostProcessResult].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, (isInterlaced && !isFXAA) ? 2 : 1);
 	renderTargets[Target_PostProcessResult].setName("#BasicRenderer_txPostProcessResult");
 
-	renderTargets[Target_FXAAResult].init(resolution.x, resolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, 1);
+	renderTargets[Target_FXAAResult].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, isFXAA ? (isInterlaced ? 2 : 1) : 0);
 	renderTargets[Target_FXAAResult].setName("#BasicRenderer_txFXAAResult");
 
-	renderTargets[Target_TAAResolve].init(resolution.x, resolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, isTAA ? 2 : 1);
+	renderTargets[Target_TAAResolve].init(fullResolution.x, fullResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, (isTAA || isInterlaced) ? 2 : 1);
 	renderTargets[Target_TAAResolve].setName("#BasicRenderer_txTAAResolve");
 
-	renderTargets[Target_Final].init(resolution.x, resolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, 1);
+	renderTargets[Target_Final].init(fullResolution.x, fullResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, 1);
 	renderTargets[Target_Final].setName("#BasicRenderer_txFinal");
 }
 
@@ -489,7 +535,14 @@ void BasicRenderer::initShaders()
 	shImageLightBg	      = Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
 	shPostProcess         = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8);
 	shFXAA                = Shader::CreateCs("shaders/BasicRenderer/FXAA.glsl", 8, 8);
-	shTAAResolve          = Shader::CreateCs("shaders/BasicRenderer/TAAResolve.glsl", 8, 8);
+
+	const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
+	const bool isInterlaced = BitfieldGet(flags, (uint32)Flag_Interlaced);
+	shTAAResolve          = Shader::CreateCs("shaders/BasicRenderer/TAAResolve.glsl", 8, 8, 1,
+		{
+			String<32>("TAA %d", !!isTAA).c_str(), 
+			String<32>("INTERLACED %d", !!isInterlaced).c_str() 
+		});
 }
 
 void BasicRenderer::shutdownShaders()
