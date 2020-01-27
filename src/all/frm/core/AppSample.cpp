@@ -120,9 +120,11 @@ bool AppSample::init(const frm::ArgList& _args)
 	ivec2 glVersion      = *m_props.findProperty("GlVersion")->asInt2();
 	bool glCompatibility = *m_props.findProperty("GlCompatibility")->asBool();
 	bool glDebug         = *m_props.findProperty("GlDebug")->asBool();
+	bool glHDR           = *m_props.findProperty("HDR")->asBool();
 	GlContext::CreateFlags ctxFlags = 0
 		| (glCompatibility ? GlContext::CreateFlags_Compatibility : 0)
 		| (glDebug         ? GlContext::CreateFlags_Debug         : 0)
+		| (glHDR           ? GlContext::CreateFlags_HDR           : 0)
 		;
 	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, ctxFlags);
 	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
@@ -398,6 +400,7 @@ AppSample::AppSample(const char* _name)
 	propGroupGlContext.addInt2 ("GlVersion",             ivec2(-1, -1), -1,      99,                          nullptr);
 	propGroupGlContext.addBool ("GlCompatibility",       false,                                               nullptr);
 	propGroupGlContext.addBool ("GlDebug",               false,                                               nullptr);
+	propGroupGlContext.addBool ("HDR",                   false,                                               nullptr);
 	
 }
 

@@ -270,11 +270,14 @@ Window* Window::Create(int _width, int _height, const char* _title)
 	ret->m_title  = _title;
 
  // disable the Windows UI scaling
+	FRM_ONCE
+	{
 	#ifdef USE_OLD_DPI_API
-		FRM_VERIFY(SetProcessDPIAware());
-	#else
- 		FRM_VERIFY(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK); // new API, Windows 8.1+
+			FRM_VERIFY(SetProcessDPIAware());
+		#else
+			FRM_VERIFY(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK); // new API, Windows 8.1+
 	#endif
+	}
 
 	static ATOM wndclassex = 0;
 	if (wndclassex == 0)

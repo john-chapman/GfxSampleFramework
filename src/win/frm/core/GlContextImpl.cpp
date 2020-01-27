@@ -70,14 +70,9 @@ struct GlContext::Impl
 
 GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, CreateFlags _flags)
 {
-	GlContext* ret = new GlContext;
-	FRM_ASSERT(ret);
-	ret->m_window = _window;
-
-	GlContext::Impl* impl = ret->m_impl = new GlContext::Impl;
-	FRM_ASSERT(impl);
-	impl->m_hwnd = (HWND)_window->getHandle();
-	FRM_PLATFORM_VERIFY(impl->m_hdc = GetDC(impl->m_hwnd));
+ // create a dummy window (required since we can only
+	Window* dummyWindow = Window::Create(1, 1, "GlContext::Create");
+	HDC dummyDC = GetDC((HWND)dummyWindow->getHandle());
 
  // set the window pixel format
 	PIXELFORMATDESCRIPTOR pfd = {};
@@ -89,13 +84,13 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 	pfd.cDepthBits   = 24;
 	pfd.cStencilBits = 8;
 	int pformat = 0;
-	FRM_PLATFORM_VERIFY(pformat = ChoosePixelFormat(GetDC(impl->m_hwnd), &pfd));
-	FRM_PLATFORM_VERIFY(SetPixelFormat(impl->m_hdc, pformat, &pfd));
+	FRM_PLATFORM_VERIFY(pformat = ChoosePixelFormat(dummyDC, &pfd));
+	FRM_PLATFORM_VERIFY(SetPixelFormat(dummyDC, pformat, &pfd));
 	
  // create dummy context to load wgl extensions
 	HGLRC hGLRC = 0;
-	FRM_PLATFORM_VERIFY(hGLRC = wglCreateContext(impl->m_hdc));
-	FRM_PLATFORM_VERIFY(wglMakeCurrent(impl->m_hdc, hGLRC));
+	FRM_PLATFORM_VERIFY(hGLRC = wglCreateContext(dummyDC));
+	FRM_PLATFORM_VERIFY(wglMakeCurrent(dummyDC, hGLRC));
 
  // check the platform supports the requested GL version
 	GLint platformVMaj, platformVMin;
@@ -113,16 +108,47 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 	
  // load wgl extensions for true context creation
 	static thread_local PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs;
+	static thread_local PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormat;
 	FRM_PLATFORM_VERIFY(wglCreateContextAttribs = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB"));
-
- // delete the dummy context
-	FRM_PLATFORM_VERIFY(wglMakeCurrent(0, 0));
-	FRM_PLATFORM_VERIFY(wglDeleteContext(hGLRC));
+	FRM_PLATFORM_VERIFY(wglChoosePixelFormat = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB"));
 
  // create true context
+	GlContext* ret = new GlContext;
+	FRM_ASSERT(ret);
+	ret->m_window = _window;
+
+	GlContext::Impl* impl = ret->m_impl = new GlContext::Impl;
+	FRM_ASSERT(impl);
+	impl->m_hwnd = (HWND)_window->getHandle();
+	FRM_PLATFORM_VERIFY(impl->m_hdc = GetDC(impl->m_hwnd));
+
+	bool flagHDR = (_flags & CreateFlags_HDR) != 0;
+	int pformatAttri[] =
+	{
+		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+		WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
+        WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
+		
+		WGL_PIXEL_TYPE_ARB,     flagHDR ? WGL_TYPE_RGBA_FLOAT_ARB : WGL_TYPE_RGBA_ARB,
+		WGL_RED_BITS_ARB,       flagHDR ? 16 : 8,
+		WGL_GREEN_BITS_ARB,     flagHDR ? 16 : 8,
+		WGL_BLUE_BITS_ARB,      flagHDR ? 16 : 8,
+		WGL_ALPHA_BITS_ARB,     0,
+		
+		WGL_DEPTH_BITS_ARB,     24,
+		WGL_STENCIL_BITS_ARB,   8,
+		0
+	};
+	float pformatAttrf[] = { 0.0f, 0.0f };
+	UINT pformatCount;
+	pformat = 0;
+	FRM_PLATFORM_VERIFY(wglChoosePixelFormat(impl->m_hdc, pformatAttri, pformatAttrf, 1, &pformat, &pformatCount));
+	FRM_PLATFORM_VERIFY(SetPixelFormat(impl->m_hdc, pformat, &pfd));
+
 	int profileMask = ((_flags & CreateFlags_Compatibility) != 0) ? WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 	int ctxFlags    = ((_flags & CreateFlags_Debug) != 0) ? WGL_CONTEXT_DEBUG_BIT_ARB : 0;
-	int attr[] = 
+	int ctxAttr[] = 
 	{
 		WGL_CONTEXT_MAJOR_VERSION_ARB,	_vmaj,
 		WGL_CONTEXT_MINOR_VERSION_ARB,	_vmin,
@@ -130,7 +156,12 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 		WGL_CONTEXT_FLAGS_ARB,          ctxFlags,
 		0
 	};
-	FRM_PLATFORM_VERIFY(impl->m_hglrc = wglCreateContextAttribs(impl->m_hdc, 0, attr));
+	FRM_PLATFORM_VERIFY(impl->m_hglrc = wglCreateContextAttribs(impl->m_hdc, 0, ctxAttr));
+
+ // delete the dummy context/window
+	FRM_PLATFORM_VERIFY(wglMakeCurrent(0, 0));
+	FRM_PLATFORM_VERIFY(wglDeleteContext(hGLRC));
+	Window::Destroy(dummyWindow);
 
  // load extensions
 	MakeCurrent(ret);

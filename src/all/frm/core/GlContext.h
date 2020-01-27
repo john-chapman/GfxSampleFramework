@@ -36,8 +36,9 @@ public:
 	{
 		CreateFlags_Compatibility = 1 << 0,
 		CreateFlags_Debug         = 1 << 1,
+		CreateFlags_HDR           = 1 << 2,
 
-		CreateFlags_Counts
+		CreateFlags_Count
 	};
 	typedef int CreateFlags;
 
