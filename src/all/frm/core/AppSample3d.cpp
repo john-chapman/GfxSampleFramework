@@ -14,6 +14,10 @@
 #include <frm/core/Window.h>
 #include <frm/core/XForm.h>
 
+#if FRM_MODULE_PHYSICS
+	#include <frm/physics/Physics.h>
+#endif
+
 #include <im3d/im3d.h>
 
 using namespace frm;
@@ -35,6 +39,12 @@ bool AppSample3d::init(const frm::ArgList& _args)
 	m_scene = new Scene;
 	Scene::SetCurrent(m_scene);
 
+	#if FRM_MODULE_PHYSICS
+		if (!Physics::Init()) {
+			return false;
+		}
+	#endif
+
 	if (!Scene::Load((const char*)m_scenePath, *m_scene)) 
 	{
  		Camera* defaultCamera = m_scene->createCamera(Camera());
@@ -54,6 +64,10 @@ void AppSample3d::shutdown()
 {
 	Scene::SetCurrent(nullptr);
 	delete m_scene;
+
+	#if FRM_MODULE_PHYSICS
+		Physics::Shutdown();
+	#endif
 
 	Im3d_Shutdown(this);
 	AppSample::shutdown();
@@ -77,6 +91,10 @@ bool AppSample3d::update()
 		{
 			Scene::GetCurrent()->edit();
 		}
+	#endif
+	#if FRM_MODULE_PHYSICS
+	 // update *after* scene to capture kinematic targets and then override world matrices
+		Physics::Update((float)m_deltaTime);
 	#endif
 
 	Camera* currentCamera = scene.getDrawCamera();

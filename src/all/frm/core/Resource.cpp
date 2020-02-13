@@ -173,3 +173,10 @@ DECL_RESOURCE(Texture);
 	#include <frm/audio/AudioData.h>
 	DECL_RESOURCE(AudioData);
 #endif
+
+#if FRM_MODULE_PHYSICS
+	#include <frm/physics/PhysicsMaterial.h>
+	DECL_RESOURCE(PhysicsMaterial);
+	#include <frm/physics/PhysicsGeometry.h>
+	DECL_RESOURCE(PhysicsGeometry);
+#endif

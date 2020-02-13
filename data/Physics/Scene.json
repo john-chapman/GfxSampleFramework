@@ -1,0 +1,190 @@
+{
+	"Id": 0,
+	"Name": "ROOT",
+	"Active": true,
+	"Dynamic": true,
+	"Selected": true,
+	"UserData": 0,
+	"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+	"Type": "Root",
+	"Children": [{
+			"Id": 1,
+			"Name": "Camera_000",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [0.9629442095756531, 7.764901965856552e-7, -0.26976826786994936, 0.0, 0.0027631251141428949, 0.9999657273292542, 0.009865918196737767, 0.0, 0.2697541415691376, -0.010245545767247677, 0.9628936648368836, 0.0, 2.9948129653930666, 0.27994656562805178, 8.705924034118653, 1.0],
+			"Type": "Camera",
+			"Up": 0.4142135679721832,
+			"Down": -0.4142135679721832,
+			"Right": 0.7737120389938355,
+			"Left": -0.7737120389938355,
+			"Near": 0.10000000149011612,
+			"Far": 1000.0,
+			"WorldMatrix": [0.9629442095756531, 7.764901965856552e-7, -0.26976826786994936, 0.0, 0.0027631251141428949, 0.9999657273292542, 0.009865918196737767, 0.0, 0.2697541415691376, -0.010245545767247677, 0.9628936648368836, 0.0, 2.9948129653930666, 0.27994656562805178, 8.705924034118653, 1.0],
+			"Orthographic": false,
+			"Asymmetrical": false,
+			"Infinite": true,
+			"Reversed": false,
+			"HasGpuBuffer": true,
+			"XForms": [{
+					"Class": "XForm_FreeCamera",
+					"Position": [2.9948129653930666, 0.27994656562805178, 8.705924034118653],
+					"Orientation": [-0.0050751445814967159, -0.13614891469478608, 0.0006970809190534055, -0.9906843304634094],
+					"MaxSpeed": 10.0,
+					"MaxSpeedMultiplier": 5.0,
+					"AccelerationTime": 0.10000000149011612,
+					"RotationInputMultiplier": 0.10000000149011612,
+					"RotationDamping": 0.00019999999494757503
+				}]
+		}, {
+			"Id": 14,
+			"Name": "Sun",
+			"Active": true,
+			"Dynamic": false,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [-0.7499839067459106, 0.43300357460975649, 0.4999895989894867, 0.0, 0.4330070912837982, -0.24999678134918214, 0.8660138249397278, 0.0, 0.4999966025352478, 0.8660191893577576, -4.371107920064787e-8, 0.0, 0.0, 2.9000000953674318, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicLight",
+					"Type": "Direct",
+					"ColorBrightness": [1.0, 1.0, 1.0, 10.0],
+					"LinearAttenuation": [0.0, 0.0],
+					"RadialAttenuation": [0.0, 0.0]
+				}]
+		}, {
+			"Id": 36,
+			"Name": "Floor",
+			"Active": true,
+			"Dynamic": false,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/Plane_100.obj",
+					"Material": ["common/materials/Grid2Dark.json"]
+				}]
+		}, {
+			"Id": 38,
+			"Name": "Sky",
+			"Active": true,
+			"Dynamic": false,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_ImageLight",
+					"Path": "common/textures/env_sky.exr",
+					"IsBackground": true,
+					"Brightness": 1.0
+				}]
+		}, {
+			"Id": 40,
+			"Name": "KinematicBox1",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"XForms": [{
+					"Class": "XForm_PositionTarget",
+					"Start": [0.0, 0.9000000357627869, 1.8000000715255738],
+					"End": [0.0, 0.9000000357627869, -2.4000000953674318],
+					"Duration": 1.5,
+					"OnComplete": "XForm::Reverse"
+				}, {
+					"Class": "XForm_Spin",
+					"Axis": [0.0, -0.778001070022583, 0.628262996673584],
+					"Rate": 3.7120001316070558
+				}],
+			"Components": [{
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": false,
+						"Kinematic": true,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial1"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "Box",
+						"HalfExtents": [0.5, 0.5, 0.5],
+						"Name": "PhysicsBox5"
+					}
+				}, {
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 0.5535714626312256, 0.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/Box_1.obj",
+					"Material": ["common/materials/Grid0Dark.json"]
+				}]
+		}, {
+			"Id": 67,
+			"Name": "KinematicBox2",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.9000000357627869, 0.0, 1.0],
+			"Type": "Object",
+			"XForms": [{
+					"Class": "XForm_Spin",
+					"Axis": [0.0, -0.22200001776218415, 0.975046694278717],
+					"Rate": 8.0
+				}, {
+					"Class": "XForm_OrbitalPath",
+					"Azimuth": 0.19198623299598695,
+					"Elevation": -3.1415927410125734,
+					"Theta": 0.04695993289351463,
+					"Radius": 5.200000286102295,
+					"Speed": 0.5
+				}],
+			"Components": [{
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": false,
+						"Kinematic": true,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial3"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "Box",
+						"HalfExtents": [0.5, 0.5, 0.5],
+						"Name": "PhysicsBox6"
+					}
+				}, {
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 0.0, 0.4270462989807129, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/Box_1.obj",
+					"Material": ["common/materials/Grid0Dark.json"]
+				}]
+		}],
+	"DrawCameraId": 1,
+	"CullCameraId": 1
+}

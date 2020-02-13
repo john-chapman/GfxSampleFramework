@@ -3,6 +3,7 @@
 */
 #include "shaders/def.glsl"
 #include "shaders/Camera.glsl"
+#include "shaders/Sampling.glsl"
 #include "shaders/BasicRenderer/Lighting.glsl"
 
 #ifdef Scene_OUT
@@ -78,6 +79,10 @@ bool BasicMaterial_CheckFlag(in uint _flag)
 	_FRAGMENT_OUT(0, vec4, fResult);
 #endif
 
+#ifdef Wireframe_OUT
+	_FRAGMENT_OUT(0, vec4, fResult);
+#endif
+
 #ifdef VERTEX_SHADER ///////////////////////////////////////////////////////////
 
 void main()
@@ -130,7 +135,10 @@ void main()
 #define Map_Alpha         8
 #define Map_Count         9
 uniform sampler2D uMaps[Map_Count];
-
+float Noise_InterleavedGradient(in vec2 _seed)
+{
+	return fract(52.9829189 * fract(dot(_seed, vec2(0.06711056, 0.00583715))));
+}
 void BasicMaterial_ApplyAlphaTest()
 {
 	if (BasicMaterial_CheckFlag(Flag_AlphaTest))
@@ -140,6 +148,16 @@ void BasicMaterial_ApplyAlphaTest()
 		{
 			discard;
 		}
+	}
+
+	uvec2 seed = uvec2(gl_FragCoord.xy);
+	if (uBaseColorAlpha.a 
+		//< Bayer_2x2(seed)
+		//< Bayer_4x4(seed)
+		< Noise_InterleavedGradient(seed)
+		)
+	{
+		discard;
 	}
 }
 
@@ -162,6 +180,8 @@ void main()
 		vec2 jitterVelocity = (uCamera.m_prevProj[2].xy - uCamera.m_proj[2].xy) * 0.5;
     	velocity -= jitterVelocity;
     	
+		velocity *= uBaseColorAlpha.a; // \hack scale velocity with alpha to reduce ghosting artefacts.
+
 		GBuffer_WriteVelocity(velocity);
 	}
 	#endif
@@ -224,6 +244,10 @@ void main()
 
 		fResult.rgb = ret;
 	}
+	#endif
+
+	#ifdef Wireframe_OUT
+		fResult = uBaseColorAlpha;
 	#endif
 
 	#ifdef Shadow_OUT

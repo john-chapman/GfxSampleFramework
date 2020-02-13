@@ -1,16 +1,15 @@
 #include "AudioData.h"
 
-#include <apt/log.h>
-#include <apt/math.h>
-#include <apt/memory.h>
-#include <apt/FileSystem.h>
-#include <apt/Time.h>
+#include <frm/core/log.h>
+#include <frm/core/math.h>
+#include <frm/core/memory.h>
+#include <frm/core/FileSystem.h>
+#include <frm/core/Time.h>
 
 using namespace frm;
-using namespace apt;
 
-#define AUDIO_MALLOC(_size) APT_MALLOC_ALIGNED(_size, 16) // conservative alignment e.g. for SIMD ops
-#define AUDIO_FREE(_ptr)    APT_FREE_ALIGNED(_ptr)
+#define AUDIO_MALLOC(_size) FRM_MALLOC_ALIGNED(_size, 16) // conservative alignment e.g. for SIMD ops
+#define AUDIO_FREE(_ptr)    FRM_FREE_ALIGNED(_ptr)
 
 static inline double Lerp(double _a, double _b, double _x)
 {
@@ -34,7 +33,7 @@ AudioData* AudioData::Create(const char* _path)
 	Id id = GetHashId(_path);
 	AudioData* ret = Find(id);
 	if (!ret) {
-		ret = APT_NEW(AudioData(id, _path));
+		ret = FRM_NEW(AudioData(id, _path));
 		ret->m_path.set(_path);
 	}
 	Use(ret);
@@ -43,7 +42,7 @@ AudioData* AudioData::Create(const char* _path)
 
 void AudioData::Destroy(AudioData*& _inst_)
 {
-	APT_DELETE(_inst_);
+	FRM_DELETE(_inst_);
 }
 
 void AudioData::FileModified(const char* _path)
@@ -65,7 +64,7 @@ void AudioData::resample(int _frameRateHz, DataType _dataType)
 		return;
 	}
 
-	APT_AUTOTIMER("Resampling '%s' (%dHz %s -> %dHz %s)", getName(), m_frameRateHz, DataTypeString(m_dataType), _frameRateHz, DataTypeString(_dataType));
+	FRM_AUTOTIMER("Resampling '%s' (%dHz %s -> %dHz %s)", getName(), m_frameRateHz, DataTypeString(m_dataType), _frameRateHz, DataTypeString(_dataType));
 
 	int     frameSizeBytes   = (int)DataTypeSizeBytes(_dataType) * m_channelCount;
 	uint32  frameCount       = m_frameCount;
@@ -76,7 +75,7 @@ void AudioData::resample(int _frameRateHz, DataType _dataType)
 	if (m_frameRateHz == _frameRateHz) {
 	 // sample rate is the same, simple data type conversion
 		newData = (char*)AUDIO_MALLOC(frameSizeBytes * frameCount);
-		apt::DataTypeConvert(m_dataType, _dataType, m_data, newData, sampleCount);
+		DataTypeConvert(m_dataType, _dataType, m_data, newData, sampleCount);
 			
 	} else {
 	 // frame rate is different, resample (+ convert data type implicitly)
@@ -90,7 +89,7 @@ void AudioData::resample(int _frameRateHz, DataType _dataType)
 
 		if (srcFrameRateHz > dstFrameRateHz) {
 		 // downsample
-			APT_ASSERT(false);
+			FRM_ASSERT(false);
 		} else {
 		 // upsample
 			for (uint32 dstIndex = 0; dstIndex < frameCount; ++dstIndex) {
@@ -113,12 +112,12 @@ void AudioData::resample(int _frameRateHz, DataType _dataType)
 
 }
 
-void AudioData::SetDefaultFormat(int _frameRateHz, apt::DataType _dataType)
+void AudioData::SetDefaultFormat(int _frameRateHz, DataType _dataType)
 {
 	s_defaultFrameRateHz = _frameRateHz;
 	s_defaultDataType = _dataType;
 
-	APT_LOG_DBG("AudioData: Set default format %dHz %s", _frameRateHz, apt::DataTypeString(_dataType));
+	FRM_LOG_DBG("AudioData: Set default format %dHz %s", _frameRateHz, DataTypeString(_dataType));
 }
 
 bool AudioData::load()
@@ -127,7 +126,7 @@ bool AudioData::load()
 		return true;
 	}
 
-	APT_AUTOTIMER("AudioData::load(%s)", (const char*)m_path);
+	FRM_AUTOTIMER("AudioData::load(%s)", (const char*)m_path);
 
 	File f;
 	if (!FileSystem::Read(f, (const char*)m_path)) {
@@ -138,7 +137,7 @@ bool AudioData::load()
 	if (FileSystem::CompareExtension("wav", (const char*)m_path)) {
 		ret = ReadWav(this, f.getData(), f.getDataSize()); 
 	} else {
-		APT_LOG_ERR("AudioData: Unknown extension '%s'", (const char*)m_path);
+		FRM_LOG_ERR("AudioData: Unknown extension '%s'", (const char*)m_path);
 	}
 
  // resample if the default framerate and data type were set
@@ -203,11 +202,11 @@ bool AudioData::ReadWav(AudioData* _audioData, const char* _data, uint _dataSize
 	drwav wav;
 	ret &= drwav_init_memory(&wav, _data, (size_t)_dataSize) != 0;
 	if (!ret) {
-		APT_LOG_ERR("AudioData: drwav_init_memory failed");
+		FRM_LOG_ERR("AudioData: drwav_init_memory failed");
 		goto AudioData_ReadWav_end;
 	}
-	if (wav.totalSampleCount >= APT_DATA_TYPE_MAX(int)) {
-		APT_LOG_ERR("AudioData: wav data too large (%llu bytes)", wav.totalSampleCount);
+	if (wav.totalSampleCount >= FRM_DATA_TYPE_MAX(int)) {
+		FRM_LOG_ERR("AudioData: wav data too large (%llu bytes)", wav.totalSampleCount);
 		goto AudioData_ReadWav_end;
 	}
 
@@ -220,14 +219,14 @@ bool AudioData::ReadWav(AudioData* _audioData, const char* _data, uint _dataSize
 		case 8:  dataType = DataType_Uint8N;  break;
 		case 16: dataType = DataType_Sint16N; break;
 		case 32: dataType = DataType_Float32; break; // \todo DataType_Uint32N in this case?
-		default: APT_LOG_ERR("AudioData: unsupported data type (%d bits per sample)", wav.bitsPerSample); ret = false; goto AudioData_ReadWav_end;
+		default: FRM_LOG_ERR("AudioData: unsupported data type (%d bits per sample)", wav.bitsPerSample); ret = false; goto AudioData_ReadWav_end;
 	};
-	int frameSizeBytes = (int)apt::DataTypeSizeBytes(dataType) * channelCount;
-	APT_ASSERT(frameSizeBytes == wav.bytesPerSample);
+	int frameSizeBytes = (int)DataTypeSizeBytes(dataType) * channelCount;
+	FRM_ASSERT(frameSizeBytes == wav.bytesPerSample);
 	char* data = (char*)AUDIO_MALLOC(frameSizeBytes * frameCount);	
 	ret &= drwav_read(&wav, frameCount, data) == frameCount;
 	if (!ret) {
-		APT_LOG_ERR("AudioData: drwav_read failed");
+		FRM_LOG_ERR("AudioData: drwav_read failed");
 		goto AudioData_ReadWav_end;
 	}
 	

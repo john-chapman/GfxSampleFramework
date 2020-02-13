@@ -19,10 +19,12 @@ workspace "GfxSampleFramework"
 		targetsuffix "_debug"
 		symbols "On"
 		optimize "Off"
+		defines "_DEBUG"
 	filter {}
 	filter { "configurations:Release" }
 		symbols "On"
 		optimize "Full"
+		defines "NDEBUG"
 	filter {}
 
 	group "libs"
@@ -31,39 +33,34 @@ workspace "GfxSampleFramework"
 			FRM_ROOT .. "lib",  -- libDir
 			FRM_ROOT .. "bin",  -- binDir
 			{                   -- config
-				FRM_MODULE_AUDIO = false,
-				FRM_MODULE_VR    = false,
+				FRM_MODULE_AUDIO   = true,
+				FRM_MODULE_VR      = false,
+				FRM_MODULE_PHYSICS = true,
 			})
-		--GfxSampleFramework_ProjectExternal("../")
 	group ""
 
-	project "GfxSampleFramework_Tests"
-		kind "ConsoleApp"
-		language "C++"
-		targetdir "../bin"
+	local projDir = "$(ProjectDir)..\\..\\"
+	local dataDir = projDir .. "data\\"
+	local binDir  = projDir .. "bin\\"
+	local projList = dofile("projects.lua")
+	for name,fileList in pairs(projList) do
+		project(tostring(name))
+			kind "ConsoleApp"
+			targetdir "../bin"
+			GfxSampleFramework_Link()
 
-		local ALL_TESTS_DIR = "../tests/all/"
+			vpaths({ ["*"] = { "../tests/" .. tostring(name) .. "/**" } })
+			files(fileList)
+			--files("../src/_sample.cpp")
 
-		includedirs { ALL_TESTS_DIR }
-		files({
-			ALL_TESTS_DIR .. "**.h",
-			ALL_TESTS_DIR .. "**.hpp",
-			ALL_TESTS_DIR .. "**.c",
-			ALL_TESTS_DIR .. "**.cpp",
-			})
-
-		GfxSampleFramework_Link()
-		
-		local name    = "AppSampleTest"
-		local projDir = "$(ProjectDir)../../"
-		local dataDir = projDir .. "data/" .. name
-		local binDir  = projDir .. "bin/"  .. name
-		filter { "action:vs*" }
-			postbuildcommands({
-			 -- make the project data dir
-				"if not exist \"" .. dataDir .. "\" mkdir \"" .. dataDir .. "\"",
-
-			 -- make link to project data dir in bin
-				"if not exist \"" .. binDir .. "\" mklink /j \"" .. binDir .. "\" \"" .. dataDir .. "\"",
-				})
-
+			local projDataDir = dataDir .. tostring(name)
+			local projBinDir  = binDir  .. tostring(name)
+			filter { "action:vs*" }
+				postbuildcommands({
+				  -- make the project data dir
+					"if not exist " .. projDataDir .. " mkdir \"" .. projDataDir .. "\"",
+				  -- make link to project data dir in bin
+					"if not exist " .. projBinDir .. " mklink /j \"" .. projBinDir .. "\" \"" .. projDataDir .. "\"",
+					})
+			filter {}
+	end

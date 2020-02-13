@@ -99,7 +99,7 @@ LuaScript* LuaScript::Create(const char* _path, Lib _libs)
 	}
 
 	LuaScript* ret = FRM_NEW(LuaScript(_path, _libs));
-	if (!ret->loadText(f.getData(), f.getDataSize(), f.getPath()))
+	if (!ret->loadText(f.getData(), f.getDataSize() - 1, f.getPath())) // use getDataSize()-1 to trim the trailing null
 	{
 		goto LuaScript_Create_end;
 	}
@@ -769,7 +769,7 @@ static int lua_include(lua_State* _L)
 		return 1;
 	}
 
-	if (luaL_loadbuffer(_L, f.getData(), f.getDataSize(), path) != LUA_OK)
+	if (luaL_loadbuffer(_L, f.getData(), f.getDataSize() - 1, path) != LUA_OK)
 	{
 		return 1;
 	}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
 #include <frm/core/Resource.h>
 
 namespace frm {
@@ -31,13 +31,13 @@ public:
 	static void       FileModified(const char* _path);
 
 	// All subsequently loaded AudioData resources will be resampled to match _frameRateHz and _dataType.
-	static void       SetDefaultFormat(int _frameRateHz, apt::DataType _dataType);
+	static void       SetDefaultFormat(int _frameRateHz, DataType _dataType);
 	
 	bool              load();
-	bool              reload()                     { APT_ASSERT(false); return false; } // can't implement, not thread safe
+	bool              reload()                     { FRM_ASSERT(false); return false; } // can't implement, not thread safe
 	
 	// Resample to match _sampleRateHz and _dataType.
-	void              resample(int _frameRateHz, apt::DataType _dataType);
+	void              resample(int _frameRateHz, DataType _dataType);
 
 	const char*       getPath() const              { return (const char*)m_path; }
 	int               getFrameRateHz() const       { return m_frameRateHz;       }
@@ -45,7 +45,7 @@ public:
 	uint              getFrameCount() const        { return m_frameCount;        }
 	int               getFrameSizeBytes() const    { return m_frameSizeBytes;    }
 	uint              getDataSizeBytes() const     { return m_dataSizeBytes;     }
-	apt::DataType     getDataType() const          { return m_dataType;          }
+	DataType          getDataType() const          { return m_dataType;          }
 	const char*       getData() const              { return m_data;              }
 	const char*       getDataEnd() const           { return m_data + m_dataSizeBytes; }
 
@@ -59,15 +59,15 @@ private:
 	double sample(double _time, int _channel) const;
 
 	static int           s_defaultFrameRateHz;
-	static apt::DataType s_defaultDataType;
+	static DataType s_defaultDataType;
 
-	apt::PathStr  m_path;  // empty if not from a file
+	PathStr  m_path;  // empty if not from a file
 	int           m_frameRateHz        = -1;
 	int           m_channelCount       = -1;
 	uint32        m_frameCount         =  0;
 	int           m_frameSizeBytes     =  0;
 	uint32        m_dataSizeBytes      =  0;
-	apt::DataType m_dataType           = apt::DataType_Invalid;
+	DataType m_dataType           = DataType_Invalid;
 	char*         m_data               = nullptr;
 
 

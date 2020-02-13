@@ -31,8 +31,9 @@
 				"../lib",                    -- library output path
 				"../bin",                    -- binary output path
 				{                            -- config map
-					FRM_MODULE_AUDIO = true,
-					FRM_MODULE_VR    = false
+					FRM_MODULE_AUDIO   = true,
+					FRM_MODULE_PHYSICS = true,
+					FRM_MODULE_VR      = false
 				})
 
 	See core/def.h for more info about configuring the library.
@@ -43,28 +44,10 @@
 			GfxSampleFramework_Link()
 
 	This option provides the most flexibility, but don't forget to rebuild your project files after updating.
+
 --]]
 
-local SRC_PATH_ROOT      = "src"
-local SRC_PATH_EXTERN    = "extern"
-local SRC_PATH_ALL       = "all/frm"
-local SRC_PATH_PLATFORM  = ""
-
-local MODULES      = {}
-local MODULE_PATHS = {}
-local MODULE_NAMES =
-{
-	["FRM_MODULE_CORE"]  = "core",
-	["FRM_MODULE_AUDIO"] = "audio",
-	["FRM_MODULE_VR"]    = "vr",
-}
-
-local GLOBAL_DEFINES =
-{
-	"GLEW_STATIC=1"
-}
-
-local function makepath(_elements)
+local function MakePath(_elements)
 	local ret = ""
 	for i, v in ipairs(_elements) do
 		ret = ret .. tostring(v) .. "/"
@@ -72,6 +55,97 @@ local function makepath(_elements)
  -- \todo remove duplicate separators
 	return ret
 end
+
+local function FileExists(_path)
+	local f = io.open(_path, "r")
+	if f ~= nil then 
+		io.close(f) 
+		return true 
+	else
+		return false
+	end
+end
+
+local SRC_PATH_ROOT      = "src"
+local SRC_PATH_EXTERN    = "extern"
+local SRC_PATH_ALL       = "all/frm"
+local SRC_PATH_PLATFORM  = ""
+
+local MODULES = {}            -- active module names (e.g. 'core', 'audio')
+local MODULE_SRC_PATHS = {}   -- all/platform + extern paths
+local MODULE_DATA =           -- per-module name + custom config function
+{
+	["FRM_MODULE_CORE"] =
+	{
+		name = "core",
+		config = function()
+			return true
+		end,
+	},
+
+	["FRM_MODULE_AUDIO"] =
+	{
+		name = "audio",
+		config = function()
+			return true
+		end,
+	},
+
+	["FRM_MODULE_PHYSICS"] =
+	{
+		name = "physics",
+		config = function()
+			local physxRoot = os.getenv("PHYSX_SDK")
+			if physxRoot == nil then
+				print("\t\tError: 'PHYSX_SDK' not set.")
+				return false
+			end
+			physxRoot = string.gsub(physxRoot, "\\", "/")
+			print("\t\tPHYSX_SDK: '" .. physxRoot .. "'")
+			includedirs({
+				physxRoot .. "/physx/include",				
+				physxRoot .. "/pxshared/include", -- \todo required?
+				})
+
+		 -- \todo support different platforms/configs - need access to more info from premake to compose the path below
+			local physxLib = physxRoot .. "/physx/bin/win.x86_64.vc142.mt/" .. "%{cfg.buildcfg}"
+			libdirs({ physxLib })
+		--[[
+			local requiredFiles =
+			{
+				"PhysX_64"
+			}
+			for i,v in ipairs(requiredFiles) do
+				local filePath = physxLib .. "/" .. v .. ".lib"
+				if not FileExists(filePath) then
+					print("\t\tError: '" .. filePath .. "' not found")
+					return false
+				end
+			end
+		--]]
+	
+		 -- copy DLLs to the executable directory
+			postbuildcommands({
+				"{COPY} \"" .. physxLib .. "/*.dll\" \"" .. "$(OutDir)/*.dll\"",
+				})
+
+			return true
+		end,
+	},
+
+	["FRM_MODULE_VR"] =
+	{
+		name = "vr",
+		config = function()
+			return false -- not supported
+		end,
+	},
+}
+
+local GLOBAL_DEFINES =
+{
+	"GLEW_STATIC=1"
+}
 
 local function GfxSampleFramework_Config(_root, _config)
 	_config = _config or {}
@@ -82,7 +156,34 @@ local function GfxSampleFramework_Config(_root, _config)
 		SRC_PATH_PLATFORM = "win/frm"
 	filter {}
 
+ -- modules
+	print("modules:")
+	for k, module in pairs(MODULE_DATA) do	
+		if _config[k] then
+			print("\t" .. module.name)
+			if module.config() then
+			 -- set active module name
+				table.insert(MODULES, module.name)
+
+			 -- set module source paths
+			 	local modulePaths = {}
+				table.insert(modulePaths, MakePath { SRC_PATH_ROOT, SRC_PATH_ALL, module.name }                       )
+				table.insert(modulePaths, MakePath { SRC_PATH_ROOT, SRC_PATH_ALL, module.name, SRC_PATH_EXTERN }      )
+				table.insert(modulePaths, MakePath { SRC_PATH_ROOT, SRC_PATH_PLATFORM, module.name }                  )
+				table.insert(modulePaths, MakePath { SRC_PATH_ROOT, SRC_PATH_PLATFORM, module.name, SRC_PATH_EXTERN } )
+				for i, path in ipairs(modulePaths) do
+					print("\t\t" .. path)
+					table.insert(MODULE_SRC_PATHS, path)
+				end				
+			else
+				print("\t\tFailed to configure " .. module.name .. ".")
+				_config[k] = false -- prevent from being added to the list of defines below
+			end
+		end
+	end
+
  -- defines
+	print("defines:")
 	for k, v in pairs(_config) do
 		local vstr  = tostring(v)
 		local vtype = type(v)
@@ -98,36 +199,10 @@ local function GfxSampleFramework_Config(_root, _config)
 			end
 		end
 		if vstr ~= nil then
-			table.insert(GLOBAL_DEFINES, tostring(k) .. "=" .. vstr)
+			local def = tostring(k) .. "=" .. vstr
+			table.insert(GLOBAL_DEFINES, def)
+			print("\t" .. def)
 		end
-	end
-
- -- modules
-	for k, moduleName in pairs(MODULE_NAMES) do
-		if _config[k] then
-			table.insert(MODULES, moduleName)
-		end
-	end
-
- -- module paths
-	for i, moduleName in ipairs(MODULES) do
-		table.insert(MODULE_PATHS, makepath { SRC_PATH_ROOT, SRC_PATH_ALL, moduleName }                       )
-		table.insert(MODULE_PATHS, makepath { SRC_PATH_ROOT, SRC_PATH_ALL, moduleName, SRC_PATH_EXTERN }      )
-		table.insert(MODULE_PATHS, makepath { SRC_PATH_ROOT, SRC_PATH_PLATFORM, moduleName }                  )
-		table.insert(MODULE_PATHS, makepath { SRC_PATH_ROOT, SRC_PATH_PLATFORM, moduleName, SRC_PATH_EXTERN } )
-	end
-
-	print("defines:")
-	for i, def in ipairs(GLOBAL_DEFINES) do
-		print("\t" .. def)
-	end
-	print("modules:")
-	for i, moduleName in ipairs(MODULES) do
-		print("\t" .. moduleName)
-	end
-	print("src paths:")
-	for i, path in ipairs(MODULE_PATHS) do
-		print("\t" .. path)
 	end
 end
 
@@ -159,15 +234,15 @@ local function GfxSampleFramework_Globals()
 		filter {}
 
 	 -- include frm sources as e.g. <frm/core/def.h>
-		includedirs(makepath { SRC_PATH_ROOT, "all" })
+		includedirs(MakePath { SRC_PATH_ROOT, "all" })
 		filter { "platforms:Win*" }
-			includedirs(makepath { SRC_PATH_ROOT, "win" })
+			includedirs(MakePath { SRC_PATH_ROOT, "win" })
 		filter {}
 
 	 -- include extern sources as e.g. <imgui/imgui.h>
 		for i, moduleName in ipairs(MODULES) do
-			includedirs(makepath { SRC_PATH_ROOT, SRC_PATH_ALL, moduleName, SRC_PATH_EXTERN })
-			includedirs(makepath { SRC_PATH_ROOT, SRC_PATH_PLATFORM, moduleName, SRC_PATH_EXTERN })
+			includedirs(MakePath { SRC_PATH_ROOT, SRC_PATH_ALL, moduleName, SRC_PATH_EXTERN })
+			includedirs(MakePath { SRC_PATH_ROOT, SRC_PATH_PLATFORM, moduleName, SRC_PATH_EXTERN })
 		end
 end
 
@@ -192,16 +267,16 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 			configFile:write("}")
 		configFile:close()
 
-		for k, moduleName in pairs(MODULE_NAMES) do
+		for k, module in pairs(MODULE_DATA) do
 			local paths = 
 			{
-				makepath { SRC_PATH_ROOT, SRC_PATH_ALL, moduleName, "/**"        },
-				makepath { SRC_PATH_ROOT, SRC_PATH_PLATFORM, moduleName,  "/**"  }
+				MakePath { SRC_PATH_ROOT, SRC_PATH_ALL, module.name, "/**"        },
+				MakePath { SRC_PATH_ROOT, SRC_PATH_PLATFORM, module.name,  "/**"  }
 			}
-			vpaths({ [moduleName .. "/*"] = paths })
+			vpaths({ [module.name .. "/*"] = paths })
 		end
 
-		for i, path in ipairs(MODULE_PATHS) do
+		for i, path in ipairs(MODULE_SRC_PATHS) do
 			files({ 
 				path .. "/**.h",
 				path .. "/**.hpp",
@@ -210,8 +285,8 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 				})
 		end
 		removefiles({
-			makepath { SRC_PATH_ROOT, SRC_PATH_ALL, "core/extern/lua/lua.c"  }, -- standalone lua interpreter
-			makepath { SRC_PATH_ROOT, SRC_PATH_ALL, "core/extern/lua/luac.c" }
+			MakePath { SRC_PATH_ROOT, SRC_PATH_ALL, "core/extern/lua/lua.c"  }, -- standalone lua interpreter
+			MakePath { SRC_PATH_ROOT, SRC_PATH_ALL, "core/extern/lua/luac.c" }
 			})
 
 	 -- symbolic links in the bin dir for /data/common (for shaders, textures etc) and /extern (for DLLs)

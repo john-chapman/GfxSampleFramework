@@ -2,7 +2,8 @@
 
 #include "AudioData.h"
 
-#include <frm/core/def.h>
+#include <frm/core/frm.h>
+#include <frm/core/config.h>
 
 #include <EASTL/vector.h>
 #include <EASTL/vector_map.h>

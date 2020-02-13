@@ -96,6 +96,17 @@ void Node::removeComponent(Component* _component)
 	Component::Destroy(_component);
 }
 
+Component* Node::findComponent(const StringHash& nameHash) const
+{
+	for (Component* component : m_components) {
+		if (component->getClassRef()->getNameHash() == nameHash) {
+			return component;
+		}
+	}
+
+	return nullptr;
+}
+
 void Node::setParent(Node* _node)
 {
 	if (_node) {
@@ -324,6 +335,8 @@ void Scene::update(float _dt, uint8 _stateMask)
 	PROFILER_MARKER_CPU("#Scene::update");
 	
 	Node::Update(m_root, _dt, _stateMask);
+
+	destroyNodes(); // process deferred deletions
 }
 
 bool Scene::traverse(Node* _root_, uint8 _stateMask, OnVisit* _callback)
@@ -359,33 +372,10 @@ Node* Scene::createNode(Node::Type _type, Node* _parent)
 
 void Scene::destroyNode(Node*& _node_)
 {
-	PROFILER_MARKER_CPU("#Scene::destroyNode");
-
 	FRM_ASSERT(_node_ != m_root); // can't destroy the root
-	
-	Node::Type type = _node_->getType();
-	switch (type) {
-		case Node::Type_Camera:
-			if (_node_->m_sceneData) {
-				Camera* camera = _node_->getSceneDataCamera();
-				auto it = eastl::find(m_cameras.begin(), m_cameras.end(), camera);
-				if (it != m_cameras.end()) {
-					FRM_ASSERT(camera->m_parent == _node_); // _node_ points to camera, but camera doesn't point to _node_
-					m_cameras.erase(it);
-				}
-				m_cameraPool.free(camera);
-			}
-			break;
-		default:
-			break;
-	};
 
-	auto it = eastl::find(m_nodes[type].begin(), m_nodes[type].end(), _node_);
-	if (it != m_nodes[type].end()) {
-		m_nodes[type].erase(it);
-		m_nodePool.free(_node_);
-		_node_ = nullptr;
-	}
+	m_nodeDestroyList.push_back(_node_);
+	//_node_ = nullptr; // \todo this seems dangerous since we don't actually destroy the node, can the deletion process depend on valid node pointers?
 }
 
 Node* Scene::findNode(Node::Id _id, Node::Type _typeHint)
@@ -693,6 +683,45 @@ bool frm::Serialize(Serializer& _serializer_, Scene& _scene_, Node& _node_)
 	}
 
 	return true;
+}
+
+
+void Scene::destroyNodes()
+{
+	PROFILER_MARKER_CPU("#Scene::destroyNodes");
+	
+	for (auto& node : m_nodeDestroyList) {
+		Node::Type type = node->getType();
+		switch (type) {
+			case Node::Type_Camera:
+				if (node->m_sceneData) {
+					Camera* camera = node->getSceneDataCamera();
+					auto it = eastl::find(m_cameras.begin(), m_cameras.end(), camera);
+					if (it != m_cameras.end()) {
+						FRM_ASSERT(camera->m_parent == node); // _node_ points to camera, but camera doesn't point to _node_
+						m_cameras.erase(it);
+					}
+					m_cameraPool.free(camera);
+				}
+				break;
+			default:
+				break;
+		};
+
+		auto it = eastl::find(m_nodes[type].begin(), m_nodes[type].end(), node);
+		if (it != m_nodes[type].end()) {
+			m_nodes[type].erase(it);
+			m_nodePool.free(node);
+		}
+
+		if (node == m_editNode) {
+			m_editNode = nullptr;
+		}
+		if (node == m_storedNode) {
+			m_storedNode = nullptr;
+		}
+	}
+	m_nodeDestroyList.clear();
 }
 
 #ifdef frm_Scene_ENABLE_EDIT
@@ -1035,7 +1064,7 @@ void Scene::editNodes()
 			}
 		}
 	 // deferred select
-		if (newEditNode != m_editNode) {
+		if (newEditNode && newEditNode != m_editNode) {
 			// modify selection (\todo 1 selection per node type?)
 			if (m_editNode && m_editNode->getType() == newEditNode->getType()) {
 				m_editNode->setSelected(false);
@@ -1192,7 +1221,7 @@ Node* Scene::selectNode(Node* _current, Node::Type _type)
 		int typeEnd = FRM_MIN((int)_type + 1, (int)Node::Type_Count);
 		for (; type < typeEnd; ++type) {
 			for (int node = 0; node < (int)m_nodes[type].size(); ++node) {
-				if (m_nodes[type][node] == _current) {
+				if (m_nodes[type][node] == _current || (filter.InputBuf[0] != '#' && m_nodes[type][node]->getName()[0] == '#')) {
 					continue;
 				}
 				String<32> tmp("%s %s", kNodeTypeIconStr[type], m_nodes[type][node]->getName());

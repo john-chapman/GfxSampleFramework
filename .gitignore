@@ -15,3 +15,6 @@ build/vs*/*.user
 # User configs, log files
 *.ini
 *.log
+
+# Cached data
+*.physx

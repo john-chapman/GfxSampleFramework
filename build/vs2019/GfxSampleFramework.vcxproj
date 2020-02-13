@@ -55,8 +55,8 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=1;FRM_MODULE_PHYSICS=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>E:\extern\PhysX-4.1\physx\include;E:\extern\PhysX-4.1\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -68,8 +68,12 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>E:\extern\PhysX-4.1\physx\bin\win.x86_64.vc142.mt\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
     <PostBuildEvent>
-      <Command>if not exist "$(ProjectDir)../../bin/common" mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"
+      <Command>IF EXIST "E:\extern\PhysX-4.1\physx\bin\win.x86_64.vc142.mt\Debug\*.dll"\ (xcopy /Q /E /Y /I "E:\extern\PhysX-4.1\physx\bin\win.x86_64.vc142.mt\Debug\*.dll" "$(OutDir)\*.dll" &gt; nul) ELSE (xcopy /Q /Y /I "E:\extern\PhysX-4.1\physx\bin\win.x86_64.vc142.mt\Debug\*.dll" "$(OutDir)\*.dll" &gt; nul)
+if not exist "$(ProjectDir)../../bin/common" mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"
 if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/extern" "$(ProjectDir)../..//extern"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -77,8 +81,8 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=1;FRM_MODULE_PHYSICS=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>E:\extern\PhysX-4.1\physx\include;E:\extern\PhysX-4.1\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -96,12 +100,20 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>E:\extern\PhysX-4.1\physx\bin\win.x86_64.vc142.mt\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
     <PostBuildEvent>
-      <Command>if not exist "$(ProjectDir)../../bin/common" mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"
+      <Command>IF EXIST "E:\extern\PhysX-4.1\physx\bin\win.x86_64.vc142.mt\Release\*.dll"\ (xcopy /Q /E /Y /I "E:\extern\PhysX-4.1\physx\bin\win.x86_64.vc142.mt\Release\*.dll" "$(OutDir)\*.dll" &gt; nul) ELSE (xcopy /Q /Y /I "E:\extern\PhysX-4.1\physx\bin\win.x86_64.vc142.mt\Release\*.dll" "$(OutDir)\*.dll" &gt; nul)
+if not exist "$(ProjectDir)../../bin/common" mklink /j "$(ProjectDir)../../bin/common" "$(ProjectDir)../..//data/common"
 if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/extern" "$(ProjectDir)../..//extern"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\all\frm\audio\Audio.h" />
+    <ClInclude Include="..\..\src\all\frm\audio\AudioData.h" />
+    <ClInclude Include="..\..\src\all\frm\audio\extern\dr_wav.h" />
+    <ClInclude Include="..\..\src\all\frm\audio\extern\portaudio\portaudio.h" />
     <ClInclude Include="..\..\src\all\frm\core\App.h" />
     <ClInclude Include="..\..\src\all\frm\core\AppSample.h" />
     <ClInclude Include="..\..\src\all\frm\core\AppSample3d.h" />
@@ -378,10 +390,16 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\platform.h" />
     <ClInclude Include="..\..\src\all\frm\core\rand.h" />
     <ClInclude Include="..\..\src\all\frm\core\types.h" />
+    <ClInclude Include="..\..\src\all\frm\physics\Physics.h" />
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsGeometry.h" />
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsInternal.h" />
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsMaterial.h" />
     <ClInclude Include="..\..\src\win\frm\core\extern\renderdoc_app.h" />
     <ClInclude Include="..\..\src\win\frm\core\win.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\all\frm\audio\Audio.cpp" />
+    <ClCompile Include="..\..\src\all\frm\audio\AudioData.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\App.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\AppSample.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\AppSample3d.cpp" />
@@ -488,6 +506,11 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\memory.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\rand.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\types.cpp" />
+    <ClCompile Include="..\..\src\all\frm\physics\Physics.cpp" />
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsCooker.cpp" />
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsGeometry.cpp" />
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsMaterial.cpp" />
+    <ClCompile Include="..\..\src\win\frm\audio\AudioImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\core\FileImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\core\FileSystemImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\core\GlContextImpl.cpp" />

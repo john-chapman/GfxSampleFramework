@@ -42,6 +42,9 @@
 #ifndef FRM_MODULE_AUDIO
 	#define FRM_MODULE_AUDIO 0
 #endif
+#ifndef FRM_MODULE_PHYSICS
+	#define FRM_MODULE_PHYSICS 0
+#endif
 #ifndef FRM_MODULE_VR
 	#define FRM_MODULE_VR 0
 #endif

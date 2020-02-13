@@ -89,6 +89,9 @@ public:
 		Primitive_Count
 	};
 
+	// Triangle mesh with positions, normals, tangents and texcoords.
+	static const MeshDesc& GetDefault();
+
 	MeshDesc(Primitive _prim = Primitive_Triangles)
 		: m_primitive(_prim)
 	{

@@ -63,6 +63,21 @@ bool VertexAttr::operator==(const VertexAttr& _rhs) const
 
 *******************************************************************************/
 
+const MeshDesc& MeshDesc::GetDefault()
+{
+	static MeshDesc defaultMeshDesc(Primitive_Triangles);
+	FRM_ONCE
+	{
+		defaultMeshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32,  3);
+		defaultMeshDesc.addVertexAttr(VertexAttr::Semantic_Normals,   DataType_Sint16N,  3);
+		defaultMeshDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  DataType_Sint16N,  3);
+		defaultMeshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float16,  2);
+		
+	};
+
+	return defaultMeshDesc;
+}
+
 VertexAttr* MeshDesc::addVertexAttr(
 	VertexAttr::Semantic _semantic, 
 	DataType             _dataType,

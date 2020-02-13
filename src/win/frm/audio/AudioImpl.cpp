@@ -1,14 +1,13 @@
 #include <frm/audio/Audio.h>
 
-#include <apt/log.h>
-#include <apt/win.h>
+#include <frm/core/log.h>
+#include <frm/core/win.h>
 
 #include <portaudio/portaudio.h>
 
 #include <EASTL/vector.h>
 
 using namespace frm;
-using namespace apt;
 
 namespace {
 
@@ -24,14 +23,14 @@ bool DllGetProc(HINSTANCE& _hDll_, const char* _dllName, T& _proc_, const char* 
 	if_unlikely (!_hDll_) {
 		_hDll_ = LoadLibrary(_dllName);
 		if (!_hDll_) {
-			APT_LOG_ERR("Failed to load DLL '%s'", _dllName);
+			FRM_LOG_ERR("Failed to load DLL '%s'", _dllName);
 			return false;
 		}
 	}
 	if_unlikely (!_proc_) {
 		_proc_ = (T)GetProcAddress(_hDll_, _procName);
 		if (!_proc_) {
-			APT_LOG_ERR("Failed to load '%s'", _procName);
+			FRM_LOG_ERR("Failed to load '%s'", _procName);
 			return false;
 		}
 	}

@@ -28,6 +28,8 @@ public:
 	bool load()   { return reload(); }
 	bool reload();
 
+	const char* getPath() const { return m_path.c_str(); }
+
 	void setVertexData(const void* _data, uint _vertexCount, GLenum _usage = GL_STREAM_DRAW);
 	void setIndexData(frm::DataType _dataType, const void* _data, uint _indexCount, GLenum _usage = GL_STREAM_DRAW);
 

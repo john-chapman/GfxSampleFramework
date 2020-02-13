@@ -1,9 +1,9 @@
 #include "Audio.h"
 
+#include <frm/core/log.h>
+#include <frm/core/memory.h>
 #include <frm/core/Profiler.h>
-
-#include <apt/log.h>
-#include <apt/memory.h>
+#include <frm/core/Time.h>
 
 #include <EASTL/vector.h>
 #include <imgui/imgui.h>
@@ -12,7 +12,6 @@
 #include <new>
 
 using namespace frm;
-using namespace apt;
 
 namespace {
 
@@ -49,7 +48,7 @@ static const char* GetEnumStr(Event _event)
 };
 
 // Simple fixed-size event, hold up to a 16 bytes of data (e.g. source ID + vec3).
-class AudioEvent: apt::aligned<AudioEvent, 8>
+class AudioEvent: aligned<AudioEvent, 8>
 {
 	char   m_data[12]    = {};
 	uint32 m_type        = (uint32)Event_Count;
@@ -79,16 +78,16 @@ public:
 	template <typename tType>
 	const tType& data() const 
 	{ 
-		APT_STATIC_ASSERT(sizeof(tType)  <= sizeof(m_data));
-		APT_STATIC_ASSERT(alignof(tType) <= alignof(AudioEvent));
+		FRM_STATIC_ASSERT(sizeof(tType)  <= sizeof(m_data));
+		FRM_STATIC_ASSERT(alignof(tType) <= alignof(AudioEvent));
 		return *((tType*)m_data);
 	}
 	
 	template <typename tType>
 	tType& data() 
 	{ 
-		APT_STATIC_ASSERT(sizeof(tType)  <= sizeof(m_data));
-		APT_STATIC_ASSERT(alignof(tType) <= alignof(AudioEvent));
+		FRM_STATIC_ASSERT(sizeof(tType)  <= sizeof(m_data));
+		FRM_STATIC_ASSERT(alignof(tType) <= alignof(AudioEvent));
 		return *((tType*)m_data);
 	}
 };
@@ -98,8 +97,8 @@ public:
 #define paCheckError(err) \
 	do { \
 		if (err != paNoError) { \
-			APT_LOG_ERR("PortAudio error: %s\n", Pa_GetErrorText(err)); \
-			APT_ASSERT(false); \
+			FRM_LOG_ERR("PortAudio error: %s\n", Pa_GetErrorText(err)); \
+			FRM_ASSERT(false); \
 		} \
 	} while (0)
 
@@ -112,7 +111,7 @@ public:
 // \todo In some cases it may be desirable to read/write the buffer directly to avoid copying. This requires a more
 //   low-level API to update the atomics when operations on the buffer are done.
 template <typename tType, uint kAlignment>
-class LockFreeRingBuffer_SPSC: private apt::non_copyable<LockFreeRingBuffer_SPSC<tType, kAlignment> >
+class LockFreeRingBuffer_SPSC: private non_copyable<LockFreeRingBuffer_SPSC<tType, kAlignment> >
 {
 	uint32               m_capacity = 0;
 	tType*               m_data     = nullptr;
@@ -128,17 +127,17 @@ public:
 	LockFreeRingBuffer_SPSC(uint32 _capacity)
 		: m_capacity(_capacity)
 	{
-		APT_ASSERT(APT_IS_POW2(_capacity));
-		APT_ASSERT(_capacity < APT_DATA_TYPE_MAX(uint32) / 2);
-		APT_ASSERT(std::atomic<size_t>().is_lock_free());
+		FRM_ASSERT(FRM_IS_POW2(_capacity));
+		FRM_ASSERT(_capacity < FRM_DATA_TYPE_MAX(uint32) / 2);
+		FRM_ASSERT(std::atomic<size_t>().is_lock_free());
 		std::atomic_init(&m_readAt,  0);
 		std::atomic_init(&m_writeAt, 0);
-		m_data = (tType*)APT_MALLOC_ALIGNED(sizeof(tType) * _capacity, kAlignment);
+		m_data = (tType*)FRM_MALLOC_ALIGNED(sizeof(tType) * _capacity, kAlignment);
 	}
 
 	~LockFreeRingBuffer_SPSC()
 	{
-		APT_FREE_ALIGNED(m_data);
+		FRM_FREE_ALIGNED(m_data);
 	}
 
 	// Write up to _count elements from _src into the buffer. Return the actual number of elements written. If the return value is < _count, the buffer overflowed.
@@ -146,9 +145,9 @@ public:
 	{
 		auto writeAt = m_writeAt.load();
 		auto readAt  = m_readAt.load();
-		_count = APT_MIN(_count, m_capacity - size(readAt, writeAt));
+		_count = FRM_MIN(_count, m_capacity - size(readAt, writeAt));
 
-		auto wi = APT_MOD_POW2(writeAt, m_capacity);
+		auto wi = FRM_MOD_POW2(writeAt, m_capacity);
 		if_likely (wi + _count <= m_capacity) { // assume this is likely if we always write blocks which are integer factors of m_capacity
 		 // no wrap, 1 memcpy
 			memcpy(m_data + wi, _src, sizeof(tType) * _count);
@@ -172,9 +171,9 @@ public:
 	{
 		auto writeAt = m_writeAt.load();
 		auto readAt  = m_readAt.load();
-		_count = APT_MIN(_count,	size(readAt, writeAt));
+		_count = FRM_MIN(_count,	size(readAt, writeAt));
 
-		auto ri = APT_MOD_POW2(readAt, m_capacity);
+		auto ri = FRM_MOD_POW2(readAt, m_capacity);
 		if_likely (ri + _count <= m_capacity) {
 		 // no wrap, 1 memcpy
 			memcpy(dst_, m_data + ri, sizeof(tType) * _count);
@@ -208,8 +207,8 @@ public:
 *******************************************************************************/
 
 typedef LockFreeRingBuffer_SPSC<AudioEvent, alignof(AudioEvent)> AudioEventQueue; 
-static apt::storage<AudioEventQueue> s_callbackEventQueue;
-static apt::storage<AudioEventQueue> s_mainThreadEventQueue;
+static storage<AudioEventQueue> s_callbackEventQueue;
+static storage<AudioEventQueue> s_mainThreadEventQueue;
 
 static void Mix(AudioSource* _inst_, float* _output_, int _frameCount)
 {
@@ -217,12 +216,12 @@ static void Mix(AudioSource* _inst_, float* _output_, int _frameCount)
 	const int        frameSizeBytes = audioData->getFrameSizeBytes();
 	const int        channelCount   = audioData->getChannelCount();
 	const char*      audioDataEnd   = audioData->getDataEnd();
-	const float      volumeLeft     = APT_SATURATE(_inst_->m_volume * APT_SATURATE(1.0f - _inst_->m_pan));
-	const float      volumeRight    = APT_SATURATE(_inst_->m_volume * APT_SATURATE(1.0f + _inst_->m_pan));
+	const float      volumeLeft     = FRM_SATURATE(_inst_->m_volume * FRM_SATURATE(1.0f - _inst_->m_pan));
+	const float      volumeRight    = FRM_SATURATE(_inst_->m_volume * FRM_SATURATE(1.0f + _inst_->m_pan));
 	
-	if (audioData->getDataType() == apt::DataType_Float) {
+	if (audioData->getDataType() == DataType_Float) {
 		while (_frameCount > 0 && _inst_->m_loopCount > 0) {
-			int framesToCopy = APT_MIN(_frameCount, (int)(audioDataEnd - _inst_->m_position) / frameSizeBytes);
+			int framesToCopy = FRM_MIN(_frameCount, (int)(audioDataEnd - _inst_->m_position) / frameSizeBytes);
 			_frameCount -= framesToCopy;
 			const float* beg = (float*)_inst_->m_position;
 			const float* end = (float*)beg + framesToCopy;
@@ -233,9 +232,9 @@ static void Mix(AudioSource* _inst_, float* _output_, int _frameCount)
 					++beg;
 				}
 			} else if (channelCount == 2) {
-				APT_ASSERT(false);
+				FRM_ASSERT(false);
 			} else {
-				APT_ASSERT(false);
+				FRM_ASSERT(false);
 			}
 
 			_inst_->m_position += frameSizeBytes * framesToCopy;
@@ -252,18 +251,22 @@ static void Mix(AudioSource* _inst_, float* _output_, int _frameCount)
 
 void Audio::Init()
 {
+	FRM_AUTOTIMER("Audio::Init");
+
 	new(s_callbackEventQueue)   AudioEventQueue(256);
 	new(s_mainThreadEventQueue) AudioEventQueue(256);
 	
-	s_instance = APT_NEW(Audio);	
+	s_instance = FRM_NEW(Audio);	
 }
 
 void Audio::Shutdown()
 {
+	FRM_AUTOTIMER("Audio::Shutdown");
+
 	s_callbackEventQueue->~AudioEventQueue();
 	s_mainThreadEventQueue->~AudioEventQueue();
 
-	APT_DELETE(s_instance);
+	FRM_DELETE(s_instance);
 }
 
 void Audio::Update()
@@ -271,12 +274,12 @@ void Audio::Update()
 	PROFILER_MARKER_CPU("#Audio::Update");
 
 	AudioEvent eventQueue[256];
-	auto eventCount = s_mainThreadEventQueue->read(eventQueue, APT_ARRAY_COUNT(eventQueue));
+	auto eventCount = s_mainThreadEventQueue->read(eventQueue, FRM_ARRAY_COUNT(eventQueue));
 	for (uint32 i = 0; i < eventCount; ++i) {
 		auto& e = eventQueue[i];
 		switch (e.type()) {
 			default:
-				APT_ASSERT_MSG(false, "Audio: Invalid event type in main queue: %s", GetEnumStr(e.type()));
+				FRM_ASSERT_MSG(false, "Audio: Invalid event type in main queue: %s", GetEnumStr(e.type()));
 				break;
 			case Event_ReleaseAudioData: {
 				AudioData* audioData = e.data<AudioData*>();
@@ -289,7 +292,7 @@ void Audio::Update()
 
 AudioSourceId Audio::Play(AudioData* _audioData, float _volume, float _pan, int _loopCount)
 {
-	APT_ASSERT(_audioData->getChannelCount() <= 2); // only support mono or stereo
+	FRM_ASSERT(_audioData->getChannelCount() <= 2); // only support mono or stereo
 
 	AudioData::Use(_audioData);
 
@@ -307,7 +310,7 @@ AudioSourceId Audio::Play(AudioData* _audioData, float _volume, float _pan, int 
 	events[2].data<float>() = _pan;
 	events[3] = AudioEvent(Event_SetSourceLoopCount, id);
 	events[3].data<int>() = _loopCount;
-	APT_VERIFY(s_callbackEventQueue->write(events, APT_ARRAY_COUNT(events)) == APT_ARRAY_COUNT(events));
+	FRM_VERIFY(s_callbackEventQueue->write(events, FRM_ARRAY_COUNT(events)) == FRM_ARRAY_COUNT(events));
 
 	return id;
 }
@@ -315,18 +318,18 @@ AudioSourceId Audio::Play(AudioData* _audioData, float _volume, float _pan, int 
 
 void Audio::SetSourceVolume(AudioSourceId _id, float _volume)
 {
-	APT_STRICT_ASSERT(_id != AudioSourceId_Invalid);
+	FRM_STRICT_ASSERT(_id != AudioSourceId_Invalid);
 	AudioEvent e(Event_SetSourceVolume, _id);
 	e.data<float>() = _volume;
-	APT_VERIFY(s_callbackEventQueue->write(&e, 1) == 1);
+	FRM_VERIFY(s_callbackEventQueue->write(&e, 1) == 1);
 }
 
 void Audio::SetSourcePan(AudioSourceId _id, float _pan)
 {
-	APT_STRICT_ASSERT(_id != AudioSourceId_Invalid);
+	FRM_STRICT_ASSERT(_id != AudioSourceId_Invalid);
 	AudioEvent e(Event_SetSourcePan, _id);
 	e.data<float>() = _pan;
-	APT_VERIFY(s_callbackEventQueue->write(&e, 1) == 1);
+	FRM_VERIFY(s_callbackEventQueue->write(&e, 1) == 1);
 }
 
 void Audio::Edit()
@@ -383,7 +386,7 @@ Audio* Audio::s_instance;
 Audio::Audio()
 {
 	paCheckError(Pa_Initialize());
-	APT_LOG(Pa_GetVersionText());
+	FRM_LOG(Pa_GetVersionText());
 
 	int deviceCount = Pa_GetDeviceCount();
 	for (int i = 0; i < deviceCount; ++i) {
@@ -429,25 +432,25 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 
  // audio events
 	AudioEvent eventQueue[256];
-	auto eventCount = s_callbackEventQueue->read(eventQueue, APT_ARRAY_COUNT(eventQueue));
+	auto eventCount = s_callbackEventQueue->read(eventQueue, FRM_ARRAY_COUNT(eventQueue));
 	for (uint32 i = 0; i < eventCount; ++i) {
 		auto& e = eventQueue[i];
 		switch (e.type()) {
 			default:
-				APT_ASSERT_MSG(false, "Audio: Invalid event type in callback queue: %s", GetEnumStr(e.type()));
+				FRM_ASSERT_MSG(false, "Audio: Invalid event type in callback queue: %s", GetEnumStr(e.type()));
 				break;
 
 		 // playback control
 			case Event_Play: {
-				APT_ASSERT(e.data<AudioData*>() != nullptr);
-				APT_ASSERT(e.sourceId() != AudioSourceId_Invalid);
+				FRM_ASSERT(e.data<AudioData*>() != nullptr);
+				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto& source = sourceList[e.sourceId()];
 				source.m_audioData = e.data<AudioData*>();
 				source.m_position = source.m_audioData->getData();
 				break;
 			}
 			case Event_Stop: {
-				APT_ASSERT(e.sourceId() != AudioSourceId_Invalid);
+				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
 				if (it != sourceList.end()) {
 					it->second.m_loopCount = 0;
@@ -457,7 +460,7 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 
 		 // source properties
 			case Event_SetSourceVolume: {
-				APT_ASSERT(e.sourceId() != AudioSourceId_Invalid);
+				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
 				if (it != sourceList.end()) {
 					it->second.m_volume = e.data<float>();
@@ -465,7 +468,7 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 				break;
 			}
 			case Event_SetSourcePan: {
-				APT_ASSERT(e.sourceId() != AudioSourceId_Invalid);
+				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
 				if (it != sourceList.end()) {
 					it->second.m_pan = e.data<float>();
@@ -473,7 +476,7 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 				break;
 			}
 			case Event_SetSourceLoopCount: {
-				APT_ASSERT(e.sourceId() != AudioSourceId_Invalid);
+				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
 				if (it != sourceList.end()) {
 					it->second.m_loopCount = e.data<int>();
@@ -487,7 +490,7 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
  // mix sources
  // \todo static members here don't support multiple streams, need to make those external
 	constexpr unsigned long kLocalBufferSize = 1024;
-	APT_ASSERT((_frameCount * 2) < kLocalBufferSize);
+	FRM_ASSERT((_frameCount * 2) < kLocalBufferSize);
 	static float s_mixBuffer[kLocalBufferSize];
 	static eastl::vector<AudioSourceId> s_sourceDeleteList;
 
@@ -504,7 +507,7 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
  // clear dead sources
 	for (auto id : s_sourceDeleteList) {
 		auto it = sourceList.find(id);
-		APT_ASSERT(it != sourceList.end());
+		FRM_ASSERT(it != sourceList.end());
 
 	 // \todo write the release events in a single step?
 		AudioEvent e(Event_ReleaseAudioData);

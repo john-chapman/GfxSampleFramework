@@ -44,6 +44,7 @@ struct BasicRenderer
 		Flag_FXAA,              // Enable FXAA.
 		Flag_Interlaced,        // Enable interlaced rendering.
 		Flag_WriteToBackBuffer, // Copy txFinal to the back buffer. Disable for custom upsampling/antialiasing.
+		Flag_WireFrame,         // Wireframe overlay.
 
 		Flags_Default = 0
 			| (1 << Flag_PostProcess)
@@ -102,6 +103,7 @@ struct BasicRenderer
 	Buffer*         bfPostProcessData	       = nullptr; // Data for the post process shader.
 	
 	Shader*         shGBuffer                  = nullptr; // Geometry shader for GBuffer pass.
+	Shader*         shWireframe                = nullptr; // Geometry shader for wireframe pass.
 	Shader*         shStaticVelocity           = nullptr; // Velocity fixup for static objects (i.e. camera-only velocity).
 	Shader*         shVelocityMinMax           = nullptr; // Generate tile min/max.
 	Shader*         shVelocityNeighborMax      = nullptr; // Generate tile neighbor max.

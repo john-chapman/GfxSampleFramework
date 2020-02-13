@@ -42,9 +42,8 @@ public:
 	}
 
 protected:
-	Component(): m_node(nullptr) {}
 
-	Node* m_node;
+	Node* m_node = nullptr;
 
 }; // class Component
 
@@ -72,6 +71,8 @@ struct Component_BasicRenderable: public Component
 	eastl::fixed_vector<PathStr, 1>        m_materialPaths;  //     "
 
 	static eastl::vector<Component_BasicRenderable*> s_instances;
+
+	static Component_BasicRenderable* Create(Mesh* _mesh, BasicMaterial* _material);
 
 	virtual bool init() override;
 	virtual void shutdown() override;

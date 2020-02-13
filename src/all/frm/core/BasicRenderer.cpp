@@ -46,6 +46,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 	const bool isTAA               = BitfieldGet(flags, (uint32)Flag_TAA);
 	const bool isInterlaced        = BitfieldGet(flags, (uint32)Flag_Interlaced);
 	const bool isWriteToBackBuffer = BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer);
+	const bool isWireframe         = BitfieldGet(flags, (uint32)Flag_WireFrame);
 
 	camera.copyFrom(*_camera);
 	if (isTAA)
@@ -202,7 +203,7 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 		glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 		glAssert(glDepthFunc(GL_EQUAL));
 
-		if (imageLightInstances.size() > 0 && imageLightInstances[0].isBackground)
+		if (imageLightInstances.size() > 0 && imageLightInstances[0].texture && imageLightInstances[0].isBackground)
 		{
 			ctx->setShader(shImageLightBg);
 			ctx->bindTexture("txEnvmap", imageLightInstances[0].texture);
@@ -236,11 +237,17 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 			{
 				ctx->bindBuffer("bfMaterials", bfMaterials);
 			}
+
+			// \todo support >1 image light
 			ctx->setUniform("uImageLightCount", (int)imageLightInstances.size());
-			if (imageLightInstances.size() > 0)
+			if (imageLightInstances.size() > 0 && imageLightInstances[0].texture)
 			{
 				ctx->bindTexture("txImageLight", imageLightInstances[0].texture);
 				ctx->setUniform("uImageLightBrightness", imageLightInstances[0].brightness);
+			}
+			else
+			{
+				ctx->setUniform("uImageLightCount", 0);
 			}
 
 			ctx->setUniform("uTexelSize", texelSize);
@@ -257,6 +264,39 @@ void BasicRenderer::draw(Camera* _camera, float _dt)
 				ctx->draw();
 			}
 		}
+	}
+
+	if (isWireframe)
+	{
+		ctx->setFramebufferAndViewport(fbScene);
+
+		glAssert(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
+		glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
+		glScopedEnable(GL_BLEND, GL_TRUE);
+		glAssert(glDepthFunc(GL_LEQUAL));
+		glAssert(glLineWidth(2.0f));
+	
+		ctx->setShader(shWireframe);
+		ctx->setUniform("uTexelSize", texelSize);
+		for (int materialIndex = 0; materialIndex < (int)drawInstances.size(); ++materialIndex)
+		{
+			if (drawInstances[materialIndex].empty())
+			{
+				continue;
+			}
+
+			ctx->setUniform ("uMaterialIndex", materialIndex);
+			for (DrawInstance& drawInstance : drawInstances[materialIndex])
+			{
+				ctx->setMesh(drawInstance.mesh,     drawInstance.submeshIndex);
+				ctx->setUniform ("uWorld",          drawInstance.world);
+				ctx->setUniform ("uPrevWorld",      drawInstance.prevWorld);
+				ctx->setUniform ("uBaseColorAlpha", vec4(0.1f, 0.1f, 0.1f, 0.5f));
+				ctx->draw();
+			}
+		}
+
+		glAssert(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 	}
 
 	//m_luminanceMeter.draw(ctx, _dt, txScene);
@@ -387,6 +427,8 @@ bool BasicRenderer::edit()
 
 		ret |= editFlag("Write to Backbuffer", Flag_WriteToBackBuffer);
 
+		ret |= editFlag("Wireframe", Flag_WireFrame);
+
 		if (ret)
 		{
 			// update material sampeler if interleaved or TAA
@@ -494,7 +536,7 @@ void BasicRenderer::initRenderTargets()
 	renderTargets[Target_GBufferDepthStencil].init(interlacedResolution.x, interlacedResolution.y, GL_DEPTH32F_STENCIL8, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_GBufferDepthStencil].setName("#BasicRenderer_txGBufferDepth");
 		
-	FRM_ASSERT(interlacedResolution.x % motionBlurTileWidth == 0 && interlacedResolution.y % motionBlurTileWidth == 0);
+	//FRM_ASSERT(interlacedResolution.x % motionBlurTileWidth == 0 && interlacedResolution.y % motionBlurTileWidth == 0);
 	renderTargets[Target_VelocityTileMinMax].init(interlacedResolution.x / motionBlurTileWidth, interlacedResolution.y / motionBlurTileWidth, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_VelocityTileMinMax].setName("#BasicRenderer_txVelocityTileMinMax");
 
@@ -528,6 +570,7 @@ void BasicRenderer::shutdownRenderTargets()
 void BasicRenderer::initShaders()
 {
 	shGBuffer             = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "GBuffer_OUT" });
+	shWireframe           = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", { "Wireframe_OUT" });
 	shStaticVelocity      = Shader::CreateVsFs("shaders/NdcQuad_vs.glsl", "shaders/BasicRenderer/StaticVelocity.glsl");
 	shVelocityMinMax      = Shader::CreateCs("shaders/BasicRenderer/VelocityMinMax.glsl", motionBlurTileWidth);
 	shVelocityNeighborMax = Shader::CreateCs("shaders/BasicRenderer/VelocityNeighborMax.glsl", 8, 8);
@@ -548,6 +591,7 @@ void BasicRenderer::initShaders()
 void BasicRenderer::shutdownShaders()
 {
 	Shader::Release(shGBuffer);
+	Shader::Release(shWireframe);
 	Shader::Release(shStaticVelocity);
 	Shader::Release(shVelocityMinMax);
 	Shader::Release(shVelocityNeighborMax);
@@ -609,7 +653,7 @@ void BasicRenderer::updateDrawInstances(const Camera* _camera)
 	for (Component_BasicRenderable* renderable : Component_BasicRenderable::s_instances)
 	{
 		Node* sceneNode = renderable->getNode();
-		if (!sceneNode->isActive())
+		if (!sceneNode->isActive() || !renderable->m_mesh || renderable->m_materials.empty())
 		{
 			continue;
 		}

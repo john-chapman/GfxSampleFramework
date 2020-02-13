@@ -35,28 +35,74 @@ FRM_FACTORY_REGISTER_DEFAULT(Component, Component_BasicRenderable);
 
 eastl::vector<Component_BasicRenderable*> Component_BasicRenderable::s_instances;
 
-bool Component_BasicRenderable::init()
+Component_BasicRenderable* Component_BasicRenderable::Create(Mesh* _mesh, BasicMaterial* _material)
 {
-	shutdown();
+	auto classRef = Component::FindClassRef(StringHash("Component_BasicRenderable"));
+	FRM_ASSERT(classRef);
 
-	bool ret = true;
-	
-	m_mesh = Mesh::Create(m_meshPath.c_str());
-	if (!m_mesh)
+	Mesh::Use(_mesh);	
+	if (!_mesh || _mesh->getState() != Mesh::State_Loaded)
 	{
-		return false;
+		Mesh::Release(_mesh);
+		return nullptr;
 	}
 
-	m_materials.resize(m_materialPaths.size());
+	BasicMaterial::Use(_material);
+	if (_material->getState() != BasicMaterial::State_Loaded)
+	{
+		Mesh::Release(_mesh);
+		BasicMaterial::Release(_material);
+		return nullptr;
+	}
+
+	Component_BasicRenderable* ret = (Component_BasicRenderable*)Component::Create(classRef);
+	ret->m_mesh = _mesh;
+	ret->m_meshPath = _mesh->getPath();
+	ret->m_materials.push_back(_material);
+	ret->m_materialPaths.push_back(_material->getPath());
+
+	return ret;
+}
+
+bool Component_BasicRenderable::init()
+{
+	bool ret = true;
+
+	auto it = eastl::find(s_instances.begin(), s_instances.end(), this);
+	if (it != s_instances.end())
+	{
+		s_instances.erase_unsorted(it);
+	}
+
+	// if the mesh path is not empty the mesh was created from code and can't be reloaded
+	if (!m_meshPath.isEmpty())
+	{
+		Mesh::Release(m_mesh);
+		m_mesh = Mesh::Create(m_meshPath.c_str());
+		if (!m_mesh || m_mesh->getState() != Mesh::State_Loaded)
+		{
+			Mesh::Release(m_mesh);
+			ret = false;
+		}
+	}
+
+	// if a material path is not empty the material was created from code and can't be reloaded
+	if (m_materials.size() != m_materialPaths.size())
+	{
+		m_materials.resize(m_materialPaths.size(), nullptr);
+	}
 	for (size_t i = 0; i < m_materialPaths.size(); ++i)
 	{
-		if (m_materialPaths[i].isEmpty())
+		if (!m_materialPaths[i].isEmpty())
 		{
-			m_materials[i] = nullptr;
-			continue;
+			BasicMaterial::Release(m_materials[i]);
+			m_materials[i] = BasicMaterial::Create(m_materialPaths[i].c_str());
+			if (!m_materials[i] || m_materials[i]->getState() != BasicMaterial::State_Loaded)
+			{
+				BasicMaterial::Release(m_materials[i]);
+				ret = false;
+			}
 		}
-		m_materials[i] = BasicMaterial::Create(m_materialPaths[i].c_str());
-		ret &= m_materials[i] != nullptr;
 	}
 
 	s_instances.push_back(this);

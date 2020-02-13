@@ -7,6 +7,15 @@
     <Filter Include="all\frm">
       <UniqueIdentifier>{B2A33B32-1E83-BACD-279B-45A493F9202F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="all\frm\audio">
+      <UniqueIdentifier>{53BFE701-BF7F-6338-88BA-ACB5F439A814}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="all\frm\audio\extern">
+      <UniqueIdentifier>{18E879C5-0477-038F-AD95-178A99031435}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="all\frm\audio\extern\portaudio">
+      <UniqueIdentifier>{9EE8BCB7-8A0E-871E-7354-0CEA5F19ACEA}</UniqueIdentifier>
+    </Filter>
     <Filter Include="all\frm\core">
       <UniqueIdentifier>{6A73BAAA-56D6-494F-FF5B-8205EB9D15D2}</UniqueIdentifier>
     </Filter>
@@ -64,11 +73,17 @@
     <Filter Include="all\frm\core\extern\tinyobjloader">
       <UniqueIdentifier>{D415ABBA-4084-003A-896D-BB39F51AF6D5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="all\frm\physics">
+      <UniqueIdentifier>{44D1AC80-B05C-1A45-B96D-9D3925787645}</UniqueIdentifier>
+    </Filter>
     <Filter Include="win">
       <UniqueIdentifier>{13BB880B-7FC4-887C-0840-9F7C7448947C}</UniqueIdentifier>
     </Filter>
     <Filter Include="win\frm">
       <UniqueIdentifier>{6793E1C8-D372-6064-DC8A-EB3A48E9C6C5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="win\frm\audio">
+      <UniqueIdentifier>{C8E2F14B-34A3-6D82-FDDD-B6FF695DB25E}</UniqueIdentifier>
     </Filter>
     <Filter Include="win\frm\core">
       <UniqueIdentifier>{3F7CA357-2BDF-32FC-D464-6BB2C0A6FE7E}</UniqueIdentifier>
@@ -78,6 +93,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\all\frm\audio\Audio.h">
+      <Filter>all\frm\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\audio\AudioData.h">
+      <Filter>all\frm\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\audio\extern\dr_wav.h">
+      <Filter>all\frm\audio\extern</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\audio\extern\portaudio\portaudio.h">
+      <Filter>all\frm\audio\extern\portaudio</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\App.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
@@ -906,6 +933,18 @@
     <ClInclude Include="..\..\src\all\frm\core\types.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\physics\Physics.h">
+      <Filter>all\frm\physics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsGeometry.h">
+      <Filter>all\frm\physics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsInternal.h">
+      <Filter>all\frm\physics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsMaterial.h">
+      <Filter>all\frm\physics</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\win\frm\core\extern\renderdoc_app.h">
       <Filter>win\frm\core\extern</Filter>
     </ClInclude>
@@ -914,6 +953,12 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\all\frm\audio\Audio.cpp">
+      <Filter>all\frm\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\audio\AudioData.cpp">
+      <Filter>all\frm\audio</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\App.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
@@ -1231,6 +1276,21 @@
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\types.cpp">
       <Filter>all\frm\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\Physics.cpp">
+      <Filter>all\frm\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsCooker.cpp">
+      <Filter>all\frm\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsGeometry.cpp">
+      <Filter>all\frm\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsMaterial.cpp">
+      <Filter>all\frm\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\win\frm\audio\AudioImpl.cpp">
+      <Filter>win\frm\audio</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\win\frm\core\FileImpl.cpp">
       <Filter>win\frm\core</Filter>

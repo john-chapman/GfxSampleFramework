@@ -91,6 +91,7 @@ public:
 	void         removeComponent(Component* _component);
 	int          getComponentCount() const           { return (int)m_components.size(); }
 	Component*   getComponent(int _i)                { return m_components[_i]; }
+	Component*   findComponent(const StringHash& nameHash) const;
 
 	Node*        getParent()                         { return m_parent; }
 	void         setParent(Node* _node);
@@ -111,9 +112,9 @@ private:
 	uint64                m_sceneData;   // Scene-defined data.
 
  // spatial
-	mat4                  m_localMatrix; // Initial (local) transformation.
-	mat4                  m_worldMatrix; // Final transformation with any xforms/components applied.
-	eastl::vector<XForm*> m_xforms;      // XForm list (applied in order). Node owns the xform memory.
+	mat4                  m_localMatrix = identity; // Initial (local) transformation.
+	mat4                  m_worldMatrix = identity; // Final transformation with any xforms/components applied.
+	eastl::vector<XForm*> m_xforms;                 // XForm list (applied in order). Node owns the xform memory.
 
  // components
 	eastl::vector<Component*> m_components; // Component list (updated in order). Node owns the component memory.
@@ -223,6 +224,10 @@ private:
 	Camera*                 m_cullCamera = nullptr;
 	eastl::vector<Camera*>  m_cameras;
 	frm::Pool<Camera>       m_cameraPool;
+
+ // We defer node deletions to avoid causing issues when traversing the scene, thus allowing update() to call destroyNode().
+	eastl::vector<Node*>    m_nodeDestroyList;
+	void destroyNodes();
 
 #ifdef frm_Scene_ENABLE_EDIT
 	bool       m_showNodeGraph3d    = false;

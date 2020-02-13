@@ -144,6 +144,7 @@ namespace frm {
 	class  SkeletonAnimation;
 	class  SkeletonAnimationTrack;
 	class  SplinePath;
+	class  StreamingQuadtree;
 	class  Texture;
 	class  TextureAtlas;
 	class  TextureSampler;
@@ -154,6 +155,18 @@ namespace frm {
 	class  VirtualWindow;
 	class  Window;
 	class  XForm;
+
+	#if FRM_MODULE_AUDIO
+		class Audio;
+		class AudioData;
+	#endif
+
+	#if FRM_MODULE_PHYSICS
+		class  Physics;
+		class  PhysicsMaterial;
+		class  PhysicsGeometry;
+		struct Component_Physics;
+	#endif
 
 	struct AlignedBox;
 	struct Capsule;

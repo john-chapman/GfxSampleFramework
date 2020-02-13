@@ -97,4 +97,10 @@ private:
 
 }; // class Resource
 
+template <typename tResourceType>
+bool CheckResource(const tResourceType* p)
+{
+	return p && p->getState() != tResourceType::State_Error;
+}
+
 } // namespace frm
