@@ -693,6 +693,9 @@
     <ClInclude Include="..\..\src\all\frm\core\extern\imgui\stb_truetype.h">
       <Filter>all\frm\core\extern\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\extern\json.hpp">
+      <Filter>all\frm\core\extern</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\extern\linalg\linalg.h">
       <Filter>all\frm\core\extern\linalg</Filter>
     </ClInclude>
@@ -897,6 +900,9 @@
     <ClInclude Include="..\..\src\all\frm\core\extern\stb_image_write.h">
       <Filter>all\frm\core\extern</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\extern\tiny_gltf.h">
+      <Filter>all\frm\core\extern</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\extern\tinyexr.h">
       <Filter>all\frm\core\extern</Filter>
     </ClInclude>
@@ -1025,7 +1031,7 @@
     <ClCompile Include="..\..\src\all\frm\core\MeshData.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\core\MeshData_blend.cpp">
+    <ClCompile Include="..\..\src\all\frm\core\MeshData_gltf.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\MeshData_md5.cpp">

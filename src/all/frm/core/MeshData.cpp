@@ -214,6 +214,13 @@ MeshData* MeshData::Create(const char* _path)
 			goto MeshData_Create_error;
 		}
 	}
+	else if (FileSystem::CompareExtension("gltf", _path))
+	{
+		if (!ReadGltf(*ret, f.getData(), f.getDataSize()))
+		{
+			goto MeshData_Create_error;
+		}
+	}
 	else
 	{
 		FRM_ASSERT(false); // unsupported format
@@ -847,7 +854,7 @@ void MeshBuilder::generateTangents()
 		vert->m_tangent = vec4(0.0f);
 	}
 
- // generate normals
+ // generate tangents
 	for (auto tri = m_triangles.begin(); tri != m_triangles.end(); ++tri)
 	{
 		Vertex& va = getVertex(tri->a);

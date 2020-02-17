@@ -518,6 +518,7 @@ Physics* Physics::s_instance = nullptr;
 
 void Physics::ApplyNodeTransforms()
 {
+	// \todo use the 'active actors' api, can skip updating nodes which haven't moved: https://gameworksdocs.nvidia.com/PhysX/4.0/documentation/PhysXGuide/Manual/RigidBodyDynamics.html#active-actors
 	for (Component_Physics* component : s_instance->m_dynamic)
 	{
 		physx::PxRigidDynamic* actor = (physx::PxRigidDynamic*)component->m_impl->pxRigidActor;

@@ -13,7 +13,7 @@
 
 _VERTEX_IN(0, vec3, aPosition);
 _VERTEX_IN(1, vec3, aNormal);
-_VERTEX_IN(2, vec3, aTangent);
+_VERTEX_IN(2, vec4, aTangent);
 _VERTEX_IN(3, vec2, aTexcoord);
 #ifdef SKINNING
 	_VERTEX_IN(4, vec4,  aBoneWeights);
@@ -88,7 +88,7 @@ bool BasicMaterial_CheckFlag(in uint _flag)
 void main()
 {
 	vUv = aTexcoord.xy;
-	vUv.y = 1.0 - vUv.y;
+	//vUv.y = 1.0 - vUv.y; // \todo
 
 	vec3 positionW = TransformPosition(uWorld, aPosition.xyz);
 	#ifdef SKINNING
@@ -114,7 +114,7 @@ void main()
 		vPrevPositionP = (uCamera.m_prevViewProj * (uPrevWorld * vec4(aPosition.xyz, 1.0))).xyw;
 
 		vNormalV = TransformDirection(uCamera.m_view, TransformDirection(uWorld, aNormal.xyz));
-		vTangentV = TransformDirection(uCamera.m_view, TransformDirection(uWorld, aTangent.xyz));
+		vTangentV = TransformDirection(uCamera.m_view, TransformDirection(uWorld, aTangent.xyz * aTangent.w));
 		vBitangentV = cross(vNormalV, vTangentV);
 	}
 	#endif

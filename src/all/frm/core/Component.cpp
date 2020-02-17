@@ -143,7 +143,7 @@ bool Component_BasicRenderable::edit()
 	if (ImGui::Button("Mesh"))
 	{
 		PathStr path = m_meshPath;
-		if (FileSystem::PlatformSelect(path, { "*.obj", "*.md5mesh" }))
+		if (FileSystem::PlatformSelect(path, { "*.obj", "*.gltf", "*.md5mesh" }))
 		{
 			path = FileSystem::MakeRelative(path.c_str());
 			if (path != m_meshPath)
@@ -156,7 +156,7 @@ bool Component_BasicRenderable::edit()
 					m_meshPath = path;
 					ret = true;
 
-					if (m_materialPaths.size() < m_mesh->getSubmeshCount())
+					if (m_materialPaths.size() != m_mesh->getSubmeshCount())
 					{
 						m_materialPaths.resize(m_mesh->getSubmeshCount());
 						while (m_materials.size() > m_materialPaths.size())

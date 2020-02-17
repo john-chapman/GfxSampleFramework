@@ -21,14 +21,23 @@
 
 using namespace frm;
 
-// Windows expects a list of string pairs to pass to GetOpenFileName() (display name, filter).
 static void BuildFilterString(std::initializer_list<const char*> _filterList, StringBase& ret_)
 {
+	for (size_t i = 0; i < _filterList.size(); ++i)
+	{
+		ret_.appendf("%s", *(_filterList.begin() + i));
+		if (i != _filterList.size() - 1)
+		{
+			ret_.append(", ");
+		}
+	}
+	ret_.append("\0", 1);
+
 	for (auto& filter : _filterList)
 	{
-		ret_.appendf("%s?%s?", filter, filter);
+		ret_.appendf("%s;", filter);
 	}
-	ret_.replace('?', '\0'); // \hack
+	ret_.append("\0", 1);
 }
 
 static DateTime FileTimeToDateTime(const FILETIME& _fileTime)

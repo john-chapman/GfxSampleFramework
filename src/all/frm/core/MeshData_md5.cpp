@@ -8,7 +8,6 @@
 #include <EASTL/vector.h>
 
 using namespace frm;
-using namespace frm;
 
 bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 {

@@ -102,6 +102,8 @@ local MODULE_DATA =           -- per-module name + custom config function
 			end
 			physxRoot = string.gsub(physxRoot, "\\", "/")
 			print("\t\tPHYSX_SDK: '" .. physxRoot .. "'")
+
+			physxRoot = "$(PHYSX_SDK)" -- \todo not portable but used currently to avoid absolute paths in the generate .vcxproj
 			includedirs({
 				physxRoot .. "/physx/include",				
 				physxRoot .. "/pxshared/include", -- \todo required?

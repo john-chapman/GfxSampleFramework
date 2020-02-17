@@ -6,7 +6,6 @@
 #include <tinyobjloader/tiny_obj_loader.h>
 
 using namespace frm;
-using namespace frm;
 
 bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 {
@@ -23,7 +22,7 @@ bool MeshData::ReadObj(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 	MeshDesc retDesc(MeshDesc::Primitive_Triangles);
 	VertexAttr* positionAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 3);
 	VertexAttr* normalAttr   = retDesc.addVertexAttr(VertexAttr::Semantic_Normals,   DataType_Sint16N, 3);
-	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  DataType_Sint16N, 3);
+	VertexAttr* tangentAttr  = retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  DataType_Sint16N, 4);
 	VertexAttr* texcoordAttr = retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float16, 2);
 	
 	MeshBuilder tmpMesh; // append vertices/indices here
