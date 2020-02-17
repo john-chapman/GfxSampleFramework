@@ -25,6 +25,7 @@ Embedded dependencies:
 - [RapidJSON](http://rapidjson.org/)
 - [stb](https://github.com/nothings/stb)
 - [tinyexr](https://github.com/syoyo/tinyexr)
+- [tinygltf](https://github.com/syoyo/tinygltf)
 - [tinyobjloader](https://github.com/syoyo/tinyobjloader)
 - [stb](https://github.com/nothings/stb)
 
