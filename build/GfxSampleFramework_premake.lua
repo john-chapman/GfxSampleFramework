@@ -285,6 +285,10 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 				path .. "/**.c",
 				path .. "/**.cpp"
 				})
+
+			filter { "action:vs*" }
+				path .. "/**.natvis",
+			filter {}
 		end
 		removefiles({
 			MakePath { SRC_PATH_ROOT, SRC_PATH_ALL, "core/extern/lua/lua.c"  }, -- standalone lua interpreter
