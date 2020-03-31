@@ -38,6 +38,28 @@ template <size_t kAlignment> struct aligned_base;
 
 namespace frm {
 
+// Call tType() on elements in [from, to[.
+template <typename tType>
+inline void Construct(tType* from, const tType* to)
+{
+	while (from < to)
+	{
+		new(from) tType();
+		++from;
+	}
+}
+
+// Call ~tType() on elements in [from, to[.
+template <typename tType>
+inline void Destruct(tType* from, const tType* to)
+{
+	while (from < to)
+	{
+		from->~tType();
+		++from;
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // aligned
 // Mixin class, provides template-based memory alignment for deriving classes.
