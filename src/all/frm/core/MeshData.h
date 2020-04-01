@@ -214,6 +214,18 @@ public:
 		const mat4&     _transform = identity
 		);
 
+	// Create a cone aligned on the Y axis.
+	static MeshData* CreateCone(
+		const MeshDesc& _desc,
+		float           _height,
+		float           _radiusTop,
+		float           _radiusBottom,
+		int             _sides,
+		int             _segs,		
+		bool            _capped    = true,
+		const mat4&     _transform = identity
+		);
+
 	static void Destroy(MeshData*& _meshData_);
 
 	friend void swap(MeshData& _a, MeshData& _b);

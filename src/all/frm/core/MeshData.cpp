@@ -345,6 +345,36 @@ static void BuildPlane(MeshBuilder& mesh_, float _sizeX, float _sizeZ, int _segs
 	}
 }
 
+static void BuildDisc(MeshBuilder& mesh_, float _radius, int _sides) // \todo radial segments?
+{
+	MeshBuilder::Vertex vert;
+	vert.m_position = vec3(0.0f);
+	vert.m_texcoord = vec2(0.5f);
+	vert.m_normal   = vec3(0.0f, 1.0f, 0.0f);
+	vert.m_tangent  = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	mesh_.addVertex(vert);
+
+	for (int i = 0; i <= _sides; ++i)
+	{
+		float theta = (float)i / (float)_sides * kTwoPi - kHalfPi; // - kHalfPi to correct for misalignment with cone/cylinder meshes
+		float x = sinf(theta);
+		float z = cosf(theta);
+		vert.m_position = vec3(x, 0.0f, z) * _radius;
+		vert.m_texcoord = vec2(x, z) * 0.5f + 0.5f;
+		mesh_.addVertex(vert);
+	}
+
+	for (int i = 1; i <= _sides; ++i)
+	{
+		int j = i + 1;
+		if (j > _sides)
+		{
+			j = 1;
+		}
+		mesh_.addTriangle(0, i, j);
+	}
+}
+
 MeshData* MeshData::CreatePlane(
 	const MeshDesc& _desc, 
 	float           _sizeX, 
@@ -410,9 +440,8 @@ MeshData* MeshData::CreateBox(
 		box.addMesh(faceYZ);
 	box.endSubmesh();
 
-	box.m_boundingBox.m_min = -halfSize;
-	box.m_boundingBox.m_max =  halfSize;
-	box.m_boundingSphere = Sphere(box.m_boundingBox);
+	box.transform(_transform);
+	box.updateBounds();
 
 	return Create(_desc, box);
 }
@@ -454,26 +483,68 @@ MeshData* MeshData::CreateCylinder(
 	const mat4&     _transform
 	)
 {
+	return CreateCone(_desc, _length, _radius, _radius, _sides, _segs, _capped, _transform);
+}
+
+MeshData* MeshData::CreateCone(
+	const MeshDesc& _desc,
+	float           _height,
+	float           _radiusTop,
+	float           _radiusBottom,
+	int             _sides,
+	int             _segs,		
+	bool            _capped,
+	const mat4&     _transform
+	)
+{
 	MeshBuilder mesh;
-	BuildPlane(mesh, kTwoPi, _length, _sides, _segs);
+	mesh.beginSubmesh(0);
+		BuildPlane(mesh, kTwoPi, _height, _sides, _segs);
+	mesh.endSubmesh();
+
+	const float r  = Max(_radiusTop, _radiusBottom) - Min(_radiusTop, _radiusBottom);
+	const float hr = _height / r;
+	const float rh = (r / _height) * ((_radiusTop > _radiusBottom) ? -1.0f : 1.0f);
 	for (uint32 i = 0; i < mesh.getVertexCount(); ++i)
 	{
 		MeshBuilder::Vertex& v = mesh.getVertex(i);
-		float x = sinf(v.m_position.x);
-		float y = cosf(v.m_position.x);
+		float x = sinf(v.m_position.x + kHalfPi);
+		float y = cosf(v.m_position.x + kHalfPi);
 		float z = v.m_position.z;
-		v.m_position = vec3(x * _radius, -z, y * _radius); // swap yz to align on y
+		float alpha = z / _height + 0.5f;
+		float radius = _radiusBottom * alpha + _radiusTop * (1.0f - alpha);
+		v.m_position = vec3(x * radius, -z, y * radius); // swap yz to align on y
+		
 		v.m_normal = normalize(vec3(v.m_position.x, 0.0f, v.m_position.z));
+		v.m_tangent = vec4(v.m_normal.z, 0.0f, -v.m_normal.x, 1.0f);
+		v.m_normal = vec3(v.m_normal.x * hr, rh, v.m_normal.z * hr);
+		
 	}
+	
 	if (_capped)
 	{
-		FRM_ASSERT(false); // \todo
-	}
+		uint submesh = 1;
+		if (_radiusTop > 0.0f)
+		{
+			MeshBuilder capTop;
+			BuildDisc(capTop, _radiusTop, _sides);
+			capTop.transform(TranslationMatrix(vec3(0.0f, _height / 2.0f, 0.0f)));
+			mesh.beginSubmesh(submesh++);
+				mesh.addMesh(capTop);
+			mesh.endSubmesh();
+		}
 
-	if (_desc.findVertexAttr(VertexAttr::Semantic_Tangents))
-	{
-		mesh.generateTangents();
+		if (_radiusBottom > 0.0f)
+		{
+			MeshBuilder capBottom;
+			BuildDisc(capBottom, _radiusBottom, _sides);
+			capBottom.transform(TranslationMatrix(vec3(0.0f, -_height / 2.0f, 0.0f)) * RotationMatrix(vec3(1.0f, 0.0f, 0.0f), kPi));
+			mesh.beginSubmesh(submesh);
+				mesh.addMesh(capBottom);
+			mesh.endSubmesh();
+		}
 	}
+	mesh.transform(_transform);
 	mesh.updateBounds();
 	return Create(_desc, mesh);
 }
