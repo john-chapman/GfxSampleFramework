@@ -438,7 +438,7 @@ AppSample::~AppSample()
 		Properties::InvalidateStorage("ShowShaderViewer");
 
 		Properties::PushGroup("Font");
-			Properties::InvalidateStorage("Font");
+			Properties::InvalidateStorage("FontPath");
 			Properties::InvalidateStorage("FontSize");
 			Properties::InvalidateStorage("FontOversample");
 			Properties::InvalidateStorage("FontEnableScaling");
