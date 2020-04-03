@@ -21,7 +21,7 @@ void File::setData(const char* _data, uint _size)
 
 void File::appendData(const char* _data, uint _size)
 {
-	uint currentSize = getDataSize();
+	uint currentSize = getDataSize() - 1;
 	m_data.reserve(currentSize + _size);
 	if (_data)
 	{
