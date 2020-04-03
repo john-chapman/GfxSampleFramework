@@ -134,7 +134,7 @@ struct Log::Buffer
 	 // append to output
 		File f;
 		FileSystem::ReadIfExists(f, (const char*)m_output);
-		f.appendData((const char*)data, data.getLength());
+		f.appendData(data.c_str(), data.getLength());
 		FileSystem::Write(f, (const char*)m_output);
 	}
 };

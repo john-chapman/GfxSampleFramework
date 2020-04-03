@@ -35,12 +35,12 @@ protected:
 	AppSample3d(const char* _title);
 	virtual ~AppSample3d();
 
-	Camera*  m_dbgCullCamera;
-	Scene*   m_scene;
+	Camera*  m_dbgCullCamera    = nullptr;
+	Scene*   m_scene            = nullptr;
 
-	bool     m_showHelpers;
-	bool     m_showSceneEditor;
-	PathStr  m_scenePath;
+	bool     m_showHelpers      = false;
+	bool     m_showSceneEditor  = false;
+	PathStr  m_scenePath        = "Scene.json";
 	
 private:
 

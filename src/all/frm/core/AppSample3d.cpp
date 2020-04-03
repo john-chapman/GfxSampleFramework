@@ -9,6 +9,7 @@
 #include <frm/core/Mesh.h>
 #include <frm/core/MeshData.h>
 #include <frm/core/Profiler.h>
+#include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Scene.h>
 #include <frm/core/Window.h>
@@ -297,12 +298,12 @@ void AppSample3d::DrawFrustum(const Frustum& _frustum)
 AppSample3d::AppSample3d(const char* _title)
 	: AppSample(_title)
 {
-
-	PropertyGroup& propGroup = m_props.addGroup("AppSample3d");
-	//                name                     default        min     max     storage
-	propGroup.addBool("Show Helpers",        false,                         &m_showHelpers);
-	propGroup.addBool("Show Scene Editor",   false,                         &m_showSceneEditor);
-	propGroup.addPath("Scene Path",          "Scene.json",                  &m_scenePath);
+	Properties::PushGroup("AppSample3d");
+		//                  name                 default              min     max     storage
+		Properties::Add    ("ShowHelpers",       m_showHelpers,                       &m_showHelpers);
+		Properties::Add    ("ShowSceneEditor",   m_showSceneEditor,                   &m_showSceneEditor);
+		Properties::AddPath("ScenePath",         m_scenePath,                         &m_scenePath);
+	Properties::PopGroup(); // AppSample3d
 }
 
 AppSample3d::~AppSample3d()

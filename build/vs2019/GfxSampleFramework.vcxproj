@@ -55,8 +55,8 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_PHYSICS=1;FRM_MODULE_AUDIO=1;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_PHYSICS=1;FRM_MODULE_CORE=1;FRM_MODULE_AUDIO=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -81,8 +81,8 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>NDEBUG;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_PHYSICS=1;FRM_MODULE_AUDIO=1;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;GLEW_STATIC=1;FRM_MODULE_VR=0;FRM_MODULE_PHYSICS=1;FRM_MODULE_CORE=1;FRM_MODULE_AUDIO=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -141,7 +141,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\PersistentVector.h" />
     <ClInclude Include="..\..\src\all\frm\core\Pool.h" />
     <ClInclude Include="..\..\src\all\frm\core\Profiler.h" />
-    <ClInclude Include="..\..\src\all\frm\core\Property.h" />
+    <ClInclude Include="..\..\src\all\frm\core\Properties.h" />
     <ClInclude Include="..\..\src\all\frm\core\Quadtree.h" />
     <ClInclude Include="..\..\src\all\frm\core\RenderNodes.h" />
     <ClInclude Include="..\..\src\all\frm\core\RenderTarget.h" />
@@ -428,7 +428,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\MeshData_md5.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\MeshData_obj.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Profiler.cpp" />
-    <ClCompile Include="..\..\src\all\frm\core\Property.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\Properties.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\RenderNodes.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\RenderTarget.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Resource.cpp" />
@@ -520,6 +520,9 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\win\frm\core\TimeImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\core\WindowImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\core\platform.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\src\all\frm\core\extern\EASTL\EASTL.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -3,6 +3,7 @@
 #include <frm/core/frm.h>
 #include <frm/core/log.h>
 #include <frm/core/LuaScript.h>
+#include <frm/core/StringHash.h>
 
 #include <imgui/imgui.h>
 

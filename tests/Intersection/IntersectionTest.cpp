@@ -3,6 +3,7 @@
 #include <frm/core/frm.h>
 #include <frm/core/geom.h>
 #include <frm/core/Camera.h>
+#include <frm/core/Properties.h>
 #include <frm/core/Scene.h>
 
 #include <imgui/imgui.h>
@@ -15,13 +16,14 @@ static IntersectionTest s_inst;
 IntersectionTest::IntersectionTest()
 	: AppBase("Intersection") 
 {
-	PropertyGroup& props = m_props.addGroup("Intersection");
-	//             name                     default                  min     max                   storage
-	props.addBool ("m_useLine",             m_useLine,                                             &m_useLine);
-	props.addInt  ("m_primitive",           m_primitive,             0,      Primitive_Count,      &m_primitive);
-	props.addFloat("m_primitiveLength",     m_primitiveLength,       1e-2f,  1e2f,                 &m_primitiveLength);
-	props.addFloat("m_primitiveWidth",      m_primitiveWidth,        1e-2f,  1e2f,                 &m_primitiveWidth);
-	props.addFloat("m_primitiveRadius",     m_primitiveRadius,       1e-2f,  1e2f,                 &m_primitiveRadius);
+	Properties::PushGroup("Intersection");
+		//              name                     default                  min     max                   storage
+		Properties::Add("m_useLine",             m_useLine,                                             &m_useLine);
+		Properties::Add("m_primitive",           m_primitive,             0,      (int)Primitive_Count, &m_primitive);
+		Properties::Add("m_primitiveLength",     m_primitiveLength,       1e-2f,  1e2f,                 &m_primitiveLength);
+		Properties::Add("m_primitiveWidth",       m_primitiveWidth,       1e-2f,  1e2f,                 &m_primitiveWidth);
+		Properties::Add("m_primitiveRadius",     m_primitiveRadius,       1e-2f,  1e2f,                 &m_primitiveRadius);
+	Properties::PopGroup();
 }
 
 IntersectionTest::~IntersectionTest()

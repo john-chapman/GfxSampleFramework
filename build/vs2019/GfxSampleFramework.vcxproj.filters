@@ -186,7 +186,7 @@
     <ClInclude Include="..\..\src\all\frm\core\Profiler.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\core\Property.h">
+    <ClInclude Include="..\..\src\all\frm\core\Properties.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Quadtree.h">
@@ -1043,7 +1043,7 @@
     <ClCompile Include="..\..\src\all\frm\core\Profiler.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\core\Property.cpp">
+    <ClCompile Include="..\..\src\all\frm\core\Properties.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\RenderNodes.cpp">
@@ -1319,5 +1319,10 @@
     <ClCompile Include="..\..\src\win\frm\core\platform.cpp">
       <Filter>win\frm\core</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\src\all\frm\core\extern\EASTL\EASTL.natvis">
+      <Filter>all\frm\core\extern\EASTL</Filter>
+    </Natvis>
   </ItemGroup>
 </Project>

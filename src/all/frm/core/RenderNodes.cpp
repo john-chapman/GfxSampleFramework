@@ -1,12 +1,12 @@
 #include "RenderNodes.h"
 
 #include <frm/core/gl.h>
-#include <frm/core/Property.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Json.h>
 #include <frm/core/Profiler.h>
+#include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
 
@@ -24,10 +24,10 @@ using namespace frm;
 
 void LuminanceMeter::setProps(Properties& _props_)
 {
-	PropertyGroup& propGroup = _props_.addGroup("Luminance Meter");
+	/*PropertyGroup& propGroup = _props_.addGroup("Luminance Meter");
 	//                 name           default        min             max          storage
 	propGroup.addBool ("Enabled",     true,                                       &m_enabled);
-	propGroup.addFloat("Rate",        1.0f,          0.0f,           16.0f,       &m_data.m_rate);
+	propGroup.addFloat("Rate",        1.0f,          0.0f,           16.0f,       &m_data.m_rate);*/
 }
 
 bool LuminanceMeter::init(int _txSize)
@@ -145,7 +145,7 @@ void LuminanceMeter::edit()
 
 void ColorCorrection::setProps(Properties& _props_)
 {
-	PropertyGroup& propGroup = _props_.addGroup("Color Correction");
+	/*PropertyGroup& propGroup = _props_.addGroup("Color Correction");
 	//                  name                     default                         min             max           storage
 	propGroup.addBool  ("Enabled",               true,                                                         &m_enabled);
 	propGroup.addFloat ("Exposure",              0.0f,                          -16.0f,          16.0f,        &m_data.m_exposure);
@@ -153,7 +153,7 @@ void ColorCorrection::setProps(Properties& _props_)
 	propGroup.addFloat ("Local Exposure Lod",    log2(4.0f),                     log2(1.0f),     log2(512.0f), &m_data.m_localExposureLod);
 	propGroup.addFloat ("Saturation",            1.0f,                           0.0f,           8.0f,         &m_data.m_saturation);
 	propGroup.addFloat ("Contrast",              1.0f,                           0.0f,           8.0f,         &m_data.m_contrast);
-	propGroup.addRgb   ("Tint",                  vec3(1.0f),                     0.0f,           1.0f,         &m_data.m_tint);
+	propGroup.addRgb   ("Tint",                  vec3(1.0f),                     0.0f,           1.0f,         &m_data.m_tint);*/
 }
 
 bool ColorCorrection::init()

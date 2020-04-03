@@ -14,6 +14,7 @@
 #include <frm/core/Log.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/Profiler.h>
+#include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
 #include <frm/core/Window.h>
@@ -110,17 +111,22 @@ bool AppSample::init(const frm::ArgList& _args)
 	g_Log.addMessage((const char*)String<64>("'%s' %s", (const char*)m_name, Time::GetDateTime().asString()));
 	FRM_LOG("System info:\n%s", (const char*)GetPlatformInfoString());
 
- 	m_propsPath.setf("%s.json", (const char*)m_name);
-	readProps((const char*)m_propsPath);
+ 	m_configPath.setf("%s.json", (const char*)m_name);
+	readConfig(m_configPath.c_str());
 
-	ivec2 windowSize     = m_hiddenMode ? ivec2(1) : *m_props.findProperty("WindowSize")->asInt2();
+	Properties::PushGroup("AppSample");
+
+	ivec2 windowSize     = m_hiddenMode ? ivec2(1) : *Properties::Find("WindowSize")->get<ivec2>();
 	m_window             = Window::Create(windowSize.x, windowSize.y, (const char*)m_name);
 	m_windowSize         = ivec2(m_window->getWidth(), m_window->getHeight());
 		
-	ivec2 glVersion      = *m_props.findProperty("GlVersion")->asInt2();
-	bool glCompatibility = *m_props.findProperty("GlCompatibility")->asBool();
-	bool glDebug         = *m_props.findProperty("GlDebug")->asBool();
-	bool glHDR           = *m_props.findProperty("HDR")->asBool();
+	Properties::PushGroup("GlContext");
+	ivec2 glVersion      = *Properties::Find("GlVersion",       "GlContext")->get<ivec2>();
+	bool glCompatibility = *Properties::Find("GlCompatibility", "GlContext")->get<bool>();
+	bool glDebug         = *Properties::Find("GlDebug",         "GlContext")->get<bool>();
+	bool glHDR           = *Properties::Find("HDR",             "GlContext")->get<bool>();
+	Properties::PopGroup();
+
 	GlContext::CreateFlags ctxFlags = 0
 		| (glCompatibility ? GlContext::CreateFlags_Compatibility : 0)
 		| (glDebug         ? GlContext::CreateFlags_Debug         : 0)
@@ -136,9 +142,11 @@ bool AppSample::init(const frm::ArgList& _args)
 		return false;
 	}
 
-	ivec2 resolution = *m_props.findProperty("Resolution")->asInt2();
+	ivec2 resolution = *Properties::Find("Resolution")->get<ivec2>();
 	m_resolution.x   = resolution.x == -1 ? m_windowSize.x : resolution.x;
 	m_resolution.y   = resolution.y == -1 ? m_windowSize.y : resolution.y;
+
+	Properties::PopGroup();
 
 	kColor_Log[LogType_Log]   = 0xff999999;
 	kColor_Log[LogType_Error] = 0xff1943ff;
@@ -212,7 +220,7 @@ void AppSample::shutdown()
 	
 	if (!m_hiddenMode) 
 	{
-		writeProps((const char*)m_propsPath);
+		writeConfig(m_configPath.c_str());
 	}
 
 	App::shutdown();
@@ -312,8 +320,10 @@ bool AppSample::update()
 
 	if (m_showPropertyEditor)
 	{
+		static ImGuiTextFilter propertiesFilter;
 		ImGui::Begin("Properties", &m_showPropertyEditor);
-			m_props.edit();
+			propertiesFilter.Draw();
+			Properties::GetCurrent()->edit(propertiesFilter.InputBuf);
 		ImGui::End();
 	}
 	if (m_showProfilerViewer) 
@@ -377,55 +387,90 @@ AppSample::AppSample(const char* _name)
 	FRM_ASSERT(g_Current == nullptr); // don't support multiple apps (yet)
 	g_Current = this;
 
-	PropertyGroup& propGroupAppSample = m_props.addGroup("AppSample");
-	//                 name                     default         min     max                          storage
-	propGroupAppSample.addInt2 ("Resolution",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroupAppSample.addInt2 ("WindowSize",            ivec2(-1),      1,      32768,                       nullptr);
-	propGroupAppSample.addInt  ("VsyncMode",             0,              0,      GlContext::Vsync_On,         &m_vsyncMode);
-	propGroupAppSample.addBool ("ShowMenu",              false,                                               &m_showMenu);
-	propGroupAppSample.addBool ("ShowLog",               false,                                               &m_showLog);
-	propGroupAppSample.addBool ("ShowLogNotifications",  false,                                               &m_showLogNotifications);
-	propGroupAppSample.addBool ("ShowPropertyEditor",    false,                                               &m_showPropertyEditor);
-	propGroupAppSample.addBool ("ShowProfiler",          false,                                               &m_showProfilerViewer);
-	propGroupAppSample.addBool ("ShowTextureViewer",     false,                                               &m_showTextureViewer);
-	propGroupAppSample.addBool ("ShowShaderViewer",      false,                                               &m_showShaderViewer);
+	
+	Properties::PushGroup("AppSample");
 
-	PropertyGroup& propGroupFont = m_props.addGroup("Font");
-	propGroupFont.addPath      ("Font",                  "",                                                  nullptr);
-	propGroupFont.addFloat     ("FontSize",              13.0f,          4.0f,  64.0f,                        nullptr);
-	propGroupFont.addInt       ("FontOversample",        1,              1,     8,                            nullptr);
-	propGroupFont.addBool      ("FontEnableScaling",     true,                                                nullptr);
-	
-	PropertyGroup& propGroupGlContext = m_props.addGroup("GlContext");
-	propGroupGlContext.addInt2 ("GlVersion",             ivec2(-1, -1), -1,      99,                          nullptr);
-	propGroupGlContext.addBool ("GlCompatibility",       false,                                               nullptr);
-	propGroupGlContext.addBool ("GlDebug",               false,                                               nullptr);
-	propGroupGlContext.addBool ("HDR",                   false,                                               nullptr);
-	
+		//              name                     default                     min           max                           storage
+		Properties::Add("Resolution",            ivec2(-1),                  ivec2(1),     ivec2(32768)                                         );
+		Properties::Add("WindowSize",            ivec2(-1),                  ivec2(1),     ivec2(32768)                                         );
+		Properties::Add("VsyncMode",             m_vsyncMode,                0,            (int)GlContext::Vsync_On3,    &m_vsyncMode           );
+		Properties::Add("ShowMenu",              m_showMenu,                                                             &m_showMenu            );
+		Properties::Add("ShowLog",               m_showLog,                                                              &m_showLog             );
+		Properties::Add("ShowLogNotifications",  m_showLogNotifications,                                                 &m_showLogNotifications);
+		Properties::Add("ShowPropertyEditor",    m_showPropertyEditor,                                                   &m_showPropertyEditor  );
+		Properties::Add("ShowProfiler",          m_showProfilerViewer,                                                   &m_showProfilerViewer  );
+		Properties::Add("ShowTextureViewer",     m_showTextureViewer,                                                    &m_showTextureViewer   );
+		Properties::Add("ShowShaderViewer",      m_showShaderViewer,                                                     &m_showShaderViewer    );
+
+		Properties::PushGroup("Font");
+			//                  name                 default                     min           max                           storage
+			Properties::AddPath("FontPath",          ""                                                                              );
+			Properties::Add    ("FontSize",          13.0f,                      4.0f,         64.0f                                 );
+			Properties::Add    ("FontOversample",    1,                          1,            8                                     );
+			Properties::Add    ("FontEnableScaling", true                                                                            );
+		Properties::PopGroup(); // Font
+
+		Properties::PushGroup("GlContext");
+			//              name                 default                     min           max                           storage
+			Properties::Add("GlVersion",         ivec2(-1, -1),              ivec2(-1),    ivec2(99)                             );
+			Properties::Add("GlCompatibility",   false                                                                           );
+			Properties::Add("GlDebug",           false                                                                           );
+			Properties::Add("HDR",               false                                                                           );
+		Properties::PopGroup(); // GlContext
+
+	Properties::PopGroup(); // AppSample	
 }
 
 AppSample::~AppSample()
 {
 	//shutdown(); \todo it's not safe to call shutdown() twice
+
+	Properties::PushGroup("AppSample");
+		Properties::InvalidateStorage("Resolution");
+		Properties::InvalidateStorage("WindowSize");
+		Properties::InvalidateStorage("VsyncMode");
+		Properties::InvalidateStorage("ShowMenu");
+		Properties::InvalidateStorage("ShowLog");
+		Properties::InvalidateStorage("ShowLogNotifications");
+		Properties::InvalidateStorage("ShowPropertyEditor");
+		Properties::InvalidateStorage("ShowProfiler");
+		Properties::InvalidateStorage("ShowTextureViewer");
+		Properties::InvalidateStorage("ShowShaderViewer");
+
+		Properties::PushGroup("Font");
+			Properties::InvalidateStorage("Font");
+			Properties::InvalidateStorage("FontSize");
+			Properties::InvalidateStorage("FontOversample");
+			Properties::InvalidateStorage("FontEnableScaling");
+		Properties::PopGroup(); // Font
+
+		Properties::PushGroup("GlContext");
+			Properties::InvalidateStorage("GlVersion");
+			Properties::InvalidateStorage("GlCompatibility");
+			Properties::InvalidateStorage("GlDebug");
+			Properties::InvalidateStorage("HDR");
+		Properties::PopGroup(); // GlContext
+
+	Properties::PopGroup(); // AppSample	
 }
 
 
-bool AppSample::readProps(const char* _path,  int _root)
+bool AppSample::readConfig(const char* _path, int _root)
 {
 	Json json;
 	if (Json::Read(json, _path, _root)) 
 	{
 		SerializerJson serializer(json, SerializerJson::Mode_Read);
-		return Serialize(serializer, m_props);
+		return Serialize(serializer, *Properties::GetCurrent());
 	}
 	return false;
 }
 
-bool AppSample::writeProps(const char* _path, int _root)
+bool AppSample::writeConfig(const char* _path, int _root)
 {
 	Json json;
 	SerializerJson serializer(json, SerializerJson::Mode_Write);
-	if (!Serialize(serializer, m_props)) 
+	if (!Serialize(serializer, *Properties::GetCurrent()))
 	{
 		return false;
 	}
@@ -672,31 +717,8 @@ bool AppSample::ImGui_Init(AppSample* _app)
 	g_txRadar = Texture::Create("textures/radar.tga");
 	g_txRadar->setName("#TextureViewer_radar");
 
- // font
-	auto&       props          = _app->getProperties();
-	const auto& fontPath       = *props.findProperty("Font")->asString();
-	float       fontSize       = *props.findProperty("FontSize")->asFloat();
-	int         fontOversample = *props.findProperty("FontOversample")->asInt();
-	ImFontConfig fontCfg;
-	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
-	fontCfg.SizePixels  = fontSize;
-	if (*props.findProperty("FontEnableScaling")->asBool()) 
-	{
-		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * _app->getWindow()->getScaling());
-	}
-	fontCfg.PixelSnapH  = true;
-	if (fontPath.isEmpty()) 
-	{
-		io.Fonts->AddFontDefault(&fontCfg);
-	}
-	else 
-	{
-		io.Fonts->AddFontFromFileTTF((const char*)fontPath, fontSize, &fontCfg);
-	}
-	fontCfg.MergeMode = true;
-	const ImWchar glyphRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-	io.Fonts->AddFontFromFileTTF("common/fonts/" FONT_ICON_FILE_NAME_FA, fontSize, &fontCfg, glyphRanges);
-	
+	ImGui_InitFont(_app);
+
 	if (g_txImGui)
 	{
 		Texture::Release(g_txImGui);
@@ -807,16 +829,18 @@ void AppSample::ImGui_InitStyle()
 
 bool AppSample::ImGui_InitFont(AppSample* _app)
 {
+	Properties::PushGroup("Font");
+
 	ImGuiIO& io = ImGui::GetIO();
 
-	auto&       props          = _app->getProperties();
-	const auto& fontPath       = *props.findProperty("Font")->asString();
-	float       fontSize       = *props.findProperty("FontSize")->asFloat();
-	int         fontOversample = *props.findProperty("FontOversample")->asInt();
+	PathStr& fontPath       = *Properties::Find("FontPath")->get<PathStr>();
+	float    fontSize       = *Properties::Find("FontSize")->get<float>();
+	int      fontOversample = *Properties::Find("FontOversample")->get<int>();
+
 	ImFontConfig fontCfg;
 	fontCfg.OversampleH = fontCfg.OversampleV = fontOversample;
 	fontCfg.SizePixels  = fontSize;
-	if (*props.findProperty("FontEnableScaling")->asBool())
+	if (*Properties::Find("FontEnableScaling")->get<bool>()) 
 	{
 		fontCfg.SizePixels = Ceil(fontCfg.SizePixels * _app->getWindow()->getScaling());
 	}
@@ -849,6 +873,7 @@ bool AppSample::ImGui_InitFont(AppSample* _app)
 	g_txViewImGui = TextureView(g_txImGui, g_shImGui);
 	io.Fonts->TexID = (void*)&g_txViewImGui; // need a TextureView ptr for rendering
 
+	Properties::PopGroup();
 	return true;
 }
 

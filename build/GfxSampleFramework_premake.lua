@@ -287,7 +287,9 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 				})
 
 			filter { "action:vs*" }
-				path .. "/**.natvis",
+				files({
+					path .. "/**.natvis"
+					})
 			filter {}
 		end
 		removefiles({

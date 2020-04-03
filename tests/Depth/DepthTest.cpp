@@ -7,6 +7,7 @@
 #include <frm/core/GlContext.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/Profiler.h>
+#include <frm/core/Properties.h>
 #include <frm/core/Scene.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
@@ -20,12 +21,13 @@ static DepthTest s_inst;
 DepthTest::DepthTest()
 	: AppBase("Depth") 
 {
-	PropertyGroup& props = m_props.addGroup("DepthTest");
-	//             name                     default                  min     max                   storage
-	props.addBool ("m_reconstructPosition", m_reconstructPosition,                                 &m_reconstructPosition);
-	props.addInt  ("m_instanceCount",       m_instanceCount,         1,      128,                  &m_instanceCount);
-	props.addInt  ("m_depthFormat",         m_depthFormat,           0,      DepthFormat_Count,    &m_depthFormat);
-	props.addFloat("m_maxError",            m_maxError,              0.0f,   1.0f,                 &m_maxError);
+	Properties::PushGroup("DepthTest");
+		//              name                     default                  min     max                     storage
+		Properties::Add("m_reconstructPosition", m_reconstructPosition,                                   &m_reconstructPosition);
+		Properties::Add("m_instanceCount",       m_instanceCount,         1,      128,                    &m_instanceCount);
+		Properties::Add("m_depthFormat",         m_depthFormat,           0,      (int)DepthFormat_Count, &m_depthFormat);
+		Properties::Add("m_maxError",            m_maxError,              0.0f,   1.0f,                   &m_maxError);
+	Properties::PopGroup();
 }
 
 DepthTest::~DepthTest()
