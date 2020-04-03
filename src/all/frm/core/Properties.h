@@ -9,7 +9,7 @@
 #include <eastl/vector.h>
 #include <eastl/vector_map.h>
 
-namespace frm { namespace refactor {
+namespace frm {
 
 class Property;
 
@@ -80,7 +80,7 @@ public:
 
 	// Push/pop the current group. If _group doesn't exist, a new empty group is created.
 	static Properties* PushGroup(const char* _groupName);
-	static void        PopGroup();
+	static void        PopGroup(int _count = 1);
 
 	// Find a property as per Find(), invalidate the external storage ptr. Call this e.g. in the dtor of a class which owns the storage, this is important to allow properties to be correctly serialized.
 	static void        InvalidateStorage(const char* _propName, const char* _groupName = nullptr);
@@ -153,6 +153,9 @@ public:
 	using DisplayFunc = Properties::DisplayFunc;
 
 	void          reset();
+
+	template <typename tType>
+	tType*        get(int i = 0)                                { /*FRM_ASSERT(sizeof(tType) * m_count == getSizeBytes());*/ FRM_ASSERT(i < m_count); return (tType*)m_storageExternal + i; }
 
 	const char*   getName() const                               { return m_name.c_str(); }
 	void          setName(const char* _name)                    { m_name.set(_name); }
@@ -234,7 +237,8 @@ private:
 	void*           m_default         = nullptr;
 	void*           m_min             = nullptr;
 	void*           m_max             = nullptr;
-	bool            m_setFromCode     = false; // Whether this property was set from code, i.e. whether it should be written during serialization.
+	bool            m_setFromCode     = false;   // Whether this property was set from code, i.e. whether it should be written during serialization.
+	bool            m_ownsStorage     = false;   // Whether m_storageExternal should be deleted by the property.
 
 	void copy(void* dst_, const void* _src);
 
@@ -242,5 +246,4 @@ private:
 	friend bool Serialize(SerializerJson& _serializer_, Properties& _group_);
 };
 
-
-} } // namespace frm
+} // namespace frm

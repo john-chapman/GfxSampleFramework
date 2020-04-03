@@ -10,7 +10,7 @@
 
 #include <imgui/imgui.h>
 
-namespace frm { namespace refactor {
+namespace frm {
 
 /*******************************************************************************
 
@@ -89,7 +89,7 @@ Properties_GetTypeCount(vec4,  Properties::Type_Float,  4);
 Properties_GetTypeCount(StringBase, Properties::Type_String, 1);
 
 
-bool Properties::DefaultEditFunc(refactor::Property& _prop)
+bool Properties::DefaultEditFunc(Property& _prop)
 {
 	constexpr int kStrBufLen = 512;
 	void* data = _prop.getExternalStorage();
@@ -198,7 +198,7 @@ bool Properties::DefaultEditFunc(refactor::Property& _prop)
 	return ret;
 }
 
-bool Properties::ColorEditFunc(refactor::Property& _prop_)
+bool Properties::ColorEditFunc(Property& _prop_)
 {
 	FRM_ASSERT(_prop_.getType() == Type_Float);
 
@@ -217,7 +217,7 @@ bool Properties::ColorEditFunc(refactor::Property& _prop_)
 	return ret;
 }
 
-bool Properties::PathEditFunc(refactor::Property& _prop_)
+bool Properties::PathEditFunc(Property& _prop_)
 {
 	bool ret = false;
 	void* data = _prop_.getExternalStorage();
@@ -237,7 +237,7 @@ bool Properties::PathEditFunc(refactor::Property& _prop_)
 	return ret;
 }
 
-void Properties::DefaultDisplayFunc(const refactor::Property& _prop)
+void Properties::DefaultDisplayFunc(const Property& _prop)
 {
 	ImGui::Text("%s: ", (const char*)_prop.m_displayName);
 	void* data = _prop.getExternalStorage();
@@ -278,7 +278,7 @@ void Properties::DefaultDisplayFunc(const refactor::Property& _prop)
 	};
 }
 
-void Properties::ColorDisplayFunc(const refactor::Property& _prop)
+void Properties::ColorDisplayFunc(const Property& _prop)
 {
 	FRM_ASSERT(_prop.getType() == Type_Float);
 
@@ -306,7 +306,7 @@ Properties* Properties::GetCurrent()
 	return s_groupStack.back();
 }
 
-refactor::Property* Properties::AddColor(const char* _name, const vec3& _default, vec3* _storage, const char* _displayName)
+Property* Properties::AddColor(const char* _name, const vec3& _default, vec3* _storage, const char* _displayName)
 {
 	Property* ret = Add(_name, _default, _storage, _displayName);
 	ret->setEditFunc(ColorEditFunc); 
@@ -370,18 +370,23 @@ Properties* Properties::PushGroup(const char* _groupName)
 	return ret;
 }
 
-void Properties::PopGroup()
+void Properties::PopGroup(int _count)
 {
 	FRM_ASSERT(!s_groupStack.empty());
+	FRM_ASSERT(s_groupStack.size() >= _count);
 	if (!s_groupStack.empty())
 	{
-		s_groupStack.pop_back();
+		while (_count > 0)
+		{
+			s_groupStack.pop_back();
+			--_count;
+		}
 	}
 }
 
 void Properties::InvalidateStorage(const char* _propName, const char* _groupName)
 {
-	Property* prop = Find(_propName, _groupName);
+	Property* prop = Find(_propName, _groupName); // searches current group if !_groupName
 	if (prop) 
 	{
 		prop->setExternalStorage(nullptr);
@@ -400,7 +405,7 @@ void Properties::Destroy(Properties*& _properties_)
 }
 
 
-bool Serialize(SerializerJson& _serializer_, refactor::Properties& _group_)
+bool Serialize(SerializerJson& _serializer_, Properties& _group_)
 {
 	bool ret = true;
 
@@ -441,7 +446,7 @@ bool Serialize(SerializerJson& _serializer_, refactor::Properties& _group_)
 				if (prop->m_setFromCode)
 				{
 				 // property was set from code, check that the type and count are the same else do nothing (type/count was changed in code)
-					if (prop->m_type != type || prop->m_count != count)
+					if ((prop->m_type != type && prop->m_type != Properties::Type_Int) || prop->m_count != count)
 					{
 						FRM_LOG("Properties: '%s' (%s[%d]) type/count changed (%s[%d]), ignoring.", name, Properties::GetTypeStr(type), count, Properties::GetTypeStr(prop->m_type), prop->m_count);
 						prop = nullptr;
@@ -645,7 +650,7 @@ Properties::~Properties()
 	m_properties.clear();
 }
 
-refactor::Property* Properties::findOrAdd(const char* _name, Type _type, int _count)
+Property* Properties::findOrAdd(const char* _name, Type _type, int _count)
 {
 	Property*& ret = m_properties[GetStringHash(_name)];
 	if (!ret)
@@ -656,7 +661,7 @@ refactor::Property* Properties::findOrAdd(const char* _name, Type _type, int _co
 	return ret;
 }
 
-refactor::Property* Properties::add(const char* _name, Type _type, int _count, const void* _default, const void* _min, const void* _max, void* _storage, const char* _displayName)
+Property* Properties::add(const char* _name, Type _type, int _count, const void* _default, const void* _min, const void* _max, void* _storage, const char* _displayName)
 {
 	Property* ret = FRM_NEW(Property);
 	ret->init(_name, _displayName, _type, _count, _storage, _default, _min, _max);
@@ -665,7 +670,7 @@ refactor::Property* Properties::add(const char* _name, Type _type, int _count, c
 	if (existing)
 	{
 		ret->m_storageInternal = existing->m_storageInternal;
-		ret->setExternalStorage(_storage); // will force a copy internal -> external
+		ret->copy(ret->m_storageExternal, ret->m_storageInternal); // force a copy internal -> external
 		existing->m_storageInternal = nullptr;
 		FRM_DELETE(existing);
 	}
@@ -842,6 +847,8 @@ void Property::init(
 	m_storageExternal = _storageExternal;
 	
 	alloc();
+	copy(m_storageInternal, _default);
+	copy(m_default, _default);
 	if (_min)
 	{
 		copy(m_min, _min);
@@ -853,6 +860,16 @@ void Property::init(
 	if (_storageExternal)
 	{
 		copy(m_storageInternal, m_storageExternal);
+	}
+	else
+	{
+		m_storageExternal = FRM_MALLOC(getSizeBytes());
+		if (m_type == Properties::Type_String)
+		{
+			Construct((String<32>*)m_storageExternal, (String<32>*)m_storageExternal + m_count);
+		}
+		copy(m_storageExternal, m_default);
+		m_ownsStorage = true;
 	}
 
 	m_setFromCode = true;
@@ -889,6 +906,11 @@ void Property::shutdown()
 		{
 			Destruct((String<32>*)m_storageInternal, (String<32>*)m_storageInternal + m_count);
 		}
+	}
+
+	if (m_ownsStorage)
+	{
+		FRM_FREE(m_storageExternal);
 	}
 
 	FRM_FREE(m_storageInternal);
@@ -932,4 +954,4 @@ void Property::copy(void* dst_, const void* _src)
 	};
 }
 
-} } // namespace frm
+} // namespace frm
