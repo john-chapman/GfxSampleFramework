@@ -30,6 +30,7 @@ Embedded dependencies:
 - [stb](https://github.com/nothings/stb)
 
 ## Change Log ##
+- `2020-04-13 (v0.31):` Version bump after merging PhysX integration, basic renderer implementation + properites refactor.
 - `2019-10-15 (v0.30):` Subsumed ApplicationTools.
 - `2019-07-03 (v0.20):` File: fixed setData/appendData when _data is nullptr.
 - `2019-03-31 (v0.19):` String: removed internal use of `strncpy` to support strings which contain internal null chars.

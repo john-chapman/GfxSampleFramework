@@ -1,6 +1,6 @@
 #pragma once
 
-#define FRM_VERSION "0.30"
+#define FRM_VERSION "0.31"
 
 #include <frm/core/config.h>
 
