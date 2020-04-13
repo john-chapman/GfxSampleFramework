@@ -31,7 +31,7 @@ vec3 Shadow_Project(
 	vec4 ret     = _worldToShadow * vec4(_P, 1.0);
 	     ret.xyz = ret.xyz / ret.w;
 	     ret.xy  = ret.xy * 0.5 + 0.5;
-	     ret.xy  = clamp(ret.xy, _shadowTexelSize, 1.0 - _shadowTexelSize); // clamp to border texels
+	     ret.xy  = clamp(ret.xy, _shadowTexelSize, 1.0 - _shadowTexelSize); // clamp to border texels \todo need to account for the filter width here
 		 ret.z   = saturate(ret.z); // required for directional lights where P projects outside the frustum
 	     ret.xy  = ret.xy * _scale + _bias;
 	     ret.z   = ret.z - Shadow_CONSTANT_BIAS;

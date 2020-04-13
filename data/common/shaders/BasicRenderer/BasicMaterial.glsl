@@ -316,7 +316,7 @@ void main()
 					if (!bool(Shadow_PREDICATE_NoL) || lightingIn.NoL > Lighting_EPSILON)
 					{
 						vec3 shadowCoord = Shadow_Project(P, uShadowLights[i].worldToShadow, shadowTexelSize, uShadowLights[i].uvScale, uShadowLights[i].uvBias);
-						radiance *= Shadow_FetchQuincunx(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
+						radiance *= Shadow_FetchBilinear(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
 					}
 					ret += radiance;
 					break;
@@ -337,7 +337,7 @@ void main()
 					if (!bool(Shadow_PREDICATE_NoL) || lightingIn.NoL > Lighting_EPSILON)
 					{
 						vec3 shadowCoord = Shadow_Project(P, uShadowLights[i].worldToShadow, shadowTexelSize, uShadowLights[i].uvScale, uShadowLights[i].uvBias);
-						radiance *= Shadow_FetchQuincunx(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
+						radiance *= Shadow_FetchBilinear(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
 					}
 					ret += radiance;
 					break;
