@@ -1,34 +1,18 @@
 {
-	"Font": {},
 	"AppSample3d": {
 		"ScenePath": "Scene.json",
-		"ShowSceneEditor": false,
+		"ShowSceneEditor": true,
 		"ShowHelpers": false
 	},
-	"GlContext": {},
 	"AppSample": {
 		"VsyncMode": 2,
 		"ShowShaderViewer": false,
-		"ShowLogNotifications": false,
+		"ShowLogNotifications": true,
 		"ShowPropertyEditor": false,
 		"WindowSize": [-1, -1],
 		"ShowMenu": true,
 		"ShowTextureViewer": false,
 		"Resolution": [-1, -1],
-<<<<<<< Updated upstream
-		"ShowLog": false
-	},
-	"GlContext": {
-		"GlVersion": [-1, -1],
-		"HDR": false,
-		"GlCompatibility": false,
-		"GlDebug": false
-	},
-	"AppSample3d": {
-		"Scene Path": "Scene.json",
-		"Show Helpers": false,
-		"Show Scene Editor": true
-=======
 		"ShowProfiler": false,
 		"ShowLog": false,
 		"Font": {
@@ -43,6 +27,5 @@
 			"GlCompatibility": false,
 			"GlVersion": [-1, -1]
 		}
->>>>>>> Stashed changes
 	}
 }
