@@ -34,12 +34,12 @@ public:
 
 	enum Flag_
 	{
-	 // must match BasicMaterial.glsl
-		Flag_AlphaTest,
+		Flag_AlphaTest,   // Enable cutout alpha (discard against Map_Alpha).
+		Flag_AlphaDither, // Enabled dithered alpha (for fade transitions, etc.).
 
 		Flag_Count
 	};
-	typedef uint32 Flag;
+	typedef uint64 Flag;
 
 	static BasicMaterial* Create();
 	static BasicMaterial* Create(const char* _path);
@@ -56,7 +56,7 @@ public:
 
 	const char*           getPath() const            { return m_path.c_str(); }
 	Texture*              getMap(Map _mapName) const { return m_maps[_mapName]; }
-	uint32                getFlags() const           { return m_flags; }
+	uint64                getFlags() const           { return m_flags; }
 	const vec3&           getBaseColor() const       { return m_baseColor; }
 	const vec3&           getEmissiveColor() const   { return m_emissiveColor; }
 	float                 getAlpha() const           { return m_alpha; }
@@ -78,7 +78,7 @@ protected:
 	vec3                                  m_baseColor       = vec3(1.0f);
 	vec3                                  m_emissiveColor   = vec3(0.0f);
 	float                                 m_alpha           = 1.0f;
-	uint32                                m_flags           = 0u;
+	uint64                                m_flags           = 0u;
 
 	// \todo use textures for everything?
 	float                                 m_metallic        = 1.0f;

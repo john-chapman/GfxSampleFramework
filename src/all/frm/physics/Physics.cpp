@@ -607,8 +607,8 @@ bool Component_Physics::edit()
 	{
 		if (Im3d::Gizmo("InitialTransform", (float*)&m_initialTransform) && m_impl)
 		{
-			physx::PxRigidDynamic* actor = (physx::PxRigidDynamic*)m_impl->pxRigidActor;
-			FRM_ASSERT(actor->is<physx::PxRigidDynamic>());
+			physx::PxRigidActor* actor = (physx::PxRigidActor*)m_impl->pxRigidActor;
+			FRM_ASSERT(actor->is<physx::PxRigidActor>());
 			actor->setGlobalPose(Mat4ToPxTransform(m_initialTransform));
 			ret = true;
 		}
@@ -616,8 +616,8 @@ bool Component_Physics::edit()
 		if (ImGui::Button("Copy from node"))
 		{
 			m_initialTransform = m_node->getLocalMatrix();
-			physx::PxRigidDynamic* actor = (physx::PxRigidDynamic*)m_impl->pxRigidActor;
-			FRM_ASSERT(actor->is<physx::PxRigidDynamic>());
+			physx::PxRigidActor* actor = (physx::PxRigidActor*)m_impl->pxRigidActor;
+			FRM_ASSERT(actor->is<physx::PxRigidActor>());
 			actor->setGlobalPose(Mat4ToPxTransform(m_initialTransform));
 			ret = true;
 		}
@@ -1105,8 +1105,7 @@ void Component_PhysicsTemporary::update(float _dt)
 	else
 	{
 		const physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)m_impl->pxRigidActor;
-		const float velocityMagnitude = Length2(PxToVec3(pxRigidDynamic->getAngularVelocity())) + Length2(PxToVec3(pxRigidDynamic->getLinearVelocity()));
-		if (velocityMagnitude < velocityThreshold)
+		if (pxRigidDynamic->isSleeping())
 		{
 			timer = idleTimeout;
 		}

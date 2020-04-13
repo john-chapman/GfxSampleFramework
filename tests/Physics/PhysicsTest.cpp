@@ -143,6 +143,17 @@ bool PhysicsTest::update()
 		spawnPhysicsObject(m_spawnType, position, linearVelocity);
 	}
 
+	if (m_showHelpers)
+	{
+		Im3d::PushDrawState();
+			Im3d::SetSize(2.0f);
+			Im3d::SetColor(Im3d::Color_Yellow);
+			Im3d::DrawAlignedBox(m_basicRenderer->shadowSceneBounds.m_min, m_basicRenderer->shadowSceneBounds.m_max);
+			Im3d::SetColor(Im3d::Color_Magenta);
+			Im3d::DrawAlignedBox(m_basicRenderer->sceneBounds.m_min, m_basicRenderer->sceneBounds.m_max);
+		Im3d::PopDrawState();
+	}
+
 	return true;
 }
 
@@ -153,7 +164,7 @@ void PhysicsTest::draw()
 	Camera* drawCamera = Scene::GetDrawCamera();
 	Camera* cullCamera = Scene::GetCullCamera();
 
-	m_basicRenderer->draw(drawCamera, (float)getDeltaTime());
+	m_basicRenderer->draw((float)getDeltaTime());
 
 	AppBase::draw();
 }

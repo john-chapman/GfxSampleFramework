@@ -69,6 +69,8 @@ struct Component_BasicRenderable: public Component
 	PathStr                                m_meshPath    = "";
 	eastl::fixed_vector<BasicMaterial*, 1> m_materials;      // per submesh
 	eastl::fixed_vector<PathStr, 1>        m_materialPaths;  //     "
+	eastl::fixed_vector<mat4, 1>           m_pose;
+	eastl::fixed_vector<mat4, 1>           m_prevPose;
 
 	static eastl::vector<Component_BasicRenderable*> s_instances;
 
@@ -79,6 +81,9 @@ struct Component_BasicRenderable: public Component
 	virtual void update(float _dt) override;
 	virtual bool edit() override;
 	virtual bool serialize(Serializer& _serializer_) override;
+
+	void setPose(const Skeleton& _skeleton);
+	void clearPose();
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -97,10 +102,11 @@ struct Component_BasicLight: public Component
 	};
 	typedef int Type;
 
-	Type m_type                   = Type_Direct;
-	vec4 m_colorBrightness        = vec4(1.0f);
-	vec2 m_linearAttenuation      = vec2(0.0f); // start, stop in meters
-	vec2 m_radialAttenuation      = vec2(0.0f); // start, stop in degrees
+	Type  m_type                   = Type_Direct;
+	vec4  m_colorBrightness        = vec4(1.0f);
+	float m_radius                 = 5.0f;  // meters, controls linear attenuation
+	float m_coneInnerAngle         = 1.0f;  // degrees, controls angular attenuation
+	float m_coneOuterAngle         = 20.0f; //                   "
 	bool m_castShadows            = false;
 
 	static eastl::vector<Component_BasicLight*> s_instances;

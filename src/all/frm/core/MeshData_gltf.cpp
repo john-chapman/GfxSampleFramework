@@ -120,6 +120,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 
 	bool generateNormals = false;
 	bool generateTangents = false;
+	bool hasBoneWeigths = false; // \todo
 
 	for (auto& scene : gltf.scenes)
 	{
@@ -295,7 +296,8 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 							vertex.m_texcoord = *((vec2*)buffer);
 							buffer += stride;
 						}
-					}					
+					}
+
 				}
 			}
 		}

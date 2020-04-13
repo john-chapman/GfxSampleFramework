@@ -9,6 +9,7 @@
 #include <frm/core/Scene.h>
 #include <frm/core/Serializer.h>
 #include <frm/core/Shader.h>
+#include <frm/core/SkeletonAnimation.h>
 #include <frm/core/Texture.h>
 
 #include <imgui/imgui.h>
@@ -105,7 +106,10 @@ bool Component_BasicRenderable::init()
 		}
 	}
 
-	s_instances.push_back(this);
+	if (ret)
+	{
+		s_instances.push_back(this);
+	}
 
 	return ret;
 }
@@ -137,6 +141,7 @@ bool Component_BasicRenderable::edit()
 
 	ret |= ImGui::ColorEdit3("Color", &m_colorAlpha.x);
 	ret |= ImGui::SliderFloat("Alpha", &m_colorAlpha.w, 0.0f, 1.0f);
+	ret |= ImGui::Checkbox("Cast Shadows", &m_castShadows);
 
 	ImGui::Spacing();
 
@@ -262,6 +267,42 @@ bool Component_BasicRenderable::serialize(frm::Serializer& _serializer_)
 	return _serializer_.getError() == nullptr;
 }
 
+void Component_BasicRenderable::setPose(const Skeleton& _skeleton)
+{
+	const mat4* pose = _skeleton.getPose();
+	const size_t boneCount = _skeleton.getBoneCount();
+	if (m_mesh)
+	{
+		//FRM_ASSERT(m_mesh->getBindPose() && m_mesh->getBindPose()->getBoneCount() == boneCount);
+		if (m_mesh->getBindPose()->getBoneCount() != boneCount)
+		{
+			return;
+		}
+
+	// \todo apply the bind pose during Skeleton::resolve()?
+		const mat4* bindPose = m_mesh->getBindPose()->getPose();
+
+		swap(m_pose, m_prevPose);
+		m_pose.clear();
+		m_pose.reserve(boneCount);
+		for (size_t i = 0; i < boneCount; ++i)
+		{
+			m_pose.push_back(pose[i] * bindPose[i]);
+		}
+
+		if (m_prevPose.size() != m_pose.size())
+		{
+			m_prevPose.assign(m_pose.begin(), m_pose.end());
+		}
+	}
+}
+
+void Component_BasicRenderable::clearPose()
+{
+	m_pose.clear();
+}
+
+
 /*******************************************************************************
 
                             Component_BasicLight
@@ -303,14 +344,23 @@ bool Component_BasicLight::edit()
 	m_colorBrightness.w = Max(m_colorBrightness.w, 0.0f);
 	if (m_type == Type_Point || m_type == Type_Spot)
 	{
-		ret |= ImGui::DragFloat2("Linear Attenuation", &m_linearAttenuation.x, 0.1f);
+		ret |= ImGui::DragFloat("Radius", &m_radius, 0.25f);
 	}
 	if (m_type == Type_Spot)
 	{
-		ret |= ImGui::DragFloat2("Radial Attenuation", &m_radialAttenuation.x);
+		ret |= ImGui::SliderFloat("Cone Inner Angle", &m_coneInnerAngle, 0.0f, 180.0f);
+		ret |= ImGui::SliderFloat("Cone Outer Angle", &m_coneOuterAngle, 0.0f, 180.0f);
 	}
 
+	ImGui::Checkbox("Cast Shadows", &m_castShadows);
+
 	ImGui::PopID();
+
+	Im3d::PushSize(4.0f);
+	Im3d::PushMatrix(m_node->getWorldMatrix());
+		Im3d::DrawXyzAxes();
+	Im3d::PopMatrix();
+	Im3d::PopSize();
 
 	return ret;
 }
@@ -320,8 +370,10 @@ bool Component_BasicLight::serialize(frm::Serializer& _serializer_)
 	const char* kTypeNames[3] = { "Direct", "Point", "Spot" };
 	SerializeEnum(_serializer_, m_type, kTypeNames, "Type");
 	Serialize(_serializer_, m_colorBrightness, "ColorBrightness");
-	Serialize(_serializer_, m_linearAttenuation, "LinearAttenuation");
-	Serialize(_serializer_, m_radialAttenuation, "RadialAttenuation");
+	Serialize(_serializer_, m_radius, "Radius");
+	Serialize(_serializer_, m_coneInnerAngle, "ConeInnerAngle");
+	Serialize(_serializer_, m_coneOuterAngle, "ConeOuterAngle");
+	Serialize(_serializer_, m_castShadows, "CastShadows");
 	return _serializer_.getError() == nullptr;
 }
 

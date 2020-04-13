@@ -140,6 +140,7 @@ namespace frm {
 	class  Scene;
 	class  Shader;
 	class  ShaderDesc;
+	class  ShadowAtlas;
 	class  Skeleton;
 	class  SkeletonAnimation;
 	class  SkeletonAnimationTrack;
@@ -179,6 +180,7 @@ namespace frm {
 	struct Sphere;
 
 	class ArgList;
+	template <typename tEnum> struct BitFlags;
 	template <typename tType> class Factory;
 	class File;
 	class FileSystem;

@@ -44,8 +44,8 @@ public:
 	GLenum getIndexDataType() const                      { return m_indexDataType; }
 	GLenum getPrimitive() const                          { return m_primitive;     }
 
-	const AlignedBox& getBoundingBox() const             { return m_submeshes[0].m_boundingBox;    }
-	const Sphere&     getBoundingSphere() const          { return m_submeshes[0].m_boundingSphere; }
+	const AlignedBox& getBoundingBox(int _submesh = 0) const     { return m_submeshes[_submesh].m_boundingBox;    }
+	const Sphere&     getBoundingSphere(int _submesh = 0) const  { return m_submeshes[_submesh].m_boundingSphere; }
 
 	const Skeleton*   getBindPose() const                { return m_bindPose; }
 	void              setBindPose(const Skeleton& _skel);

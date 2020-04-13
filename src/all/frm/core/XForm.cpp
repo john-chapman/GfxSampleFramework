@@ -347,7 +347,11 @@ void XForm_LookAt::apply(float _dt)
 	{
 		targetW += GetTranslation(m_target->getWorldMatrix());
 	}
-	m_node->setWorldMatrix(LookAt(posW, targetW));
+ // \todo direction is reversed to account for cameras which align on -Z
+	//m_node->setWorldMatrix(LookAt(posW, targetW));
+	mat4 world = AlignZ(normalize(posW - targetW));
+	world[3] = vec4(posW, 1.0f);
+	m_node->setWorldMatrix(world);
 }
 
 bool XForm_LookAt::edit()

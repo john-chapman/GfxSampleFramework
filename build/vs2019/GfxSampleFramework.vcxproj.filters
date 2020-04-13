@@ -123,6 +123,9 @@
     <ClInclude Include="..\..\src\all\frm\core\BasicRenderer.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\BitFlags.h">
+      <Filter>all\frm\core</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Buffer.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
@@ -211,6 +214,9 @@
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Shader.h">
+      <Filter>all\frm\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\ShadowAtlas.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\SkeletonAnimation.h">
@@ -1062,6 +1068,9 @@
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Shader.cpp">
+      <Filter>all\frm\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\ShadowAtlas.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\SkeletonAnimation.cpp">

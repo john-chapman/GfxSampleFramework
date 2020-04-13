@@ -105,7 +105,7 @@ public:
 	bool reload();
 
 
-	void sample(float _t, Skeleton& out_, int _hints_[]);
+	void sample(float _t, Skeleton& out_, int _hints_[] = nullptr);
 
 	// \note add* functions invalidate ptrs previously returned.
 	SkeletonAnimationTrack* addPositionTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);

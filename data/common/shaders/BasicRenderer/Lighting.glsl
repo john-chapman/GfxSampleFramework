@@ -14,8 +14,9 @@
 #ifndef Lighting_glsl
 #define Lighting_glsl
 
-#define Lighting_PREDICATE_NoL  0 // early-out of lighting calculations if NoL == 0
 #define Lighting_EPSILON (1e-4)
+
+#define Lighting_PREDICATE_NoL  1 // Early-out of lighting and attenuation calculations if NoL <= Lighting_EPSILON.
 
 struct Lighting_In
 {
@@ -38,13 +39,26 @@ struct Lighting_In
 #define LightType_Spot   2
 #define LightType_Count  3
 
-struct Lighting_Light
+struct Lighting_Light // \todo pack
 {
- // \todo pack
-	vec4 position;    // A = light type 
-	vec4 direction;
-	vec4 color;       // RGB = color * brightness, A = brightness
-	vec4 attenuation; // X,Y = linear attenuation start,stop, Z,W = radial attenuation start,stop
+ // Light properties.
+	vec4  position;    // A = light type 
+	vec4  direction;
+	vec4  color;       // RGB = color * brightness, A = brightness
+
+ // Attenuation parameters.
+	float invRadius2;  // (1/radius)^2
+    float spotScale;   // 1 / saturate(cos(coneInner - coneOuter))
+    float spotBias;    // -coneOuter * scale;
+};
+
+struct Lighting_ShadowLight
+{
+    Lighting_Light light;
+    mat4           worldToShadow;
+    vec2           uvBias;
+    float          uvScale;
+    float          arrayIndex;
 };
 
 void Lighting_Init(
@@ -78,18 +92,24 @@ void Lighting_Init(
     #endif
 }
 
-void Lighting_InitLight(
+bool Lighting_InitLight(
     inout Lighting_In _in_,    
     in    vec3        _N,  // Surface normal at P.
     in    vec3        _V,  // Direction from P to the view position.
     in    vec3        _L   // Direction to the light.
     )
 {
-	vec3 H  = normalize(_V + _L);
 	_in_.NoL = clamp(dot(_N, _L), Lighting_EPSILON, 1.0);
-	_in_.NoH = clamp(dot(_N, H),  0.0,              1.0);
-	_in_.VoH = clamp(dot(_V, H),  0.0,              1.0);
-	_in_.LoH = clamp(dot(_L, H),  0.0,              1.0);
+    if (bool(Lighting_PREDICATE_NoL) && _in_.NoL <= Lighting_EPSILON)
+    {
+        return false;
+    }
+
+	vec3 H   = normalize(_V + _L);
+	_in_.NoH = clamp(dot(_N, H),  0.0, 1.0);
+	_in_.VoH = clamp(dot(_V, H),  0.0, 1.0);
+	_in_.LoH = clamp(dot(_L, H),  0.0, 1.0);
+    return true;
 }
 
 // Normal distribution.
@@ -163,18 +183,27 @@ vec3 Lighting_Diffuse_Burley(in Lighting_In _in)
 }
 #define Lighting_Diffuse(_in) Lighting_Diffuse_Lambert(_in)
 
-float Lighting_DistanceAttenuation(in float _distance2, in float _falloff)
+float Lighting_DistanceAttenuation(
+    in float _distance2, // Square distance to the light.
+    in float _invRadius2 // (1/radius)^2
+    )
 {
-    float d = _distance2 * _falloff;
-          d = saturate(1.0 - d * d);
-    return (d * d) / max(_distance2, 1e-4);
+    float d = _distance2 * _invRadius2;
+          d = max(1.0 - d * d, 0.0);
+    return (d * d) / max(_distance2, Lighting_EPSILON);
 }
 
-float Lighting_AngularAttenuation(in float _distance2, in float _falloff)
+float Lighting_AngularAttenuation(
+    in vec3  _L,           // Normalized distance to the light.
+    in vec3  _D,           // Light direction.
+    in float _distance2,   // Square distance to the light.
+    in float _spotScale,
+    in float _spotBias
+    )
 {
-    float d = _distance2 * _falloff;
-          d = saturate(1.0 - d * d);
-    return (d * d) / max(_distance2, 1e-4);
+    float  cd = dot(_D, _L);
+    float  atten = saturate(cd * _spotScale + _spotBias);
+    return atten * atten;
 }
 
 vec3 Lighting_Common(
@@ -182,11 +211,6 @@ vec3 Lighting_Common(
     in    Lighting_Light _light
     )
 {
-    if (bool(Lighting_PREDICATE_NoL) && _in_.NoL < 1e-7)
-    {
-        return vec3(0.0);
-    }
-
     float D  = Lighting_SpecularD(_in_);
     float G  = Lighting_SpecularG(_in_);
     vec3  F  = Lighting_SpecularF(_in_);
@@ -203,7 +227,10 @@ vec3 Lighting_Direct(
     in    vec3           _V
     )
 {
-    Lighting_InitLight(_in_, _N, _V, _light.direction.xyz);
+    if (!Lighting_InitLight(_in_, _N, _V, _light.direction.xyz))
+    {
+        return vec3(0.0);
+    }
     return Lighting_Common(_in_, _light);
 }
 
@@ -216,10 +243,16 @@ vec3 Lighting_Point(
     )
 {
     vec3  L   = _light.position.xyz - _P;
+    if (!Lighting_InitLight(_in_, _N, _V, L))
+    {
+        return vec3(0.0);
+    }
+
 	float d2  = length2(L);
-	      L  /= sqrt(d2);
-    Lighting_InitLight(_in_, _N, _V, L);
-    _in_.NoL *= Lighting_DistanceAttenuation(d2, _light.attenuation.x);
+    float d   = sqrt(d2);
+	      L  /= d;
+    _in_.NoL *= Lighting_DistanceAttenuation(d2, _light.invRadius2);
+
     return Lighting_Common(_in_, _light);
 }
 
@@ -231,14 +264,19 @@ vec3 Lighting_Spot(
     in    vec3           _V
     )
 {
+    if (!Lighting_InitLight(_in_, _N, _V, _light.direction.xyz))
+    {
+        return vec3(0.0);
+    }
+
     vec3  L   = _light.position.xyz - _P;
 	float d2  = length2(L);
-	      L  /= sqrt(d2);
-    Lighting_InitLight(_in_, _N, _V, L);
-    _in_.NoL *= Lighting_DistanceAttenuation(d2, _light.attenuation.x);
-    _in_.NoL *= 1.0 - smoothstep(_light.attenuation.z, _light.attenuation.w, 1.0 - dot(_light.direction.xyz, L));
+    float d   = sqrt(d2);
+	      L  /= d;
+    _in_.NoL *= Lighting_DistanceAttenuation(d2, _light.invRadius2);
+    _in_.NoL *= Lighting_AngularAttenuation(L, _light.direction.xyz, d2, _light.spotScale, _light.spotBias);
+
     return Lighting_Common(_in_, _light);
 }
-
 
 #endif // Lighting_glsl

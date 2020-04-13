@@ -360,7 +360,7 @@ inline tType BitfieldReverse(tType _bits)
 
 // Get/set a single bit as bool.
 template <typename tType>
-inline bool BitfieldGet(tType _bits, tType _offset)
+inline bool BitfieldGet(tType _bits, int _offset)
 {
 	tType mask = tType(1) << _offset;
 	return (_bits & mask) != 0;

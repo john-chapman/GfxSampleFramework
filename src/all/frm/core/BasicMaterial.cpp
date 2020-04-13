@@ -58,6 +58,10 @@ BasicMaterial* BasicMaterial::Create()
 	Id id = GetUniqueId();
 	NameStr name("Material%u", id);
 	BasicMaterial* ret = FRM_NEW(BasicMaterial(id, name.c_str()));
+	for (int i = 0; i < Map_Count; ++i)
+	{
+		ret->setMap(i, ""); // set default maps
+	}
 	Use(ret);
 	return ret;
 }
@@ -192,8 +196,8 @@ bool BasicMaterial::edit()
 				PathStr path = m_mapPaths[i];
 				if (FileSystem::PlatformSelect(path, { "*.dds", "*.psd", "*.tga", "*.png" }))
 				{
-					path = FileSystem::MakeRelative(path.c_str());
-					path = FileSystem::StripRoot(path.c_str());
+					//path = FileSystem::MakeRelative(path.c_str());
+					//path = FileSystem::StripRoot(path.c_str());
 					setMap(i, path.c_str());
 				}
 			}

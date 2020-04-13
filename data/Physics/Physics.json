@@ -1,20 +1,21 @@
 {
-	"Font": {
-		"Font": "",
-		"FontOversample": 1,
-		"FontEnableScaling": true,
-		"FontSize": 13.0
+	"Font": {},
+	"AppSample3d": {
+		"ScenePath": "Scene.json",
+		"ShowSceneEditor": false,
+		"ShowHelpers": false
 	},
+	"GlContext": {},
 	"AppSample": {
-		"ShowMenu": true,
-		"ShowPropertyEditor": false,
-		"ShowProfiler": false,
-		"ShowShaderViewer": false,
 		"VsyncMode": 2,
+		"ShowShaderViewer": false,
 		"ShowLogNotifications": false,
-		"ShowTextureViewer": false,
+		"ShowPropertyEditor": false,
 		"WindowSize": [-1, -1],
+		"ShowMenu": true,
+		"ShowTextureViewer": false,
 		"Resolution": [-1, -1],
+<<<<<<< Updated upstream
 		"ShowLog": false
 	},
 	"GlContext": {
@@ -26,5 +27,21 @@
 		"Scene Path": "Scene.json",
 		"Show Helpers": false,
 		"Show Scene Editor": true
+=======
+		"ShowProfiler": false,
+		"ShowLog": false,
+		"Font": {
+			"FontEnableScaling": true,
+			"FontSize": 13.0,
+			"FontOversample": 1,
+			"FontPath": ""
+		},
+		"GlContext": {
+			"HDR": false,
+			"GlDebug": false,
+			"GlCompatibility": false,
+			"GlVersion": [-1, -1]
+		}
+>>>>>>> Stashed changes
 	}
 }

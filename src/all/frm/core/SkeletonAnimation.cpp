@@ -117,25 +117,30 @@ void SkeletonAnimationTrack::sample(float _t, float* out_, int* _hint_)
 		}
 	}
 	
-	//FRM_ASSERT(i < m_data.size());
-	//FRM_ASSERT(i * m_boneDataSize < m_data.size());
-	//FRM_ASSERT((i + 1) * m_boneDataSize < m_data.size());
+	FRM_ASSERT(i < m_data.size());
+	FRM_ASSERT(i * m_boneDataSize < m_data.size());
+	FRM_ASSERT((i + 1) * m_boneDataSize < m_data.size());
 	float t = (_t - m_frames[i]) / (m_frames[i + 1] - m_frames[i]);
 	const float* a = &m_data[i * m_boneDataSize];
 	const float* b = &m_data[(i + 1) * m_boneDataSize];
-	//for (int j = 0; j < m_boneDataSize; ++j) {
-	//	out_[j] = mix(a[j], b[j], t);
-	//}
- // \hack where to renormalize quaternions?
-if (m_boneDataSize == 3) {
-	*((vec3*)out_) = lerp(*((vec3*)a), *((vec3*)b), t);
-} else if (m_boneDataSize == 4) {
-	*((quat*)out_) = slerp(*((quat*)a), *((quat*)b), t);
-} else {
+#if 0
+ // straight lerp
 	for (int j = 0; j < m_boneDataSize; ++j) {
 		out_[j] = lerp(a[j], b[j], t);
 	}
-}
+#else
+ // assume 4 float data is a quaternion, do slerp
+	if (m_boneDataSize == 3) {
+		*((vec3*)out_) = lerp(*((vec3*)a), *((vec3*)b), t);
+	} else if (m_boneDataSize == 4) {
+		//*((quat*)out_) = slerp(*((quat*)a), *((quat*)b), t);
+		*((quat*)out_) = linalg::qslerp(*((quat*)a), *((quat*)b), t);
+	} else {
+		for (int j = 0; j < m_boneDataSize; ++j) {
+			out_[j] = lerp(a[j], b[j], t);
+		}
+	}
+#endif
 
 }
 

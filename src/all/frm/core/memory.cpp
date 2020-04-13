@@ -2,22 +2,26 @@
 
 #include <cstdlib>
 
+// \todo
+// EASTL's allocator can allocate aligned memory via the operator new[] overloads (bottom of this file), however it uniformly deallocates via delete[].
+// Effectively this means that we must make *all* operator new/delete aligned, hence the code below.
+
 #if 1
 	void* operator new(size_t _size)
 	{ 
-		return FRM_MALLOC(_size); 
+		return _aligned_malloc(_size, 1);
 	}
 	void  operator delete(void* _ptr)
 	{ 
-		FRM_FREE(_ptr); 
+		_aligned_free(_ptr);
 	}
 	void* operator new[](size_t _size)
 	{ 
-		return FRM_MALLOC(_size); 
+		return _aligned_malloc(_size, 1);
 	}
 	void  operator delete[](void* _ptr)
 	{
-		FRM_FREE(_ptr); 
+		_aligned_free(_ptr);
 	}
 #endif
 
@@ -81,7 +85,7 @@ void frm::internal::free_aligned(void* _ptr)
 
 void* operator new[](size_t size, const char* /*name*/, int /*flags*/, unsigned /*debugFlags*/, const char* /*file*/, int /*line*/) THROW_SPEC_1(std::bad_alloc)
 {
-	return FRM_MALLOC(size);
+	return _aligned_malloc(size, 1);
 }
 
 void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* /*name*/, int flags, unsigned /*debugFlags*/, const char* /*file*/, int /*line*/) THROW_SPEC_1(std::bad_alloc)

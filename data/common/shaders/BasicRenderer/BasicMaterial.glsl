@@ -4,9 +4,10 @@
 #include "shaders/def.glsl"
 #include "shaders/Camera.glsl"
 #include "shaders/Sampling.glsl"
-#include "shaders/BasicRenderer/Lighting.glsl"
 
-#ifdef Scene_OUT
+#if defined(Pass_GBuffer)
+	#define GBuffer_OUT
+#elif defined(Pass_Scene)
 	#define GBuffer_IN
 #endif
 #include "shaders/BasicRenderer/GBuffer.glsl"
@@ -15,7 +16,7 @@ _VERTEX_IN(0, vec3, aPosition);
 _VERTEX_IN(1, vec3, aNormal);
 _VERTEX_IN(2, vec4, aTangent);
 _VERTEX_IN(3, vec2, aTexcoord);
-#ifdef SKINNING
+#ifdef Geometry_SkinnedMesh
 	_VERTEX_IN(4, vec4,  aBoneWeights);
 	_VERTEX_IN(5, uvec4, aBoneIndices);
 	
@@ -25,19 +26,30 @@ _VERTEX_IN(3, vec2, aTexcoord);
 	};
 #endif
 
-_VARYING(smooth, vec2, vUv);
-#ifdef GBuffer_OUT
-	_VARYING(smooth, vec3, vPrevPositionP);
-	_VARYING(smooth, vec3, vNormalV);
-	_VARYING(smooth, vec3, vTangentV);
-	_VARYING(smooth, vec3, vBitangentV);
-#endif
-
-// per-instance uniforms \todo bufferize
-uniform mat4  uWorld;
-uniform mat4  uPrevWorld;
-uniform vec4  uBaseColorAlpha;
-uniform int   uMaterialIndex;
+#if defined(Geometry_Mesh) || defined(Geometry_SkinnedMesh)
+	_VARYING(flat, uint, vInstanceId);
+	_VARYING(smooth, vec2, vUv);
+	#ifdef Pass_GBuffer
+		_VARYING(smooth, vec3, vPrevPositionP);
+		_VARYING(smooth, vec3, vNormalV);
+		_VARYING(smooth, vec3, vTangentV);
+		_VARYING(smooth, vec3, vBitangentV);
+	#endif
+	
+	struct DrawInstance
+	{
+		mat4 world;
+		mat4 prevWorld;
+		vec4 baseColorAlpha;
+		uint materialIndex;
+		uint submeshIndex;
+		uint skinningOffset;
+	};
+	layout(std430) restrict readonly buffer bfDrawInstances
+	{
+		DrawInstance uDrawInstances[];
+	};
+#endif // defined(Geometry_Mesh) || defined(Geometry_SkinnedMesh)
 
 uniform vec2 uTexelSize; // 1/framebuffer size
 
@@ -49,27 +61,29 @@ struct MaterialInstance
 	float roughness;
 	float reflectance;
 	float height;
-	uint  flags; // see Flag_ below
 };
 layout(std430) restrict readonly buffer bfMaterials
 {
 	MaterialInstance uMaterials[];
 };
 
-#define Flag_AlphaTest    0
-#define Flag_Count        1
+#if defined(Pass_Scene) && defined(FRAGMENT_SHADER)
+	
+	#include "shaders/BasicRenderer/Lighting.glsl"
+	#include "shaders/BasicRenderer/Shadow.glsl"
 
-bool BasicMaterial_CheckFlag(in uint _flag)
-{
-	return (uMaterials[uMaterialIndex].flags & (1 << _flag)) == 1;
-}
-
-#ifdef Scene_OUT
 	layout(std430) restrict readonly buffer bfLights
 	{
 		Lighting_Light uLights[];
 	};
-	uniform int uLightCount;
+	uniform int uLightCount; // can't use uLights.length since it can be 0
+
+	layout(std430) restrict readonly buffer bfShadowLights
+	{
+		Lighting_ShadowLight uShadowLights[];
+	};
+	uniform int uShadowLightCount; // can't use uShadowLights.length since it can be 0
+	uniform sampler2DArray txShadowMap;
 
 	// \todo see Component_ImageLight
 	uniform int uImageLightCount;
@@ -79,7 +93,7 @@ bool BasicMaterial_CheckFlag(in uint _flag)
 	_FRAGMENT_OUT(0, vec4, fResult);
 #endif
 
-#ifdef Wireframe_OUT
+#ifdef Pass_Wireframe
 	_FRAGMENT_OUT(0, vec4, fResult);
 #endif
 
@@ -87,35 +101,73 @@ bool BasicMaterial_CheckFlag(in uint _flag)
 
 void main()
 {
-	vUv = aTexcoord.xy;
-	//vUv.y = 1.0 - vUv.y; // \todo
-
-	vec3 positionW = TransformPosition(uWorld, aPosition.xyz);
-	#ifdef SKINNING
-	{ // \todo
-	}
-	#endif
-	gl_Position = uCamera.m_viewProj * vec4(positionW, 1.0);
-	#ifdef Shadow_OUT
+	#if defined(Geometry_Mesh) || defined(Geometry_SkinnedMesh)
 	{
-	 // project clipped vertices onto the near plane
-	 	#if FRM_NDC_Z_ZERO_TO_ONE
-			float depthNear = 0.0;
-		#else
-			float depthNear = -1.0;
+		vInstanceId = gl_InstanceID;
+
+		vUv = aTexcoord.xy;
+		vUv.y = 1.0 - vUv.y; // \todo
+
+		vec3 positionW = aPosition.xyz;
+		vec3 prevPositionW = aPosition.xyz;
+		vec3 normalW = aNormal.xyz;
+		vec3 tangentW = aTangent.xyz * aTangent.w;
+		#ifdef Geometry_SkinnedMesh
+		{
+			const uint offset = uDrawInstances[gl_InstanceID].skinningOffset;
+			const mat4 boneMatrix = 
+				uSkinning[aBoneIndices.x * 2 + offset] * aBoneWeights.x +
+				uSkinning[aBoneIndices.y * 2 + offset] * aBoneWeights.y +
+				uSkinning[aBoneIndices.z * 2 + offset] * aBoneWeights.z +
+				uSkinning[aBoneIndices.w * 2 + offset] * aBoneWeights.w
+				;
+			positionW = TransformPosition(boneMatrix, positionW);
+			#ifdef Pass_GBuffer
+				const mat4 prevBoneMatrix = 
+					uSkinning[aBoneIndices.x * 2 + offset + 1] * aBoneWeights.x +
+					uSkinning[aBoneIndices.y * 2 + offset + 1] * aBoneWeights.y +
+					uSkinning[aBoneIndices.z * 2 + offset + 1] * aBoneWeights.z +
+					uSkinning[aBoneIndices.w * 2 + offset + 1] * aBoneWeights.w
+					;
+				prevPositionW = TransformPosition(prevBoneMatrix, aPosition.xyz);
+				normalW  = TransformDirection(boneMatrix, normalW);
+				tangentW = TransformDirection(boneMatrix, tangentW);
+			#endif
+		}
 		#endif
-		gl_Position.z = max(gl_Position.z, depthNear);
-	}
-	#endif
+		
+		const mat4 world = uDrawInstances[gl_InstanceID].world;
+		positionW = TransformPosition(world, positionW);
+		normalW = TransformDirection(world, normalW);
+		tangentW  = TransformDirection(world, tangentW);
+		gl_Position = uCamera.m_viewProj * vec4(positionW, 1.0);				
+		#ifdef Pass_GBuffer
+		{
+			const mat4 prevWorld = uDrawInstances[gl_InstanceID].prevWorld;
+			//vPositionP = gl_Position.xyw; // save the interpolant, use gl_FragCoord.xy / uTexelSize instead
+			vPrevPositionP = (uCamera.m_prevViewProj * (prevWorld * vec4(prevPositionW, 1.0))).xyw;
 
-	#ifdef GBuffer_OUT
-	{
-		//vPositionP = gl_Position.xyw; // save the interpolant, use gl_FragCoord.xy / uTexelSize instead
-		vPrevPositionP = (uCamera.m_prevViewProj * (uPrevWorld * vec4(aPosition.xyz, 1.0))).xyw;
+			vNormalV = TransformDirection(uCamera.m_view, normalW);
+			vTangentV = TransformDirection(uCamera.m_view, tangentW);
+			vBitangentV = cross(vNormalV, vTangentV);
+		}
+		#endif
+		
 
-		vNormalV = TransformDirection(uCamera.m_view, TransformDirection(uWorld, aNormal.xyz));
-		vTangentV = TransformDirection(uCamera.m_view, TransformDirection(uWorld, aTangent.xyz * aTangent.w));
-		vBitangentV = cross(vNormalV, vTangentV);
+		#ifdef Pass_Shadow
+		{
+		 // project clipped vertices onto the near plane
+		 	if (Camera_GetProjFlag(Camera_ProjFlag_Orthographic)) // only valid for ortho projections
+			{
+		 		#if FRM_NDC_Z_ZERO_TO_ONE
+					float depthNear = 0.0;
+				#else
+					float depthNear = -1.0;
+				#endif
+				gl_Position.z = max(gl_Position.z, depthNear);
+			}
+		}
+		#endif
 	}
 	#endif
 }
@@ -139,33 +191,48 @@ float Noise_InterleavedGradient(in vec2 _seed)
 {
 	return fract(52.9829189 * fract(dot(_seed, vec2(0.06711056, 0.00583715))));
 }
-void BasicMaterial_ApplyAlphaTest()
+float BasicMaterial_ApplyAlphaTest()
 {
-	if (BasicMaterial_CheckFlag(Flag_AlphaTest))
+	const uint materialIndex = uDrawInstances[vInstanceId].materialIndex;
+	const float materialAlpha = uMaterials[materialIndex].baseColorAlpha.a;
+	float instanceAlpha = uDrawInstances[vInstanceId].baseColorAlpha.a;
+
+	#ifdef Material_AlphaTest
 	{
-		float alphaThreshold = uMaterials[uMaterialIndex].baseColorAlpha.a;
-		if (texture(uMaps[Map_Alpha], vUv).x < 0.3)
+		if (texture(uMaps[Map_Alpha], vUv).x < materialAlpha)
 		{
 			discard;
 		}
 	}
-
-	uvec2 seed = uvec2(gl_FragCoord.xy);
-	if (uBaseColorAlpha.a 
-		//< Bayer_2x2(seed)
-		//< Bayer_4x4(seed)
-		< Noise_InterleavedGradient(seed)
-		)
+	#else
 	{
-		discard;
+		instanceAlpha *= materialAlpha; // combine material/base alpha only for non alpha-tested materials
 	}
+	#endif
+
+	//#ifdef Material_AlphaDither
+	#if 1
+	{
+		uvec2 seed = uvec2(gl_FragCoord.xy);
+		if (instanceAlpha
+			//< Bayer_2x2(seed)
+			//< Bayer_4x4(seed)
+			< Noise_InterleavedGradient(seed)
+			)
+		{
+			discard;
+		}
+	}
+	#endif
+
+	return instanceAlpha;
 }
 
 void main()
 {
-	#ifdef GBuffer_OUT
+	#ifdef Pass_GBuffer
 	{
-		BasicMaterial_ApplyAlphaTest();
+		float alpha = BasicMaterial_ApplyAlphaTest();
 
 		vec3 normalT = normalize(texture(uMaps[Map_Normal], vUv).xyz * 2.0 - 1.0);
 		vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
@@ -180,13 +247,13 @@ void main()
 		vec2 jitterVelocity = (uCamera.m_prevProj[2].xy - uCamera.m_proj[2].xy) * 0.5;
     	velocity -= jitterVelocity;
     	
-		velocity *= uBaseColorAlpha.a; // \hack scale velocity with alpha to reduce ghosting artefacts.
+		velocity *= alpha; // \hack scale velocity with alpha to reduce ghosting artefacts.
 
 		GBuffer_WriteVelocity(velocity);
 	}
 	#endif
 
-	#ifdef Scene_OUT
+	#ifdef Pass_Scene
 	{
 		const vec2 iuv = gl_FragCoord.xy;
 
@@ -198,15 +265,17 @@ void main()
 		      N = normalize(TransformDirection(uCamera.m_world, N)); // world space
 		fResult.a = D;
 
+		const uint materialIndex = uDrawInstances[vInstanceId].materialIndex;
 		Lighting_In lightingIn;
-		vec3  baseColor   = texture(uMaps[Map_BaseColor], vUv).rgb * uMaterials[uMaterialIndex].baseColorAlpha.rgb * uBaseColorAlpha.rgb;
+		vec3  baseColor   = texture(uMaps[Map_BaseColor], vUv).rgb * uMaterials[materialIndex].baseColorAlpha.rgb * uDrawInstances[vInstanceId].baseColorAlpha.rgb;
 		      baseColor   = Gamma_Apply(baseColor);
-		float metallic    = texture(uMaps[Map_Metallic],    vUv).x   * uMaterials[uMaterialIndex].metallic;
-		float roughness   = texture(uMaps[Map_Roughness],   vUv).x   * uMaterials[uMaterialIndex].roughness;
-		float reflectance = texture(uMaps[Map_Reflectance], vUv).x   * uMaterials[uMaterialIndex].reflectance;
+		float metallic    = texture(uMaps[Map_Metallic],    vUv).x   * uMaterials[materialIndex].metallic;
+		float roughness   = texture(uMaps[Map_Roughness],   vUv).x   * uMaterials[materialIndex].roughness;
+		float reflectance = texture(uMaps[Map_Reflectance], vUv).x   * uMaterials[materialIndex].reflectance;
 		Lighting_Init(lightingIn, N, V, roughness, baseColor, metallic, reflectance);
 		vec3 ret = vec3(0.0);
 		
+		// Lights.
 		for (int i = 0; i < uLightCount; ++i)
 		{
 			const int type = int(floor(uLights[i].position.a));
@@ -232,6 +301,51 @@ void main()
 			};
 		}
 
+		// Shadow lights.
+		const float shadowTexelSize = 1.0 / float(textureSize(txShadowMap, 0).x);
+		for (int i = 0; i < uShadowLightCount; ++i)
+		{
+			const int type = int(floor(uShadowLights[i].light.position.a));
+
+			switch (type)
+			{
+				default:
+				case LightType_Direct:
+				{
+					vec3 radiance = Lighting_Direct(lightingIn, uShadowLights[i].light, N, V);
+					if (!bool(Shadow_PREDICATE_NoL) || lightingIn.NoL > Lighting_EPSILON)
+					{
+						vec3 shadowCoord = Shadow_Project(P, uShadowLights[i].worldToShadow, shadowTexelSize, uShadowLights[i].uvScale, uShadowLights[i].uvBias);
+						radiance *= Shadow_FetchQuincunx(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
+					}
+					ret += radiance;
+					break;
+				}
+				case LightType_Point:
+				{
+					vec3 radiance = Lighting_Point(lightingIn, uShadowLights[i].light, P, N, V);
+					if (!bool(Shadow_PREDICATE_NoL) || lightingIn.NoL > Lighting_EPSILON)
+					{
+						// \todo
+					}
+					ret += radiance;
+					break;
+				}
+				case LightType_Spot:
+				{	
+					vec3 radiance = Lighting_Spot(lightingIn, uShadowLights[i].light, P, N, V);
+					if (!bool(Shadow_PREDICATE_NoL) || lightingIn.NoL > Lighting_EPSILON)
+					{
+						vec3 shadowCoord = Shadow_Project(P, uShadowLights[i].worldToShadow, shadowTexelSize, uShadowLights[i].uvScale, uShadowLights[i].uvBias);
+						radiance *= Shadow_FetchQuincunx(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
+					}
+					ret += radiance;
+					break;
+				}
+			};
+		}
+
+		// Image lights.
 		if (uImageLightCount > 0)
 		{
 		 // \todo rewrite this as per Filament
@@ -246,11 +360,12 @@ void main()
 	}
 	#endif
 
-	#ifdef Wireframe_OUT
-		fResult = uBaseColorAlpha;
+	#ifdef Pass_Wireframe
+		const uint materialIndex = uDrawInstances[vInstanceId].materialIndex;
+		fResult = uDrawInstances[vInstanceId].baseColorAlpha * uMaterials[materialIndex].baseColorAlpha;
 	#endif
 
-	#ifdef Shadow_OUT
+	#ifdef Pass_Shadow
 	{
 		BasicMaterial_ApplyAlphaTest();
 	}

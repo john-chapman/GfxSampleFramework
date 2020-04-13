@@ -232,6 +232,7 @@ void GlContext::setViewport(int _x, int _y, int _width, int _height)
 	m_viewportWidth = _width;
 	m_viewportHeight = _height;
 	glAssert(glViewport(_x, _y, _width, _height));
+	glAssert(glScissor(_x, _y, _width, _height));
 }
 
 void GlContext::setShader(const Shader* _shader)
