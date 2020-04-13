@@ -14,6 +14,12 @@ extern physx::PxPhysics*              g_pxPhysics;
 extern physx::PxDefaultCpuDispatcher* g_pxDispatcher;
 extern physx::PxScene*                g_pxScene;
 
+struct Component_Physics::Impl
+{
+	physx::PxRigidActor* pxRigidActor = nullptr;
+	physx::PxShape*      pxShape      = nullptr;
+};
+
 // PhysicsCooker.cpp
 extern physx::PxCooking* g_pxCooking;
 bool CookConvexMesh(const MeshData* _meshData, physx::PxOutputStream& out_);

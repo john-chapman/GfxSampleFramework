@@ -14,7 +14,7 @@
 			"Dynamic": true,
 			"Selected": true,
 			"UserData": 0,
-			"LocalMatrix": [0.9629442095756531, 7.764901965856552e-7, -0.26976826786994936, 0.0, 0.0027631251141428949, 0.9999657273292542, 0.009865918196737767, 0.0, 0.2697541415691376, -0.010245545767247677, 0.9628936648368836, 0.0, 2.9948129653930666, 0.27994656562805178, 8.705924034118653, 1.0],
+			"LocalMatrix": [0.03810850903391838, 0.0000016093254089355469, -0.999296247959137, 0.0, -0.6302205324172974, 0.7760732769966126, -0.02403244376182556, 0.0, 0.7755095362663269, 0.6306785345077515, 0.029575366526842119, 0.0, 5.684709548950195, 5.637925148010254, 8.767520904541016, 1.0],
 			"Type": "Camera",
 			"Up": 0.4142135679721832,
 			"Down": -0.4142135679721832,
@@ -22,7 +22,7 @@
 			"Left": -0.7737120389938355,
 			"Near": 0.10000000149011612,
 			"Far": 1000.0,
-			"WorldMatrix": [0.9629442095756531, 7.764901965856552e-7, -0.26976826786994936, 0.0, 0.0027631251141428949, 0.9999657273292542, 0.009865918196737767, 0.0, 0.2697541415691376, -0.010245545767247677, 0.9628936648368836, 0.0, 2.9948129653930666, 0.27994656562805178, 8.705924034118653, 1.0],
+			"WorldMatrix": [0.03810850903391838, 0.0000016093254089355469, -0.999296247959137, 0.0, -0.6302205324172974, 0.7760732769966126, -0.02403244376182556, 0.0, 0.7755095362663269, 0.6306785345077515, 0.029575366526842119, 0.0, 5.684709548950195, 5.637925148010254, 8.767520904541016, 1.0],
 			"Orthographic": false,
 			"Asymmetrical": false,
 			"Infinite": true,
@@ -30,8 +30,8 @@
 			"HasGpuBuffer": true,
 			"XForms": [{
 					"Class": "XForm_FreeCamera",
-					"Position": [2.9948129653930666, 0.27994656562805178, 8.705924034118653],
-					"Orientation": [-0.0050751445814967159, -0.13614891469478608, 0.0006970809190534055, -0.9906843304634094],
+					"Position": [5.684709548950195, 5.637925148010254, 8.767520904541016],
+					"Orientation": [0.24108219146728517, -0.6535311937332153, -0.23206472396850587, -0.6789292693138123],
 					"MaxSpeed": 10.0,
 					"MaxSpeedMultiplier": 5.0,
 					"AccelerationTime": 0.10000000149011612,
@@ -151,7 +151,7 @@
 					"Class": "XForm_OrbitalPath",
 					"Azimuth": 0.19198623299598695,
 					"Elevation": -3.1415927410125734,
-					"Theta": 0.04695993289351463,
+					"Theta": 0.23612314462661744,
 					"Radius": 5.200000286102295,
 					"Speed": 0.5
 				}],
@@ -183,6 +183,87 @@
 					"CastShadows": true,
 					"Mesh": "common/models/Box_1.obj",
 					"Material": ["common/materials/Grid0Dark.json"]
+				}]
+		}, {
+			"Id": 69,
+			"Name": "KinematicBox3",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 3.996886730194092, 8.919400215148926, 1.0],
+			"Type": "Object",
+			"XForms": [{
+					"Class": "XForm_Spin",
+					"Axis": [0.0, 1.0, 0.0],
+					"Rate": 0.25
+				}],
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [0.14285707473754884, 1.0, 0.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/Box_1.obj",
+					"Material": ["common/materials/Grid0Dark.json"]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": false,
+						"Kinematic": true,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 3.996886730194092, 8.919400215148926, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial5"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "Box",
+						"HalfExtents": [0.5, 0.5, 0.5],
+						"Name": "PhysicsBox7"
+					}
+				}]
+		}, {
+			"Id": 71,
+			"Name": "KinematicBox4",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 2.0, 3.299999952316284, 7.400000095367432, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [0.9940475225448608, 1.0, 0.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/Box_1.obj",
+					"Material": ["common/materials/Grid0Dark.json"]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": false,
+						"Kinematic": true,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial7"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "Box",
+						"HalfExtents": [0.5, 0.5, 0.5],
+						"Name": "PhysicsBox8"
+					}
 				}]
 		}],
 	"DrawCameraId": 1,

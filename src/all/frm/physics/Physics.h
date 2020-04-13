@@ -1,5 +1,12 @@
 /* \todo
+	- Mass ratio/interpenetration issues.
+		- Test gym for different cases: material friction (boxes on a slope), stacked boxes.
+	- Trigger shape component + callback.
+	- Joint API (do CreateJoint(Type, Component*, Mat4, Component*, Mat4) like the PhysX API).
+	- Aggregate API (do BeginGroup()/EndGroup() - give groups an ID and allow them to be reset independently).
 	- Filtering for raycasts (static vs. dynamic objects).
+	- Articulation component (e.g. for ragdolls).
+	- Vehicle component.
 */
 #pragma once
 
@@ -18,6 +25,7 @@ namespace frm {
 class Physics;
 class PhysicsMaterial;
 class PhysicsGeometry;
+class PhysicsConstraint;
 struct Component_Physics;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -144,9 +152,15 @@ struct Component_Physics: public Component
 	// Explicitly copy internal transform to the node's transform.
 	void forceUpdateNode();
 
+	// Explicitly wake the physics actor.
+	void forceWake() { addForce(vec3(0.0f)); }
+
+	
+	struct Impl;
+	Impl* getImpl() { return m_impl; }
+
 protected:
 
-	struct Impl;
 	Impl* m_impl = nullptr;
 
 	mat4             m_initialTransform	= identity;

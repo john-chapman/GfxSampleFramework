@@ -30,12 +30,6 @@ using namespace frm;
 
 *******************************************************************************/
 
-struct Component_Physics::Impl
-{
-	physx::PxRigidActor* pxRigidActor = nullptr;
-	physx::PxShape*      pxShape      = nullptr;
-};
-
 physx::PxFoundation*           frm::g_pxFoundation = nullptr;
 physx::PxPhysics*              frm::g_pxPhysics    = nullptr;
 physx::PxDefaultCpuDispatcher* frm::g_pxDispatcher = nullptr;
@@ -305,7 +299,9 @@ void Physics::Edit()
 			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
 			//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_AABBS,  1.0f);
 			//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_AXES,        1.0f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_NORMAL,   1.0f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_NORMAL,     1.0f);
+			//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.5f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
 		}
 		else
 		{
@@ -329,7 +325,7 @@ void Physics::Edit()
 			}
 		Im3d::End();
 
-		Im3d::SetSize(1.0f); // \todo parameterize
+		Im3d::SetSize(2.0f); // \todo parameterize
 		Im3d::BeginLines();
 			for (auto i = 0u; i < drawList.getNbLines(); ++i)
 			{

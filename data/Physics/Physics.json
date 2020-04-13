@@ -20,6 +20,7 @@
 	},
 	"GlContext": {
 		"GlVersion": [-1, -1],
+		"HDR": false,
 		"GlCompatibility": false,
 		"GlDebug": false
 	},

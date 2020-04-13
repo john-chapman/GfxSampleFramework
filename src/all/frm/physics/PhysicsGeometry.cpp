@@ -362,12 +362,12 @@ bool PhysicsGeometry::initImpl()
 					setState(State_Error);
 					return false;
 				}
-				cachedData.setData((const char*)pxOutput.getData(), pxOutput.getSize()); // \todo avoid this copy?
+				cachedData.setData((const char*)pxOutput.getData(), pxOutput.getSize());
 				FileSystem::Write(cachedData, cachedPath.c_str());
 			}
 
 			physx::PxDefaultMemoryInputData pxInput((physx::PxU8*)cachedData.getData(), (physx::PxU32)cachedData.getDataSize());
-			geometryUnion->convexMesh() = physx::PxConvexMeshGeometry(g_pxPhysics->createConvexMesh(pxInput)); // \todo release the convex mesh?
+			geometryUnion->convexMesh() = physx::PxConvexMeshGeometry(g_pxPhysics->createConvexMesh(pxInput));
 
 			break;
 		}
@@ -405,7 +405,27 @@ void PhysicsGeometry::shutdownImpl()
 {
 	if (m_impl)
 	{
-		FRM_DELETE((physx::PxGeometry*)m_impl);
+		physx::PxGeometryHolder* geometryUnion = (physx::PxGeometryHolder*)m_impl;
+		switch (m_type)
+		{
+			case Type_Sphere:
+			case Type_Box:
+			case Type_Plane:
+			case Type_Capsule:
+				break;
+			case Type_ConvexMesh:
+				geometryUnion->convexMesh().convexMesh->release();
+				break;
+			case Type_TriangleMesh:
+				geometryUnion->triangleMesh().triangleMesh->release();
+				break;
+			case Type_Heightfield:
+			default:
+				FRM_ASSERT(false);
+				break;	
+		}
+
+		FRM_DELETE(geometryUnion);
 		m_impl = nullptr;
 	}
 }

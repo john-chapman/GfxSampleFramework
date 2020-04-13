@@ -55,8 +55,8 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=1;FRM_MODULE_PHYSICS=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_PHYSICS=1;FRM_MODULE_AUDIO=1;FRM_MODULE_VR=0;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -81,8 +81,8 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>NDEBUG;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;FRM_MODULE_AUDIO=1;FRM_MODULE_PHYSICS=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_PHYSICS=1;FRM_MODULE_AUDIO=1;FRM_MODULE_VR=0;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -395,6 +395,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\rand.h" />
     <ClInclude Include="..\..\src\all\frm\core\types.h" />
     <ClInclude Include="..\..\src\all\frm\physics\Physics.h" />
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsConstraint.h" />
     <ClInclude Include="..\..\src\all\frm\physics\PhysicsGeometry.h" />
     <ClInclude Include="..\..\src\all\frm\physics\PhysicsInternal.h" />
     <ClInclude Include="..\..\src\all\frm\physics\PhysicsMaterial.h" />
@@ -512,6 +513,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\rand.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\types.cpp" />
     <ClCompile Include="..\..\src\all\frm\physics\Physics.cpp" />
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsConstraint.cpp" />
     <ClCompile Include="..\..\src\all\frm\physics\PhysicsCooker.cpp" />
     <ClCompile Include="..\..\src\all\frm\physics\PhysicsGeometry.cpp" />
     <ClCompile Include="..\..\src\all\frm\physics\PhysicsMaterial.cpp" />

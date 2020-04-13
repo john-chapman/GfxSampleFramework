@@ -10,6 +10,7 @@
 #include <frm/core/Scene.h>
 
 #include <frm/physics/Physics.h>
+#include <frm/physics/PhysicsConstraint.h>
 #include <frm/physics/PhysicsGeometry.h>
 #include <frm/physics/PhysicsMaterial.h>
 
@@ -18,6 +19,18 @@
 using namespace frm;
 
 static PhysicsTest s_inst;
+
+static bool GetRayCameraPlaneIntersection(const Ray& _ray, const vec3& _planeOrigin, vec3& out_)
+{
+	const Plane plane(-Scene::GetDrawCamera()->getViewVector(), _planeOrigin);
+	float t0;
+	if (Intersect(_ray, plane, t0))
+	{
+		out_ = _ray.m_origin + _ray.m_direction * t0;
+		return true;
+	}
+	return false;
+}
 
 PhysicsTest::PhysicsTest()
 	: AppBase("Physics") 
@@ -85,6 +98,10 @@ bool PhysicsTest::update()
 		return false;
 	}
 
+	const float dt = (float)getDeltaTime();
+	Camera* drawCamera = Scene::GetDrawCamera();
+	Camera* cullCamera = Scene::GetCullCamera();
+
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Spawn Projectile"))
 	{
@@ -124,6 +141,260 @@ bool PhysicsTest::update()
 
 		ImGui::TreePop();
 	}
+	
+	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+	if (ImGui::TreeNode("Physics Edit"))
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		Ray cursorRay = getCursorRayW(drawCamera);
+		Physics::RayCastOut raycastOut;
+
+		enum BoxDrawState_
+		{
+			BoxDrawState_None,
+			BoxDrawState_XZStart,
+			BoxDrawState_XZDrag,
+			BoxDrawState_Y
+		};	
+		typedef int BoxDrawState;
+		static BoxDrawState boxDrawState;
+		static Plane boxDrawPlane;
+		static vec3 boxA;
+		static vec3 boxB;
+
+		if (ImGui::Button(boxDrawState == BoxDrawState_None ? "Draw Box" : "Cancel (ESC)"))
+		{
+			if (boxDrawState == BoxDrawState_None)
+			{
+				boxDrawState = BoxDrawState_XZStart;
+			}
+			else
+			{
+				boxDrawState = BoxDrawState_None;
+			}
+		}
+		ImGui::SameLine();
+		ImGui::Text("%d", boxDrawState);
+
+		bool showBox = false;
+		switch (boxDrawState)
+		{
+			default:
+			case BoxDrawState_None:
+				break;
+			case BoxDrawState_XZStart:
+			{
+				if (Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlags_Position))
+				{
+					Im3d::DrawPoint(raycastOut.position, 16.0f, Im3d::Color_White);
+					if (io.MouseDown[0])
+					{
+						boxA = boxB = raycastOut.position;
+						boxDrawPlane = Plane(vec3(0.0f, 1.0f, 0.0f), raycastOut.position);
+						boxDrawState = BoxDrawState_XZDrag;
+					}
+				}
+
+				break;
+			}
+			case BoxDrawState_XZDrag:
+			{
+				float t0;
+				bool intersectsPlane = Intersect(cursorRay, boxDrawPlane, t0);
+				if (intersectsPlane && io.MouseDown[0])
+				{
+					boxB = cursorRay.m_origin + cursorRay.m_direction * t0;
+					showBox = true;
+				}
+				else if (intersectsPlane)
+				{
+					boxDrawState = BoxDrawState_Y;
+				}
+				else
+				{
+					boxDrawState = BoxDrawState_None;
+				}
+				break;
+			}
+			case BoxDrawState_Y:
+			{
+				boxDrawPlane = Plane(-cursorRay.m_direction, boxB);
+				float t0;
+				bool intersectsPlane = Intersect(cursorRay, boxDrawPlane, t0);
+				if (intersectsPlane)
+				{
+					boxB.y = (cursorRay.m_origin + cursorRay.m_direction * t0).y;
+					showBox = true;
+
+					if (io.MouseClicked[0])
+					{
+						vec3 boxSize = Max(boxA, boxB) - Min(boxA, boxB);
+						PhysicsGeometry* boxPhysicsGeometry = PhysicsGeometry::CreateBox(boxSize * 0.5f);
+						MeshData* boxMeshData = MeshData::CreateBox(MeshDesc::GetDefault(), boxSize.x, boxSize.y, boxSize.z, 1, 1, 1);
+						Mesh* boxMesh = Mesh::Create(*boxMeshData);
+						MeshData::Destroy(boxMeshData);
+
+						Node* newNode = m_scene->createNode(Node::Type_Object);
+						newNode->setNamef("#box");
+						newNode->setActive(true);
+						newNode->setDynamic(true);
+	
+						Component_BasicRenderable* renderableComponent = Component_BasicRenderable::Create(boxMesh, m_defaultMaterial);
+						newNode->addComponent(renderableComponent);
+
+						float boxMass = 0.5f;//boxSize.x * boxSize.y * boxSize.z;
+						mat4 initialTransform = TranslationMatrix(Min(boxA, boxB) + boxSize * 0.5f + vec3(0.0f, 1e-6f, 0.0f));
+						Component_Physics* physicsComponent = Component_Physics::Create(boxPhysicsGeometry, Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags_Default);
+						newNode->addComponent(physicsComponent);
+
+						Mesh::Release(boxMesh);
+						PhysicsGeometry::Release(boxPhysicsGeometry);						
+
+						boxDrawState = BoxDrawState_None;
+					}
+				}
+				break;
+			}
+		}
+		if (ImGui::IsKeyPressed(Keyboard::Key_Escape))
+		{
+			boxDrawState = BoxDrawState_None;
+		}
+
+		if (showBox)
+		{
+			vec3 boxMin = Min(boxA, boxB);
+			vec3 boxMax = Max(boxA, boxB);
+			Im3d::PushDrawState();
+
+			Im3d::SetColor(Im3d::Color_White);
+			Im3d::SetSize(3.0f);
+			Im3d::DrawAlignedBox(boxMin, boxMax);
+			
+			Im3d::SetColor(Im3d::Color_White);
+			Im3d::SetAlpha(0.25f);
+			Im3d::DrawAlignedBoxFilled(boxMin, boxMax);
+			
+			Im3d::PopDrawState();
+		}
+
+		static bool isSelecting = false;
+		static Node* selectedNode = nullptr;
+		if (ImGui::Button(isSelecting ? "Cancel (ESC)" : "Select"))
+		{
+			isSelecting = true;
+		}
+		if (selectedNode)
+		{
+			ImGui::SameLine();	
+			ImGui::Text(selectedNode->getName());
+		}
+
+		if (isSelecting)
+		{
+			if (io.MouseClicked[0] && Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlags_Position))
+			{
+				selectedNode = raycastOut.component->getNode();
+				if (selectedNode)
+				{
+					selectedNode->setSelected(true);
+				}
+				isSelecting = false;
+			}
+		}
+
+		static bool isJointTest = false;
+		static Component_Physics* jointTestComponent[2] = { nullptr };
+		static mat4 sceneNodeFrame = identity;
+		static PhysicsConstraint* joint = nullptr;
+		if (ImGui::Button(isJointTest ? "Cancel (ESC)" : "Joint Test"))
+		{
+			isJointTest = true;
+		}
+
+		if (isJointTest)
+		{
+			if (joint)
+			{
+				if (!jointTestComponent[1])
+				{
+					vec3 intersection;
+					if (GetRayCameraPlaneIntersection(cursorRay, GetTranslation(sceneNodeFrame), intersection))
+					{
+						mat4 cursorFrame = LookAt(intersection, GetTranslation(sceneNodeFrame));
+						joint->setComponentFrame(1, cursorFrame);
+					}
+				}
+				
+				if (!jointTestComponent[1] && io.MouseClicked[0] && Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut))
+				{
+					jointTestComponent[1] = raycastOut.component;
+					joint->setComponent(1, raycastOut.component);
+
+					if (jointTestComponent[1])
+					{
+						Node* sceneNode = jointTestComponent[1]->getNode();
+						sceneNodeFrame = LookAt(raycastOut.position, raycastOut.position + raycastOut.normal);
+						mat4 sceneNodeFrameLocal = AffineInverse(sceneNode->getWorldMatrix()) * sceneNodeFrame; // to node local space
+						joint->setComponentFrame(1, sceneNodeFrameLocal);
+					}
+				}
+
+				if (ImGui::IsKeyPressed(Keyboard::Key_Escape))
+				{
+					isJointTest = false;
+					PhysicsConstraint::Destroy(joint);
+				}
+			}
+			else
+			{
+				if (io.MouseClicked[0] && Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut))
+				{
+					jointTestComponent[0] = raycastOut.component;
+					jointTestComponent[1] = nullptr;
+					if (jointTestComponent[0])
+					{
+						Node* sceneNode = jointTestComponent[0]->getNode();
+						if (sceneNode)
+						{
+							sceneNodeFrame = LookAt(raycastOut.position, raycastOut.position + raycastOut.normal);
+	
+							mat4 cursorFrame = identity;
+							vec3 intersection;
+							if (GetRayCameraPlaneIntersection(cursorRay, sceneNode->getWorldPosition(), intersection))
+							{
+								mat4 cursorFrame = LookAt(intersection, drawCamera->getPosition());
+							}
+
+							PhysicsConstraint::Distance distanceConstraint;
+							distanceConstraint.minDistance      = 0.0f;
+							distanceConstraint.maxDistance      = 0.1f;
+							distanceConstraint.spring.stiffness = 100.0f;
+							distanceConstraint.spring.damping   = 0.9f;
+						
+							mat4 sceneNodeFrameLocal = AffineInverse(sceneNode->getWorldMatrix()) * sceneNodeFrame; // to node local space
+							joint = PhysicsConstraint::CreateDistance(jointTestComponent[0], sceneNodeFrameLocal, nullptr, cursorFrame, distanceConstraint);
+						}
+					}
+				}
+			}
+
+			if (joint)
+			{
+				ImGui::Text("%0xllu -- %0xllu", jointTestComponent[0], jointTestComponent[1]);
+				ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+				if (ImGui::TreeNode("Joint"))
+				{
+					joint->edit();
+					ImGui::TreePop();
+				}
+			}
+		}
+
+		ImGui::TreePop();
+	}
+
 
 	if (ImGui::TreeNode("Renderer"))
 	{
@@ -131,10 +402,6 @@ bool PhysicsTest::update()
 
 		ImGui::TreePop();
 	}		
-
-	const float dt = (float)getDeltaTime();
-	Camera* drawCamera = Scene::GetDrawCamera();
-	Camera* cullCamera = Scene::GetCullCamera();
 
 	if (Input::GetKeyboard()->wasPressed(Keyboard::Key_Space))
 	{

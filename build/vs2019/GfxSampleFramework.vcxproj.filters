@@ -948,6 +948,9 @@
     <ClInclude Include="..\..\src\all\frm\physics\Physics.h">
       <Filter>all\frm\physics</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsConstraint.h">
+      <Filter>all\frm\physics</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\all\frm\physics\PhysicsGeometry.h">
       <Filter>all\frm\physics</Filter>
     </ClInclude>
@@ -1293,6 +1296,9 @@
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\physics\Physics.cpp">
+      <Filter>all\frm\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsConstraint.cpp">
       <Filter>all\frm\physics</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\physics\PhysicsCooker.cpp">
