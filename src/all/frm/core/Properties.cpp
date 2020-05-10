@@ -393,6 +393,30 @@ void Properties::InvalidateStorage(const char* _propName, const char* _groupName
 	}
 }
 
+void Properties::InvalidateGroup(const char* _groupName)
+{
+	Properties* group = nullptr;
+	for (Properties* it : s_groupStack)
+	{
+		group = it->findGroup(_groupName);
+	}
+
+	if (!group)
+	{
+		group = GetDefault()->findGroup(_groupName);
+	}
+
+	if (!group)
+	{
+		group = GetDefault();
+	}
+	
+	for (auto it : group->m_properties)
+	{
+		it.second->setExternalStorage(nullptr);
+	}
+}
+
 Properties* Properties::Create(const char* _groupName)
 {
 	return FRM_NEW(Properties(_groupName));

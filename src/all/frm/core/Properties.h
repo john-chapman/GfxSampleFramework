@@ -84,6 +84,9 @@ public:
 
 	// Find a property as per Find(), invalidate the external storage ptr. Call this e.g. in the dtor of a class which owns the storage, this is important to allow properties to be correctly serialized.
 	static void        InvalidateStorage(const char* _propName, const char* _groupName = nullptr);
+
+	// Call InvalidateStorage() for all members of a group.
+	static void        InvalidateGroup(const char* _groupName);
 	
 	static Properties* Create(const char* _groupName);
 	static void        Destroy(Properties*& _properties_);
