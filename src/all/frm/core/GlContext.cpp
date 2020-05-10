@@ -227,12 +227,12 @@ void GlContext::blitFramebuffer(const Framebuffer* _src, const Framebuffer* _dst
 
 void GlContext::setViewport(int _x, int _y, int _width, int _height)
 {
-	m_viewportX = _x;
-	m_viewportY = _y;
-	m_viewportWidth = _width;
-	m_viewportHeight = _height;
-	glAssert(glViewport(_x, _y, _width, _height));
-	glAssert(glScissor(_x, _y, _width, _height));
+	m_viewportX = Max(0, _x);
+	m_viewportY = Max(0, _y);
+	m_viewportWidth = Max(0, _width);
+	m_viewportHeight = Max(0, _height);
+	glAssert(glViewport(m_viewportX, m_viewportY, m_viewportWidth, m_viewportHeight));
+	glAssert(glScissor(m_viewportX, m_viewportY, m_viewportWidth, m_viewportHeight));
 }
 
 void GlContext::setShader(const Shader* _shader)
