@@ -123,21 +123,20 @@ bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 		tmpMesh.endSubmesh();
 	}
 
-	tmpMesh.generateNormals();
-	tmpMesh.generateTangents();
-	tmpMesh.updateBounds();
-
- // \todo use _mesh desc as a conversion target
 	if (ret)
 	{
-		MeshDesc retDesc(MeshDesc::Primitive_Triangles);
-		retDesc.addVertexAttr(VertexAttr::Semantic_Positions,   DataType_Float32, 3);
-		retDesc.addVertexAttr(VertexAttr::Semantic_Normals,     DataType_Sint8N,  3);
-		retDesc.addVertexAttr(VertexAttr::Semantic_Tangents,    DataType_Sint8N,  3);
-		retDesc.addVertexAttr(VertexAttr::Semantic_Texcoords,   DataType_Uint16N, 2);
-		retDesc.addVertexAttr(VertexAttr::Semantic_BoneWeights, DataType_Uint16N, 4);
-		retDesc.addVertexAttr(VertexAttr::Semantic_BoneIndices, DataType_Uint8,   4);
-		MeshData retMesh(retDesc, tmpMesh);
+		const MeshDesc& meshDesc = mesh_.getDesc();
+		if (meshDesc.findVertexAttr(VertexAttr::Semantic_Normals))
+		{
+			tmpMesh.generateNormals();
+		}
+		if (meshDesc.findVertexAttr(VertexAttr::Semantic_Tangents))
+		{
+			tmpMesh.generateTangents();
+		}
+		tmpMesh.updateBounds();
+
+		MeshData retMesh(meshDesc, tmpMesh);
 		retMesh.setBindPose(tmpSkeleton);
 		swap(mesh_, retMesh);
 	}

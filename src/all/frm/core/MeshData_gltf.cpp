@@ -311,23 +311,19 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 		finalMeshBuilder.endSubmesh();
 	}
 
-	if (generateNormals)
+	const MeshDesc& meshDesc = mesh_.getDesc();
+
+	if (meshDesc.findVertexAttr(VertexAttr::Semantic_Normals) && generateNormals)
 	{
 		FRM_AUTOTIMER("Generate normals");
 		finalMeshBuilder.generateNormals();
 	}
 	
-	if (generateTangents)
+	if (meshDesc.findVertexAttr(VertexAttr::Semantic_Tangents) && generateTangents)
 	{
 		FRM_AUTOTIMER("Generate tangents");
 		finalMeshBuilder.generateTangents();
 	}
-
-	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 3);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Normals,   DataType_Sint16N, 3);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Tangents,  DataType_Sint16N, 4);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float16, 2);
 
 	MeshData retMesh(meshDesc, finalMeshBuilder);
 	swap(mesh_, retMesh);

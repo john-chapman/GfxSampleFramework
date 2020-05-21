@@ -13,9 +13,6 @@
 #include <cstring>
 
 using namespace frm;
-using namespace frm;
-
-static const uint8 kVertexAttrAlignment = 4;
 
 static const char* VertexSemanticToStr(VertexAttr::Semantic _semantic)
 {
@@ -98,9 +95,9 @@ VertexAttr* MeshDesc::addVertexAttr(
 		}
 	 // modify offset to add implicit padding
 		offset = m_vertexSize;
-		if (offset % kVertexAttrAlignment != 0)
+		if (offset % m_attrAlignment != 0)
 		{
-			offset += kVertexAttrAlignment - (offset % kVertexAttrAlignment); 
+			offset += m_attrAlignment - (offset % m_attrAlignment); 
 		}
 	}
 
@@ -114,12 +111,12 @@ VertexAttr* MeshDesc::addVertexAttr(
 	
  // update vertex size, add padding if required
 	m_vertexSize = ret->getOffset() + ret->getSize();
-	if (m_vertexSize % kVertexAttrAlignment != 0)
+	if (m_vertexSize % m_attrAlignment != 0)
 	{
 		++m_vertexAttrCount;
 		m_vertexDesc[m_vertexAttrCount].setOffset(m_vertexSize);
 		m_vertexDesc[m_vertexAttrCount].setSemantic(VertexAttr::Semantic_Padding);
-		m_vertexDesc[m_vertexAttrCount].setCount(kVertexAttrAlignment - (m_vertexSize % kVertexAttrAlignment));
+		m_vertexDesc[m_vertexAttrCount].setCount(m_attrAlignment - (m_vertexSize % m_attrAlignment));
 		m_vertexDesc[m_vertexAttrCount].setDataType(DataType_Uint8);
 		m_vertexSize += m_vertexDesc[m_vertexAttrCount].getSize();
 	}
@@ -190,14 +187,17 @@ MeshData::Submesh::Submesh()
 {
 }
 
-MeshData* MeshData::Create(const char* _path)
+MeshData* MeshData::Create(const char* _path, const MeshDesc& _desc)
 {
+	FRM_AUTOTIMER("MeshData::Create('%s')", _path);
+
 	File f;
 	if (!FileSystem::Read(f, _path))
 	{
 		return nullptr;
 	}
 	MeshData* ret = FRM_NEW(MeshData);
+	ret->m_desc = _desc;
 	ret->m_path.set(_path);
 
 	if (FileSystem::CompareExtension("obj", _path))

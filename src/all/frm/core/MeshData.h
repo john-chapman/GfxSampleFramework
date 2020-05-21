@@ -112,10 +112,13 @@ public:
 	// Return VertexAttr matching _semantic, or nullptr if not present.
 	const VertexAttr* findVertexAttr(VertexAttr::Semantic _semantic) const;
 
+	uint8 getVertexAttrAlignment() const            { return m_attrAlignment; }
+	void  setVertexAttrAlignment(uint8 _alignment)  { m_attrAlignment = _alignment; }
+
 	uint64    getHash() const;
-	Primitive getPrimitive() const               { return (Primitive)m_primitive; }
-	void      setPrimitive(Primitive _primitive) { m_primitive = (uint8)_primitive; }
-	uint8     getVertexSize() const              { return m_vertexSize; }
+	Primitive getPrimitive() const                  { return (Primitive)m_primitive; }
+	void      setPrimitive(Primitive _primitive)    { m_primitive = (uint8)_primitive; }
+	uint8     getVertexSize() const                 { return m_vertexSize; }
 
 	bool operator==(const MeshDesc& _rhs) const;
 	bool operator!=(const MeshDesc& _lhs) const  { return !(*this == _lhs); }
@@ -127,9 +130,10 @@ public:
 private:
 	static const int  kMaxVertexAttrCount = VertexAttr::Semantic_Count + 1;
 	VertexAttr        m_vertexDesc[kMaxVertexAttrCount];
-	uint8             m_vertexAttrCount = 0;
-	uint8             m_vertexSize      = 0;
-	uint8             m_primitive       = 0;
+	uint8             m_attrAlignment      = 4;
+	uint8             m_vertexAttrCount    = 0;
+	uint8             m_vertexSize         = 0;
+	uint8             m_primitive          = 0;
 
 }; // class MeshDesc
 
@@ -159,7 +163,8 @@ public:
 		Submesh();
 	};
 
-	static MeshData* Create(const char* _path);
+	static MeshData* Create(const char* _path, const MeshDesc& _desc = MeshDesc::GetDefault());
+
 	static MeshData* Create(
 		const MeshDesc& _desc, 
 		uint            _vertexCount, 
@@ -167,6 +172,7 @@ public:
 		const void*     _vertexData = nullptr,
 		const void*     _indexData  = nullptr
 		);
+
 	static MeshData* Create(
 		const MeshDesc&    _desc,
 		const MeshBuilder& _meshBuilder
