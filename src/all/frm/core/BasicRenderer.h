@@ -11,6 +11,8 @@
 #include <EASTL/vector.h>
 #include <EASTL/unordered_map.h>
 
+#include <functional>
+
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -121,6 +123,18 @@ struct BasicRenderer
 	bool            pauseUpdate                = false;
 	bool            cullBySubmesh              = true;
 
+	enum Pass_
+	{
+		Pass_Shadow,
+		Pass_GBuffer,
+		Pass_Scene,
+		Pass_Wireframe,
+
+		Pass_Count
+	};
+	typedef uint64 Pass;
+	
+	std::function<void(Pass _pass, const Camera& _camera)> drawCallback;
 
 private:
 	BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags);
@@ -142,17 +156,6 @@ private:
 	};
 	eastl::vector<MaterialInstance> materialInstances;
 	void updateMaterialInstances();
-
-	enum Pass_
-	{
-		Pass_Shadow,
-		Pass_GBuffer,
-		Pass_Scene,
-		Pass_Wireframe,
-
-		Pass_Count
-	};
-	typedef uint64 Pass;
 
 	enum GeometryType_
 	{

@@ -156,6 +156,12 @@ void BasicRenderer::draw(float _dt)
 					ctx->setUniform("uTexelSize", vec2(shadowMap->uvScale));
 					bindAndDraw(drawCall);
 				}
+
+				if (drawCallback)
+				{
+					PROFILER_MARKER("drawCallback");
+					drawCallback(Pass_Shadow, shadowCamera);
+				}
 			}
 		}
 
@@ -191,6 +197,12 @@ void BasicRenderer::draw(float _dt)
 				ctx->bindBuffer(sceneCamera.m_gpuBuffer);
 				ctx->setUniform("uTexelSize", texelSize);
 				bindAndDraw(drawCall);				
+			}
+
+			if (drawCallback)
+			{
+				PROFILER_MARKER("drawCallback");
+				drawCallback(Pass_GBuffer, sceneCamera);
 			}
 		}
 
@@ -295,6 +307,12 @@ void BasicRenderer::draw(float _dt)
 			ctx->setUniform("uTexelSize", texelSize);
 			bindAndDraw(drawCall);
 		}
+
+		if (drawCallback)
+		{
+			PROFILER_MARKER("drawCallback");
+			drawCallback(Pass_Scene, sceneCamera);
+		}
 	}
 
 	if (isWireframe)
@@ -319,6 +337,12 @@ void BasicRenderer::draw(float _dt)
 			ctx->bindBuffer(sceneCamera.m_gpuBuffer);
 			ctx->setUniform("uTexelSize", texelSize);
 			bindAndDraw(drawCall);
+		}
+
+		if (drawCallback)
+		{
+			PROFILER_MARKER("drawCallback");
+			drawCallback(Pass_Wireframe, sceneCamera);
 		}
 
 		glAssert(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
