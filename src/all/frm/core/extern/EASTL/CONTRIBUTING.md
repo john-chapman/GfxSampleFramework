@@ -1,7 +1,7 @@
 ## Contributing
 
 Before you can contribute, EA must have a Contributor License Agreement (CLA) on file that has been signed by each contributor.
-You can sign here: [Go to CLA](https://goo.gl/KPylZ3)
+You can sign here: [Go to CLA](https://electronicarts.na1.echosign.com/public/esignWidget?wid=CBFCIBAA3AAABLblqZhByHRvZqmltGtliuExmuV-WNzlaJGPhbSRg2ufuPsM3P0QmILZjLpkGslg24-UJtek*)
 
 ### Pull Request Policy
 
@@ -18,6 +18,16 @@ Your pull request should:
 	* limit using clang format on new code
 	* do not deviate from style already established in the files
 
+### Getting the Repository
+
+EASTL uses git submodules for its dependencies as they are seperate git repositories.  Recursive clones will continue until HD space is exhausted unless they are manually limited.
+It is recommended to use the following to get the source:
+
+```bash
+git clone https://github.com/electronicarts/EASTL
+cd EASTL
+git submodule update --init
+```
 
 ### Running the Unit Tests
 
@@ -37,7 +47,7 @@ Here is an example batch file.
 set build_folder=out
 mkdir %build_folder%
 pushd %build_folder%
-call cmake .. -DEASTL_BUILD_TESTS:BOOL=ON
+call cmake .. -DEASTL_BUILD_TESTS:BOOL=ON -DEASTL_BUILD_BENCHMARK:BOOL=OFF
 call cmake --build . --config Release
 call cmake --build . --config Debug
 call cmake --build . --config RelWithDebInfo
@@ -56,7 +66,7 @@ Here is an example bash file
 build_folder=out
 mkdir $build_folder
 pushd $build_folder
-cmake .. -DEASTL_BUILD_TESTS:BOOL=ON
+cmake .. -DEASTL_BUILD_TESTS:BOOL=ON -DEASTL_BUILD_BENCHMARK:BOOL=OFF
 cmake --build . --config Release
 cmake --build . --config Debug
 cmake --build . --config RelWithDebInfo
@@ -70,24 +80,4 @@ popd
 popd
 ```
 
-### Building using Buck
-
-EASTL can also be built using [Buck Build](https://www.buckbuild.com).
-
-To build EASTL:
-
-```bash=
-buck build :eastl
-```
-
-To run the tests:
-
-```bash=
-buck run :test-runner
-```
-
-To run the benchmarks:
-
-```bash=
-buck run :benchmark
-```
+The value of EASTL_BUILD_BENCHMARK can be toggled to `ON` in order to build projects that include the benchmark program.

@@ -2,7 +2,6 @@
 	- Mass ratio/interpenetration issues.
 		- Test gym for different cases: material friction (boxes on a slope), stacked boxes.
 	- Trigger shape component + callback.
-	- Joint API (do CreateJoint(Type, Component*, Mat4, Component*, Mat4) like the PhysX API).
 	- Aggregate API (do BeginGroup()/EndGroup() - give groups an ID and allow them to be reset independently).
 	- Filtering for raycasts (static vs. dynamic objects).
 	- Articulation component (e.g. for ragdolls).
@@ -11,6 +10,7 @@
 #pragma once
 
 #include <frm/core/frm.h>
+#include <frm/core/BitFlags.h>
 #include <frm/core/Component.h>
 #include <frm/core/String.h>
 
@@ -35,18 +35,21 @@ class Physics
 {
 public:
 	
-	enum Flags_
+	enum class Flag: uint8
 	{
-		Flags_Static,
-		Flags_Kinematic,
-		Flags_Dynamic,
+		Static,
+		Kinematic,
+		Dynamic,
 
-		Flags_Simulation,
-		Flags_Query,
+		Simulation,
+		Query,
 
-		Flags_Default = (1 << Flags_Dynamic) | (1 << Flags_Simulation) | (1 << Flags_Query)
+		DisableGravity,
+
+		_Count,
+		_Default = BIT_FLAGS_DEFAULT(Dynamic, Simulation, Query)
 	};
-	typedef uint32 Flags;
+	using Flags = BitFlags<Flag>;
 
 	static bool Init();
 	static void Shutdown();
@@ -63,15 +66,16 @@ public:
 	static void AddGroundPlane(const PhysicsMaterial* _material = nullptr);
 
 	
-	enum RayCastFlags_
+	enum class RayCastFlag: uint8
 	{
-		RayCastFlags_Position, // get the position
-		RayCastFlags_Normal,   // get the normal
-		RayCastFlags_AnyHit,   // get any hit (else closest)
+		Position, // Get the position.
+		Normal,   // Get the normal.
+		AnyHit,   // Get any hit (else closest).
 
-		RayCastFlags_Default = (1 << RayCastFlags_Position | 1 << RayCastFlags_Normal)
+		_Count,
+		_Default = BIT_FLAGS_DEFAULT(Position, Normal)
 	};
-	typedef uint32 RayCastFlags;
+	using RayCastFlags = BitFlags<RayCastFlag>;
 
 	struct RayCastIn
 	{
@@ -96,13 +100,13 @@ public:
 	};
 
 	// Return true if an intersection was found, in which case out_ contains valid data.
-	static bool RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flags = RayCastFlags_Default);
+	static bool RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flags = RayCastFlags());
 
 private:
 
 	static Physics* s_instance;
 
-	bool  m_paused            = true;
+	bool  m_paused            = false;
 	bool  m_step              = true;
 	bool  m_debugDraw         = false;
 	float m_stepLengthSeconds = 1.0f/60.0f;
@@ -130,44 +134,44 @@ struct Component_Physics: public Component
 		const PhysicsGeometry* _geometry, 
 		const PhysicsMaterial* _material, 
 		float                  _mass, 
-		const mat4&            _initialTransform = identity, 
-		Physics::Flags        _flags             = Physics::Flags_Default
+		const mat4&            _initialTransform = identity,
+		Physics::Flags         _flags             = Physics::Flags()
 		);
 
-	void  setFlags(Physics::Flags _flags) { Physics::UnregisterComponent(this); m_flags = _flags; Physics::RegisterComponent(this); }
-	Physics::Flags getFlags() const       { return m_flags; }
+	void           setFlags(Physics::Flags _flags);
+	Physics::Flags getFlags() const                      { return m_flags; }
+	bool           getFlag(Physics::Flag _flag) const    { return m_flags.get(_flag); }
 
-	virtual bool init() override;
-	virtual void shutdown() override;
-	virtual void update(float _dt) override;
-	virtual bool edit() override;
-	virtual bool serialize(Serializer& _serializer_) override;
+	virtual bool   init() override;
+	virtual void   shutdown() override;
+	virtual void   update(float _dt) override;
+	virtual bool   edit() override;
+	virtual bool   serialize(Serializer& _serializer_) override;
 
-	virtual void reset();
+	virtual void   reset();
 
-	void addForce(const vec3& _force);
-	void setLinearVelocity(const vec3& _linearVelocity);
-
+	void           addForce(const vec3& _force);
+	void           setLinearVelocity(const vec3& _linearVelocity);
+	void           setAngularVelocity(const vec3& _angularVelocity);
 
 	// Explicitly copy internal transform to the node's transform.
-	void forceUpdateNode();
+	void           forceUpdateNode();
 
 	// Explicitly wake the physics actor.
-	void forceWake() { addForce(vec3(0.0f)); }
+	void           forceWake() { addForce(vec3(0.0f)); }
 
-	
 	struct Impl;
 	Impl* getImpl() { return m_impl; }
 
 protected:
 
-	Impl* m_impl = nullptr;
+	Impl*               m_impl             = nullptr;
 
-	mat4             m_initialTransform	= identity;
-	Physics::Flags   m_flags            = Physics::Flags_Default;
-	PhysicsGeometry* m_geometry         = nullptr;
-	PhysicsMaterial* m_material         = nullptr;
-	float            m_mass             = 1.0f;
+	Physics::Flags      m_flags;
+	mat4                m_initialTransform = identity;
+	PhysicsGeometry*    m_geometry         = nullptr;
+	PhysicsMaterial*    m_material         = nullptr;
+	float               m_mass             = 1.0f;
 
 	bool editFlags();
 	bool serializeFlags(Serializer& _serializer_);
@@ -177,6 +181,11 @@ protected:
 
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// Component_PhysicsTemporary
+// Temporary physics component. Upon entering an idle state, deletes itself
+// (and its parent node) after idleTimeout seconds.
+////////////////////////////////////////////////////////////////////////////////
 struct Component_PhysicsTemporary: public Component_Physics
 {
 	friend class Physics;
@@ -186,7 +195,7 @@ struct Component_PhysicsTemporary: public Component_Physics
 		const PhysicsMaterial* _material, 
 		float                  _mass,
 		const mat4&            _initialTransform = identity, 
-		Physics::Flags         _flags            = Physics::Flags_Default
+		Physics::Flags         _flags            = Physics::Flags()
 		);
 
 	virtual bool init() override;

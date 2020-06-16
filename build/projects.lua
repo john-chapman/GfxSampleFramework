@@ -60,4 +60,10 @@ return
 		"../tests/_sample.cpp",
 	},
 
+	VRTest = 
+	{
+		"../tests/VRTest/**",
+		"../tests/_sample.cpp",
+	}
+
 }

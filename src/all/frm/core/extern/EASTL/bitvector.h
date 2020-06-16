@@ -766,7 +766,7 @@ namespace eastl
 	typename bitvector<Allocator, Element, Container>::iterator
 	bitvector<Allocator, Element, Container>::begin() EA_NOEXCEPT
 	{
-		return iterator(&mContainer[0], 0);
+		return iterator(mContainer.begin(), 0);
 	}
 
 
@@ -774,7 +774,7 @@ namespace eastl
 	typename bitvector<Allocator, Element, Container>::const_iterator
 	bitvector<Allocator, Element, Container>::begin() const EA_NOEXCEPT
 	{
-		return const_iterator(&mContainer[0], 0);
+		return const_iterator(mContainer.begin(), 0);
 	}
 
 
@@ -782,7 +782,7 @@ namespace eastl
 	typename bitvector<Allocator, Element, Container>::const_iterator
 	bitvector<Allocator, Element, Container>::cbegin() const EA_NOEXCEPT
 	{
-		return const_iterator(&mContainer[0], 0);
+		return const_iterator(mContainer.begin(), 0);
 	}
 
 
@@ -1417,7 +1417,7 @@ namespace eastl
 						   const bitvector<Allocator, Element, Container>& b)
 	{
 		// To do: Replace this with a smart compare implementation. This is much slower than it needs to be.
-		return ((a.size() == b.size()) && equal(a.begin(), a.end(), b.begin()));
+		return ((a.size() == b.size()) && eastl::equal(a.begin(), a.end(), b.begin()));
 	}
 
 
@@ -1434,7 +1434,7 @@ namespace eastl
 						  const bitvector<Allocator, Element, Container>& b)
 	{
 		// To do: Replace this with a smart compare implementation. This is much slower than it needs to be.
-		return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+		return eastl::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
 	}
 
 

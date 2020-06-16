@@ -3,11 +3,12 @@
 #include <frm/core/frm.h>
 #include <frm/core/BasicMaterial.h>
 #include <frm/core/BasicRenderer.h>
+#include <frm/core/Component.h>
 #include <frm/core/FileSystem.h>
 #include <frm/core/Mesh.h>
+#include <frm/core/Properties.h>
 #include <frm/core/Scene.h>
 #include <frm/core/SkeletonAnimation.h>
-#include <frm/physics/Physics.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
@@ -19,15 +20,17 @@ static AnimationTest s_inst;
 AnimationTest::AnimationTest()
 	: AppBase("Animation") 
 {
-	PropertyGroup& props = m_props.addGroup("Animation");
-	//             name                     default                  min     max                   storage
-	props.addFloat("m_animSpeed",           m_animSpeed,             0.0f,   2.0f,                 &m_animSpeed);
-	props.addPath ("m_animPath",            m_animPath.c_str(),                                    &m_animPath);
-	props.addPath ("m_meshPath",            m_meshPath.c_str(),                                    &m_meshPath);
+	Properties::PushGroup("AnimationTest");
+		//                  name                 default          min     max    storage
+		Properties::Add    ("m_animSpeed",       m_animSpeed,     0.f,    2.f,   &m_animSpeed);
+		Properties::AddPath("m_animPath",        m_animPath,                     &m_animPath);
+		Properties::AddPath("m_meshPath",        m_meshPath,                     &m_meshPath);
+	Properties::PopGroup();
 }
 
 AnimationTest::~AnimationTest()
 {
+	Properties::InvalidateGroup("AnimationTest");
 }
 
 bool AnimationTest::init(const frm::ArgList& _args)
@@ -38,8 +41,6 @@ bool AnimationTest::init(const frm::ArgList& _args)
 	}
 
 	m_basicRenderer = BasicRenderer::Create(m_resolution.x, m_resolution.y);
-
-	Physics::AddGroundPlane(Physics::GetDefaultMaterial());
 
 	m_material = BasicMaterial::Create();
 	
@@ -155,8 +156,9 @@ bool AnimationTest::update()
 void AnimationTest::draw()
 {
 	Camera* drawCamera = Scene::GetDrawCamera();
+	Camera* cullCamera = Scene::GetCullCamera();
 
-	m_basicRenderer->draw((float)getDeltaTime());
+	m_basicRenderer->draw((float)getDeltaTime(), drawCamera, cullCamera);
 
 	AppBase::draw();
 }

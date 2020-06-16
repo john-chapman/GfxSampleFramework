@@ -30,10 +30,11 @@ using namespace frm;
 
 *******************************************************************************/
 
-physx::PxFoundation*           frm::g_pxFoundation = nullptr;
-physx::PxPhysics*              frm::g_pxPhysics    = nullptr;
-physx::PxDefaultCpuDispatcher* frm::g_pxDispatcher = nullptr;
-physx::PxScene*                frm::g_pxScene      = nullptr;
+physx::PxFoundation*           frm::g_pxFoundation        = nullptr;
+physx::PxControllerManager*    frm::g_pxControllerManager = nullptr;
+physx::PxPhysics*              frm::g_pxPhysics           = nullptr;
+physx::PxDefaultCpuDispatcher* frm::g_pxDispatcher        = nullptr;
+physx::PxScene*                frm::g_pxScene             = nullptr;
 
 namespace {
 
@@ -135,18 +136,6 @@ physx::PxFilterFlags FilterShader(
 	return physx::PxFilterFlag::eDEFAULT;
 }
 
-
-inline bool CheckFlag(uint32 _flags, uint32 _flag)
-{
-	return (_flags & (1 << _flag)) != 0;
-}
-
-inline void SetFlag(uint32& _flags_, uint32 _flag, bool _value)
-{
-	uint32 mask = 1 << _flag;
-	_flags_ = _value ? (_flags_ | mask) : (_flags_ & ~mask);
-}
-
 } // namespace
 
 // PUBLIC
@@ -179,6 +168,9 @@ bool Physics::Init()
 
 	g_pxScene->setSimulationEventCallback(&g_eventCallback);
 
+	//g_pxControllerManager = PxCreateControllerManager(*g_pxScene); // \todo
+	//FRM_ASSERT(g_pxControllerManager);
+
 	return true; // \todo error
 }
 
@@ -195,6 +187,8 @@ void Physics::Shutdown()
 		g_pxCooking = nullptr;
 	}
 
+	//g_pxControllerManager->release(); // \todo
+	g_pxControllerManager = nullptr;
 	g_pxScene->release();
 	g_pxScene = nullptr;
 	g_pxDispatcher->release();
@@ -358,21 +352,29 @@ bool Physics::InitComponent(Component_Physics* _component_)
 
 	Component_Physics::Impl*& impl = _component_->m_impl;
 	impl = FRM_NEW(Component_Physics::Impl);
+	Flags flags = _component_->getFlags();
 
 	// PxRigidActor
 	physx::PxRigidActor*& pxRigidActor = impl->pxRigidActor;
-	if (CheckFlag(_component_->m_flags, Flags_Dynamic) || CheckFlag(_component_->m_flags, Flags_Kinematic))
+	if (flags.get(Flag::Dynamic) || flags.get(Flag::Kinematic))
 	{
 		physx::PxRigidDynamic* pxRigidDynamic = g_pxPhysics->createRigidDynamic(Mat4ToPxTransform(_component_->m_initialTransform));
-		if (CheckFlag(_component_->m_flags, Flags_Kinematic))
+		if (flags.get(Flag::Kinematic))
 		{
 			pxRigidDynamic->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
 		}
+
 		physx::PxRigidBodyExt::updateMassAndInertia(*pxRigidDynamic, _component_->m_mass);
 		pxRigidActor = pxRigidDynamic;
+
+		if (flags.get(Flag::DisableGravity))
+		{
+			pxRigidActor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+		}
+
 		_component_->forceUpdateNode();
 	}
-	else if (CheckFlag(_component_->m_flags, Flags_Static))
+	else if (flags.get(Flag::Static))
 	{
 		pxRigidActor = g_pxPhysics->createRigidStatic(Mat4ToPxTransform(_component_->m_initialTransform));
 	}
@@ -432,11 +434,11 @@ void Physics::RegisterComponent(Component_Physics* _component_)
 	PROFILER_MARKER_CPU("#Physics::RegisterComponent");
 
 	Flags flags = _component_->getFlags();
-	if (CheckFlag(flags, Flags_Dynamic))
+	if (flags.get(Flag::Dynamic))
 	{
 		s_instance->m_dynamic.push_back(_component_);
 	}
-	else if (CheckFlag(flags, Flags_Kinematic))
+	else if (flags.get(Flag::Kinematic))
 	{
 		s_instance->m_kinematic.push_back(_component_);
 	}
@@ -455,11 +457,11 @@ void Physics::UnregisterComponent(Component_Physics* _component_)
 	g_pxScene->removeActor(*_component_->m_impl->pxRigidActor);
 
 	Flags flags = _component_->getFlags();
-	if (CheckFlag(flags, Flags_Dynamic))
+	if (flags.get(Flag::Dynamic))
 	{
 		s_instance->m_dynamic.erase_first_unsorted(_component_);
 	}
-	else if (CheckFlag(flags, Flags_Kinematic))
+	else if (flags.get(Flag::Kinematic))
 	{
 		s_instance->m_kinematic.erase_first_unsorted(_component_);
 	}
@@ -478,11 +480,11 @@ const PhysicsMaterial* Physics::GetDefaultMaterial()
 void Physics::AddGroundPlane(const PhysicsMaterial* _material)
 {
 	static Component_Physics s_groundPlane;
-	s_groundPlane.m_flags = (1 << Flags_Static);
-	s_groundPlane.m_geometry = PhysicsGeometry::CreatePlane(vec3(0.0f, 1.0f, 0.0f), vec3(0.0f));
-	s_groundPlane.m_material = const_cast<PhysicsMaterial*>(_material);
+	s_groundPlane.m_flags            = Flags({ Flag::Static, Flag::Simulation, Flag::Query });
+	s_groundPlane.m_geometry         = PhysicsGeometry::CreatePlane(vec3(0.0f, 1.0f, 0.0f), vec3(0.0f));
+	s_groundPlane.m_material         = const_cast<PhysicsMaterial*>(_material);
 	s_groundPlane.m_initialTransform = identity;
-	s_groundPlane.m_node = nullptr;
+	s_groundPlane.m_node             = nullptr;
 	FRM_VERIFY(s_groundPlane.init());
 }
 
@@ -491,9 +493,9 @@ bool Physics::RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flag
 {
 	physx::PxRaycastBuffer queryResult;
 	physx::PxHitFlags flags = (physx::PxHitFlags)0
-		| (CheckFlag(_flags, RayCastFlags_Position) ? physx::PxHitFlag::ePOSITION : (physx::PxHitFlags)0)
-		| (CheckFlag(_flags, RayCastFlags_Normal)   ? physx::PxHitFlag::eNORMAL   : (physx::PxHitFlags)0)
-		| (CheckFlag(_flags, RayCastFlags_AnyHit)   ? physx::PxHitFlag::eMESH_ANY : (physx::PxHitFlags)0)
+		| (_flags.get(RayCastFlag::Position) ? physx::PxHitFlag::ePOSITION : (physx::PxHitFlags)0)
+		| (_flags.get(RayCastFlag::Normal)   ? physx::PxHitFlag::eNORMAL   : (physx::PxHitFlags)0)
+		| (_flags.get(RayCastFlag::AnyHit)   ? physx::PxHitFlag::eMESH_ANY : (physx::PxHitFlags)0)
 		;
 	if (!g_pxScene->raycast(Vec3ToPx(_in.origin), Vec3ToPx(_in.direction), _in.maxDistance, queryResult) || !queryResult.hasBlock)
 	{
@@ -548,6 +550,18 @@ Component_Physics* Component_Physics::Create(const PhysicsGeometry* _geometry, c
 	return ret;
 }
 
+void Component_Physics::setFlags(Physics::Flags _flags)
+{
+	if (_flags == m_flags)
+	{
+		return;
+	}
+
+	Physics::UnregisterComponent(this);
+	m_flags = _flags;
+	Physics::RegisterComponent(this);
+}
+
 bool Component_Physics::init()
 {
 	shutdown();
@@ -588,7 +602,7 @@ bool Component_Physics::edit()
 
 	ImGui::Spacing();
 
-	if (m_impl && CheckFlag(m_flags, Physics::Flags_Dynamic) && ImGui::DragFloat("Mass", &m_mass))
+	if (m_impl && m_flags.get(Physics::Flag::Dynamic) && ImGui::DragFloat("Mass", &m_mass))
 	{
 		m_mass = Max(m_mass, 0.0f);
 		ret = true;
@@ -727,7 +741,7 @@ bool Component_Physics::serialize(Serializer& _serializer_)
 
 void Component_Physics::addForce(const vec3& _force)
 {
-	if (!m_impl || !CheckFlag(m_flags, Physics::Flags_Dynamic))
+	if (!m_impl || !m_flags.get(Physics::Flag::Dynamic))
 	{
 		return;
 	}
@@ -738,7 +752,7 @@ void Component_Physics::addForce(const vec3& _force)
 
 void Component_Physics::setLinearVelocity(const vec3& _linearVelocity)
 {
-	if (!m_impl || !CheckFlag(m_flags, Physics::Flags_Dynamic))
+	if (!m_impl || !m_flags.get(Physics::Flag::Dynamic))
 	{
 		return;
 	}
@@ -747,9 +761,20 @@ void Component_Physics::setLinearVelocity(const vec3& _linearVelocity)
 	pxRigidDynamic->setLinearVelocity(Vec3ToPx(_linearVelocity));
 }
 
+void Component_Physics::setAngularVelocity(const vec3& _angularVelocity)
+{
+	if (!m_impl || !m_flags.get(Physics::Flag::Dynamic))
+	{
+		return;
+	}
+	
+	physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)m_impl->pxRigidActor;
+	pxRigidDynamic->setAngularVelocity(Vec3ToPx(_angularVelocity));
+}
+
 void Component_Physics::reset()
 {
-	if (!m_impl || !CheckFlag(m_flags, Physics::Flags_Dynamic))
+	if (!m_impl || !m_flags.get(Physics::Flag::Dynamic))
 	{
 		return;
 	}
@@ -779,11 +804,12 @@ bool Component_Physics::editFlags()
 {
 	bool ret = false;
 
-	bool flagStatic     = CheckFlag(m_flags, Physics::Flags_Static);
-	bool flagKinematic  = CheckFlag(m_flags, Physics::Flags_Kinematic);
-	bool flagDynamic    = CheckFlag(m_flags, Physics::Flags_Dynamic);
-	bool flagSimulation = CheckFlag(m_flags, Physics::Flags_Simulation);
-	bool flagQuery      = CheckFlag(m_flags, Physics::Flags_Query);
+	bool flagStatic         = m_flags.get(Physics::Flag::Static);
+	bool flagKinematic      = m_flags.get(Physics::Flag::Kinematic);
+	bool flagDynamic        = m_flags.get(Physics::Flag::Dynamic);
+	bool flagSimulation     = m_flags.get(Physics::Flag::Simulation);
+	bool flagQuery          = m_flags.get(Physics::Flag::Query);
+	bool flagDisableGravity = m_flags.get(Physics::Flag::DisableGravity);
 
 	if (ImGui::Checkbox("Static", &flagStatic))
 	{
@@ -807,13 +833,16 @@ bool Component_Physics::editFlags()
 	ImGui::SameLine();
 	ret |= ImGui::Checkbox("Query",      &flagQuery);
 
+	ret |= ImGui::Checkbox("Disable Gravity", &flagDisableGravity);
+
 	if (ret)
 	{
-		SetFlag(m_flags, Physics::Flags_Static,     flagStatic);
-		SetFlag(m_flags, Physics::Flags_Kinematic,  flagKinematic);
-		SetFlag(m_flags, Physics::Flags_Dynamic,    flagDynamic);
-		SetFlag(m_flags, Physics::Flags_Simulation, flagSimulation);
-		SetFlag(m_flags, Physics::Flags_Query,      flagQuery);
+		m_flags.set(Physics::Flag::Static,         flagStatic);
+		m_flags.set(Physics::Flag::Kinematic,      flagKinematic);
+		m_flags.set(Physics::Flag::Dynamic,        flagDynamic);
+		m_flags.set(Physics::Flag::Simulation,     flagSimulation);
+		m_flags.set(Physics::Flag::Query,          flagQuery);
+		m_flags.set(Physics::Flag::DisableGravity, flagDisableGravity);
 	}
 	
 
@@ -827,25 +856,28 @@ bool Component_Physics::serializeFlags(Serializer& _serializer_)
 		return false;
 	}
 
-	bool flagStatic     = CheckFlag(m_flags, Physics::Flags_Static);
-	bool flagKinematic  = CheckFlag(m_flags, Physics::Flags_Kinematic);
-	bool flagDynamic    = CheckFlag(m_flags, Physics::Flags_Dynamic);
-	bool flagSimulation = CheckFlag(m_flags, Physics::Flags_Simulation);
-	bool flagQuery      = CheckFlag(m_flags, Physics::Flags_Query);
+	bool flagStatic         = m_flags.get(Physics::Flag::Static);
+	bool flagKinematic      = m_flags.get(Physics::Flag::Kinematic);
+	bool flagDynamic        = m_flags.get(Physics::Flag::Dynamic);
+	bool flagSimulation     = m_flags.get(Physics::Flag::Simulation);
+	bool flagQuery          = m_flags.get(Physics::Flag::Query);
+	bool flagDisableGravity = m_flags.get(Physics::Flag::DisableGravity);
 		
-	Serialize(_serializer_, flagStatic,     "Static");
-	Serialize(_serializer_, flagKinematic,  "Kinematic");
-	Serialize(_serializer_, flagDynamic,    "Dynamic");
-	Serialize(_serializer_, flagSimulation, "Simulation");
-	Serialize(_serializer_, flagQuery,      "Query");
+	Serialize(_serializer_, flagStatic,         "Static");
+	Serialize(_serializer_, flagKinematic,      "Kinematic");
+	Serialize(_serializer_, flagDynamic,        "Dynamic");
+	Serialize(_serializer_, flagSimulation,     "Simulation");
+	Serialize(_serializer_, flagQuery,          "Query");
+	Serialize(_serializer_, flagDisableGravity, "DisableGravity");
 
 	if (_serializer_.getMode() == Serializer::Mode_Read)
 	{
-		SetFlag(m_flags, Physics::Flags_Static,     flagStatic);
-		SetFlag(m_flags, Physics::Flags_Kinematic,  flagKinematic);
-		SetFlag(m_flags, Physics::Flags_Dynamic,    flagDynamic);
-		SetFlag(m_flags, Physics::Flags_Simulation, flagSimulation);
-		SetFlag(m_flags, Physics::Flags_Query,      flagQuery);
+		m_flags.set(Physics::Flag::Static,         flagStatic);
+		m_flags.set(Physics::Flag::Kinematic,      flagKinematic);
+		m_flags.set(Physics::Flag::Dynamic,        flagDynamic);
+		m_flags.set(Physics::Flag::Simulation,     flagSimulation);
+		m_flags.set(Physics::Flag::Query,          flagQuery);
+		m_flags.set(Physics::Flag::DisableGravity, flagDisableGravity);
 	}
 		
 	_serializer_.endObject(); // Flags
@@ -1064,7 +1096,6 @@ bool Component_PhysicsTemporary::init()
 {
 	bool ret = Component_Physics::init();
 
-	basicRenderable = (Component_BasicRenderable*)m_node->findComponent(StringHash("Component_BasicRenderable"));
 	timer = 0.0f;
 
 	return ret;
@@ -1079,7 +1110,7 @@ void Component_PhysicsTemporary::update(float _dt)
 {
 	Component_Physics::update(_dt);
 
-	if (!m_impl || !CheckFlag(m_flags, Physics::Flags_Dynamic))
+	if (!m_impl || !m_flags.get(Physics::Flag::Dynamic))
 	{
 		return;
 	}
@@ -1100,6 +1131,7 @@ void Component_PhysicsTemporary::update(float _dt)
 	}
 	else
 	{
+		basicRenderable = (Component_BasicRenderable*)m_node->findComponent(StringHash("Component_BasicRenderable")); // late update to avoid initialization order problems
 		const physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)m_impl->pxRigidActor;
 		if (pxRigidDynamic->isSleeping())
 		{

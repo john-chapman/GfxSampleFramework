@@ -89,8 +89,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef EASTL_VERSION
-	#define EASTL_VERSION   "3.12.08"
-	#define EASTL_VERSION_N  31208
+	#define EASTL_VERSION   "3.16.07"
+	#define EASTL_VERSION_N  31607
 #endif
 
 
@@ -245,6 +245,20 @@ namespace eastl
 		#define EASTL_DLL 1
 	#else
 		#define EASTL_DLL 0
+	#endif
+#endif
+
+
+///////////////////////////////////////////////////////////////////////////////
+// EASTL_IF_NOT_DLL
+//
+// Utility to include expressions only for static builds. 
+//
+#ifndef EASTL_IF_NOT_DLL
+	#if EASTL_DLL
+		#define EASTL_IF_NOT_DLL(x) 
+	#else
+		#define EASTL_IF_NOT_DLL(x) x
 	#endif
 #endif
 
@@ -434,6 +448,8 @@ namespace eastl
 // the front of the container, but not use it if the container is empty.
 // In practice it's often easier and more efficient to do this than to write
 // extra code to check if the container is empty.
+//
+// NOTE: If this is enabled, EASTL_ASSERT_ENABLED must also be enabled
 //
 // Example usage:
 //     template <typename T, typename Allocator>
@@ -755,14 +771,6 @@ namespace eastl
 // in practice may never occur for you.
 //
 ///////////////////////////////////////////////////////////////////////////////
-
-#ifndef EASTL_STRING_OPT_CHAR_INIT
-	// Defined as 0 or 1. Default is 1.
-	// Defines if newly created characters are initialized to 0 or left
-	// as random values.
-	// The C++ string standard is to initialize chars to 0.
-	#define EASTL_STRING_OPT_CHAR_INIT 1
-#endif
 
 #ifndef EASTL_STRING_OPT_EXPLICIT_CTORS
 	// Defined as 0 or 1. Default is 0.
@@ -1538,13 +1546,8 @@ namespace eastl
 //    size_t alignment = EASTL_ALIGN_OF(int);
 //
 ///////////////////////////////////////////////////////////////////////////////
-
 #ifndef EASTL_ALIGN_OF
-	#if !defined(__GNUC__) || (__GNUC__ >= 3) // GCC 2.x doesn't do __alignof correctly all the time.
-		#define EASTL_ALIGN_OF __alignof
-	#else
-		#define EASTL_ALIGN_OF(type) ((size_t)offsetof(struct{ char c; type m; }, m))
-	#endif
+	#define EASTL_ALIGN_OF alignof
 #endif
 
 
@@ -1762,20 +1765,13 @@ typedef EASTL_SSIZE_T eastl_ssize_t; // Signed version of eastl_size_t. Concept 
 	#endif
 #endif
 
+
 /// EASTL_TUPLE_ENABLED
 /// EASTL tuple implementation depends on variadic template support
 #if EASTL_VARIADIC_TEMPLATES_ENABLED && !defined(EA_COMPILER_NO_TEMPLATE_ALIASES)
 	#define EASTL_TUPLE_ENABLED 1
 #else
 	#define EASTL_TUPLE_ENABLED 0
-#endif
-
-/// EA_ONCE
-///
-/// This is a fix for the EA_ONCE define that's broken in EABase versions prior to 2.00.40
-///
-#ifndef EA_ONCE
-	#define EA_ONCE()
 #endif
 
 
@@ -1864,7 +1860,7 @@ typedef EASTL_SSIZE_T eastl_ssize_t; // Signed version of eastl_size_t. Concept 
 /// This feature define allows users to toggle the problematic eastl::pair implicit 
 /// single element constructor.
 #ifndef EASTL_ENABLE_PAIR_FIRST_ELEMENT_CONSTRUCTOR
-	#define EASTL_ENABLE_PAIR_FIRST_ELEMENT_CONSTRUCTOR 1
+	#define EASTL_ENABLE_PAIR_FIRST_ELEMENT_CONSTRUCTOR 0
 #endif
 
 #endif // Header include guard

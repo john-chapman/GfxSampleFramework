@@ -14,7 +14,7 @@
 			"Dynamic": true,
 			"Selected": true,
 			"UserData": 0,
-			"LocalMatrix": [0.03810850903391838, 0.0000016093254089355469, -0.999296247959137, 0.0, -0.6302205324172974, 0.7760732769966126, -0.02403244376182556, 0.0, 0.7755095362663269, 0.6306785345077515, 0.029575366526842119, 0.0, 5.684709548950195, 5.637925148010254, 8.767520904541016, 1.0],
+			"LocalMatrix": [0.9977933168411255, 0.0000014835968613624573, 0.0667487308382988, 0.0, 0.030874531716108323, 0.8866044282913208, -0.4615475833415985, 0.0, -0.059179019182920459, 0.4625791013240814, 0.8846272230148315, 0.0, 0.055751342326402667, 0.3352127969264984, 0.5916860103607178, 1.0],
 			"Type": "Camera",
 			"Up": 0.4142135679721832,
 			"Down": -0.4142135679721832,
@@ -22,7 +22,7 @@
 			"Left": -0.7737120389938355,
 			"Near": 0.10000000149011612,
 			"Far": 1000.0,
-			"WorldMatrix": [0.03810850903391838, 0.0000016093254089355469, -0.999296247959137, 0.0, -0.6302205324172974, 0.7760732769966126, -0.02403244376182556, 0.0, 0.7755095362663269, 0.6306785345077515, 0.029575366526842119, 0.0, 5.684709548950195, 5.637925148010254, 8.767520904541016, 1.0],
+			"WorldMatrix": [0.9977933168411255, 0.0000014835968613624573, 0.0667487308382988, 0.0, 0.030874531716108323, 0.8866044282913208, -0.4615475833415985, 0.0, -0.059179019182920459, 0.4625791013240814, 0.8846272230148315, 0.0, 0.055751342326402667, 0.3352127969264984, 0.5916860103607178, 1.0],
 			"Orthographic": false,
 			"Asymmetrical": false,
 			"Infinite": true,
@@ -30,8 +30,8 @@
 			"HasGpuBuffer": true,
 			"XForms": [{
 					"Class": "XForm_FreeCamera",
-					"Position": [5.684709548950195, 5.637925148010254, 8.767520904541016],
-					"Orientation": [0.24108219146728517, -0.6535311937332153, -0.23206472396850587, -0.6789292693138123],
+					"Position": [0.055751342326402667, 0.3352127969264984, 0.5916860103607178],
+					"Orientation": [0.23800475895404817, 0.03243213891983032, 0.007951217703521252, -0.9707018733024597],
 					"MaxSpeed": 10.0,
 					"MaxSpeedMultiplier": 5.0,
 					"AccelerationTime": 0.10000000149011612,
@@ -43,7 +43,7 @@
 			"Name": "Sun",
 			"Active": true,
 			"Dynamic": false,
-			"Selected": false,
+			"Selected": true,
 			"UserData": 0,
 			"LocalMatrix": [-0.7499839067459106, 0.43300357460975649, 0.4999895989894867, 0.0, 0.4330070912837982, -0.24999678134918214, 0.8660138249397278, 0.0, 0.4999966025352478, 0.8660191893577576, -4.371107920064787e-8, 0.0, 0.0, 2.9000000953674318, 0.0, 1.0],
 			"Type": "Object",
@@ -51,22 +51,24 @@
 					"Class": "Component_BasicLight",
 					"Type": "Direct",
 					"ColorBrightness": [1.0, 1.0, 1.0, 10.0],
-					"LinearAttenuation": [0.0, 0.0],
-					"RadialAttenuation": [0.0, 0.0]
+					"Radius": 5.0,
+					"ConeInnerAngle": 1.0,
+					"ConeOuterAngle": 20.0,
+					"CastShadows": true
 				}]
 		}, {
 			"Id": 36,
 			"Name": "Floor",
 			"Active": true,
 			"Dynamic": false,
-			"Selected": true,
+			"Selected": false,
 			"UserData": 0,
 			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"Type": "Object",
 			"Components": [{
 					"Class": "Component_BasicRenderable",
 					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
-					"CastShadows": true,
+					"CastShadows": false,
 					"Mesh": "common/models/Plane_100.obj",
 					"Material": ["common/materials/Grid2Dark.json"]
 				}]
@@ -75,7 +77,7 @@
 			"Name": "Sky",
 			"Active": true,
 			"Dynamic": false,
-			"Selected": true,
+			"Selected": false,
 			"UserData": 0,
 			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"Type": "Object",
@@ -130,7 +132,7 @@
 				}, {
 					"Class": "Component_BasicRenderable",
 					"ColorAlpha": [1.0, 0.5535714626312256, 0.0, 1.0],
-					"CastShadows": true,
+					"CastShadows": false,
 					"Mesh": "common/models/Box_1.obj",
 					"Material": ["common/materials/Grid0Dark.json"]
 				}]
@@ -151,7 +153,7 @@
 					"Class": "XForm_OrbitalPath",
 					"Azimuth": 0.19198623299598695,
 					"Elevation": -3.1415927410125734,
-					"Theta": 0.23612314462661744,
+					"Theta": 0.7059276700019836,
 					"Radius": 5.200000286102295,
 					"Speed": 0.5
 				}],
@@ -180,7 +182,7 @@
 				}, {
 					"Class": "Component_BasicRenderable",
 					"ColorAlpha": [1.0, 0.0, 0.4270462989807129, 1.0],
-					"CastShadows": true,
+					"CastShadows": false,
 					"Mesh": "common/models/Box_1.obj",
 					"Material": ["common/materials/Grid0Dark.json"]
 				}]
@@ -189,7 +191,7 @@
 			"Name": "KinematicBox3",
 			"Active": true,
 			"Dynamic": true,
-			"Selected": true,
+			"Selected": false,
 			"UserData": 0,
 			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 3.996886730194092, 8.919400215148926, 1.0],
 			"Type": "Object",
@@ -201,7 +203,7 @@
 			"Components": [{
 					"Class": "Component_BasicRenderable",
 					"ColorAlpha": [0.14285707473754884, 1.0, 0.0, 1.0],
-					"CastShadows": true,
+					"CastShadows": false,
 					"Mesh": "common/models/Box_1.obj",
 					"Material": ["common/materials/Grid0Dark.json"]
 				}, {
@@ -232,14 +234,14 @@
 			"Name": "KinematicBox4",
 			"Active": true,
 			"Dynamic": true,
-			"Selected": true,
+			"Selected": false,
 			"UserData": 0,
 			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 2.0, 3.299999952316284, 7.400000095367432, 1.0],
 			"Type": "Object",
 			"Components": [{
 					"Class": "Component_BasicRenderable",
 					"ColorAlpha": [0.9940475225448608, 1.0, 0.0, 1.0],
-					"CastShadows": true,
+					"CastShadows": false,
 					"Mesh": "common/models/Box_1.obj",
 					"Material": ["common/materials/Grid0Dark.json"]
 				}, {
@@ -264,6 +266,57 @@
 						"HalfExtents": [0.5, 0.5, 0.5],
 						"Name": "PhysicsBox8"
 					}
+				}]
+		}, {
+			"Id": 73,
+			"Name": "Object_007",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object"
+		}, {
+			"Id": 74,
+			"Name": "Controllers",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"Children": [{
+					"Id": 75,
+					"Name": "Left",
+					"Active": true,
+					"Dynamic": true,
+					"Selected": false,
+					"UserData": 0,
+					"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -0.091337651014328, 0.0, 0.0, 1.0],
+					"Type": "Object",
+					"Components": [{
+							"Class": "Component_BasicRenderable",
+							"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+							"CastShadows": true,
+							"Mesh": "VRTest/models/RiftS/Left/oculus_rifts_controller_left.obj",
+							"Material": ["common/materials/Grid1Dark.json"]
+						}]
+				}, {
+					"Id": 76,
+					"Name": "Right",
+					"Active": true,
+					"Dynamic": true,
+					"Selected": true,
+					"UserData": 0,
+					"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0025695543736219408, 0.0, 0.0, 1.0],
+					"Type": "Object",
+					"Components": [{
+							"Class": "Component_BasicRenderable",
+							"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+							"CastShadows": true,
+							"Mesh": "VRTest/models/RiftS/Right/oculus_rifts_controller_right.obj",
+							"Material": ["common/materials/Grid1Dark.json"]
+						}]
 				}]
 		}],
 	"DrawCameraId": 1,

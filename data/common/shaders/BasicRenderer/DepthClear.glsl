@@ -1,6 +1,9 @@
 #include "shaders/def.glsl"
 
 uniform float uClearDepth;
+#if DEBUG
+	_FRAGMENT_OUT(0, vec4, fColor);
+#endif
 
 #ifdef VERTEX_SHADER ///////////////////////////////////////////////////////////
 
@@ -18,6 +21,9 @@ void main()
 void main() 
 {
 	//gl_FragDepth = uClearDepth;
+	#if DEBUG
+		fColor = vec4(1, 0, 1, 1);
+	#endif
 }
 
 #endif // FRAGMENT_SHADER

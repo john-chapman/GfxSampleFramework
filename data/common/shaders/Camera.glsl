@@ -70,13 +70,14 @@ vec3 Camera_GetFrustumRay(in vec2 _ndc)
 {
 	if (Camera_GetProjFlag(Camera_ProjFlag_Asymmetrical)) 
 	{
-	 // \todo interpolate between frustum edges in XY
-		return vec3(0.0, 0.0, 0.0);
+		float h = mix(uCamera.m_left, uCamera.m_right, _ndc.x * 0.5 + 0.5);
+		float v = mix(uCamera.m_down, uCamera.m_up,  _ndc.y * 0.5 + 0.5);
+		return vec3(h, v, -1.0);
 	}
 	else
 	{
-		vec2 ndcJittered = _ndc + uCamera.m_proj[2].xy; // incorporate jitter from the proj matrix
-		return vec3(ndcJittered.x * bfCamera.m_up * bfCamera.m_aspectRatio, ndcJittered.y * bfCamera.m_up, -1.0);
+		const vec2 ndcJittered = _ndc + uCamera.m_proj[2].xy; // incorporate jitter from the proj matrix
+		return vec3(ndcJittered.x * uCamera.m_up * uCamera.m_aspectRatio, ndcJittered.y * uCamera.m_up, -1.0);
 	}
 }
 // World space frustum ray.

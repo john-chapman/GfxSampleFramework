@@ -10,6 +10,7 @@ namespace frm {
 
 // Physics.cpp
 extern physx::PxFoundation*           g_pxFoundation;
+extern physx::PxControllerManager*    g_pxControllerManager;
 extern physx::PxPhysics*              g_pxPhysics;
 extern physx::PxDefaultCpuDispatcher* g_pxDispatcher;
 extern physx::PxScene*                g_pxScene;

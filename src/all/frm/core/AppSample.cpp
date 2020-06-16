@@ -629,12 +629,12 @@ void AppSample::drawNotifications()
 
 *******************************************************************************/
 
-static Shader*     g_shImGui;
-static Shader*     g_shTextureView[frm::internal::kTextureTargetCount]; // shader per texture type
-static Mesh*       g_msImGui;
-static Texture*    g_txImGui;
-static TextureView g_txViewImGui; // default texture view for the ImGui texture
-static Texture*    g_txRadar;
+static Shader*     s_shImGui;
+static Mesh*       s_msImGui;
+static Texture*    s_txImGui;
+static TextureView s_txViewImGui; // default texture view for the ImGui texture
+static Shader*     s_shTextureView[frm::internal::kTextureTargetCount]; // shader per texture type
+static Texture*    s_txRadar;
 
 bool AppSample::initRenderdoc()
 {
@@ -679,59 +679,59 @@ bool AppSample::ImGui_Init(AppSample* _app)
 	}
 	
  // mesh
- 	if (g_msImGui) 
+ 	if (s_msImGui) 
 	{
-		Mesh::Release(g_msImGui);
+		Mesh::Release(s_msImGui);
 	}	
 	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 2);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float32, 2);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint32,  1);
 	FRM_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
-	g_msImGui = Mesh::Create(meshDesc);
+	s_msImGui = Mesh::Create(meshDesc);
 
  // shaders
-	if (g_shImGui) 
+	if (s_shImGui) 
 	{
-		Shader::Release(g_shImGui);
+		Shader::Release(s_shImGui);
 	}
-	FRM_VERIFY(g_shImGui = Shader::CreateVsFs("shaders/ImGui_vs.glsl", "shaders/ImGui_fs.glsl"));
-	g_shImGui->setName("#ImGui");
+	FRM_VERIFY(s_shImGui = Shader::CreateVsFs("shaders/ImGui.glsl", "shaders/ImGui.glsl"));
+	s_shImGui->setName("#ImGui");
 
 	ShaderDesc desc;
-	desc.setPath(GL_VERTEX_SHADER,   "shaders/ImGui_vs.glsl");
+	desc.setPath(GL_VERTEX_SHADER,   "shaders/ImGui.glsl");
 	desc.setPath(GL_FRAGMENT_SHADER, "shaders/TextureView_fs.glsl");
 	for (int i = 0; i < internal::kTextureTargetCount; ++i) 
 	{
 		desc.clearDefines();
 		desc.addDefine(GL_FRAGMENT_SHADER, internal::GlEnumStr(internal::kTextureTargets[i]) + 3); // \hack +3 removes the 'GL_', which is reserved in the shader
-		FRM_VERIFY(g_shTextureView[i] = Shader::Create(desc));
-		g_shTextureView[i]->setNamef("#TextureViewer_%s", internal::GlEnumStr(internal::kTextureTargets[i]) + 3);
+		FRM_VERIFY(s_shTextureView[i] = Shader::Create(desc));
+		s_shTextureView[i]->setNamef("#TextureViewer_%s", internal::GlEnumStr(internal::kTextureTargets[i]) + 3);
 	}
 
  // radar texture
-	if (g_txRadar) 
+	if (s_txRadar) 
 	{
-		Texture::Release(g_txRadar);
+		Texture::Release(s_txRadar);
 	}
-	g_txRadar = Texture::Create("textures/radar.tga");
-	g_txRadar->setName("#TextureViewer_radar");
+	s_txRadar = Texture::Create("textures/radar.tga");
+	s_txRadar->setName("#TextureViewer_radar");
 
 	ImGui_InitFont(_app);
 
-	if (g_txImGui)
+	if (s_txImGui)
 	{
-		Texture::Release(g_txImGui);
+		Texture::Release(s_txImGui);
 	}
 	unsigned char* buf;
 	int txX, txY;
 	io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
-	g_txImGui = Texture::Create2d(txX, txY, GL_R8);
-	g_txImGui->setFilter(GL_NEAREST);
-	g_txImGui->setName("#ImGuiFont");
-	g_txImGui->setData(buf, GL_RED, GL_UNSIGNED_BYTE);
-	g_txViewImGui = TextureView(g_txImGui, g_shImGui);
-	io.Fonts->TexID = (void*)&g_txViewImGui; // need a TextureView ptr for rendering
+	s_txImGui = Texture::Create2d(txX, txY, GL_R8);
+	s_txImGui->setFilter(GL_NEAREST);
+	s_txImGui->setName("#ImGuiFont");
+	s_txImGui->setData(buf, GL_RED, GL_UNSIGNED_BYTE);
+	s_txViewImGui = TextureView(s_txImGui, s_shImGui);
+	io.Fonts->TexID = (void*)&s_txViewImGui; // need a TextureView ptr for rendering
 
 	
  // init ImGui state
@@ -859,19 +859,19 @@ bool AppSample::ImGui_InitFont(AppSample* _app)
 	const ImWchar glyphRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 	io.Fonts->AddFontFromFileTTF("common/fonts/" FONT_ICON_FILE_NAME_FA, fontSize, &fontCfg, glyphRanges);
 	
-	if (g_txImGui)
+	if (s_txImGui)
 	{
-		Texture::Release(g_txImGui);
+		Texture::Release(s_txImGui);
 	}
 	unsigned char* buf;
 	int txX, txY;
 	io.Fonts->GetTexDataAsAlpha8(&buf, &txX, &txY);
-	g_txImGui = Texture::Create2d(txX, txY, GL_R8);
-	g_txImGui->setFilter(GL_NEAREST);
-	g_txImGui->setName("#ImGuiFont");
-	g_txImGui->setData(buf, GL_RED, GL_UNSIGNED_BYTE);
-	g_txViewImGui = TextureView(g_txImGui, g_shImGui);
-	io.Fonts->TexID = (void*)&g_txViewImGui; // need a TextureView ptr for rendering
+	s_txImGui = Texture::Create2d(txX, txY, GL_R8);
+	s_txImGui->setFilter(GL_NEAREST);
+	s_txImGui->setName("#ImGuiFont");
+	s_txImGui->setData(buf, GL_RED, GL_UNSIGNED_BYTE);
+	s_txViewImGui = TextureView(s_txImGui, s_shImGui);
+	io.Fonts->TexID = (void*)&s_txViewImGui; // need a TextureView ptr for rendering
 
 	Properties::PopGroup();
 	return true;
@@ -881,12 +881,12 @@ void AppSample::ImGui_Shutdown(AppSample* _app)
 {
 	for (int i = 0; i < internal::kTextureTargetCount; ++i)
 	{
-		Shader::Release(g_shTextureView[i]);
+		Shader::Release(s_shTextureView[i]);
 	}
-	Shader::Release(g_shImGui);
-	Mesh::Release(g_msImGui); 
-	Texture::Release(g_txRadar);
-	Texture::Release(g_txImGui);
+	Shader::Release(s_shImGui);
+	Mesh::Release(s_msImGui); 
+	Texture::Release(s_txRadar);
+	Texture::Release(s_txImGui);
 	
 	ImGui::Shutdown();
 }
@@ -988,9 +988,9 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 		uint indexOffset = 0;
 
 	 // upload vertex/index data
-		g_msImGui->setVertexData((GLvoid*)&drawList->VtxBuffer.front(), (GLsizeiptr)drawList->VtxBuffer.size(), GL_STREAM_DRAW);
+		s_msImGui->setVertexData((GLvoid*)&drawList->VtxBuffer.front(), (GLsizeiptr)drawList->VtxBuffer.size(), GL_STREAM_DRAW);
 		FRM_STATIC_ASSERT(sizeof(ImDrawIdx) == sizeof(uint16)); // need to change the index data type if this fails
-		g_msImGui->setIndexData(DataType_Uint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
+		s_msImGui->setIndexData(DataType_Uint16, (GLvoid*)&drawList->IdxBuffer.front(), (GLsizeiptr)drawList->IdxBuffer.size(), GL_STREAM_DRAW);
 	
 	 // dispatch draw commands
 		for (const ImDrawCmd* pcmd = drawList->CmdBuffer.begin(); pcmd != drawList->CmdBuffer.end(); ++pcmd)
@@ -1006,10 +1006,10 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 				Shader* sh          = txView->m_shader;
 				if (!sh)
 				{
-					sh = g_shTextureView[internal::TextureTargetToIndex(tx->getTarget())]; // select a default shader based on the texture type
+					sh = s_shTextureView[internal::TextureTargetToIndex(tx->getTarget())]; // select a default shader based on the texture type
 				}
 				ctx->setShader  (sh);
-				ctx->setMesh    (g_msImGui);
+				ctx->setMesh    (s_msImGui);
 				ctx->setUniform ("uProjMatrix", ortho);
 				ctx->setUniform ("uBiasUv",     txView->getNormalizedOffset());
 				ctx->setUniform ("uScaleUv",    txView->getNormalizedSize());
@@ -1018,7 +1018,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 				ctx->setUniform ("uRgbaMask",   uvec4(txView->m_rgbaMask[0], txView->m_rgbaMask[1], txView->m_rgbaMask[2], txView->m_rgbaMask[3]));
 				ctx->setUniform ("uIsDepth",    (int)(txView->m_texture->isDepth()));
 				ctx->bindTexture("txTexture",   txView->m_texture);
-				ctx->bindTexture("txRadar",     g_txRadar);
+				ctx->bindTexture("txRadar",     s_txRadar);
 
                 glAssert(glScissor((int)pcmd->ClipRect.x, (int)(fbY - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y)));
 				glAssert(glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, GL_UNSIGNED_SHORT, (GLvoid*)indexOffset));

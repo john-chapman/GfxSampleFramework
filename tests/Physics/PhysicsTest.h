@@ -1,5 +1,7 @@
 #pragma once
 
+#if FRM_MODULE_PHYSICS
+
 #include <frm/core/AppSample3d.h>
 
 typedef frm::AppSample3d AppBase;
@@ -40,3 +42,5 @@ protected:
 	void shutdownRootNode(frm::Node*& _root_);
 
 };
+
+#endif

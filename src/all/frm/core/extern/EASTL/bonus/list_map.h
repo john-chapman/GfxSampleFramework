@@ -66,7 +66,7 @@ namespace eastl
 		typedef list_map_iterator<T, Pointer, Reference>    this_type;
 		typedef list_map_iterator<T, T*, T&>                iterator;
 		typedef list_map_iterator<T, const T*, const T&>    const_iterator;
-		typedef eastl_size_t                                size_type;     // See config.h for the definition of eastl_size_t, which defaults to uint32_t.
+		typedef eastl_size_t                                size_type;     // See config.h for the definition of eastl_size_t, which defaults to size_t.
 		typedef ptrdiff_t                                   difference_type;
 		typedef T                                           value_type;
 		typedef list_map_data_base                          base_node_type;
@@ -600,11 +600,11 @@ namespace eastl
 	inline typename list_map<Key, T, Compare, Allocator>::reference
 	list_map<Key, T, Compare, Allocator>::front()
 	{
-		#if EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
-			// We allow the user to reference an empty container.
-		#elif EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<internal_value_type*>(mNode.mpNext) == &mNode))
+		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
+			if (EASTL_UNLIKELY(static_cast<internal_value_type*>(mNode.mpNext) == &mNode))
 				EASTL_FAIL_MSG("list_map::front -- empty container");
+		#else
+			// We allow the user to reference an empty container.
 		#endif
 
 		return static_cast<internal_value_type*>(mNode.mpNext)->mValue;
@@ -614,11 +614,11 @@ namespace eastl
 	inline typename list_map<Key, T, Compare, Allocator>::const_reference
 	list_map<Key, T, Compare, Allocator>::front() const
 	{
-		#if EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
-			// We allow the user to reference an empty container.
-		#elif EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<internal_value_type*>(mNode.mpNext) == &mNode))
+		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
+			if (EASTL_UNLIKELY(static_cast<internal_value_type*>(mNode.mpNext) == &mNode))
 				EASTL_FAIL_MSG("list_map::front -- empty container");
+		#else
+			// We allow the user to reference an empty container.
 		#endif
 
 		return static_cast<internal_value_type*>(mNode.mpNext)->mValue;
@@ -628,11 +628,11 @@ namespace eastl
 	inline typename list_map<Key, T, Compare, Allocator>::reference
 	list_map<Key, T, Compare, Allocator>::back()
 	{
-		#if EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
-			// We allow the user to reference an empty container.
-		#elif EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<internal_value_type*>(mNode.mpNext) == &mNode))
+		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
+			if (EASTL_UNLIKELY(static_cast<internal_value_type*>(mNode.mpNext) == &mNode))
 				EASTL_FAIL_MSG("list_map::back -- empty container");
+		#else
+			// We allow the user to reference an empty container.
 		#endif
 
 		return static_cast<internal_value_type*>(mNode.mpPrev)->mValue;
@@ -642,11 +642,11 @@ namespace eastl
 	inline typename list_map<Key, T, Compare, Allocator>::const_reference
 	list_map<Key, T, Compare, Allocator>::back() const
 	{
-		#if EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
-			// We allow the user to reference an empty container.
-		#elif EASTL_ASSERT_ENABLED
-			if(EASTL_UNLIKELY(static_cast<internal_value_type*>(mNode.mpNext) == &mNode))
+		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
+			if (EASTL_UNLIKELY(static_cast<internal_value_type*>(mNode.mpNext) == &mNode))
 				EASTL_FAIL_MSG("list_map::back -- empty container");
+		#else
+			// We allow the user to reference an empty container.
 		#endif
 
 		return static_cast<internal_value_type*>(mNode.mpPrev)->mValue;

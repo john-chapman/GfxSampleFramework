@@ -15,12 +15,12 @@
 #include <frm/core/Shader.h>
 #include <frm/core/ShadowAtlas.h>
 #include <frm/core/Texture.h>
+#include <frm/vr/VRContext.h>
 
 #include <imgui/imgui.h>
+#include <im3d/im3d.h>
 
 #include <EASTL/vector.h>
-
-			#include "AppSample3d.h"
 
 namespace frm {
 
@@ -39,81 +39,28 @@ void BasicRenderer::Destroy(BasicRenderer*& _inst_)
 	_inst_ = nullptr;
 }
 
-void BasicRenderer::draw(float _dt)
+void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 {
-	PROFILER_MARKER("BasicRenderer::draw");
-
-	GlContext* ctx = GlContext::GetCurrent();
-
-	const bool isPostProcess       = BitfieldGet(flags, (uint32)Flag_PostProcess);
-	const bool isFXAA              = BitfieldGet(flags, (uint32)Flag_FXAA);
-	const bool isTAA               = BitfieldGet(flags, (uint32)Flag_TAA);
-	const bool isInterlaced        = BitfieldGet(flags, (uint32)Flag_Interlaced);
-	const bool isWriteToBackBuffer = BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer);
-	const bool isWireframe         = BitfieldGet(flags, (uint32)Flag_WireFrame);
-
-	sceneCamera.copyFrom(*Scene::GetDrawCamera()); // \todo separate draw/cull cameras
-	if (isTAA)
-	{
-		const int kFrameIndex = (int)(ctx->getFrameIndex() & 1);
-		const vec2 kOffsets[2] = { vec2(0.5f, 0.0f), vec2(0.0f, 0.5f) };
-		float jitterScale = 1.0f;
-		sceneCamera.m_proj[2][0] = kOffsets[kFrameIndex].x * 2.0f / (float)resolution.x * jitterScale;
-		sceneCamera.m_proj[2][1] = kOffsets[kFrameIndex].y * 2.0f / (float)resolution.y * jitterScale;
-	}
-	if (isInterlaced)
-	{
-		// NB offset by the full target res, *not* the checkerboard res
-		const int kFrameIndex = (int)(ctx->getFrameIndex() & 1);
-		const vec2 kOffsets[2] = { vec2(0.0f, 0.0f), vec2(1.0f, 0.0f) };
-		sceneCamera.m_proj[2][0] += kOffsets[kFrameIndex].x * 2.0f / (float)resolution.x;
-		sceneCamera.m_proj[2][1] += kOffsets[kFrameIndex].y * 2.0f / (float)resolution.y;
-	}
-	sceneCamera.m_viewProj = sceneCamera.m_proj * sceneCamera.m_view;
-	sceneCamera.updateGpuBuffer();
+	PROFILER_MARKER("BasicRenderer::nextFrame");
 
 	if (!pauseUpdate)
 	{
 	 // \todo can skip updates if nothing changed
 		updateMaterialInstances();
-		updateDrawCalls();
+		updateDrawCalls(_cullCamera);
 		updateImageLightInstances();
 	}
-	if (sceneDrawCalls.empty() && imageLightInstances.empty())
-	{
-		return;
-	}
 
-	postProcessData.motionBlurScale = motionBlurTargetFps * _dt;
-	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
-
-	const vec2 texelSize = vec2(1.0f) / vec2(fbGBuffer->getWidth(), fbGBuffer->getHeight());
-	
 	for (int i = 0; i < Target_Count; ++i)
 	{
 		renderTargets[i].nextFrame();
 	}
+	
+	postProcessData.motionBlurScale = motionBlurTargetFps * _dt;
+	postProcessData.frameIndex++;
+	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
 
-	// Get current render targets.
-	Texture* txGBuffer0 = renderTargets[Target_GBuffer0].getTexture(0);
-	Texture* txGBufferDepthStencil = renderTargets[Target_GBufferDepthStencil].getTexture(0);
-	Texture* txVelocityTileMinMax = renderTargets[Target_VelocityTileMinMax].getTexture(0);
-	Texture* txVelocityTileNeighborMax = renderTargets[Target_VelocityTileNeighborMax].getTexture(0);
-	Texture* txScene = renderTargets[Target_Scene].getTexture(0);
-	Texture* txPostProcessResult = renderTargets[Target_PostProcessResult].getTexture(0);
-	Texture* txFXAAResult = renderTargets[Target_FXAAResult].getTexture(0);
-	Texture* txFinal = renderTargets[Target_Final].getTexture(0);
-
-	// Init framebuffers.
-	fbGBuffer->attach(txGBuffer0, GL_COLOR_ATTACHMENT0);
-	fbGBuffer->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
-	fbScene->attach(txScene, GL_COLOR_ATTACHMENT0);
-	fbScene->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
-	fbPostProcessResult->attach(txPostProcessResult, GL_COLOR_ATTACHMENT0);
-	fbPostProcessResult->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
-	fbFXAAResult->attach(txFXAAResult, GL_COLOR_ATTACHMENT0);
-	fbFinal->attach(txFinal, GL_COLOR_ATTACHMENT0);
-
+	GlContext* ctx = GlContext::GetCurrent();
 	{	PROFILER_MARKER("Shadow Maps");
 		
 		glAssert(glColorMask(false, false, false, false));
@@ -131,7 +78,7 @@ void BasicRenderer::draw(float _dt)
 
 			// Clear shadow map.
 			{	glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
-				glAssert(glDepthFunc(GL_ALWAYS));				
+				glAssert(glDepthFunc(GL_ALWAYS));
 				ctx->setShader(shDepthClear);
 				ctx->setUniform("uClearDepth", 1.0f);
 				ctx->drawNdcQuad();
@@ -167,6 +114,70 @@ void BasicRenderer::draw(float _dt)
 
 		glAssert(glColorMask(true, true, true, true));
 	}
+}
+
+void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
+{
+	PROFILER_MARKER("BasicRenderer::draw");
+
+	GlContext* ctx = GlContext::GetCurrent();
+	#if FRM_MODULE_VR
+		VRContext* vrCtx = VRContext::GetCurrent();
+	#endif
+
+	const bool isPostProcess       = BitfieldGet(flags, (uint32)Flag_PostProcess);
+	const bool isFXAA              = BitfieldGet(flags, (uint32)Flag_FXAA);
+	const bool isTAA               = BitfieldGet(flags, (uint32)Flag_TAA);
+	const bool isInterlaced        = BitfieldGet(flags, (uint32)Flag_Interlaced);
+	const bool isWriteToBackBuffer = BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer);
+	const bool isWireframe         = BitfieldGet(flags, (uint32)Flag_WireFrame);
+
+	if (sceneDrawCalls.empty() && imageLightInstances.empty())
+	{
+		return;
+	}
+
+	sceneCamera.copyFrom(*_drawCamera); // \todo separate draw/cull cameras
+	if (isTAA)
+	{
+		const int kFrameIndex = (int)(ctx->getFrameIndex() & 1);
+		const vec2 kOffsets[2] = { vec2(0.5f, 0.0f), vec2(0.0f, 0.5f) };
+		float jitterScale = 1.0f;
+		sceneCamera.m_proj[2][0] += kOffsets[kFrameIndex].x * 2.0f / (float)resolution.x * jitterScale;
+		sceneCamera.m_proj[2][1] += kOffsets[kFrameIndex].y * 2.0f / (float)resolution.y * jitterScale;
+	}
+	if (isInterlaced)
+	{
+		// NB offset by the full target res, *not* the checkerboard res
+		const int kFrameIndex = (int)(ctx->getFrameIndex() & 1);
+		const vec2 kOffsets[2] = { vec2(0.0f, 0.0f), vec2(1.0f, 0.0f) };
+		sceneCamera.m_proj[2][0] += kOffsets[kFrameIndex].x * 2.0f / (float)resolution.x;
+		sceneCamera.m_proj[2][1] += kOffsets[kFrameIndex].y * 2.0f / (float)resolution.y;
+	}
+	sceneCamera.m_viewProj = sceneCamera.m_proj * sceneCamera.m_view;
+	sceneCamera.updateGpuBuffer();
+
+	const vec2 texelSize = vec2(1.0f) / vec2(fbGBuffer->getWidth(), fbGBuffer->getHeight());
+
+	// Get current render targets.
+	Texture* txGBuffer0 = renderTargets[Target_GBuffer0].getTexture(0);
+	Texture* txGBufferDepthStencil = renderTargets[Target_GBufferDepthStencil].getTexture(0);
+	Texture* txVelocityTileMinMax = renderTargets[Target_VelocityTileMinMax].getTexture(0);
+	Texture* txVelocityTileNeighborMax = renderTargets[Target_VelocityTileNeighborMax].getTexture(0);
+	Texture* txScene = renderTargets[Target_Scene].getTexture(0);
+	Texture* txPostProcessResult = renderTargets[Target_PostProcessResult].getTexture(0);
+	Texture* txFXAAResult = renderTargets[Target_FXAAResult].getTexture(0);
+	Texture* txFinal = renderTargets[Target_Final].getTexture(0);
+
+	// Init framebuffers.
+	fbGBuffer->attach(txGBuffer0, GL_COLOR_ATTACHMENT0);
+	fbGBuffer->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
+	fbScene->attach(txScene, GL_COLOR_ATTACHMENT0);
+	fbScene->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
+	fbPostProcessResult->attach(txPostProcessResult, GL_COLOR_ATTACHMENT0);
+	fbPostProcessResult->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
+	fbFXAAResult->attach(txFXAAResult, GL_COLOR_ATTACHMENT0);
+	fbFinal->attach(txFinal, GL_COLOR_ATTACHMENT0);
 
 	{	PROFILER_MARKER("GBuffer");
 
@@ -174,10 +185,25 @@ void BasicRenderer::draw(float _dt)
 
 		{	PROFILER_MARKER("Geometry");
 
-	 		glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 			//glAssert(glClearDepth(1.0)); // \todo set the depth clear value based on the camera's projection mode
 			glAssert(glClearStencil(0));
-			glAssert(glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
+			
+			#if FRM_MODULE_VR
+				if (vrCtx && vrCtx->isActive())
+				{
+				 // need to clear velocity since we don't run the static velocity pass 
+	 				glAssert(glClearColor(0.0f, 0.0f, 0.5f, 0.5f));
+					glAssert(glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)); // \todo set stencil mask
+					vrCtx->primeDepthBuffer(0);
+					const int eyeIndex = (_drawCamera == vrCtx->getEyeCamera(0)) ? 0 : 1;
+					vrCtx->primeDepthBuffer(eyeIndex);
+				}
+				else
+			#endif
+				{
+					glAssert(glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
+				}
+
 			glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 			glAssert(glDepthFunc(GL_LESS));
 			glScopedEnable(GL_STENCIL_TEST, GL_TRUE);
@@ -206,44 +232,46 @@ void BasicRenderer::draw(float _dt)
 			}
 		}
 
-		{	PROFILER_MARKER("Static Velocity");
+		#if FRM_MODULE_VR
+			if (!vrCtx || !vrCtx->isActive())
+		#endif
+			{	PROFILER_MARKER("Static Velocity");
 	
-			glScopedEnable(GL_STENCIL_TEST, GL_TRUE);
-			glAssert(glStencilFunc(GL_NOTEQUAL, 0xff, 0x01));
-			glAssert(glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
-			glAssert(glColorMask(false, false, true, true));
+				glScopedEnable(GL_STENCIL_TEST, GL_TRUE);
+				glAssert(glStencilFunc(GL_NOTEQUAL, 0xff, 0x01));
+				glAssert(glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
+				glAssert(glColorMask(false, false, true, true));
 
-			ctx->setShader(shStaticVelocity);
-			ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
-			ctx->drawNdcQuad(&sceneCamera);
+				ctx->setShader(shStaticVelocity);
+				ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
+				ctx->drawNdcQuad(&sceneCamera);
 
-			glAssert(glColorMask(true, true, true, true));
-		}
-
-		{	PROFILER_MARKER("Velocity Dilation");
-
-			{	PROFILER_MARKER("Tile Min/Max");
-
-				FRM_ASSERT(shVelocityMinMax->getLocalSize().x == motionBlurTileWidth);
-
-
-				ctx->setShader(shVelocityMinMax);
-				ctx->bindTexture("txGBuffer0", txGBuffer0);
-				ctx->bindImage("txVelocityTileMinMax", txVelocityTileMinMax, GL_WRITE_ONLY);
-				ctx->dispatch(txVelocityTileMinMax->getWidth(), txVelocityTileMinMax->getHeight()); // 1 group per texel
-
-				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+				glAssert(glColorMask(true, true, true, true));
 			}
-			{	PROFILER_MARKER("Neighborhood Max");
 
-				ctx->setShader(shVelocityNeighborMax);
-				ctx->bindTexture("txVelocityTileMinMax", txVelocityTileMinMax);
-				ctx->bindImage("txVelocityTileNeighborMax", txVelocityTileNeighborMax, GL_WRITE_ONLY);
-				ctx->dispatch(txVelocityTileNeighborMax);
+			{	PROFILER_MARKER("Velocity Dilation");
 
-				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+				{	PROFILER_MARKER("Tile Min/Max");
+
+					FRM_ASSERT(shVelocityMinMax->getLocalSize().x == motionBlurTileWidth);
+
+					ctx->setShader(shVelocityMinMax);
+					ctx->bindTexture("txGBuffer0", txGBuffer0);
+					ctx->bindImage("txVelocityTileMinMax", txVelocityTileMinMax, GL_WRITE_ONLY);
+					ctx->dispatch(txVelocityTileMinMax->getWidth(), txVelocityTileMinMax->getHeight()); // 1 group per texel
+
+					glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+				}
+				{	PROFILER_MARKER("Neighborhood Max");
+
+					ctx->setShader(shVelocityNeighborMax);
+					ctx->bindTexture("txVelocityTileMinMax", txVelocityTileMinMax);
+					ctx->bindImage("txVelocityTileNeighborMax", txVelocityTileNeighborMax, GL_WRITE_ONLY);
+					ctx->dispatch(txVelocityTileNeighborMax);
+
+					glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+				}
 			}
-		}
 	}
 
 	{	PROFILER_MARKER("Scene");
@@ -371,11 +399,19 @@ void BasicRenderer::draw(float _dt)
 		ctx->blitFramebuffer(fbScene, fbPostProcessResult, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 	}
 
+	if (drawCallback)
+	{
+		PROFILER_MARKER("drawCallback");
+		ctx->setFramebufferAndViewport(fbPostProcessResult);
+		drawCallback(Pass_Final, sceneCamera);
+	}
+
 	if (isFXAA)
 	{
 		PROFILER_MARKER("FXAA");
 		
 		ctx->setShader(shFXAA);
+		ctx->setUniform("uTexelScaleX", isInterlaced ? 0.5f : 1.0f);
 		ctx->bindTexture("txIn", txPostProcessResult);
 		ctx->bindImage("txOut", txFXAAResult, GL_WRITE_ONLY);
 		ctx->dispatch(txFXAAResult);
@@ -479,30 +515,34 @@ bool BasicRenderer::edit()
 
 		ret |= editFlag("Wireframe", Flag_WireFrame);
 
-		if (ret)
-		{
-			// update material sampeler if interleaved or TAA
-			const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
-			const bool isInterlaced = BitfieldGet(flags, (uint32)Flag_Interlaced);
-			if (isTAA || isInterlaced)
-			{
-				ssMaterial->setLodBias(-1.0f);
-			}
-			else
-			{
-				ssMaterial->setLodBias(0.0f);					
-			}
-
-			shTAAResolve->addGlobalDefines({ 
-				String<32>("TAA %d", !!isTAA).c_str(), 
-				String<32>("INTERLACED %d", !!isInterlaced).c_str() 
-				});
-		}
-
 		ImGui::TreePop();
 	}
 
 	return ret;
+}
+
+void BasicRenderer::setFlag(Flag _flag, bool _value)
+{
+	flags = BitfieldSet(flags, (int)_flag, _value);
+
+	if (_flag == Flag_TAA || _flag == Flag_Interlaced)
+	{
+		const bool isTAA = getFlag(Flag_TAA);
+		const bool isInterlaced = getFlag(Flag_Interlaced);
+		if (isTAA || isInterlaced)
+		{
+			ssMaterial->setLodBias(-1.0f);
+		}
+		else
+		{
+			ssMaterial->setLodBias(0.0f);
+		}
+
+		shTAAResolve->addGlobalDefines({ 
+			String<32>("TAA %d", !!isTAA).c_str(), 
+			String<32>("INTERLACED %d", !!isInterlaced).c_str() 
+			});
+	}
 }
 
 void BasicRenderer::setResolution(int _resolutionX, int _resolutionY)
@@ -584,9 +624,12 @@ BasicRenderer::~BasicRenderer()
 bool BasicRenderer::editFlag(const char* _name, Flag _flag)
 {
 	bool flagValue = BitfieldGet(flags, (uint32)_flag);
-	bool ret = ImGui::Checkbox(_name, &flagValue);
-	flags = BitfieldSet(flags, _flag, flagValue);
-	return ret;
+	if (!ImGui::Checkbox(_name, &flagValue))
+	{
+		return false;
+	}
+	setFlag(_flag, flagValue);
+	return true;
 }
 
 void BasicRenderer::initRenderTargets()
@@ -704,17 +747,23 @@ Shader* BasicRenderer::findShader(ShaderMapKey _key)
 		"Pass_GBuffer",
 		"Pass_Scene",
 		"Pass_Wireframe",
+		"Pass_Final"
 	};
+	static_assert(Pass_Count == FRM_ARRAY_COUNT(kPassDefines), "Pass_Count != FRM_ARRAY_COUNT(kPassDefines)");
+
 	static constexpr const char* kGeometryDefines[] =
 	{
 		"Geometry_Mesh",
 		"Geometry_SkinnedMesh",
 	};
+	static_assert(GeometryType_Count == FRM_ARRAY_COUNT(kGeometryDefines), "GeometryType_Count != FRM_ARRAY_COUNT(kGeometryDefines)");
+
 	static constexpr const char* kMaterialDefines[] =
 	{
 		"Material_AlphaTest",
 		"Material_AlphaDither",
 	};
+	static_assert(BasicMaterial::Flag_Count == FRM_ARRAY_COUNT(kMaterialDefines), "BasicMaterial::Flag_Count != FRM_ARRAY_COUNT(kMaterialDefines)");
 
 	Shader*& ret = shaderMap[_key];
 	if (!ret)
@@ -751,26 +800,10 @@ Shader* BasicRenderer::findShader(ShaderMapKey _key)
 	return ret;
 }
 
-void BasicRenderer::updateDrawCalls()
+void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 {
 	PROFILER_MARKER("BasicRenderer::updateDrawCalls");
-
-	const Camera* sceneCullCamera = Scene::GetCullCamera();
 	
-// \todo move these aux lists to the class, split this into multiple functions again
-
-	eastl::vector<Component_BasicRenderable*> culledSceneRenderables;
-	culledSceneRenderables.reserve(Component_BasicRenderable::s_instances.size());
-
-	eastl::vector<Component_BasicRenderable*> shadowRenderables;
-	shadowRenderables.reserve(Component_BasicRenderable::s_instances.size());
-
-	eastl::vector<Component_BasicLight*> culledLights;
-	culledLights.reserve(Component_BasicLight::s_instances.size());
-	
-	eastl::vector<Component_BasicLight*> culledShadowLights;
-	culledShadowLights.reserve(Component_BasicLight::s_instances.size());
-
 	sceneBounds.m_min = shadowSceneBounds.m_min = vec3( FLT_MAX);
 	sceneBounds.m_max = shadowSceneBounds.m_max = vec3(-FLT_MAX);
 
@@ -778,6 +811,10 @@ void BasicRenderer::updateDrawCalls()
 // \todo LOD selection should happen here.
 	{	PROFILER_MARKER_CPU("Phase 1");
 
+		culledSceneRenderables.clear();
+		culledSceneRenderables.reserve(Component_BasicRenderable::s_instances.size());
+		shadowRenderables.clear();
+		shadowRenderables.reserve(Component_BasicRenderable::s_instances.size());
 		for (Component_BasicRenderable* renderable : Component_BasicRenderable::s_instances)
 		{
 			Node* sceneNode = renderable->getNode();
@@ -786,7 +823,7 @@ void BasicRenderer::updateDrawCalls()
 				continue;
 			}
 
-			mat4 world = sceneNode->getWorldMatrix();
+			const mat4& world = sceneNode->getWorldMatrix();
 			Sphere bs = renderable->m_mesh->getBoundingSphere();
 			bs.transform(world);
 			AlignedBox bb = renderable->m_mesh->getBoundingBox();
@@ -801,7 +838,7 @@ void BasicRenderer::updateDrawCalls()
 				shadowRenderables.push_back(renderable);
 			}
 
-			if (sceneCullCamera->m_worldFrustum.insideIgnoreNear(bs) && sceneCullCamera->m_worldFrustum.insideIgnoreNear(bb))
+			if (_cullCamera->m_worldFrustum.insideIgnoreNear(bs) && _cullCamera->m_worldFrustum.insideIgnoreNear(bb))
 			{
 				culledSceneRenderables.push_back(renderable);
 			}
@@ -832,7 +869,7 @@ void BasicRenderer::updateDrawCalls()
 					AlignedBox bb = renderable->m_mesh->getBoundingBox(submeshIndex);
 					bb.transform(world);
 
-					if (!sceneCullCamera->m_worldFrustum.insideIgnoreNear(bs) || !sceneCullCamera->m_worldFrustum.insideIgnoreNear(bb))
+					if (!_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb))
 					{
 						continue;
 					}
@@ -854,12 +891,18 @@ void BasicRenderer::updateDrawCalls()
 		
 		shadowCameras.clear();
 		// \todo map allocations -> lights, avoid realloc every frame
-		for (size_t i = 0; i < shadowMapAllocations.size(); ++i)
-		{			
-			shadowAtlas->free((ShadowAtlas::ShadowMap*&)shadowMapAllocations[i]);
+		while (!shadowMapAllocations.empty())
+		{
+			ShadowAtlas::ShadowMap* shadowMap = (ShadowAtlas::ShadowMap*)shadowMapAllocations.back();
+			shadowAtlas->free(shadowMap);
+			shadowMapAllocations.pop_back();
 		}
-		shadowMapAllocations.clear();
 
+		culledLights.clear();
+		culledLights.reserve(Component_BasicLight::s_instances.size());
+		culledShadowLights.clear();
+		culledShadowLights.reserve(Component_BasicLight::s_instances.size());
+		shadowMapAllocations.reserve(Component_BasicLight::s_instances.size());
 		for (Component_BasicLight* light : Component_BasicLight::s_instances)
 		{
 			Node* sceneNode = light->getNode();
@@ -971,6 +1014,7 @@ void BasicRenderer::updateDrawCalls()
 	{	PROFILER_MARKER("Phase 4");
 
 		lightInstances.clear();
+		lightInstances.reserve(culledLights.size());
 		for (Component_BasicLight* light : culledLights)
 		{
 			mat4 world = light->getNode()->getWorldMatrix();
@@ -991,10 +1035,12 @@ void BasicRenderer::updateDrawCalls()
 		updateBuffer(bfLights, "bfLights", bfLightsSize, lightInstances.data());
 
 		shadowLightInstances.clear();
+		shadowLightInstances.reserve(culledShadowLights.size());
 		for (size_t i = 0; i < culledShadowLights.size(); ++i)
 		{
 			const Component_BasicLight* light = culledShadowLights[i];
 			const ShadowAtlas::ShadowMap* shadowMap = (ShadowAtlas::ShadowMap*)shadowMapAllocations[i];
+			FRM_ASSERT(shadowMap != nullptr);
 			mat4 world = light->getNode()->getWorldMatrix();
 
 			ShadowLightInstance& shadowLightInstance = shadowLightInstances.push_back();
@@ -1009,10 +1055,10 @@ void BasicRenderer::updateDrawCalls()
 			shadowLightInstance.spotScale            = 1.0f / Max(cosInner - cosOuter, 1e-4f);
 			shadowLightInstance.spotBias             = -cosOuter * shadowLightInstance.spotScale;
 
-			shadowLightInstance.worldToShadow = shadowCameras[i].m_viewProj;
-			shadowLightInstance.uvBias        = shadowMap->uvBias;
-			shadowLightInstance.uvScale       = shadowMap->uvScale;
-			shadowLightInstance.arrayIndex    = (float)shadowMap->arrayIndex;
+			shadowLightInstance.worldToShadow        = shadowCameras[i].m_viewProj;
+			shadowLightInstance.uvBias               = shadowMap->uvBias;
+			shadowLightInstance.uvScale              = shadowMap->uvScale;
+			shadowLightInstance.arrayIndex           = (float)shadowMap->arrayIndex;
 		}
 		GLsizei bfShadowLightsSize = (GLsizei)(sizeof(ShadowLightInstance) * shadowLightInstances.size());
 		updateBuffer(bfShadowLights, "bfShadowLights", bfShadowLightsSize, shadowLightInstances.data());
@@ -1195,7 +1241,7 @@ void BasicRenderer::updateImageLightInstances()
 	FRM_ASSERT(Component_ImageLight::s_instances.size() <= 1); // only 1 image light is currently supported
 	
 	imageLightInstances.clear();
-
+	imageLightInstances.reserve(Component_ImageLight::s_instances.size());
 	for (Component_ImageLight* light : Component_ImageLight::s_instances)
 	{
 		Node* sceneNode = light->getNode();
@@ -1205,9 +1251,9 @@ void BasicRenderer::updateImageLightInstances()
 		}
 
 		ImageLightInstance& lightInstance = imageLightInstances.push_back();
-		lightInstance.brightness   = light->m_brightness;
-		lightInstance.isBackground = light->m_isBackground;
-		lightInstance.texture      = light->m_texture;
+		lightInstance.brightness          = light->m_brightness;
+		lightInstance.isBackground        = light->m_isBackground;
+		lightInstance.texture             = light->m_texture;
 	}
 }
 

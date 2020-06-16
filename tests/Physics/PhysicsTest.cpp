@@ -1,3 +1,5 @@
+#if FRM_MODULE_PHYSICS
+
 #include "PhysicsTest.h"
 
 #include <frm/core/frm.h>
@@ -185,7 +187,7 @@ bool PhysicsTest::update()
 				break;
 			case BoxDrawState_XZStart:
 			{
-				if (Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlags_Position))
+				if (Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlag::Position))
 				{
 					Im3d::DrawPoint(raycastOut.position, 16.0f, Im3d::Color_White);
 					if (io.MouseDown[0])
@@ -245,7 +247,7 @@ bool PhysicsTest::update()
 
 						float boxMass = 0.5f;//boxSize.x * boxSize.y * boxSize.z;
 						mat4 initialTransform = TranslationMatrix(Min(boxA, boxB) + boxSize * 0.5f + vec3(0.0f, 1e-6f, 0.0f));
-						Component_Physics* physicsComponent = Component_Physics::Create(boxPhysicsGeometry, Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags_Default);
+						Component_Physics* physicsComponent = Component_Physics::Create(boxPhysicsGeometry, Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags());
 						newNode->addComponent(physicsComponent);
 
 						Mesh::Release(boxMesh);
@@ -293,7 +295,7 @@ bool PhysicsTest::update()
 
 		if (isSelecting)
 		{
-			if (io.MouseClicked[0] && Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlags_Position))
+			if (io.MouseClicked[0] && Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlag::Position))
 			{
 				selectedNode = raycastOut.component->getNode();
 				if (selectedNode)
@@ -431,7 +433,8 @@ void PhysicsTest::draw()
 	Camera* drawCamera = Scene::GetDrawCamera();
 	Camera* cullCamera = Scene::GetCullCamera();
 
-	m_basicRenderer->draw((float)getDeltaTime());
+	m_basicRenderer->nextFrame((float)getDeltaTime(), drawCamera, cullCamera);
+	m_basicRenderer->draw((float)getDeltaTime(), drawCamera, cullCamera);
 
 	AppBase::draw();
 }
@@ -456,7 +459,7 @@ void PhysicsTest::spawnPhysicsObject(Geometry _type, const frm::vec3& _position,
 	newNode->addComponent(renderableComponent);
 
 	mat4 initialTransform = LookAt(_position, _position + _linearVelocity);						
-	Component_PhysicsTemporary* physicsComponent = Component_PhysicsTemporary::Create(m_physicsGeometries[_type], Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags_Default);
+	Component_PhysicsTemporary* physicsComponent = Component_PhysicsTemporary::Create(m_physicsGeometries[_type], Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags());
 	newNode->addComponent(physicsComponent);
 	physicsComponent->setLinearVelocity(_linearVelocity);
 
@@ -472,3 +475,5 @@ void PhysicsTest::shutdownRootNode(Node*& _root_)
 	}
 	m_scene->destroyNode(_root_);
 }
+
+#endif // FRM_MODULE_PHYSICS

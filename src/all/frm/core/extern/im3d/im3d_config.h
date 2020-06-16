@@ -1,6 +1,4 @@
 #pragma once
-#ifndef im3d_config_h
-#define im3d_config_h
 
 #include <frm/core/frm.h>
 #include <frm/core/math.h>
@@ -12,6 +10,12 @@
 // User-defined malloc/free. Define both or neither (default is cstdlib malloc()/free()).
 #define IM3D_MALLOC(size) FRM_MALLOC(size)
 #define IM3D_FREE(ptr)    FRM_FREE(ptr) 
+
+// User-defined API declaration (e.g. __declspec(dllexport)).
+//#define IM3D_API
+
+// Use a thread-local context pointer.
+//#define IM3D_THREAD_LOCAL_CONTEXT_PTR 1
 
 // Use row-major internal matrix layout. 
 //#define IM3D_MATRIX_ROW_MAJOR 1
@@ -41,6 +45,3 @@
 #define IM3D_MAT4_APP \
 	Mat4(const frm::mat4& _m)          { for (int i = 0; i < 16; ++i) m[i] = *(&(_m[0][0]) + i); } \
 	operator frm::mat4() const         { frm::mat4 ret; for (int i = 0; i < 16; ++i) *(&(ret[0][0]) + i) = m[i]; return ret; }
-
-	
-#endif // im3d_config_h

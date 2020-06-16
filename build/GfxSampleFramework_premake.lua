@@ -139,7 +139,25 @@ local MODULE_DATA =           -- per-module name + custom config function
 	{
 		name = "vr",
 		config = function()
-			return false -- not supported
+			local ovrRoot = os.getenv("OVR_SDK")
+			if ovrRoot == nil then
+				print("\t\tError: 'OVR_SDK' not set.")
+				return false
+			end
+			ovrRoot = string.gsub(ovrRoot, "\\", "/")
+			print("\t\tOVR_SDK: '" .. ovrRoot .. "'")
+
+			ovrRoot = "$(OVR_SDK)" -- \todo not portable but used currently to avoid absolute paths in the generate .vcxproj
+			includedirs({
+				ovrRoot .. "/LibOVR/Include"
+				})
+
+		 -- \todo support different platforms/configs - need access to more info from premake to compose the path below
+			local ovrLib = ovrRoot .. "/LibOVR/Lib/Windows/x64/" .. "%{cfg.buildcfg}"
+			libdirs({ ovrLib })
+			links({ "LibOVR" })
+
+			return true;
 		end,
 	},
 }

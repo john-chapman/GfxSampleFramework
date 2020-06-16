@@ -66,7 +66,7 @@ namespace eastl
 		typedef const value_type*                             const_iterator;
 		typedef eastl::reverse_iterator<iterator>             reverse_iterator;
 		typedef eastl::reverse_iterator<const_iterator>       const_reverse_iterator;
-		typedef eastl_size_t                                  size_type;        // See config.h for the definition of eastl_size_t, which defaults to uint32_t.
+		typedef eastl_size_t                                  size_type;        // See config.h for the definition of eastl_size_t, which defaults to size_t.
 		typedef ptrdiff_t                                     difference_type;
 
 	public:
@@ -129,6 +129,12 @@ namespace eastl
 	}; // class array
 
 
+	///////////////////////////////////////////////////////////////////////////
+	// template deduction guides
+	///////////////////////////////////////////////////////////////////////////
+	#ifdef __cpp_deduction_guides
+		template <class T, class... U> array(T, U...) -> array<T, 1 + sizeof...(U)>;
+	#endif
 
 
 	///////////////////////////////////////////////////////////////////////

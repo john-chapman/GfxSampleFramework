@@ -34,7 +34,7 @@
 // not standards-compliant in this respect, so we need an additional include.
 // The case is similar with wchar_t under C++.
 
-#if defined(EA_COMPILER_GNUC) || defined(EA_COMPILER_MSVC) || defined(EA_WCHAR_T_NON_NATIVE) || defined(EA_PLATFORM_KETTLE)
+#if defined(EA_COMPILER_GNUC) || defined(EA_COMPILER_MSVC) || defined(EA_WCHAR_T_NON_NATIVE) || defined(EA_PLATFORM_SONY)
 	#if defined(EA_COMPILER_MSVC)
 		#pragma warning(push, 0)
 		#pragma warning(disable: 4265 4365 4836 4574)
@@ -59,17 +59,6 @@
 // 7.2/3 Diagnostics <assert.h>(p : 186)
 #if !defined(__cplusplus) && defined(__STDC_VERSION__)  && __STDC_VERSION__ >= 201100L
 	#include <assert.h>
-#endif
-
-// ------------------------------------------------------------------------
-// Ensure this header file is only processed once (with certain compilers)
-// GCC doesn't need such a pragma because it has special recognition for 
-// include guards (such as that above) and effectively implements the same
-// thing without having to resort to non-portable pragmas. It is possible
-// that the decision to use pragma once here is ill-advised, perhaps because
-// some compilers masquerade as MSVC but don't implement all features.
-#if defined(EA_PRAGMA_ONCE_SUPPORTED)
-	#pragma once
 #endif
 
 
@@ -215,7 +204,7 @@
 
 	// According to the C98/99 standard, FLT_EVAL_METHOD defines control the 
 	// width used for floating point _t types.
-	#if   defined(_MSC_VER) && _MSC_VER >= 1800
+	#if defined(_MSC_VER) && _MSC_VER >= 1800
 		// MSVC's math.h provides float_t, double_t under this condition.
 	#elif defined(FLT_EVAL_METHOD)
 		#if (FLT_EVAL_METHOD == 0)
@@ -230,7 +219,7 @@
 		#endif
 	#endif
 	
-   #if   defined(EA_COMPILER_MSVC) || defined(EA_COMPILER_BORLAND)
+   #if   defined(EA_COMPILER_MSVC) 
 	   typedef signed __int64      int64_t;
 	   typedef unsigned __int64    uint64_t;
 
@@ -259,58 +248,33 @@
 #ifndef INT8_C_DEFINED // If the user hasn't already defined these...
 	#define INT8_C_DEFINED
 
-	// VC++ 7.0 and earlier don't handle the LL suffix.
-	#if defined(EA_COMPILER_MSVC) || defined(EA_COMPILER_BORLAND)
-		#ifndef INT8_C
-			#define   INT8_C(x)    int8_t(x)  // x##i8 doesn't work satisfactorilly because -128i8 generates an out of range warning.
-		#endif
-		#ifndef UINT8_C
-			#define  UINT8_C(x)   uint8_t(x)
-		#endif
-		#ifndef INT16_C
-			#define  INT16_C(x)   int16_t(x)  // x##i16 doesn't work satisfactorilly because -32768i8 generates an out of range warning.
-		#endif
-		#ifndef UINT16_C
-			#define UINT16_C(x)  uint16_t(x)
-		#endif
-		#ifndef INT32_C
-			#define  INT32_C(x)  x##i32
-		#endif
-		#ifndef UINT32_C
-			#define UINT32_C(x)  x##ui32
-		#endif
-		#ifndef INT64_C
-			#define  INT64_C(x)  x##i64
-		#endif
-		#ifndef UINT64_C
-			#define UINT64_C(x)  x##ui64
-		#endif
-	#else
-		#ifndef INT8_C
-			#define   INT8_C(x)    int8_t(x)   // For the majority of compilers and platforms, long is 32 bits and long long is 64 bits.
-		#endif
-		#ifndef UINT8_C
-			#define  UINT8_C(x)   uint8_t(x)
-		#endif
-		#ifndef INT16_C
-			#define  INT16_C(x)   int16_t(x)
-		#endif
-		#ifndef UINT16_C
-			#define UINT16_C(x)  uint16_t(x)     // Possibly we should make this be uint16_t(x##u). Let's see how compilers react before changing this.
-		#endif
-				#ifndef INT32_C
-				   #define  INT32_C(x)  x##L
-				#endif
-				#ifndef UINT32_C
-				   #define UINT32_C(x)  x##UL
-				#endif
-		#ifndef INT64_C
-			#define  INT64_C(x)  x##LL         // The way to deal with this is to compare ULONG_MAX to 0xffffffff and if not equal, then remove the L.
-		#endif
-		#ifndef UINT64_C
-			#define UINT64_C(x)  x##ULL        // We need to follow a similar approach for LL.
-		#endif
+	#ifndef INT8_C
+		#define   INT8_C(x)    int8_t(x)   // For the majority of compilers and platforms, long is 32 bits and long long is 64 bits.
 	#endif
+	#ifndef UINT8_C
+		#define  UINT8_C(x)   uint8_t(x)
+	#endif
+	#ifndef INT16_C
+		#define  INT16_C(x)   int16_t(x)
+	#endif
+	#ifndef UINT16_C
+		#define UINT16_C(x)  uint16_t(x)     // Possibly we should make this be uint16_t(x##u). Let's see how compilers react before changing this.
+	#endif
+	#ifndef INT32_C
+	   #define  INT32_C(x)  x##L
+	#endif
+	#ifndef UINT32_C
+	   #define UINT32_C(x)  x##UL
+	#endif
+	#ifndef INT64_C
+		#define  INT64_C(x)  x##LL         // The way to deal with this is to compare ULONG_MAX to 0xffffffff and if not equal, then remove the L.
+	#endif
+	#ifndef UINT64_C
+		#define UINT64_C(x)  x##ULL        // We need to follow a similar approach for LL.
+	#endif
+   #ifndef UINTMAX_C
+	   #define UINTMAX_C(x) UINT64_C(x)
+   #endif
 #endif
 
 // ------------------------------------------------------------------------
@@ -331,6 +295,16 @@
 	#ifndef INT64_MAX
 		#define INT64_MAX               INT64_C(9223372036854775807)
 	#endif
+	#ifndef INTMAX_MAX
+	   #define INTMAX_MAX               INT64_MAX
+	#endif
+	#ifndef INTPTR_MAX
+		#if EA_PLATFORM_PTR_SIZE == 4
+			#define INTPTR_MAX          INT32_MAX
+	   	#else
+			#define INTPTR_MAX          INT64_MAX
+		#endif
+	#endif
 
 	// The value must be either -2^(n-1) or 1-2(n-1).
 	#ifndef INT8_MIN
@@ -345,6 +319,16 @@
 	#ifndef INT64_MIN
 		#define INT64_MIN               (-INT64_MAX - 1)  // -9223372036854775808
 	#endif
+	#ifndef INTMAX_MIN
+	   #define INTMAX_MIN               INT64_MIN
+	#endif
+	#ifndef INTPTR_MIN
+		#if EA_PLATFORM_PTR_SIZE == 4
+			#define INTPTR_MIN          INT32_MIN
+	   	#else
+			#define INTPTR_MIN          INT64_MIN
+		#endif
+	#endif
 
 	// The value must be 2^n-1
 	#ifndef UINT8_MAX
@@ -358,6 +342,16 @@
 	#endif
 	#ifndef UINT64_MAX
 		#define UINT64_MAX              UINT64_C(0xffffffffffffffff) // 18446744073709551615 
+	#endif
+	#ifndef UINTMAX_MAX
+	   #define UINTMAX_MAX              UINT64_MAX
+	#endif
+	#ifndef UINTPTR_MAX
+		#if EA_PLATFORM_PTR_SIZE == 4
+			#define UINTPTR_MAX          UINT32_MAX
+	   	#else
+			#define UINTPTR_MAX          UINT64_MAX
+		#endif
 	#endif
 #endif
 
@@ -394,7 +388,7 @@
 	   #define __STDC_FORMAT_MACROS
 	#endif
 
-	#if defined(EA_COMPILER_MSVC) || defined(EA_COMPILER_BORLAND) // VC++ 7.1+ understands long long as a data type but doesn't accept %ll as a printf specifier.
+	#if defined(EA_COMPILER_MSVC) // VC++ 7.1+ understands long long as a data type but doesn't accept %ll as a printf specifier.
 		#define EA_PRI_64_LENGTH_SPECIFIER "I64"
 		#define EA_SCN_64_LENGTH_SPECIFIER "I64"
 	#else
@@ -518,7 +512,7 @@
 // 
 #ifndef BOOL8_T_DEFINED // If the user hasn't already defined this...
 	#define BOOL8_T_DEFINED
-	#if defined(EA_COMPILER_MSVC) || (defined(EA_COMPILER_INTEL) && defined(EA_PLATFORM_WINDOWS)) || defined(EA_COMPILER_BORLAND)
+	#if defined(EA_COMPILER_MSVC) || (defined(EA_COMPILER_INTEL) && defined(EA_PLATFORM_WINDOWS))
 		#if defined(__cplusplus)
 			typedef bool bool8_t;
 		#else
@@ -602,7 +596,7 @@
 // ------------------------------------------------------------------------
 // Character types
 //
-#if defined(EA_COMPILER_MSVC) || defined(EA_COMPILER_BORLAND)
+#if defined(EA_COMPILER_MSVC)
 	#if defined(EA_WCHAR_T_NON_NATIVE)
 	   // In this case, wchar_t is not defined unless we include 
 	   // wchar.h or if the compiler makes it built-in.
@@ -632,6 +626,7 @@
 //             set to be the same thing as wchar_t in order to allow the 
 //             user to use char32_t with standard wchar_t functions.
 //
+// EA_CHAR8_UNIQUE
 // EA_CHAR16_NATIVE
 // EA_CHAR32_NATIVE
 // EA_WCHAR_UNIQUE
@@ -654,6 +649,9 @@
 // the C++11 unicode character types often overloads must be provided to 
 // support existing code that passes a wide char string to a function that 
 // takes a unicode string.
+//
+// The EA_CHAR8_UNIQUE symbol is defined to 1 if char8_t is distinct type 
+// from char in the type system, and defined to 0 if otherwise.
 
 #if !defined(EA_CHAR16_NATIVE)
 	// To do: Change this to be based on EA_COMPILER_NO_NEW_CHARACTER_TYPES.
@@ -708,11 +706,24 @@
 	#define EA_WCHAR_UNIQUE 0
 #endif
 
-// Feature check for native char8_t support. Currently only enabled
-// in Clang since r346892 when -std=c++2a is specified.  
-#if defined(__cpp_char8_t)
+
+// EA_CHAR8_UNIQUE
+//
+// Check for char8_t support in the cpp type system. Moving forward from c++20,
+// the char8_t type allows users to overload function for character encoding.   
+//
+// EA_CHAR8_UNIQUE is 1 when the type is a unique in the type system and 
+// can there be used as a valid overload. EA_CHAR8_UNIQUE is 0 otherwise.
+//
+// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0482r6.html
+//
+#ifdef __cpp_char8_t
 	#define CHAR8_T_DEFINED
+	#define EA_CHAR8_UNIQUE 1
+#else
+	#define EA_CHAR8_UNIQUE 0
 #endif
+
 
 #ifndef CHAR8_T_DEFINED // If the user hasn't already defined these...
 	#define CHAR8_T_DEFINED
@@ -804,7 +815,11 @@
 //     const char32_t  c   = EA_CHAR32('\x3001');
 //
 #ifndef EA_CHAR8
-	 #define EA_CHAR8(s) s
+	#if EA_CHAR8_UNIQUE
+		#define EA_CHAR8(s) u8 ## s
+	#else
+		#define EA_CHAR8(s) s
+	#endif
 #endif
 
 #ifndef EA_WCHAR
@@ -906,7 +921,7 @@
 //
 #if defined(_MSC_VER) && (_MSC_VER >= 1600) && defined(__cplusplus)
 	// static_assert is defined by the compiler for both C and C++.
-#elif !defined(__cplusplus) && defined(EA_PLATFORM_ANDROID) 
+#elif !defined(__cplusplus) && defined(EA_PLATFORM_ANDROID) && ((defined(__STDC_VERSION__) && __STDC_VERSION__ < 201100L) || !defined(__STDC_VERSION__))
 	// AndroidNDK does not support static_assert despite claiming it's a C11 compiler
 	#define NEED_CUSTOM_STATIC_ASSERT
 #elif defined(__clang__) && defined(__cplusplus)

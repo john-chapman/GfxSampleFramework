@@ -1,15 +1,16 @@
 #pragma once
 
 #include <frm/core/gl.h>
+#include <frm/core/Viewport.h>
 
 namespace frm {
 
-class Buffer;
-class Framebuffer;
-class Mesh;
-class Shader;
-class Texture;
-class Window;
+class  Buffer;
+class  Framebuffer;
+class  Mesh;
+class  Shader;
+class  Texture;
+class  Window;
 
 ////////////////////////////////////////////////////////////////////////////////
 // GlContext
@@ -47,13 +48,13 @@ public:
 	static GlContext* Create(const Window* _window, int _vmaj, int _vmin, CreateFlags _flags);
 	
 	// Destroy OpenGL context. This implicitly destroys all associated resources.
-	static void Destroy(GlContext*& _ctx_);
+	static void       Destroy(GlContext*& _ctx_);
 	
 	// Get the current context on the calling thread, or nullptr if none.
 	static GlContext* GetCurrent();
 
 	// Make _ctx current on the calling thread. Return false if the operation fails.
-	static bool MakeCurrent(GlContext* _ctx);
+	static bool       MakeCurrent(GlContext* _ctx);
 
 
 	// Make an instanced draw call via glDrawArraysInstanced/glDrawElementsInstanced (render the current mesh with the current shader to the current framebuffer).
@@ -92,13 +93,12 @@ public:
 	void  setFramebufferAndViewport(const Framebuffer* _framebuffer);
 	const Framebuffer* getFramebuffer()          { return m_currentFramebuffer; }
 
-	void setViewport(int _x, int _y, int _width, int _height);
-	int  getViewportX() const                    { return m_viewportX; }
-	int  getViewportY() const                    { return m_viewportY; }
-	int  getViewportWidth() const                { return m_viewportWidth; }
-	int  getViewportHeight() const               { return m_viewportHeight; }
+	void            setViewport(int _x, int _y, int _width, int _height);
+	void            setViewport(const Viewport& _viewport);
+	const Viewport& getViewport() const          { return m_viewport; }
 
 	void blitFramebuffer(const Framebuffer* _src, const Framebuffer* _dst, GLbitfield _mask = GL_COLOR_BUFFER_BIT, GLenum _filter = GL_NEAREST);
+	void blitFramebuffer(const Framebuffer* _src, const Viewport& _srcViewport, const Framebuffer* _dst, const Viewport& _dstViewport, GLbitfield _mask = GL_COLOR_BUFFER_BIT, GLenum _filter = GL_NEAREST);
 	
  // SHADER
 
@@ -155,35 +155,34 @@ public:
 	void clearImageBindings();
 	
 private:
-	const Window*         m_window         = nullptr;
-	Vsync                 m_vsync          = Vsync_On;
-	uint64                m_frameIndex     = 0;
-	uint32                m_drawCount      = 0;
-	uint32                m_dispatchCount  = 0;
+	const Window*         m_window                                                          = nullptr;
+	Vsync                 m_vsync                                                           = Vsync_On;
+	uint64                m_frameIndex                                                      = 0;
+	uint32                m_drawCount                                                       = 0;
+	uint32                m_dispatchCount                                                   = 0;
 
-	int                   m_viewportX, m_viewportY, m_viewportWidth, m_viewportHeight;
-
- 	const Framebuffer*    m_currentFramebuffer;
-	const Shader*         m_currentShader;
-	const Mesh*           m_currentMesh;
-	int                   m_currentSubmesh;
+ 	const Framebuffer*    m_currentFramebuffer                                              = nullptr;
+	Viewport              m_viewport                                                        = { 0 };
+	const Shader*         m_currentShader                                                   = nullptr;
+	const Mesh*           m_currentMesh                                                     = nullptr;
+	int                   m_currentSubmesh                                                  = -1;
 
 	// Tracking state for all targets is redundant as only a subset use an indexed binding model
-	static const int      kBufferSlotCount  = 16;
-	const Buffer*         m_currentBuffers [internal::kBufferTargetCount][kBufferSlotCount];
-	GLint                 m_nextBufferSlots[internal::kBufferTargetCount];
-	GLint                 kMaxBufferSlots  [internal::kBufferTargetCount];
+	static const int      kBufferSlotCount                                                  = 16;
+	const Buffer*         m_currentBuffers [internal::kBufferTargetCount][kBufferSlotCount] = { { nullptr } };
+	GLint                 m_nextBufferSlots[internal::kBufferTargetCount]                   = { 0 };
+	GLint                 kMaxBufferSlots  [internal::kBufferTargetCount]                   = { 0 };
 
-	static const int      kTextureSlotCount = 24;
-	const Texture*        m_currentTextures[kTextureSlotCount];
-	const TextureSampler* m_currentTextureSamplers[kTextureSlotCount];
-	GLint                 m_nextTextureSlot;
+	static const int      kTextureSlotCount                                                 = 24;
+	const Texture*        m_currentTextures[kTextureSlotCount]                              = { nullptr };
+	const TextureSampler* m_currentTextureSamplers[kTextureSlotCount]                       = { nullptr };
+	GLint                 m_nextTextureSlot                                                 = 0;
 
-	static const int      kImageSlotCount = 8;
-	const Texture*        m_currentImages[kImageSlotCount];
-	GLint                 m_nextImageSlot;
+	static const int      kImageSlotCount                                                   = 8;
+	const Texture*        m_currentImages[kImageSlotCount]                                  = { nullptr };
+	GLint                 m_nextImageSlot                                                   = 0;
 	
-	Mesh*                 m_ndcQuadMesh;
+	Mesh*                 m_ndcQuadMesh                                                     = nullptr;
 
 	struct Impl;
 	Impl* m_impl;

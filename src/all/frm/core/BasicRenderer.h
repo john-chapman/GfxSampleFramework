@@ -29,11 +29,17 @@ namespace frm {
 //   - Polar representation for V? Allows direct loading of the vector magnitude.
 //   - Tile min/max, neighborhood velocities at lower precision?
 //   - Tile classification as per Jimenez.
-// - TAA + interlacing.
 // - Memory consumption/perf issues: some redundant render targets are allocated
 //   to simplify the pipeline logic, there are also redundant calls to 
 //   GlContext::blitFramebuffer() for the same reason (which have a not 
 //   insignificant cost).
+//
+// \todo VR
+// - TAA/interlacing (can't extract jitter from the proj matrix directly).
+// - Quality options (for post processing, TAA, etc.).
+// - Temporal scene RTs need to be stereoscopic.
+// - Write directly to the HMD backbuffer.
+// - Reprojection stereo for background (alternate the 'source' eye between frames?).
 ////////////////////////////////////////////////////////////////////////////////
 struct BasicRenderer
 {
@@ -58,12 +64,13 @@ struct BasicRenderer
 	static BasicRenderer* Create(int _resolutionX, int _resolutionY, uint32 _flags = Flags_Default);
 	static void Destroy(BasicRenderer*& _inst_);
 
-	void draw(float _dt);
+	void nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamera);
+	void draw(float _dt, Camera* _drawCamera, Camera* _cullCamera);
 	bool edit();
 
 	void setResolution(int _resolutionX, int _resolutionY);
 
-	void setFlag(Flag _flag, bool _value) { flags = BitfieldSet(flags, (int)_flag, _value); }
+	void setFlag(Flag _flag, bool _value);
 	bool getFlag(Flag _flag) const        { return BitfieldGet(flags, (uint32)_flag); }
 	
 	enum Target_
@@ -129,6 +136,7 @@ struct BasicRenderer
 		Pass_GBuffer,
 		Pass_Scene,
 		Pass_Wireframe,
+		Pass_Final,
 
 		Pass_Count
 	};
@@ -210,8 +218,13 @@ private:
 	DrawCallMap sceneDrawCalls;
 	eastl::vector<DrawCallMap> shadowDrawCalls;
 	eastl::vector<void*> shadowMapAllocations; // \todo encapsule draw call map, camera and shadow allocation
-	
-	void updateDrawCalls();
+		
+	eastl::vector<Component_BasicRenderable*> culledSceneRenderables;
+	eastl::vector<Component_BasicRenderable*> shadowRenderables;
+	eastl::vector<Component_BasicLight*>      culledLights;
+	eastl::vector<Component_BasicLight*>      culledShadowLights;
+
+	void updateDrawCalls(Camera* _cullCamera);
 
 	void addDrawCall(const Component_BasicRenderable* _renderable, int _submeshIndex, DrawCallMap& map_);
 	void clearDrawCalls(DrawCallMap& map_);
@@ -225,7 +238,7 @@ private:
 		float invRadius2    = 0.0f;       // (1/radius)^2
 		float spotScale     = 0.0f;       // 1 / saturate(cos(coneInner - coneOuter))
 		float spotBias      = 0.0f;       // -coneOuter * scale;
-		float _pad;
+		float _pad          = 0.0f;
 	};
 	eastl::vector<LightInstance> lightInstances;
 
@@ -235,6 +248,8 @@ private:
 		vec2  uvBias        = vec2(0.0f);
 		float uvScale       = 1.0f;
 		float arrayIndex    = 0.0f;
+
+		ShadowLightInstance() {} // \todo without this, shadowLightInstances.push_back() crashes in release builds?
 	};
 	eastl::vector<ShadowLightInstance> shadowLightInstances;
 
@@ -243,13 +258,16 @@ private:
 		float    brightness   = 1.0f;
 		bool     isBackground = false;
 		Texture* texture      = nullptr;
+
+		ImageLightInstance() {} // \todo without this, imageLightInstances.push_back() crashes in release builds?
 	};
 	eastl::vector<ImageLightInstance> imageLightInstances;
 	void updateImageLightInstances();
 
 	struct alignas(16) PostProcessData
 	{
-		float motionBlurScale = 0.0f;     // current fps / target fps
+		float  motionBlurScale = 0.0f;     // current fps / target fps
+		uint32 frameIndex      = 0;
 	};
 	PostProcessData postProcessData;
 

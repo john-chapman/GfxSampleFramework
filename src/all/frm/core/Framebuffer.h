@@ -2,6 +2,7 @@
 
 #include <frm/core/frm.h>
 #include <frm/core/gl.h>
+#include <frm/core/Viewport.h>
 
 namespace frm {
 
@@ -47,9 +48,10 @@ public:
 	// framebuffer to be useable.
 	GLenum getStatus() const;
 
-	GLuint getHandle() const   { return m_handle; }
-	GLint  getWidth() const    { return m_width; }
-	GLint  getHeight() const   { return m_height; }
+	GLuint   getHandle() const     { return m_handle; }
+	GLint    getWidth() const      { return m_width; }
+	GLint    getHeight() const     { return m_height; }
+	Viewport getViewport() const   { return { 0, 0, (int)m_width, (int)m_height }; };
 
 private:
 

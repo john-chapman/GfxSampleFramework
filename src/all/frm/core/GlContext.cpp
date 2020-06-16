@@ -213,26 +213,49 @@ void GlContext::setFramebufferAndViewport(const Framebuffer* _framebuffer)
 
 void GlContext::blitFramebuffer(const Framebuffer* _src, const Framebuffer* _dst, GLbitfield _mask, GLenum _filter)
 {
+	const Viewport windowViewport = { 0, 0, m_window->getWidth(), m_window->getHeight() };
+
+	blitFramebuffer(
+		_src,
+		_src ? _src->getViewport() : windowViewport,
+		_dst,
+		_dst ? _dst->getViewport() : windowViewport,
+		_mask,
+		_filter
+		);
+}
+
+void GlContext::blitFramebuffer(const Framebuffer* _src, const Viewport& _srcViewport, const Framebuffer* _dst, const Viewport& _dstViewport, GLbitfield _mask, GLenum _filter)
+{
 	PROFILER_MARKER("#GlContext::blitFramebuffer");
 
 	glAssert(glBlitNamedFramebuffer(
 		_src ? _src->getHandle() : 0,
 		_dst ? _dst->getHandle() : 0,
-		0, 0, _src ? _src->getWidth() : m_window->getWidth(), _src ? _src->getHeight() : m_window->getHeight(),
-		0, 0, _dst ? _dst->getWidth() : m_window->getWidth(), _dst ? _dst->getHeight() : m_window->getHeight(),
+		_srcViewport.x, _srcViewport.y, _srcViewport.x + _srcViewport.w, _srcViewport.y + _srcViewport.h,
+		_dstViewport.x, _dstViewport.y, _dstViewport.x + _dstViewport.w, _dstViewport.y + _dstViewport.h,
 		_mask,
 		_filter
 		));
 }
 
+
 void GlContext::setViewport(int _x, int _y, int _width, int _height)
 {
-	m_viewportX = Max(0, _x);
-	m_viewportY = Max(0, _y);
-	m_viewportWidth = Max(0, _width);
-	m_viewportHeight = Max(0, _height);
-	glAssert(glViewport(m_viewportX, m_viewportY, m_viewportWidth, m_viewportHeight));
-	glAssert(glScissor(m_viewportX, m_viewportY, m_viewportWidth, m_viewportHeight));
+	setViewport({ _x, _y, _width, _height});
+}
+
+void GlContext::setViewport(const Viewport& _viewport)
+{
+	m_viewport = _viewport;
+	
+	m_viewport.x = Max(0, m_viewport.x);
+	m_viewport.y = Max(0, m_viewport.y);
+	m_viewport.w = Max(0, m_viewport.w);
+	m_viewport.h = Max(0, m_viewport.h);
+
+	glAssert(glViewport(m_viewport.x, m_viewport.y, m_viewport.w, m_viewport.h));
+	glAssert(glScissor(m_viewport.x, m_viewport.y, m_viewport.w, m_viewport.h));
 }
 
 void GlContext::setShader(const Shader* _shader)

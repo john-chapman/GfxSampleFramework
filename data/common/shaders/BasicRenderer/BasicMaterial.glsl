@@ -237,7 +237,7 @@ void main()
 		vec3 normalT = normalize(texture(uMaps[Map_Normal], vUv).xyz * 2.0 - 1.0);
 		vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
 		GBuffer_WriteNormal(normalV);
-
+		
 		vec2 positionP = gl_FragCoord.xy * uTexelSize;
 		vec2 prevPositionP = vPrevPositionP.xy / vPrevPositionP.z * 0.5 + 0.5;
 		vec2 velocity = positionP - prevPositionP;

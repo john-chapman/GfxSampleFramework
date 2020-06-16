@@ -6,6 +6,7 @@
 #define FXAA_QUALITY__PRESET 29
 #include "shaders/BasicRenderer/FXAA_311.glsl"
 
+uniform float uTexelScaleX; // Scale texel size to compensate for interlaced rendering.
 uniform sampler2D txIn;
 uniform writeonly image2D txOut;
 
@@ -18,7 +19,7 @@ void main()
 	}
 	const vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize) + 0.5 / vec2(txSize);
     const ivec2 iuv = ivec2(gl_GlobalInvocationID.xy);
-    const vec2 texelSize = 1.0 / vec2(txSize);
+    const vec2 texelSize = 1.0 / vec2(txSize) * vec2(uTexelScaleX, 1.0); 
 
     vec4 ret = FxaaPixelShader(
         uv,            // pos

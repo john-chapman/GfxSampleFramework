@@ -1,0 +1,440 @@
+{
+	"Id": 0,
+	"Name": "ROOT",
+	"Active": true,
+	"Dynamic": true,
+	"Selected": true,
+	"UserData": 0,
+	"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+	"Type": "Root",
+	"Children": [{
+			"Id": 1,
+			"Name": "Camera_000",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [-0.023653823882341386, -0.0000029802322387695314, -1.0000680685043336, 0.0, -0.5120065808296204, 0.8593011498451233, 0.012107521295547486, 0.0, 0.8590608239173889, 0.5121496915817261, -0.020320218056440355, 0.0, 1.81938636302948, 9.953580856323243, -2.32352876663208, 1.0],
+			"Type": "Camera",
+			"Up": 0.4142135679721832,
+			"Down": -0.4142135679721832,
+			"Right": 0.7737120389938355,
+			"Left": -0.7737120389938355,
+			"Near": 0.10000000149011612,
+			"Far": 1000.0,
+			"WorldMatrix": [-0.023653823882341386, -0.0000029802322387695314, -1.0000680685043336, 0.0, -0.5120065808296204, 0.8593011498451233, 0.012107521295547486, 0.0, 0.8590608239173889, 0.5121496915817261, -0.020320218056440355, 0.0, 1.81938636302948, 9.953580856323243, -2.32352876663208, 1.0],
+			"Orthographic": false,
+			"Asymmetrical": false,
+			"Infinite": true,
+			"Reversed": false,
+			"HasGpuBuffer": true,
+			"XForms": [{
+					"Class": "XForm_FreeCamera",
+					"Position": [1.81938636302948, 9.953580856323243, -2.32352876663208],
+					"Orientation": [-0.1855485737323761, 0.6898592114448547, 0.18998703360557557, 0.6737349033355713],
+					"MaxSpeed": 10.0,
+					"MaxSpeedMultiplier": 5.0,
+					"AccelerationTime": 0.10000000149011612,
+					"RotationInputMultiplier": 0.10000000149011612,
+					"RotationDamping": 0.00019999999494757503
+				}]
+		}, {
+			"Id": 2,
+			"Name": "EnvLight",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_ImageLight",
+					"Path": "common/textures/env_sky.exr",
+					"IsBackground": true,
+					"Brightness": 3.0
+				}]
+		}, {
+			"Id": 3,
+			"Name": "Floor",
+			"Active": true,
+			"Dynamic": false,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": false,
+					"Mesh": "common/models/Plane_100.obj",
+					"Material": ["common/materials/Grid2Dark.json"]
+				}]
+		}, {
+			"Id": 13,
+			"Name": "Sun",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"XForms": [{
+					"Class": "XForm_OrbitalPath",
+					"Azimuth": 1.5533430576324463,
+					"Elevation": 1.5707963705062867,
+					"Theta": 0.5980000495910645,
+					"Radius": 100.0,
+					"Speed": 0.0
+				}, {
+					"Class": "XForm_LookAt",
+					"Offset": [0.0, 0.0, 0.0],
+					"TargetId": 0
+				}],
+			"Components": [{
+					"Class": "Component_BasicLight",
+					"Type": "Direct",
+					"ColorBrightness": [1.0, 1.0, 1.0, 25.0],
+					"Radius": 5.0,
+					"ConeInnerAngle": 1.0,
+					"ConeOuterAngle": 20.0,
+					"CastShadows": true
+				}]
+		}, {
+			"Id": 51,
+			"Name": "Ramp001",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -3.4000000953674318, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "models/Ramp001.gltf",
+					"Material": ["common/materials/Grid2Dark.json", ""]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": true,
+						"Kinematic": false,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -3.4000000953674318, 0.0, 0.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial5"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "TriangleMesh",
+						"DataPath": "models/Ramp001.gltf",
+						"Name": "Ramp001"
+					}
+				}]
+		}, {
+			"Id": 18,
+			"Name": "MovingCamera",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [0.8736371994018555, 1.1175870895385742e-7, 0.4865759015083313, 0.0, 0.17126408219337464, 0.9360072612762451, -0.3075014352798462, 0.0, -0.455439031124115, 0.35197800397872927, 0.8177316188812256, 0.0, -2.110492706298828, 1.7749816179275513, 4.122805118560791, 1.0],
+			"Type": "Camera",
+			"Up": 0.16576412320137025,
+			"Down": -0.16576412320137025,
+			"Right": 0.3096318244934082,
+			"Left": -0.3096318244934082,
+			"Near": 1.0,
+			"Far": 1000.0,
+			"WorldMatrix": [0.8736371994018555, 1.1175870895385742e-7, 0.4865759015083313, 0.0, 0.17126408219337464, 0.9360072612762451, -0.3075014352798462, 0.0, -0.455439031124115, 0.35197800397872927, 0.8177316188812256, 0.0, -2.110492706298828, 1.7749816179275513, 4.122805118560791, 1.0],
+			"Orthographic": false,
+			"Asymmetrical": false,
+			"Infinite": true,
+			"Reversed": false,
+			"HasGpuBuffer": true,
+			"XForms": [{
+					"Class": "XForm_FreeCamera",
+					"Position": [-2.110492706298828, 1.7749816179275513, 4.122805118560791],
+					"Orientation": [-0.1731310784816742, -0.24730424582958222, -0.04496139660477638, 0.9522834420204163],
+					"MaxSpeed": 10.0,
+					"MaxSpeedMultiplier": 5.0,
+					"AccelerationTime": 0.10000000149011612,
+					"RotationInputMultiplier": 0.10000000149011612,
+					"RotationDamping": 0.00019999999494757503
+				}]
+		}, {
+			"Id": 55,
+			"Name": "Ramp002",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -5.400000095367432, 1.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "models/Ramp002.gltf",
+					"Material": ["common/materials/Grid2Dark.json", ""]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": true,
+						"Kinematic": false,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -5.400000095367432, 1.0, 0.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial3"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "TriangleMesh",
+						"DataPath": "models/Ramp002.gltf",
+						"Name": "PhysicsBox6"
+					}
+				}]
+		}, {
+			"Id": 59,
+			"Name": "Ramp003",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [-4.3711374075883216e-8, 0.0, 0.9999997019767761, 0.0, 0.0, 1.0, 0.0, 0.0, -0.9999997019767761, 0.0, -4.3711374075883216e-8, 0.0, -6.400000095367432, 2.0, -2.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "models/Ramp003.gltf",
+					"Material": ["common/materials/Grid2Dark.json", ""]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": true,
+						"Kinematic": false,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [-4.3711374075883216e-8, 0.0, 0.9999997019767761, 0.0, 0.0, 1.0, 0.0, 0.0, -0.9999997019767761, 0.0, -4.3711374075883216e-8, 0.0, -6.400000095367432, 2.0, -2.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial5"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "TriangleMesh",
+						"DataPath": "models/Ramp003.gltf",
+						"Name": "PhysicsBox7"
+					}
+				}]
+		}, {
+			"Id": 60,
+			"Name": "Ramp004",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [-0.9999997019767761, 0.0, -8.742274815176643e-8, 0.0, 0.0, 1.0, 0.0, 0.0, 8.742274815176643e-8, 0.0, -0.9999997019767761, 0.0, -4.400000095367432, 3.0, -3.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "models/Ramp003.gltf",
+					"Material": ["common/materials/Grid2Dark.json", ""]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": true,
+						"Kinematic": false,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [-0.9999997019767761, 0.0, -8.742274815176643e-8, 0.0, 0.0, 1.0, 0.0, 0.0, 8.742274815176643e-8, 0.0, -0.9999997019767761, 0.0, -4.400000095367432, 3.0, -3.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial5"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "TriangleMesh",
+						"DataPath": "models/Ramp003.gltf",
+						"Name": "PhysicsBox7"
+					}
+				}]
+		}, {
+			"Id": 61,
+			"Name": "Ramp005",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [-1.0728438581963928e-7, 0.0, -0.9999997019767761, 0.0, 0.0, 1.0, 0.0, 0.0, 0.9999997019767761, 0.0, -1.0728438581963928e-7, 0.0, -3.4000000953674318, 4.0, -1.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "models/Ramp003.gltf",
+					"Material": ["common/materials/Grid2Dark.json", ""]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": true,
+						"Kinematic": false,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [-1.0728438581963928e-7, 0.0, -0.9999997019767761, 0.0, 0.0, 1.0, 0.0, 0.0, 0.9999997019767761, 0.0, -1.0728438581963928e-7, 0.0, -3.4000000953674318, 4.0, -1.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial5"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "TriangleMesh",
+						"DataPath": "models/Ramp003.gltf",
+						"Name": "PhysicsBox7"
+					}
+				}]
+		}, {
+			"Id": 62,
+			"Name": "Ramp006",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [0.9999997019767761, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.9999997019767761, 0.0, -5.400000095367432, 5.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "models/Ramp003.gltf",
+					"Material": ["common/materials/Grid2Dark.json", ""]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": true,
+						"Kinematic": false,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [0.9999997019767761, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.9999997019767761, 0.0, -5.400000095367432, 5.0, 0.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial5"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "TriangleMesh",
+						"DataPath": "models/Ramp003.gltf",
+						"Name": "PhysicsBox7"
+					}
+				}]
+		}, {
+			"Id": 63,
+			"Name": "Ramp007",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [-4.3711374075883216e-8, 0.0, 0.9999997019767761, 0.0, 0.0, 1.0, 0.0, 0.0, -0.9999997019767761, 0.0, -4.3711374075883216e-8, 0.0, -6.400000095367432, 6.0, -2.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "models/Ramp003.gltf",
+					"Material": ["common/materials/Grid2Dark.json", ""]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": true,
+						"Kinematic": false,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [-4.3711374075883216e-8, 0.0, 0.9999997019767761, 0.0, 0.0, 1.0, 0.0, 0.0, -0.9999997019767761, 0.0, -4.3711374075883216e-8, 0.0, -6.400000095367432, 6.0, -2.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial5"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "TriangleMesh",
+						"DataPath": "models/Ramp003.gltf",
+						"Name": "PhysicsBox7"
+					}
+				}]
+		}, {
+			"Id": 67,
+			"Name": "Ramp008",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -6.400000095367432, 6.749742031097412, -3.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "models/Ramp004.gltf",
+					"Material": ["common/materials/Grid2Dark.json", ""]
+				}, {
+					"Class": "Component_Physics",
+					"Flags": {
+						"Static": true,
+						"Kinematic": false,
+						"Dynamic": false,
+						"Simulation": true,
+						"Query": true
+					},
+					"InitialTransform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -6.400000095367432, 6.749742031097412, -3.0, 1.0],
+					"Material": {
+						"StaticFriction": 0.5,
+						"DynamicFriction": 0.5,
+						"Restitution": 0.20000000298023225,
+						"Name": "PhysicsMaterial15"
+					},
+					"Mass": 1.0,
+					"Geometry": {
+						"Type": "Box",
+						"HalfExtents": [0.5, 0.25, 0.5],
+						"Name": "PhysicsBox12"
+					}
+				}]
+		}],
+	"DrawCameraId": 1,
+	"CullCameraId": 1
+}

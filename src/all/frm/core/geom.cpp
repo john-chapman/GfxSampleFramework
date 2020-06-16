@@ -98,9 +98,6 @@ void Sphere::transform(const mat4& _mat)
 {
 	float maxScale = GetMaxScale(_mat);	
 	m_radius *= maxScale;
-	m_origin *= maxScale;
-
- // translate after scaling
 	m_origin = TransformPosition(_mat, m_origin);
 }
 

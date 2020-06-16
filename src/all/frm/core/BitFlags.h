@@ -19,6 +19,22 @@ struct _SelectUint
 		Type;
 };
 
+template <typename tType>
+constexpr tType _BitFlagsDefault(std::initializer_list<tType> list)
+{
+	tType ret = 0;
+	if (list.size() > 0)
+	{
+		for (tType i : list)
+		{
+			ret |= (tType)1 << (tType)i;
+		}
+	}
+
+	return ret;
+}
+#define BIT_FLAGS_DEFAULT(...) frm::internal::_BitFlagsDefault({__VA_ARGS__})
+
 } // namespace internal
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -33,11 +49,11 @@ struct _SelectUint
 //       Bar,
 //
 //       _Count,
-//       _Default = (1 << Foo) | (1 << Bar)
+//       _Default = BIT_FLAGS_DEFAULT(Foo, Bar)
 //    };
 //
 //    BitFlags<Mode> flags; // set to Mode::_Default
-//    bool isFoo = flags.isSet(Mode::Foo);
+//    bool isFoo = flags.get(Mode::Foo);
 //    flags.set(Mode::Foo, false);
 //       
 ////////////////////////////////////////////////////////////////////////////////
@@ -45,7 +61,7 @@ template <typename tEnum>
 struct BitFlags
 {
 	static constexpr int kCount = (int)tEnum::_Count;
-	static_assert(tEnum::_Default > (tEnum)0); // Ensure tEnum::_Default exists.
+	static_assert(tEnum::_Default >= (tEnum)0, "Ensure tEnum::_Default exists.");
 
 	typedef typename internal::_SelectUint<kCount>::Type ValueType;
 
@@ -65,12 +81,23 @@ struct BitFlags
 			}
 		}
 	}
+
+	constexpr BitFlags(tEnum bit)
+	{
+		_bits = (ValueType)1 << (ValueType)bit;
+	}
 	
 	// Return whether bit i is set. 
-	constexpr bool isSet(tEnum i) const
+	constexpr bool get(tEnum i) const
 	{
 		const auto mask = _getMask(i);
 		return (_bits & mask) != 0;
+	}
+
+	// Return whether any bits are set.
+	constexpr bool any() const
+	{
+		return _bits != 0;
 	}
 
 	// Set bit i from value.
@@ -78,6 +105,22 @@ struct BitFlags
 	{
 		const auto mask = _getMask(i);
 		_bits = value ? (_bits | mask) : (_bits & ~mask);
+	}
+
+	// Clear all bits.
+	constexpr void clear()
+	{
+		_bits = 0;
+	}
+
+	constexpr bool operator==(BitFlags<tEnum> rhs)
+	{
+		return _bits == rhs._bits;
+	}
+
+	constexpr bool operator!=(BitFlags<tEnum> rhs)
+	{
+		return _bits != rhs._bits;
 	}
 
 private:

@@ -57,8 +57,8 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_PHYSICS=1;FRM_MODULE_AUDIO=1;FRM_MODULE_VR=0;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;FRM_MODULE_PHYSICS=0;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -70,11 +70,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>hid.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(PHYSX_SDK)\physx\bin\win.x86_64.vc142.mt\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>IF EXIST "$(PHYSX_SDK)\physx\bin\win.x86_64.vc142.mt\Debug\*.dll"\ (xcopy /Q /E /Y /I "$(PHYSX_SDK)\physx\bin\win.x86_64.vc142.mt\Debug\*.dll" "$(OutDir)\*.dll" &gt; nul) ELSE (xcopy /Q /Y /I "$(PHYSX_SDK)\physx\bin\win.x86_64.vc142.mt\Debug\*.dll" "$(OutDir)\*.dll" &gt; nul)
-if not exist $(ProjectDir)..\..\data\LuaScript mkdir "$(ProjectDir)..\..\data\LuaScript"
+      <Command>if not exist $(ProjectDir)..\..\data\LuaScript mkdir "$(ProjectDir)..\..\data\LuaScript"
 if not exist $(ProjectDir)..\..\bin\LuaScript mklink /j "$(ProjectDir)..\..\bin\LuaScript" "$(ProjectDir)..\..\data\LuaScript"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -82,8 +80,8 @@ if not exist $(ProjectDir)..\..\bin\LuaScript mklink /j "$(ProjectDir)..\..\bin\
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>NDEBUG;GLEW_STATIC=1;FRM_MODULE_CORE=1;FRM_MODULE_PHYSICS=1;FRM_MODULE_AUDIO=1;FRM_MODULE_VR=0;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(PHYSX_SDK)\physx\include;$(PHYSX_SDK)\pxshared\include;..\..\src\all;..\..\src\win;..\..\src\all\frm\physics\extern;..\..\src\win\frm\physics\extern;..\..\src\all\frm\audio\extern;..\..\src\win\frm\audio\extern;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;FRM_MODULE_PHYSICS=0;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -101,11 +99,9 @@ if not exist $(ProjectDir)..\..\bin\LuaScript mklink /j "$(ProjectDir)..\..\bin\
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>hid.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(PHYSX_SDK)\physx\bin\win.x86_64.vc142.mt\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>IF EXIST "$(PHYSX_SDK)\physx\bin\win.x86_64.vc142.mt\Release\*.dll"\ (xcopy /Q /E /Y /I "$(PHYSX_SDK)\physx\bin\win.x86_64.vc142.mt\Release\*.dll" "$(OutDir)\*.dll" &gt; nul) ELSE (xcopy /Q /Y /I "$(PHYSX_SDK)\physx\bin\win.x86_64.vc142.mt\Release\*.dll" "$(OutDir)\*.dll" &gt; nul)
-if not exist $(ProjectDir)..\..\data\LuaScript mkdir "$(ProjectDir)..\..\data\LuaScript"
+      <Command>if not exist $(ProjectDir)..\..\data\LuaScript mkdir "$(ProjectDir)..\..\data\LuaScript"
 if not exist $(ProjectDir)..\..\bin\LuaScript mklink /j "$(ProjectDir)..\..\bin\LuaScript" "$(ProjectDir)..\..\data\LuaScript"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

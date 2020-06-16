@@ -20,16 +20,20 @@ static HINSTANCE hPortAudioDll; // the DLL is loaded on demand when calling a Pa
 template <typename T>
 bool DllGetProc(HINSTANCE& _hDll_, const char* _dllName, T& _proc_, const char* _procName)
 {
-	if_unlikely (!_hDll_) {
+	if_unlikely (!_hDll_)
+	{
 		_hDll_ = LoadLibrary(_dllName);
-		if (!_hDll_) {
+		if (!_hDll_)
+		{
 			FRM_LOG_ERR("Failed to load DLL '%s'", _dllName);
 			return false;
 		}
 	}
-	if_unlikely (!_proc_) {
+	if_unlikely (!_proc_)
+	{
 		_proc_ = (T)GetProcAddress(_hDll_, _procName);
-		if (!_proc_) {
+		if (!_proc_)
+		{
 			FRM_LOG_ERR("Failed to load '%s'", _procName);
 			return false;
 		}

@@ -54,16 +54,20 @@ public:
 	static void          SetSourcePan(AudioSourceId _id, float _pan);
 
 	static void          Edit();
+
 private:
-	static Audio*              s_instance;
 
-	eastl::vector<AudioDevice> m_devices;
-	AudioDevice*               m_deviceOut    = nullptr;
-	void*                      m_streamOut    = nullptr;
+	using AudioSourceMap = eastl::vector_map<AudioSourceId, AudioSource>;
+	using DeviceList     = eastl::vector<AudioDevice>;
 
-	typedef eastl::vector_map<AudioSourceId, AudioSource> AudioSourceMap;
-	AudioSourceId              m_nextSourceId = 0;
-	AudioSourceMap             m_sources;
+	static Audio*   s_instance;
+
+	DeviceList      m_devices;
+	AudioDevice*    m_deviceOut    = nullptr;
+	void*           m_streamOut    = nullptr;
+
+	AudioSourceId   m_nextSourceId = 0;
+	AudioSourceMap  m_sources;
 
 	static int StreamCallbackOut(const void* _input, void* output_, unsigned long _frameCount, void* _timeInfo, unsigned long _statusFlags, void* _user);
 

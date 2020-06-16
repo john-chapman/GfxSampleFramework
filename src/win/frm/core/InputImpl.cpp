@@ -278,7 +278,8 @@ struct MouseImpl: public ImplBase<Mouse, MouseImpl, Input::kMaxMouseCount>
 
 	void update(RAWINPUT* _raw)
 	{
-		FRM_ASSERT_MSG((_raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) == 0, "%s %d does not support relative position coordinates", getName(), getIndex());
+		// \todo this asserts when using a VR virtual desktop
+		//FRM_ASSERT_MSG((_raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) == 0, "%s %d does not support relative position coordinates", getName(), getIndex());
 	 
 	 // buttons
 		USHORT currFlags = _raw->data.mouse.usButtonFlags;

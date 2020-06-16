@@ -83,6 +83,7 @@ inline constexpr unsigned ArrayCount(const tType (&)[kCount]) { return kCount; }
 	#define FRM_VERIFY(e)                 FRM_VERIFY_MSG(e, 0, 0)
 
 #else
+	#define FRM_BREAK()
 	#define FRM_ASSERT_MSG(e, msg, ...)   do { FRM_UNUSED(e); FRM_UNUSED(msg); } while(0)
 	#define FRM_ASSERT(e)                 do { FRM_UNUSED(e); } while(0)
 	#define FRM_VERIFY_MSG(e, msg, ...)   do { (void)(e); FRM_UNUSED(msg); } while(0)
@@ -153,6 +154,7 @@ namespace frm {
 	class  ValueCurve;
 	class  ValueCurveEditor;
 	class  VertexAttr;
+	struct Viewport;
 	class  VirtualWindow;
 	class  Window;
 	class  XForm;
@@ -164,9 +166,17 @@ namespace frm {
 
 	#if FRM_MODULE_PHYSICS
 		class  Physics;
+		class  PhysicsConstraint;
 		class  PhysicsMaterial;
 		class  PhysicsGeometry;
 		struct Component_Physics;
+	#endif
+
+	#if FRM_MODULE_VR
+		class  AppSampleVR;
+		class  VRContext;
+		class  VRController;
+		class  VRInput;
 	#endif
 
 	struct AlignedBox;

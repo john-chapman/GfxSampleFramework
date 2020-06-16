@@ -11,6 +11,7 @@ uniform writeonly image2D txOut;
 layout(std140) uniform bfPostProcessData
 {
 	float uMotionBlurScale;
+	uint  uFrameIndex;
 };
 
 vec3 Gamma(in vec3 _x)
@@ -88,7 +89,8 @@ void main()
     
     ret = textureLod(txScene, uv, 0.0).rgb;
 
-    const int kMotionBlurSampleCount = 11;
+    //const int kMotionBlurSampleCount = 11; // \todo quality setting
+		const int kMotionBlurSampleCount = 5; // good for VR
     #if 0
 	{
 	// Basic motion blur.
@@ -110,7 +112,7 @@ void main()
 	// https://casual-effects.com/research/McGuire2012Blur/McGuire12Blur.pdf
 		const vec2 jitterVelocity = uCamera.m_prevProj[2].xy * vec2(txSize);
 		const vec2 neighborMaxV = (textureLod(txVelocityTileNeighborMax, uv, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale
-			* mix(0.5, 1.0, Noise_InterleavedGradient(vec2(iuv) + jitterVelocity)) // add some noise to reduce banding
+			* mix(0.5, 1.0, Noise_InterleavedGradient(vec2(iuv.x, iuv.y + uFrameIndex) + jitterVelocity)) // add some noise to reduce banding
 			;
 		if (length2(neighborMaxV) > length2(texelSize)) // only do blur if velocity > .5 texels
 		{

@@ -33,9 +33,9 @@ workspace "GfxSampleFramework"
 			FRM_ROOT .. "lib",  -- libDir
 			FRM_ROOT .. "bin",  -- binDir
 			{                   -- config
-				FRM_MODULE_AUDIO   = true,
+				FRM_MODULE_AUDIO   = false,
 				FRM_MODULE_VR      = false,
-				FRM_MODULE_PHYSICS = true,
+				FRM_MODULE_PHYSICS = false,
 			})
 	group ""
 

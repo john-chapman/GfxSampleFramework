@@ -32,6 +32,7 @@ DepthTest::DepthTest()
 
 DepthTest::~DepthTest()
 {
+	Properties::InvalidateGroup("DepthTest");
 }
 
 bool DepthTest::init(const frm::ArgList& _args)

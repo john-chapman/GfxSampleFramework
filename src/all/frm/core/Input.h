@@ -16,6 +16,10 @@ class Window;
 // Axes: axis state is a float whose range is device dependent. In most cases
 //    (for mouse or pointer devices and gamepad axes) axis state is relative,
 //    i.e. is a delta from the previous state.
+//
+// \todo
+// - Use a single enum for buttons/axes, allow axes to be treated as buttons
+//   (mostly useful for joypad triggers, etc.).
 ////////////////////////////////////////////////////////////////////////////////
 class Device
 {

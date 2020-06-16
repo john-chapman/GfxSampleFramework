@@ -95,7 +95,9 @@ void main()
             retFinal = mix(retFinal, texelFetch(txPrevious, iuvPrev, 0).rgb, weight);
         }
     
-        imageStore(txFinal, iuv, vec4(retFinal, 1.0));
+        #if !TAA
+            imageStore(txFinal, iuv, vec4(retFinal, 1.0));
+        #endif
     }
     #endif
 
@@ -116,19 +118,25 @@ void main()
             sampleUv[uFrameIndex] += kKernelOffsets[i] * texelSize[uFrameIndex] * 1.0;
             retResolve += textureLod(txCurrent, sampleUv, 0.0).rgb * kKernelWeights[i];
         }
+
+        #if INTERLACED
+            const ivec2 iuv2 = ivec2(gl_GlobalInvocationID.x / 2, gl_GlobalInvocationID.y);
+        #else
+            const ivec2 iuv2 = iuv;
+        #endif
     
         vec3 retFinal = vec3(0.0);
         vec3 localMin, localMax, center;
-        GetNeighborhoodBounds(txCurrent, iuv, localMin, localMax, center);
+        GetNeighborhoodBounds(txCurrent, iuv2, localMin, localMax, center);
 
-        const vec2 velocity = GBuffer_ReadVelocity(iuv);
-	    const vec2 prevUv = uv - velocity;
-	    vec3 prevColor = textureLod(txPreviousResolve, prevUv, 0.0).rgb;
+        const vec2 velocity = GBuffer_ReadVelocity(iuv2);
+        const vec2 prevUv = uv - velocity;
+        vec3 prevColor = textureLod(txPreviousResolve, prevUv, 0.0).rgb;
 
-    	prevColor = clamp(prevColor, localMin, localMax); // \todo this introduces jitter?
-	    retFinal = mix(retResolve, prevColor, 0.5);
+        prevColor = clamp(prevColor, localMin, localMax); // \todo this introduces jitter?
+        retFinal = mix(retResolve, prevColor, 0.5);
 
-	    imageStore(txCurrentResolve, iuv, vec4(retResolve, 1.0));
+        imageStore(txCurrentResolve, iuv, vec4(retResolve, 1.0));
         imageStore(txFinal, iuv, vec4(retFinal, 1.0));
     }
     #endif

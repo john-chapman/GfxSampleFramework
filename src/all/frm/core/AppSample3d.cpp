@@ -4,6 +4,7 @@
 #include <frm/core/interpolation.h>
 #include <frm/core/gl.h>
 #include <frm/core/geom.h>
+#include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Input.h>
 #include <frm/core/Mesh.h>
@@ -12,6 +13,8 @@
 #include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Scene.h>
+#include <frm/core/Texture.h>
+#include <frm/core/Viewport.h>
 #include <frm/core/Window.h>
 #include <frm/core/XForm.h>
 
@@ -21,7 +24,6 @@
 
 #include <im3d/im3d.h>
 
-using namespace frm;
 using namespace frm;
 
 // PUBLIC
@@ -70,7 +72,12 @@ void AppSample3d::shutdown()
 		Physics::Shutdown();
 	#endif
 
+	if (m_txIm3dDepth)
+	{
+		Texture::Release(m_txIm3dDepth);
+	}
 	Im3d_Shutdown(this);
+
 	AppSample::shutdown();
 }
 
@@ -190,11 +197,12 @@ bool AppSample3d::update()
 
 void AppSample3d::draw()
 {
+	Im3d::EndFrame();
 	if (!m_hiddenMode)
 	{	
 		PROFILER_MARKER("#AppSample3d::draw");
 		getGlContext()->setFramebufferAndViewport(getDefaultFramebuffer());
-		Im3d::Draw();
+		drawIm3d(Scene::GetDrawCamera(), nullptr, Viewport(), m_txIm3dDepth);
 	}
 	AppSample::draw();
 }
@@ -308,6 +316,23 @@ AppSample3d::AppSample3d(const char* _title)
 
 AppSample3d::~AppSample3d()
 {
+	Properties::InvalidateGroup("AppSampleVR");
+}
+
+void AppSample3d::setIm3dDepthTexture(Texture* _tx)
+{
+	if (m_txIm3dDepth == _tx)
+	{
+		return;
+	}
+
+	if (m_txIm3dDepth)
+	{
+		Texture::Release(m_txIm3dDepth);
+	}
+
+	m_txIm3dDepth = _tx;
+	Texture::Use(m_txIm3dDepth);
 }
 
 // PRIVATE
@@ -359,47 +384,66 @@ void AppSample3d::drawMainMenuBar()
 
 *******************************************************************************/
 
-static Shader *s_shIm3dPoints, *s_shIm3dLines, *s_shIm3dTriangles;
-static Mesh   *s_msIm3dPoints, *s_msIm3dLines, *s_msIm3dTriangles;
+static Shader* s_shIm3dPrimitives[Im3d::DrawPrimitive_Count][2]; // shader per primtive type (points, lines, tris), with/without depth test
+static Mesh*   s_msIm3dPrimitives[Im3d::DrawPrimitive_Count];
 
 bool AppSample3d::Im3d_Init(AppSample3d* _app)
 {
-	Im3d::GetAppData().drawCallback = Im3d_Draw;
-
 	if (_app->m_hiddenMode)
 	{
 		return true;
 	}
 
-	s_shIm3dPoints = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", { "POINTS" });
-	s_shIm3dPoints->setName("#Im3d_POINTS");
-	s_shIm3dLines = Shader::CreateVsGsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_gs.glsl", "shaders/Im3d_fs.glsl", { "LINES" });
-	s_shIm3dLines->setName("#Im3d_POINTS");
-	s_shIm3dLines->setName("#Im3d_LINES");
-	s_shIm3dTriangles = Shader::CreateVsFs("shaders/Im3d_vs.glsl", "shaders/Im3d_fs.glsl", { "TRIANGLES" });
-	s_shIm3dTriangles->setName("#Im3d_TRIANGLES");
+	bool ret = true;
+
+	constexpr const char* kPrimitiveNames[] = { "TRIANGLES", "LINES", "POINTS" };
+	constexpr const char* kShaderPath = "shaders/Im3d.glsl";
+	for (int primitiveType = 0; primitiveType < Im3d::DrawPrimitive_Count; ++primitiveType)
+	{
+		if (primitiveType == Im3d::DrawPrimitive_Lines)
+		{
+			s_shIm3dPrimitives[primitiveType][0] = Shader::CreateVsGsFs(kShaderPath, kShaderPath, kShaderPath, { kPrimitiveNames[primitiveType], "DEPTH" });
+			s_shIm3dPrimitives[primitiveType][1] = Shader::CreateVsGsFs(kShaderPath, kShaderPath, kShaderPath, { kPrimitiveNames[primitiveType] });
+		}
+		else
+		{
+			s_shIm3dPrimitives[primitiveType][0] = Shader::CreateVsFs(kShaderPath, kShaderPath, { kPrimitiveNames[primitiveType], "DEPTH" });
+			s_shIm3dPrimitives[primitiveType][1] = Shader::CreateVsFs(kShaderPath, kShaderPath, { kPrimitiveNames[primitiveType] });
+		}
+
+		s_shIm3dPrimitives[primitiveType][0]->setNamef("#Im3d_%s_DEPTH", kPrimitiveNames[primitiveType]);
+		s_shIm3dPrimitives[primitiveType][1]->setNamef("#Im3d_%s", kPrimitiveNames[primitiveType]);
+
+		ret &= s_shIm3dPrimitives[primitiveType][0] && s_shIm3dPrimitives[primitiveType][0]->getState() == Shader::State_Loaded;
+		ret &= s_shIm3dPrimitives[primitiveType][1] && s_shIm3dPrimitives[primitiveType][0]->getState() == Shader::State_Loaded;
+	}
 
 	MeshDesc meshDesc(MeshDesc::Primitive_Points);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 4);
 	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint8N, 4);
 	FRM_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::VertexData));
-	s_msIm3dPoints = Mesh::Create(meshDesc);
+	s_msIm3dPrimitives[Im3d::DrawPrimitive_Points] = Mesh::Create(meshDesc);
+	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Points] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Points]->getState() == Mesh::State_Loaded;
+	
 	meshDesc.setPrimitive(MeshDesc::Primitive_Lines);
-	s_msIm3dLines= Mesh::Create(meshDesc);
-	meshDesc.setPrimitive(MeshDesc::Primitive_Triangles);
-	s_msIm3dTriangles= Mesh::Create(meshDesc);
+	s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines] = Mesh::Create(meshDesc);
+	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines]->getState() == Mesh::State_Loaded;
 
-	return s_shIm3dPoints && s_msIm3dPoints;
+	meshDesc.setPrimitive(MeshDesc::Primitive_Triangles);
+	s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] = Mesh::Create(meshDesc);
+	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles]->getState() == Mesh::State_Loaded;
+
+	return ret;
 }
 
 void AppSample3d::Im3d_Shutdown(AppSample3d* _app)
 {
-	Shader::Release(s_shIm3dPoints);
-	Shader::Release(s_shIm3dLines);
-	Shader::Release(s_shIm3dTriangles);
-	Mesh::Release(s_msIm3dPoints);
-	Mesh::Release(s_msIm3dLines);
-	Mesh::Release(s_msIm3dTriangles);
+	for (int primitiveType = 0; primitiveType < Im3d::DrawPrimitive_Count; ++primitiveType)
+	{
+		Mesh::Release(s_msIm3dPrimitives[primitiveType]);
+		Shader::Release(s_shIm3dPrimitives[primitiveType][0]);
+		Shader::Release(s_shIm3dPrimitives[primitiveType][1]);
+	}
 }
 
 void AppSample3d::Im3d_Update(AppSample3d* _app)
@@ -430,52 +474,164 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	ad.m_keyDown[Im3d::Key_R/*Action_GizmoRotation*/]    = ctrlDown && keyb->wasPressed(Keyboard::Key_R);
 	ad.m_keyDown[Im3d::Key_S/*Action_GizmoScale*/]       = ctrlDown && keyb->wasPressed(Keyboard::Key_S);
 
-	ad.m_snfrmranslation = ctrlDown ? 0.1f : 0.0f;
+	ad.m_snapTranslation = ctrlDown ? 0.1f : 0.0f;
 	ad.m_snapRotation    = ctrlDown ? Radians(15.0f) : 0.0f;
 	ad.m_snapScale       = ctrlDown ? 0.5f : 0.0f;
 
 	Im3d::NewFrame();
 }
 
-void AppSample3d::Im3d_Draw(const Im3d::DrawList& _drawList)
+void AppSample3d::Im3d_Draw(Camera* _camera, Texture* _txDepth)
 {
-	PROFILER_MARKER("#Im3d_Draw");
+	/*ImDrawList* imDrawList = ImGui::GetWindowDrawList();
+	const mat4& viewProj = _camera->m_viewProj;
+	for (unsigned i = 0; i < Im3d::GetTextDrawListCount(); ++i) 
+	{
+		const Im3d::TextDrawList& textDrawList = Im3d::GetTextDrawLists()[i];
+		
+		for (unsigned j = 0; j < textDrawList.m_textDataCount; ++j)
+		{
+			const Im3d::TextData& textData = textDrawList.m_textData[j];
+			if (textData.m_positionSize.w == 0.0f || textData.m_color.getA() == 0.0f)
+			{
+				continue;
+			}
 
-	Im3d::AppData& ad = Im3d::GetAppData();
+			// Project world -> screen space.
+			vec4 clip = viewProj * vec4(textData.m_positionSize.x, textData.m_positionSize.y, textData.m_positionSize.z, 1.0f);
+			vec2 screen = vec2(clip.x / clip.w, clip.y / clip.w);
+	
+			// Cull text which falls offscreen. Note that this doesn't take into account text size but works well enough in practice.
+			if (clip.w < 0.0f || screen.x >= 1.0f || screen.y >= 1.0f)
+			{
+				continue;
+			}
 
-	glScopedEnable(GL_BLEND,              true);
-	glScopedEnable(GL_PROGRAM_POINT_SIZE, true);
-	glScopedEnable(GL_CULL_FACE,          false);
+			// Pixel coordinates for the ImGuiWindow ImGui.
+			screen = screen * vec2(0.5f) + vec2(0.5f);
+			screen.y = 1.0f - screen.y; // screen space origin is reversed by the projection.
+			screen = screen * (vec2)ImGui::GetWindowSize();
+
+			// All text data is stored in a single buffer; each textData instance has an offset into this buffer.
+			const char* text = textDrawList.m_textBuffer + textData.m_textBufferOffset;
+
+			// Calculate the final text size in pixels to apply alignment flags correctly.
+			ImGui::SetWindowFontScale(textData.m_positionSize.w); // NB no CalcTextSize API which takes a font/size directly...
+			vec2 textSize = ImGui::CalcTextSize(text, text + textData.m_textLength);
+			ImGui::SetWindowFontScale(1.0f);
+
+			// Generate a pixel offset based on text flags.
+			vec2 textOffset = vec2(-textSize.x * 0.5f, -textSize.y * 0.5f); // default to center
+			if ((textData.m_flags & Im3d::TextFlags_AlignLeft) != 0)
+			{
+				textOffset.x = -textSize.x;
+			}
+			else if ((textData.m_flags & Im3d::TextFlags_AlignRight) != 0)
+			{
+				textOffset.x = 0.0f;
+			}
+
+			if ((textData.m_flags & Im3d::TextFlags_AlignTop) != 0)
+			{
+				textOffset.y = -textSize.y;
+			}
+			else if ((textData.m_flags & Im3d::TextFlags_AlignBottom) != 0)
+			{
+				textOffset.y = 0.0f;
+			}
+
+			// Add text to the window draw list.
+			screen = screen + textOffset;
+			imDrawList->AddText(nullptr, textData.m_positionSize.w * ImGui::GetFontSize(), screen, textData.m_color.getABGR(), text, text + textData.m_textLength);
+		}
+	}
+
+	ImGui::End();
+	ImGui::PopStyleColor();*/
+}
+
+void AppSample3d::drawIm3d(
+	std::initializer_list<Camera*>      _cameras,
+	std::initializer_list<Framebuffer*> _framebuffers,
+	std::initializer_list<Viewport>     _viewports,
+	std::initializer_list<Texture*>     _depthTextures
+	)
+{
+	if (Im3d::GetDrawListCount() == 0)
+	{
+		return;
+	}
+
+	PROFILER_MARKER("#drawIm3d");
+
+	size_t viewCount = _cameras.size();
+	FRM_ASSERT(_framebuffers.size()  == viewCount);
+	FRM_ASSERT(_viewports.size()     == viewCount);
+	FRM_ASSERT(_depthTextures.size() == viewCount);
+			
+	glScopedEnable(GL_BLEND,              GL_TRUE);
+	glScopedEnable(GL_PROGRAM_POINT_SIZE, GL_TRUE);
+	glScopedEnable(GL_CULL_FACE,          GL_FALSE);
     glAssert(glBlendEquation(GL_FUNC_ADD));
     //glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-	glAssert(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE));
-
-	Mesh* ms;
-	Shader* sh;
-	switch (_drawList.m_primType)
-	{
-		case Im3d::DrawPrimitive_Points:
-			ms = s_msIm3dPoints;
-			sh = s_shIm3dPoints;
-			break;
-		case Im3d::DrawPrimitive_Lines:
-			ms = s_msIm3dLines;
-			sh = s_shIm3dLines;
-			break;
-		case Im3d::DrawPrimitive_Triangles:
-			ms = s_msIm3dTriangles;
-			sh = s_shIm3dTriangles;
-			break;
-		default:
-			FRM_ASSERT(false); // unsupported primitive type?
-	};
-
-	ms->setVertexData(_drawList.m_vertexData, _drawList.m_vertexCount, GL_STREAM_DRAW);
+	glAssert(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE)); // preserve alpha
 	
 	GlContext* ctx = GlContext::GetCurrent();
-	ctx->setShader(sh);
-	ctx->setUniform("uViewProjMatrix", Scene::GetDrawCamera()->m_viewProj);
-	ctx->setUniform("uViewport", vec2((float)ctx->getViewportWidth(), (float)ctx->getViewportHeight()));
-	ctx->setMesh(ms);
-	ctx->draw();
+
+	for (unsigned drawListIndex = 0; drawListIndex < Im3d::GetDrawListCount(); ++drawListIndex)
+	{
+		const Im3d::DrawList& drawList = Im3d::GetDrawLists()[drawListIndex];
+
+		Mesh* ms = s_msIm3dPrimitives[drawList.m_primType];
+		ms->setVertexData(drawList.m_vertexData, drawList.m_vertexCount, GL_STREAM_DRAW);
+
+		for (size_t viewIndex = 0; viewIndex < viewCount; ++viewIndex)
+		{
+			Camera*      camera       = *(viewIndex + _cameras.begin());
+			Framebuffer* framebuffer  = *(viewIndex + _framebuffers.begin());
+			Viewport     viewport     = *(viewIndex + _viewports.begin());
+			Texture*     depthTexture = *(viewIndex + _depthTextures.begin());
+			Shader*      shader       = s_shIm3dPrimitives[drawList.m_primType][depthTexture ? 0 : 1];
+
+			ctx->setShader(shader);
+			ctx->setUniform("uViewProjMatrix", camera->m_viewProj);
+			ctx->setUniform("uViewport", vec2((float)viewport.w, (float)viewport.h));	
+			ctx->setFramebuffer(framebuffer);
+			ctx->setViewport(viewport);
+			if (depthTexture)
+			{
+				ctx->bindTexture("txDepth", depthTexture);
+			}
+			ctx->setMesh(ms);
+			ctx->draw();
+		}
+	}
+
+	// \todo text rendering
+}
+
+void AppSample3d::drawIm3d(Camera* _camera, Framebuffer* _framebuffer, Viewport _viewport, Texture* _depthTexture)
+{
+	FRM_ASSERT(_camera);
+
+	GlContext* ctx = GlContext::GetCurrent();
+
+	if (!_framebuffer)
+	{
+		_framebuffer = (Framebuffer*)ctx->getFramebuffer();
+	}
+
+	if (_viewport.w == 0)
+	{
+		if (_framebuffer)
+		{
+			_viewport = _framebuffer->getViewport();
+		}
+		else
+		{
+			_viewport = { 0, 0, m_resolution.x, m_resolution.y };
+		}
+	}
+
+	drawIm3d({ _camera }, { _framebuffer }, { _viewport }, { _depthTexture });
 }

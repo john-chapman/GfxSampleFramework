@@ -1,0 +1,7 @@
+{
+	"Maps" :
+	{
+		"BaseColor" : "models/RiftS/Left_basecolor.dds",
+		"Roughness" : "models/RiftS/Left_roughness.dds"
+	}
+}

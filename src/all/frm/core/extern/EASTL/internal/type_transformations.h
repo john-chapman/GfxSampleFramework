@@ -87,7 +87,7 @@ namespace eastl
 	template <class T> using add_volatile_t = typename add_volatile<T>::type;
 
 
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
 	// add_cv
 	//
 	// The add_cv transformation trait adds const and volatile qualification 
@@ -157,6 +157,11 @@ namespace eastl
 		#endif
 	#endif
 
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template <class T>
+		using make_signed_t = typename make_signed<T>::type;
+	#endif
+
 
 	///////////////////////////////////////////////////////////////////////
 	// add_signed
@@ -220,6 +225,11 @@ namespace eastl
 			struct make_unsigned<wchar_t>
 			{ typedef uint8_t type; };
 		#endif
+	#endif
+
+	#if EASTL_VARIABLE_TEMPLATES_ENABLED
+		template <class T>
+		using make_unsigned_t = typename make_unsigned<T>::type;
 	#endif
 
 

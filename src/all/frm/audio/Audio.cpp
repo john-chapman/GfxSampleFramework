@@ -35,7 +35,8 @@ enum Event
 static const char* GetEnumStr(Event _event)
 {
 	#define CASE_ENUM(_e) case _e: return #_e;
-	switch (_event) {
+	switch (_event)
+	{
 		default: return "Unkown event";
 		CASE_ENUM(Event_Play);
 		CASE_ENUM(Event_Stop);
@@ -148,11 +149,14 @@ public:
 		_count = FRM_MIN(_count, m_capacity - size(readAt, writeAt));
 
 		auto wi = FRM_MOD_POW2(writeAt, m_capacity);
-		if_likely (wi + _count <= m_capacity) { // assume this is likely if we always write blocks which are integer factors of m_capacity
+		if_likely (wi + _count <= m_capacity) // assume this is likely if we always write blocks which are integer factors of m_capacity
+		{
 		 // no wrap, 1 memcpy
 			memcpy(m_data + wi, _src, sizeof(tType) * _count);
 
-		} else {
+		}
+		else
+		{
 		 // wrap, 2 memcpy
 			auto canWrite = m_capacity - wi;
 			auto overflow = _count - canWrite;
@@ -174,11 +178,14 @@ public:
 		_count = FRM_MIN(_count,	size(readAt, writeAt));
 
 		auto ri = FRM_MOD_POW2(readAt, m_capacity);
-		if_likely (ri + _count <= m_capacity) {
+		if_likely (ri + _count <= m_capacity)
+		{
 		 // no wrap, 1 memcpy
 			memcpy(dst_, m_data + ri, sizeof(tType) * _count);
 
-		} else {
+		}
+		else
+		{
 		 // wrap, 2 memcpy
 			auto canRead  = m_capacity - ri;
 			auto undeflow = _count - canRead;
@@ -219,31 +226,42 @@ static void Mix(AudioSource* _inst_, float* _output_, int _frameCount)
 	const float      volumeLeft     = FRM_SATURATE(_inst_->m_volume * FRM_SATURATE(1.0f - _inst_->m_pan));
 	const float      volumeRight    = FRM_SATURATE(_inst_->m_volume * FRM_SATURATE(1.0f + _inst_->m_pan));
 	
-	if (audioData->getDataType() == DataType_Float) {
-		while (_frameCount > 0 && _inst_->m_loopCount > 0) {
+	if (audioData->getDataType() == DataType_Float)
+	{
+		while (_frameCount > 0 && _inst_->m_loopCount > 0)
+		{
 			int framesToCopy = FRM_MIN(_frameCount, (int)(audioDataEnd - _inst_->m_position) / frameSizeBytes);
 			_frameCount -= framesToCopy;
 			const float* beg = (float*)_inst_->m_position;
 			const float* end = (float*)beg + framesToCopy;
-			if (channelCount == 1) {
-				while (beg != end) {
+			if (channelCount == 1)
+			{
+				while (beg != end)
+				{
 					*(_output_++) += beg[0] * volumeLeft;
 					*(_output_++) += beg[0] * volumeRight;
 					++beg;
 				}
-			} else if (channelCount == 2) {
+			}
+			else if (channelCount == 2)
+			{
 				FRM_ASSERT(false);
-			} else {
+			}
+			else
+			{
 				FRM_ASSERT(false);
 			}
 
 			_inst_->m_position += frameSizeBytes * framesToCopy;
-			if (_inst_->m_position >= audioDataEnd) {
+			if (_inst_->m_position >= audioDataEnd)
+			{
 				_inst_->m_position = audioData->getData();
 				--_inst_->m_loopCount;
 			}
 		}
-	} else {
+	}
+	else
+	{
 	}
 }
 
@@ -275,13 +293,18 @@ void Audio::Update()
 
 	AudioEvent eventQueue[256];
 	auto eventCount = s_mainThreadEventQueue->read(eventQueue, FRM_ARRAY_COUNT(eventQueue));
-	for (uint32 i = 0; i < eventCount; ++i) {
+	for (uint32 i = 0; i < eventCount; ++i)
+	{
 		auto& e = eventQueue[i];
-		switch (e.type()) {
+		switch (e.type())
+		{
 			default:
+			{
 				FRM_ASSERT_MSG(false, "Audio: Invalid event type in main queue: %s", GetEnumStr(e.type()));
 				break;
-			case Event_ReleaseAudioData: {
+			}
+			case Event_ReleaseAudioData:
+			{
 				AudioData* audioData = e.data<AudioData*>();
 				AudioData::Release(audioData);
 				break;
@@ -297,7 +320,8 @@ AudioSourceId Audio::Play(AudioData* _audioData, float _volume, float _pan, int 
 	AudioData::Use(_audioData);
 
 	auto id = s_instance->m_nextSourceId++;
-	if_unlikely (id == AudioSourceId_Invalid) {
+	if_unlikely (id == AudioSourceId_Invalid)
+	{
 		id = s_instance->m_nextSourceId++;
 	}
 
@@ -337,18 +361,23 @@ void Audio::Edit()
 	auto SelectDevice = [&](AudioDevice* _current, int _minInputChannels, int _minOutputChannels) -> AudioDevice*
 		{
 			auto ret = _current;
-			for (auto& device : s_instance->m_devices) {
-				if (device.m_maxInputChannels < _minInputChannels) {
+			for (auto& device : s_instance->m_devices)
+			{
+				if (device.m_maxInputChannels < _minInputChannels)
+				{
 					continue;
 				}
-				if (device.m_maxOutputChannels < _minOutputChannels) {
+				if (device.m_maxOutputChannels < _minOutputChannels)
+				{
 					continue;
 				}
 				bool isSelected = _current == &device;
-				if (ImGui::Selectable(device.m_name, isSelected)) {
+				if (ImGui::Selectable(device.m_name, isSelected))
+				{
 					ret = &device;
 				}
-				if (isSelected) {
+				if (isSelected)
+				{
 					ImGui::SetItemDefaultFocus();
 				}
 			}
@@ -356,7 +385,8 @@ void Audio::Edit()
 		};
 
 	
-	if (ImGui::BeginCombo("Output", s_instance->m_deviceOut->m_name)) {
+	if (ImGui::BeginCombo("Output", s_instance->m_deviceOut->m_name))
+	{
 		s_instance->m_deviceOut = SelectDevice(s_instance->m_deviceOut, 0, 1); 
 		ImGui::EndCombo();
 	}
@@ -389,7 +419,8 @@ Audio::Audio()
 	FRM_LOG(Pa_GetVersionText());
 
 	int deviceCount = Pa_GetDeviceCount();
-	for (int i = 0; i < deviceCount; ++i) {
+	for (int i = 0; i < deviceCount; ++i)
+	{
 		const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(i);
 		AudioDevice device;
 		device.m_name              = deviceInfo->name;
@@ -433,15 +464,18 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
  // audio events
 	AudioEvent eventQueue[256];
 	auto eventCount = s_callbackEventQueue->read(eventQueue, FRM_ARRAY_COUNT(eventQueue));
-	for (uint32 i = 0; i < eventCount; ++i) {
+	for (uint32 i = 0; i < eventCount; ++i)
+	{
 		auto& e = eventQueue[i];
-		switch (e.type()) {
+		switch (e.type())
+		{
 			default:
 				FRM_ASSERT_MSG(false, "Audio: Invalid event type in callback queue: %s", GetEnumStr(e.type()));
 				break;
 
 		 // playback control
-			case Event_Play: {
+			case Event_Play:
+			{
 				FRM_ASSERT(e.data<AudioData*>() != nullptr);
 				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto& source = sourceList[e.sourceId()];
@@ -449,7 +483,8 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 				source.m_position = source.m_audioData->getData();
 				break;
 			}
-			case Event_Stop: {
+			case Event_Stop:
+			{
 				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
 				if (it != sourceList.end()) {
@@ -459,26 +494,32 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 			}
 
 		 // source properties
-			case Event_SetSourceVolume: {
+			case Event_SetSourceVolume: 
+			{
 				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
-				if (it != sourceList.end()) {
+				if (it != sourceList.end())
+				{
 					it->second.m_volume = e.data<float>();
 				}
 				break;
 			}
-			case Event_SetSourcePan: {
+			case Event_SetSourcePan:
+			{
 				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
-				if (it != sourceList.end()) {
+				if (it != sourceList.end())
+				{
 					it->second.m_pan = e.data<float>();
 				}
 				break;
 			}
-			case Event_SetSourceLoopCount: {
+			case Event_SetSourceLoopCount:
+			{
 				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
-				if (it != sourceList.end()) {
+				if (it != sourceList.end())
+				{
 					it->second.m_loopCount = e.data<int>();
 				}
 				break;
@@ -495,17 +536,20 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 	static eastl::vector<AudioSourceId> s_sourceDeleteList;
 
 	memset(s_mixBuffer, 0, sizeof(float) * kLocalBufferSize);
-	for (auto& it : sourceList) {
+	for (auto& it : sourceList)
+	{
 		auto& source = it.second;
 		Mix(&source, s_mixBuffer, (int)_frameCount);
-		if (source.m_loopCount <= 0) {
+		if (source.m_loopCount <= 0)
+		{
 			s_sourceDeleteList.push_back(it.first); // \todo push the iterator directly, avoid call to find() below
 		}
 	}
 	memcpy(output_, s_mixBuffer, _frameCount * sizeof(float) * 2);
 
  // clear dead sources
-	for (auto id : s_sourceDeleteList) {
+	for (auto id : s_sourceDeleteList)
+	{
 		auto it = sourceList.find(id);
 		FRM_ASSERT(it != sourceList.end());
 

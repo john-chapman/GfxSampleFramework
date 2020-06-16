@@ -6,6 +6,7 @@
 #include <frm/core/Camera.h>
 #include <frm/core/FileSystem.h>
 #include <frm/core/Scene.h>
+#include <frm/core/Viewport.h>
 
 #include <im3d/im3d.h>
 
@@ -35,6 +36,8 @@ protected:
 	AppSample3d(const char* _title);
 	virtual ~AppSample3d();
 
+	void setIm3dDepthTexture(Texture* _tx);
+
 	Camera*  m_dbgCullCamera    = nullptr;
 	Scene*   m_scene            = nullptr;
 
@@ -42,14 +45,26 @@ protected:
 	bool     m_showSceneEditor  = false;
 	PathStr  m_scenePath        = "Scene.json";
 	
-private:
+//private:
 
 	void drawMainMenuBar();
+
+	Texture* m_txIm3dDepth = nullptr;
 
 	static bool Im3d_Init(AppSample3d* _app);
 	static void Im3d_Shutdown(AppSample3d* _app);
 	static void Im3d_Update(AppSample3d* _app);
-	static void Im3d_Draw(const Im3d::DrawList& _drawList);
+	static void Im3d_Draw(Camera* _camera, Texture* _txDepth);
+
+	// Draw Im3d to multiple views.
+	void drawIm3d(
+		std::initializer_list<Camera*>      _cameras,
+		std::initializer_list<Framebuffer*> _framebuffers,
+		std::initializer_list<Viewport>     _viewports,
+		std::initializer_list<Texture*>     _depthTextures
+		);
+
+	void drawIm3d(Camera* _camera, Framebuffer* _framebuffer = nullptr, Viewport _viewport = Viewport(), Texture* _depthTexture = nullptr);
 	
 }; // class AppSample3d
 
