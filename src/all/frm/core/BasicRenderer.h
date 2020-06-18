@@ -4,8 +4,8 @@
 #include <frm/core/geom.h>
 #include <frm/core/math.h>
 #include <frm/core/types.h>
+#include <frm/core/BitFlags.h>
 #include <frm/core/Camera.h>
-#include <frm/core/RenderNodes.h>
 #include <frm/core/RenderTarget.h>
 
 #include <EASTL/vector.h>
@@ -43,25 +43,21 @@ namespace frm {
 ////////////////////////////////////////////////////////////////////////////////
 struct BasicRenderer
 {
-	// Flags control some pipeline behaviour.
-	enum Flag_
+	enum class Flag
 	{
-		Flag_PostProcess,       // Enable default post processor (motion blur, tonemap). If disabled, txFinal must be written manually.
-		Flag_TAA,               // Enable temporal antialiasing.
-		Flag_FXAA,              // Enable FXAA.
-		Flag_Interlaced,        // Enable interlaced rendering.
-		Flag_WriteToBackBuffer, // Copy txFinal to the back buffer. Disable for custom upsampling/antialiasing.
-		Flag_WireFrame,         // Wireframe overlay.
+		PostProcess,       // Enable default post processor (motion blur, tonemap). If disabled, txFinal must be written manually.
+		TAA,               // Enable temporal antialiasing.
+		FXAA,              // Enable FXAA.
+		Interlaced,        // Enable interlaced rendering.
+		WriteToBackBuffer, // Copy txFinal to the back buffer. Disable for custom upsampling/antialiasing.
+		WireFrame,         // Wireframe overlay.
 
-		Flags_Default = 0
-			| (1 << Flag_PostProcess)
-			| (1 << Flag_TAA)
-			| (1 << Flag_FXAA)
-			| (1 << Flag_WriteToBackBuffer)
+		_Count,
+		_Default = BIT_FLAGS_DEFAULT(PostProcess, TAA, FXAA, WriteToBackBuffer)
 	};
-	typedef uint32 Flag;
+	using Flags = BitFlags<Flag>;
 
-	static BasicRenderer* Create(int _resolutionX, int _resolutionY, uint32 _flags = Flags_Default);
+	static BasicRenderer* Create(int _resolutionX, int _resolutionY, Flags _flags = Flags());
 	static void Destroy(BasicRenderer*& _inst_);
 
 	void nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamera);
@@ -71,7 +67,7 @@ struct BasicRenderer
 	void setResolution(int _resolutionX, int _resolutionY);
 
 	void setFlag(Flag _flag, bool _value);
-	bool getFlag(Flag _flag) const        { return BitfieldGet(flags, (uint32)_flag); }
+	bool getFlag(Flag _flag) const         { return flags.get(_flag); }
 	
 	enum Target_
 	{
@@ -95,6 +91,20 @@ struct BasicRenderer
 
 	void initShaders();
 	void shutdownShaders();
+
+	enum Pass_
+	{
+		Pass_Shadow,
+		Pass_GBuffer,
+		Pass_Scene,
+		Pass_Wireframe,
+		Pass_Final,
+
+		Pass_Count
+	};
+	typedef uint64 Pass;
+	
+	std::function<void(Pass _pass, const Camera& _camera)> drawCallback;
 
 	AlignedBox      sceneBounds;                              // Bounding box for all renderables in the scene.
 	AlignedBox      shadowSceneBounds;                        // Bounding box for all shadow-casting renderables.
@@ -126,26 +136,13 @@ struct BasicRenderer
 	int             motionBlurTileWidth        = 20;
 	float           taaSharpen                 = 0.4f;
 	ivec2           resolution                 = ivec2(-1);
-	uint32          flags                      = Flags_Default;
 	bool            pauseUpdate                = false;
 	bool            cullBySubmesh              = true;
-
-	enum Pass_
-	{
-		Pass_Shadow,
-		Pass_GBuffer,
-		Pass_Scene,
-		Pass_Wireframe,
-		Pass_Final,
-
-		Pass_Count
-	};
-	typedef uint64 Pass;
-	
-	std::function<void(Pass _pass, const Camera& _camera)> drawCallback;
+	Flags           flags;
 
 private:
-	BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags);
+
+	BasicRenderer(int _resolutionX, int _resolutionY, Flags _flags);
 	~BasicRenderer();
 
 	bool editFlag(const char* _name, Flag _flag);
@@ -277,7 +274,6 @@ private:
 
 	void initBRDFLut();
 	void shutdownBRDFLut();
- 	LuminanceMeter luminanceMeter;
 
 }; // class BasicRenderer
 

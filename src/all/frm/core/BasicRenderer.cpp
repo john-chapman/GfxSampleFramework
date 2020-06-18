@@ -26,7 +26,7 @@ namespace frm {
 
 // PUBLIC
 
-BasicRenderer* BasicRenderer::Create(int _resolutionX, int _resolutionY, uint32 _flags)
+BasicRenderer* BasicRenderer::Create(int _resolutionX, int _resolutionY, Flags _flags)
 {
 	BasicRenderer* ret = FRM_NEW(BasicRenderer(_resolutionX, _resolutionY, _flags));
 
@@ -125,12 +125,12 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 		VRContext* vrCtx = VRContext::GetCurrent();
 	#endif
 
-	const bool isPostProcess       = BitfieldGet(flags, (uint32)Flag_PostProcess);
-	const bool isFXAA              = BitfieldGet(flags, (uint32)Flag_FXAA);
-	const bool isTAA               = BitfieldGet(flags, (uint32)Flag_TAA);
-	const bool isInterlaced        = BitfieldGet(flags, (uint32)Flag_Interlaced);
-	const bool isWriteToBackBuffer = BitfieldGet(flags, (uint32)Flag_WriteToBackBuffer);
-	const bool isWireframe         = BitfieldGet(flags, (uint32)Flag_WireFrame);
+	const bool isPostProcess       = flags.get(Flag::PostProcess);
+	const bool isFXAA              = flags.get(Flag::FXAA);
+	const bool isTAA               = flags.get(Flag::TAA);
+	const bool isInterlaced        = flags.get(Flag::Interlaced);
+	const bool isWriteToBackBuffer = flags.get(Flag::WriteToBackBuffer);
+	const bool isWireframe         = flags.get(Flag::WireFrame);
 
 	if (sceneDrawCalls.empty() && imageLightInstances.empty())
 	{
@@ -376,8 +376,6 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 
 		glAssert(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 	}
-
-	//m_luminanceMeter.draw(ctx, _dt, txScene);
 	
 	if (isPostProcess)
 	{	
@@ -469,10 +467,6 @@ bool BasicRenderer::edit()
 	ret |= ImGui::Checkbox("Pause Update", &pauseUpdate);
 	ret |= ImGui::Checkbox("Cull by Submesh", &cullBySubmesh);
 	ret |= ImGui::SliderFloat("Motion Blur Target FPS", &motionBlurTargetFps, 0.0f, 90.0f);
-	if (BitfieldGet(flags, (uint32)Flag_TAA))
-	{
-		ret |= ImGui::SliderFloat("TAA Sharpen", &taaSharpen, 0.0f, 2.0f);
-	}
 
 	//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Material Sampler"))
@@ -495,41 +489,58 @@ bool BasicRenderer::edit()
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Flags"))
 	{
-		ret |= editFlag("Post Process", Flag_PostProcess);
-		if (editFlag("FXAA", Flag_FXAA))
-		{
-			ret = true;
-			initRenderTargets();
-		}
-		if (editFlag("TAA", Flag_TAA))
-		{
-			ret = true;
-			initRenderTargets();
-		}
-		if (editFlag("Interlaced", Flag_Interlaced))
+		ret |= editFlag("Post Process", Flag::PostProcess);
+		if (editFlag("FXAA", Flag::FXAA))
 		{
 			ret = true;
 			initRenderTargets();
 		}
 
-		ret |= editFlag("Write to Backbuffer", Flag_WriteToBackBuffer);
+		if (editFlag("TAA", Flag::TAA))
+		{
+			ret = true;
+			initRenderTargets();
+		}
+		if (flags.get(Flag::TAA))
+		{
+			ImGui::SameLine();
+			ret |= ImGui::SliderFloat("TAA Sharpen", &taaSharpen, 0.0f, 2.0f);
+		}
 
-		ret |= editFlag("Wireframe", Flag_WireFrame);
+		if (editFlag("Interlaced", Flag::Interlaced))
+		{
+			ret = true;
+			initRenderTargets();
+		}
+
+		ret |= editFlag("Write to Backbuffer", Flag::WriteToBackBuffer);
+
+		ret |= editFlag("Wireframe", Flag::WireFrame);
 
 		ImGui::TreePop();
 	}
+
+	// Debug
+	#if 0
+	{
+		if (ImGui::Button("Re-compute BRDF Lut"))
+		{
+			initBRDFLut();
+		}
+	}
+	#endif
 
 	return ret;
 }
 
 void BasicRenderer::setFlag(Flag _flag, bool _value)
 {
-	flags = BitfieldSet(flags, (int)_flag, _value);
+	flags.set(_flag, _value);
 
-	if (_flag == Flag_TAA || _flag == Flag_Interlaced)
+	if (_flag == Flag::TAA || _flag == Flag::Interlaced)
 	{
-		const bool isTAA = getFlag(Flag_TAA);
-		const bool isInterlaced = getFlag(Flag_Interlaced);
+		const bool isTAA = getFlag(Flag::TAA);
+		const bool isInterlaced = getFlag(Flag::Interlaced);
 		if (isTAA || isInterlaced)
 		{
 			ssMaterial->setLodBias(-1.0f);
@@ -540,8 +551,8 @@ void BasicRenderer::setFlag(Flag _flag, bool _value)
 		}
 
 		shTAAResolve->addGlobalDefines({ 
-			String<32>("TAA %d", !!isTAA).c_str(), 
-			String<32>("INTERLACED %d", !!isInterlaced).c_str() 
+			String<32>("TAA %d", isTAA ? 1 : 0).c_str(), 
+			String<32>("INTERLACED %d", isInterlaced ? 1 : 0).c_str() 
 			});
 	}
 }
@@ -558,7 +569,7 @@ void BasicRenderer::setResolution(int _resolutionX, int _resolutionY)
 
 // PRIVATE
 
-BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags)
+BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, Flags _flags)
 {
 	resolution = ivec2(_resolutionX, _resolutionY);
 	flags      = _flags;
@@ -570,9 +581,13 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags)
 	bfPostProcessData->setName("bfPostProcessData");
 
 	ssMaterial = TextureSampler::Create(GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, 4.0f); // \todo global anisotropy config
-	if (BitfieldGet(flags, (uint32)Flag_TAA))
+	if (flags.get(Flag::TAA) || flags.get(Flag::Interlaced))
 	{
 		ssMaterial->setLodBias(-1.0f);
+	}
+	else
+	{
+		ssMaterial->setLodBias(0.0f);
 	}
 
 	fbGBuffer           = Framebuffer::Create();
@@ -583,13 +598,12 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, uint32 _flags)
 
 	shadowAtlas = ShadowAtlas::Create(4096, 256, GL_DEPTH_COMPONENT24); // \todo config
 
-	//FRM_VERIFY(m_luminanceMeter.init(_resolutionY / 2));
-	//m_colorCorrection.m_luminanceMeter = &m_luminanceMeter;
+	initBRDFLut();
 }
 
 BasicRenderer::~BasicRenderer()
 {
-	//m_luminanceMeter.shutdown();
+	shutdownBRDFLut();
 
 	shutdownRenderTargets();
 	shutdownShaders();
@@ -624,7 +638,7 @@ BasicRenderer::~BasicRenderer()
 
 bool BasicRenderer::editFlag(const char* _name, Flag _flag)
 {
-	bool flagValue = BitfieldGet(flags, (uint32)_flag);
+	bool flagValue = flags.get(_flag);
 	if (!ImGui::Checkbox(_name, &flagValue))
 	{
 		return false;
@@ -637,10 +651,10 @@ void BasicRenderer::initRenderTargets()
 {
 	shutdownRenderTargets();
 
-	const bool isFXAA = BitfieldGet(flags, (uint32)Flag_FXAA);
-	const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
-	const bool isInterlaced = BitfieldGet(flags, (uint32)Flag_Interlaced);
-	const ivec2 fullResolution = resolution;
+	const bool  isFXAA               = flags.get(Flag::FXAA);
+	const bool  isTAA                = flags.get(Flag::TAA);
+	const bool  isInterlaced         = flags.get(Flag::Interlaced);
+	const ivec2 fullResolution       = resolution;
 	const ivec2 interlacedResolution = isInterlaced ? ivec2(fullResolution.x / 2, fullResolution.y) : fullResolution;
 
 	renderTargets[Target_GBuffer0].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, isInterlaced ? 2 : 1);
@@ -690,9 +704,9 @@ void BasicRenderer::initShaders()
 	shFXAA                = Shader::CreateCs("shaders/BasicRenderer/FXAA.glsl", 8, 8);
 	shDepthClear          = Shader::CreateVsFs("shaders/BasicRenderer/DepthClear.glsl", "shaders/BasicRenderer/DepthClear.glsl"); 
 
-	const bool isTAA = BitfieldGet(flags, (uint32)Flag_TAA);
-	const bool isInterlaced = BitfieldGet(flags, (uint32)Flag_Interlaced);
-	shTAAResolve          = Shader::CreateCs("shaders/BasicRenderer/TAAResolve.glsl", 8, 8, 1,
+	const bool isTAA        = flags.get(Flag::TAA);
+	const bool isInterlaced = flags.get(Flag::Interlaced);
+	shTAAResolve = Shader::CreateCs("shaders/BasicRenderer/TAAResolve.glsl", 8, 8, 1,
 		{
 			String<32>("TAA %d", !!isTAA).c_str(), 
 			String<32>("INTERLACED %d", !!isInterlaced).c_str() 
