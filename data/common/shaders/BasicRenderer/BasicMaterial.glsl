@@ -85,6 +85,8 @@ layout(std430) restrict readonly buffer bfMaterials
 	uniform int uShadowLightCount; // can't use uShadowLights.length since it can be 0
 	uniform sampler2DArray txShadowMap;
 
+	uniform sampler2D txBRDFLut;
+
 	// \todo see Component_ImageLight
 	uniform int uImageLightCount;
 	uniform float uImageLightBrightness;
@@ -348,12 +350,22 @@ void main()
 		// Image lights.
 		if (uImageLightCount > 0)
 		{
-		 // \todo rewrite this as per Filament
-			float maxLevel = 6.0; // depends on envmap size, limit to 8x8 face to prevent filtering artefacts
-			ret += (textureLod(txImageLight, N, maxLevel).rgb * uImageLightBrightness) * lightingIn.diffuse;
-
+			const float maxLevel = 7.0; // depends on envmap size, limit to prevent filtering artefacts
+		
+		// Specular
 			vec3 R = reflect(-V, N);
-			ret += lightingIn.f0 * textureLod(txImageLight, R, sqrt(roughness) * maxLevel).rgb * uImageLightBrightness;
+			// specular dominant direction correction (see Frostbite)
+			#if 1
+				vec3 Rdom = mix(N, R, (1.0 - lightingIn.alpha) * (sqrt(1.0 - lightingIn.alpha) + lightingIn.alpha));
+			#else
+				vec3 Rdom = R;
+			#endif
+			float NoR = saturate(dot(N, Rdom));
+			vec3 brdf = textureLod(txBRDFLut, vec2(NoR, roughness), 0.0).xyz;
+			//brdf = vec3(1,0,1);
+			ret += (lightingIn.f0 * brdf.x + lightingIn.f90 * brdf.y) * textureLod(txImageLight, R, roughness * maxLevel).rgb * uImageLightBrightness;
+		// Diffuse
+			ret += (textureLod(txImageLight, N, maxLevel).rgb * uImageLightBrightness * brdf.z) * lightingIn.diffuse;
 		}
 
 		fResult.rgb = ret;

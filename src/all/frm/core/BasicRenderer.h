@@ -273,6 +273,10 @@ private:
 
 	void updateBuffer(Buffer*& bf_, const char* _name, GLsizei _size, void* _data);
 
+	Texture* txBRDFLut = nullptr;
+
+	void initBRDFLut();
+	void shutdownBRDFLut();
  	LuminanceMeter luminanceMeter;
 
 }; // class BasicRenderer

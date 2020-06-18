@@ -306,6 +306,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 			ctx->setShader(drawCall.shaders[Pass_Scene]);
 			ctx->bindTexture("txGBuffer0", txGBuffer0);
 			ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
+			ctx->bindTexture("txBRDFLut", txBRDFLut);
 			ctx->bindBuffer(sceneCamera.m_gpuBuffer);
 
 			ctx->setUniform("uLightCount", (int)lightInstances.size());
@@ -1277,6 +1278,36 @@ void BasicRenderer::updateBuffer(Buffer*& _bf_, const char* _name, GLsizei _size
 	}
 
 	_bf_->setData(_size, _data);
+}
+
+void BasicRenderer::initBRDFLut()
+{
+	if (!txBRDFLut)
+	{
+		txBRDFLut = Texture::Create2d(128, 128, GL_RGBA16F);
+		txBRDFLut->setWrap(GL_CLAMP_TO_EDGE);
+		txBRDFLut->setName("#BasicRenderer_txBRDFLut");
+	}
+
+	Shader* sh = Shader::CreateCs("shaders/BasicRenderer/BRDFLut.glsl", 8, 8);
+	if (!sh || sh->getState() != Shader::State_Loaded)
+	{
+		FRM_ASSERT(false);
+		return;
+	}
+	
+	GlContext* ctx = GlContext::GetCurrent();
+	ctx->setShader(sh);
+	ctx->bindImage("txBRDFLut", txBRDFLut, GL_WRITE_ONLY);
+	ctx->dispatch(txBRDFLut);
+	glAssert(glFinish());
+
+	Shader::Release(sh);
+}
+
+void BasicRenderer::shutdownBRDFLut()
+{
+	Texture::Release(txBRDFLut);
 }
 
 } // namespace frm
