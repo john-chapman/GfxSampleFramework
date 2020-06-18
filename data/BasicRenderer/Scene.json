@@ -1,0 +1,169 @@
+{
+	"Id": 0,
+	"Name": "ROOT",
+	"Active": true,
+	"Dynamic": true,
+	"Selected": true,
+	"UserData": 0,
+	"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+	"Type": "Root",
+	"Children": [{
+			"Id": 1,
+			"Name": "Camera_000",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [-0.9984956979751587, 9.313225746154786e-10, -0.05502551048994064, 0.0, -0.019562367349863054, 0.9346808195114136, 0.3549797236919403, 0.0, 0.05143073946237564, 0.35551831126213076, -0.9332647323608398, 0.0, 0.585487961769104, 3.2026913166046144, -7.429999828338623, 1.0],
+			"Type": "Camera",
+			"Up": 0.4142135679721832,
+			"Down": -0.4142135679721832,
+			"Right": 0.7737120389938355,
+			"Left": -0.7737120389938355,
+			"Near": 0.10000000149011612,
+			"Far": 1000.0,
+			"WorldMatrix": [-0.9984956979751587, 9.313225746154786e-10, -0.05502551048994064, 0.0, -0.019562367349863054, 0.9346808195114136, 0.3549797236919403, 0.0, 0.05143073946237564, 0.35551831126213076, -0.9332647323608398, 0.0, 0.585487961769104, 3.2026913166046144, -7.429999828338623, 1.0],
+			"Orthographic": false,
+			"Asymmetrical": false,
+			"Infinite": true,
+			"Reversed": false,
+			"HasGpuBuffer": true,
+			"XForms": [{
+					"Class": "XForm_FreeCamera",
+					"Position": [0.585487961769104, 3.2026913166046144, -7.429999828338623],
+					"Orientation": [0.004974335432052612, -0.9831647872924805, -0.18066605925559998, -0.027069788426160814],
+					"MaxSpeed": 10.0,
+					"MaxSpeedMultiplier": 5.0,
+					"AccelerationTime": 0.10000000149011612,
+					"RotationInputMultiplier": 0.10000000149011612,
+					"RotationDamping": 0.00019999999494757503
+				}]
+		}, {
+			"Id": 2,
+			"Name": "ImageLight",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": true,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_ImageLight",
+					"Path": "common/textures/env_sky.exr",
+					"IsBackground": true,
+					"Brightness": 4.0
+				}]
+		}, {
+			"Id": 3,
+			"Name": "FloorPlane",
+			"Active": true,
+			"Dynamic": false,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": false,
+					"Mesh": "common/models/Plane_100.obj",
+					"Material": ["common/materials/Grid2Dark.json"]
+				}]
+		}, {
+			"Id": 4,
+			"Name": "SunLight",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [0.558831512928009, 0.6934553980827332, 0.45478183031082156, 0.0, 0.4473205506801605, 0.20971083641052247, -0.869432270526886, 0.0, -0.6982631683349609, 0.6892776489257813, -0.1929977685213089, 0.0, 0.0, 3.0, 0.0, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicLight",
+					"Type": "Direct",
+					"ColorBrightness": [1.0, 1.0, 1.0, 20.0],
+					"Radius": 5.0,
+					"ConeInnerAngle": 1.0,
+					"ConeOuterAngle": 20.0,
+					"CastShadows": true
+				}]
+		}, {
+			"Id": 5,
+			"Name": "Mire1",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.4000000059604645, -1.5, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/SphereMire_2x10.obj",
+					"Material": ["common/materials/Mire2Dielectric.json"]
+				}]
+		}, {
+			"Id": 6,
+			"Name": "Mire2",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.600000023841858, 0.30000001192092898, 1.8000000715255738, 1.0],
+			"Type": "Object",
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/SphereMire_5x5.obj",
+					"Material": ["common/materials/Mire1.json"]
+				}]
+		}, {
+			"Id": 8,
+			"Name": "Box1",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"Type": "Object",
+			"XForms": [{
+					"Class": "XForm_PositionTarget",
+					"Start": [-6.0, 0.800000011920929, 0.0],
+					"End": [-6.0, 0.800000011920929, 3.0],
+					"Duration": 0.5,
+					"OnComplete": "XForm::Reverse"
+				}],
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 0.9999899864196777, 0.9999899864196777, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/Box_1.obj",
+					"Material": ["common/materials/Grid2Dark.json"]
+				}]
+		}, {
+			"Id": 9,
+			"Name": "Box2",
+			"Active": true,
+			"Dynamic": true,
+			"Selected": false,
+			"UserData": 0,
+			"LocalMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -5.900000095367432, 0.800000011920929, -1.100000023841858, 1.0],
+			"Type": "Object",
+			"XForms": [{
+					"Class": "XForm_Spin",
+					"Axis": [0.0, 0.0, 1.0],
+					"Rate": 8.0
+				}],
+			"Components": [{
+					"Class": "Component_BasicRenderable",
+					"ColorAlpha": [1.0, 1.0, 1.0, 1.0],
+					"CastShadows": true,
+					"Mesh": "common/models/Box_1.obj",
+					"Material": ["common/materials/Grid2Dark.json"]
+				}]
+		}],
+	"DrawCameraId": 1,
+	"CullCameraId": 1
+}

@@ -1,0 +1,32 @@
+{
+	"BasicRendererTest": {},
+	"AppSample3d": {
+		"ScenePath": "Scene.json",
+		"ShowSceneEditor": true,
+		"ShowHelpers": false
+	},
+	"AppSample": {
+		"VsyncMode": 2,
+		"ShowShaderViewer": false,
+		"ShowLogNotifications": true,
+		"ShowPropertyEditor": false,
+		"WindowSize": [-1, -1],
+		"ShowMenu": true,
+		"ShowTextureViewer": false,
+		"Resolution": [-1, -1],
+		"ShowProfiler": false,
+		"ShowLog": false,
+		"Font": {
+			"FontEnableScaling": true,
+			"FontSize": 13.0,
+			"FontOversample": 1,
+			"FontPath": ""
+		},
+		"GlContext": {
+			"HDR": false,
+			"GlDebug": false,
+			"GlCompatibility": false,
+			"GlVersion": [-1, -1]
+		}
+	}
+}

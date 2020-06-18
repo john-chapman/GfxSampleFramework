@@ -11,6 +11,12 @@ return
 		"../tests/Animation/**",
 		"../tests/_sample.cpp",
 	},
+
+	BasicRenderer =
+	{
+		"../tests/BasicRenderer/**",
+		"../tests/_sample.cpp",
+	},
 	
 	Depth =
 	{
