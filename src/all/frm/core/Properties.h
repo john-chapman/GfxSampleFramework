@@ -146,7 +146,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // Property
 // m_storageInternal stores numeric types (Type_Int, TypeFloat) as doubles -
-// this is due to the weak numeric typing in Json. We therefore convert to/from
+// this is due to the weak numeric typing in Json.
 ///////////////////////////////////////////////////////////////////////////////
 class Property
 {
