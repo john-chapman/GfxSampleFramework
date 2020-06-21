@@ -62,15 +62,34 @@ float Cone(in vec2 _x, in vec2 _y, in vec2 _v)
 	return saturate(1.0 - length2(_x - _y) / length2(_v));
 }
 
+float Cone(in float _x, in float _y)
+{
+	return saturate(1.0 - _x / _y);
+}
+
 float Cylinder(in vec2 _x, in vec2 _y, in vec2 _v)
 {
 	const float lengthV = length2(_v);
 	return 1.0 - smoothstep(0.95 * lengthV, 1.05 * lengthV, length2(_x - _y));
 }
 
+float Cylinder(in float _x, in float _y)
+{
+	return 1.0 - smoothstep(0.95 * _y, 1.05 * _y, _x);
+}
+
 float SoftStep(in float _a, in float _b, in float _radius)
 {
 	return saturate(1.0 - (_a - _b) / _radius);
+}
+
+float ZCompare(in float _a, in float _b)
+{
+	return min(1.0, max(0.0, 1.0 - (_a - _b) / min(_a, _b)));
+}
+vec2 RNMix(in vec2 _a, in vec2 _b, in float _theta)
+{
+	return normalize(mix(_a, _b, _theta));
 }
 
 
@@ -89,8 +108,8 @@ void main()
     
     ret = textureLod(txScene, uv, 0.0).rgb;
 
-    //const int kMotionBlurSampleCount = 11; // \todo quality setting
-		const int kMotionBlurSampleCount = 5; // good for VR
+    const int kMotionBlurSampleCount = 11; // \todo quality setting
+	//const int kMotionBlurSampleCount = 5; // good for VR
     #if 0
 	{
 	// Basic motion blur.
@@ -109,10 +128,11 @@ void main()
 	}
 	#else
 	{
+	#if 1
 	// https://casual-effects.com/research/McGuire2012Blur/McGuire12Blur.pdf
 		const vec2 jitterVelocity = uCamera.m_prevProj[2].xy * vec2(txSize);
 		const vec2 neighborMaxV = (textureLod(txVelocityTileNeighborMax, uv, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale
-			* mix(0.5, 1.0, Noise_InterleavedGradient(vec2(iuv.x, iuv.y + uFrameIndex) + jitterVelocity)) // add some noise to reduce banding
+			//* mix(0.5, 1.0, Noise_InterleavedGradient(vec2(iuv.x, iuv.y + uFrameIndex) + jitterVelocity)) // add some noise to reduce banding
 			;
 		if (length2(neighborMaxV) > length2(texelSize)) // only do blur if velocity > .5 texels
 		{
@@ -138,6 +158,54 @@ void main()
         	}
 			ret.rgb /= weight;
 		}
+	#else
+	// https://casual-effects.com/research/Guertin2014MotionBlur/Guertin2014MotionBlur.pdf
+	// https://github.com/bradparks/KinoMotion__unity_motion_blur/blob/master/Assets/Kino/Motion/Shader/Reconstruction.cginc
+		const vec2 neighborMaxV = (textureLod(txVelocityTileNeighborMax, uv, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale;
+		const vec2 centerV = (textureLod(txGBuffer0, uv, 0.0).zw * 2.0 - 1.0) * uMotionBlurScale;
+		const vec2 Wn = normalize(neighborMaxV);
+		vec2 Wp = vec2(-Wn.y, Wn.x);
+		if (dot(Wp, centerV) < 0.0)
+		{
+			Wp = -Wp;
+		}
+const float y = 1.5;
+		const vec2 Wc = RNMix(Wp, normalize(centerV), (length(centerV) - 0.5) / y);
+		float totalWeight = 1.0;//float(kMotionBlurSampleCount) / length(centerV) * 1.0;//float(kMotionBlurSampleCount);
+		vec4 centerSample = textureLod(txScene, uv, 0.0);
+		ret = centerSample.rgb * totalWeight;
+		for (int i = 1; i < kMotionBlurSampleCount; ++i)
+        {
+			float t = float(i) / float(kMotionBlurSampleCount - 1) - 0.5;
+
+			vec2 d = centerV;
+			if ((i & 1) == 0)
+			{
+				d = neighborMaxV;
+			}
+			const float T = t * length(neighborMaxV);
+			const vec2 sampleP = uv + d * t; // \todo
+
+			vec2 sampleV  = (textureLod(txGBuffer0, sampleP, 0.0).zw * 2.0 - 1.0) * uMotionBlurScale;
+			vec4 sampleCZ = textureLod(txScene, sampleP, 0.0);
+
+			float foreground = ZCompare(centerSample.w, sampleCZ.w); 
+			float background = ZCompare(sampleCZ.w, centerSample.w);
+
+			float weightA = dot(Wc, d);
+			float weightB = dot(normalize(sampleV), d);
+
+			float weight = 0.0;
+			weight += foreground * Cone(T, 1.0 / length(sampleV)) * weightB;
+			weight += background * Cone(T, 1.0 / length(centerV)) * weightA;
+			weight += Cylinder(T, min(length(sampleV), length(centerV))) * max(weightA, weightB) * 2.0;
+			
+
+			totalWeight += weight;
+			ret += sampleCZ.rgb * weight;
+		}
+		ret.rgb /= totalWeight;
+	#endif
 	}
     #endif
 
