@@ -27,7 +27,6 @@ StreamingQuadtree::StreamingQuadtree(int _levelCount, int _nodePoolSize)
 
 StreamingQuadtree::~StreamingQuadtree()
 {
-	merge(m_nodeQuadtree[0]);
 }
 
 void StreamingQuadtree::update()
@@ -264,6 +263,12 @@ StreamingQuadtree::NodeIndex StreamingQuadtree::popReleaseQueue()
 	NodeIndex ret = m_releaseQueue.back();
 	m_releaseQueue.pop_back();
 	return ret;
+}
+
+void StreamingQuadtree::releaseAll()
+{
+	merge(m_nodeQuadtree[0]);
+	queueForRelease(0);
 }
 
 // PROTECTED
