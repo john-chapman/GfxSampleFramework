@@ -10,6 +10,7 @@ uniform writeonly image2D txOut;
 
 layout(std140) uniform bfPostProcessData
 {
+	vec4  uBloomWeights;
 	float uMotionBlurScale;
 	uint  uFrameIndex;
 };
@@ -97,34 +98,35 @@ void main()
 {
 	const ivec2 txSize = ivec2(imageSize(txOut).xy);
 	if (any(greaterThanEqual(gl_GlobalInvocationID.xy, txSize)))
-    {
+	{
 		return;
 	}
 	const vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize) + 0.5 / vec2(txSize);
-    const ivec2 iuv = ivec2(gl_GlobalInvocationID.xy);
+	const ivec2 iuv = ivec2(gl_GlobalInvocationID.xy);
 	const vec2 texelSize = 1.0 / vec2(txSize);
 
 	vec3 ret = vec3(0.0);
-    
-    ret = textureLod(txScene, uv, 0.0).rgb;
 
-    const int kMotionBlurSampleCount = 11; // \todo quality setting
-	//const int kMotionBlurSampleCount = 5; // good for VR
-    #if 0
+	const float baseLod = 0.0; // \todo use to blur for post fx
+	ret = textureLod(txScene, uv, baseLod).rgb;
+
+	//const int kMotionBlurSampleCount = 11; // \todo quality setting
+		const int kMotionBlurSampleCount = 5; // good for VR
+	#if 0
 	{
 	// Basic motion blur.
 		const vec2 jitterVelocity = uCamera.m_prevProj[2].xy * vec2(txSize);
-		const vec2 velocity = 
+		const vec2 velocity =
 			GBuffer_ReadVelocity(iuv) * uMotionBlurScale
 			* mix(0.5, 1.0, Noise_InterleavedGradient(vec2(iuv) + jitterVelocity)) // add some noise to reduce banding
 			;
 
-        for (int i = 1; i < kMotionBlurSampleCount; ++i)
-        {
-            const vec2 offset = velocity * (float(i) / float(kMotionBlurSampleCount - 1) - 0.5);
-            ret += textureLod(txScene, uv + offset, 0.0).rgb;
-        }
-        ret /= float(kMotionBlurSampleCount);
+		for (int i = 1; i < kMotionBlurSampleCount; ++i)
+		{
+			const vec2 offset = velocity * (float(i) / float(kMotionBlurSampleCount - 1) - 0.5);
+			ret += textureLod(txScene, uv + offset, baseLod).rgb;
+		}
+		ret /= float(kMotionBlurSampleCount);
 	}
 	#else
 	{
@@ -137,13 +139,13 @@ void main()
 		if (length2(neighborMaxV) > length2(texelSize)) // only do blur if velocity > .5 texels
 		{
 			float weight = 1.0;
-			vec4 centerSample = textureLod(txScene, uv, 0.0);
+			vec4 centerSample = textureLod(txScene, uv, baseLod);
 			ret = centerSample.rgb * weight;
 			vec2 centerVelocity = (textureLod(txGBuffer0, uv, 0.0).zw * 2.0 - 1.0) * uMotionBlurScale;
 			for (int i = 1; i < kMotionBlurSampleCount; ++i)
-        	{
-            	const vec2 offset = uv + neighborMaxV * (float(i) / float(kMotionBlurSampleCount - 1) - 0.5); // \todo round to neareest texel?
-            	vec4 offsetSample = textureLod(txScene, offset, 0.0);
+			{
+				const vec2 offset = uv + neighborMaxV * (float(i) / float(kMotionBlurSampleCount - 1) - 0.5); // \todo round to neareest texel?
+				vec4 offsetSample = textureLod(txScene, offset, baseLod);
 				vec2 offsetVelocity = (textureLod(txGBuffer0, offset, 0.0).zw * 2.0 - 1.0) * uMotionBlurScale;
 				const float kSoftZExtent = 0.5;
 				float foreground = SoftStep(offsetSample.w, centerSample.w, kSoftZExtent);
@@ -155,7 +157,7 @@ void main()
 					;
 				weight += offsetSampleWeight;
 				ret += offsetSample.rgb * offsetSampleWeight;
-        	}
+			}
 			ret.rgb /= weight;
 		}
 	#else
@@ -189,7 +191,7 @@ const float y = 1.5;
 			vec2 sampleV  = (textureLod(txGBuffer0, sampleP, 0.0).zw * 2.0 - 1.0) * uMotionBlurScale;
 			vec4 sampleCZ = textureLod(txScene, sampleP, 0.0);
 
-			float foreground = ZCompare(centerSample.w, sampleCZ.w); 
+			float foreground = ZCompare(centerSample.w, sampleCZ.w);
 			float background = ZCompare(sampleCZ.w, centerSample.w);
 
 			float weightA = dot(Wc, d);
@@ -199,7 +201,7 @@ const float y = 1.5;
 			weight += foreground * Cone(T, 1.0 / length(sampleV)) * weightB;
 			weight += background * Cone(T, 1.0 / length(centerV)) * weightA;
 			weight += Cylinder(T, min(length(sampleV), length(centerV))) * max(weightA, weightB) * 2.0;
-			
+
 
 			totalWeight += weight;
 			ret += sampleCZ.rgb * weight;
@@ -207,7 +209,15 @@ const float y = 1.5;
 		ret.rgb /= totalWeight;
 	#endif
 	}
-    #endif
+	#endif
+
+	vec3 bloom = vec3(0)
+		+ textureLod(txScene, uv, 6.0).rgb * uBloomWeights[3]
+		+ textureLod(txScene, uv, 5.0).rgb * uBloomWeights[2]
+		+ textureLod(txScene, uv, 4.0).rgb * uBloomWeights[1]
+		+ textureLod(txScene, uv, 2.0).rgb * uBloomWeights[0]
+		;
+	ret.rgb += bloom;
 
 	ret = Tonemap_ACES_Narkowicz(ret);
 

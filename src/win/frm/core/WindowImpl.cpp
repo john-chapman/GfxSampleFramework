@@ -211,6 +211,38 @@ struct Window::Impl
 					return 0;
 				}
 
+				case WM_SETCURSOR:
+				{
+					static HCURSOR cursorHandles[Window::CursorType_Count];
+					static LPTSTR cursorNames[Window::CursorType_Count] =
+						{
+							IDC_ARROW,       //CursorType_Arrow,
+							IDC_CROSS,       //CursorType_Cross,
+							IDC_HAND,        //CursorType_Hand,
+							IDC_IBEAM,       //CursorType_Text,
+							IDC_WAIT,        //CursorType_Busy,
+							IDC_APPSTARTING, //CursorType_BusyArrow,
+							IDC_HELP,        //CursorType_HelpArrow,
+							IDC_SIZENS,      //CursorType_SizeNS,
+							IDC_SIZEWE,      //CursorType_SizeEW,
+							IDC_SIZENESW,    //CursorType_SizeNESW,
+							IDC_SIZENWSE     //CursorType_SizeNWSE,
+						};
+
+					if_unlikely (cursorHandles[0] == 0)
+					{
+						HINSTANCE hInst = GetModuleHandle(0);
+						for (int i = 0; i < Window::CursorType_Count; ++i)
+						{
+							FRM_PLATFORM_VERIFY((cursorHandles[i] = LoadCursorA(NULL, cursorNames[i])) != NULL);
+						}
+					}
+					
+					SetCursor((HCURSOR)cursorHandles[window->getCursorType()]);
+
+					return 0;
+				}
+
 				#ifndef USE_OLD_DPI_API
 				case WM_DPICHANGED:
 				{

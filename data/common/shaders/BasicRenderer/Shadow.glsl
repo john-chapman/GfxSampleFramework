@@ -29,12 +29,12 @@ vec3 Shadow_Project(
 	)
 {
 	vec4 ret     = _worldToShadow * vec4(_P, 1.0);
-	     ret.xyz = ret.xyz / ret.w;
-	     ret.xy  = ret.xy * 0.5 + 0.5;
-	     ret.xy  = clamp(ret.xy, _shadowTexelSize, 1.0 - _shadowTexelSize); // clamp to border texels \todo need to account for the filter width here
+		 ret.xyz = ret.xyz / ret.w;
+		 ret.xy  = ret.xy * 0.5 + 0.5;
+		 ret.xy  = clamp(ret.xy, _shadowTexelSize, 1.0 - _shadowTexelSize); // clamp to border texels \todo need to account for the filter width here
 		 ret.z   = saturate(ret.z); // required for directional lights where P projects outside the frustum
-	     ret.xy  = ret.xy * _scale + _bias;
-	     ret.z   = ret.z - Shadow_CONSTANT_BIAS;
+		 ret.xy  = ret.xy * _scale + _bias;
+		 ret.z   = ret.z - Shadow_CONSTANT_BIAS;
 
 	return ret.xyz;
 }
@@ -60,7 +60,7 @@ float Shadow_FetchBilinear(
 	vec2  weights  = fract((_shadowCoord.xy - _shadowTexelSize * 0.5) / _shadowTexelSize);
 	float shadowXY = mix(shadow4.x, shadow4.y, weights.x);
 	float shadowZW = mix(shadow4.w, shadow4.z, weights.x);
-	
+
 	return mix(shadowZW, shadowXY, weights.y);
 }
 
@@ -84,7 +84,7 @@ float Shadow_FetchQuincunx(
 	float ret = 0.0;
 	for (uint i = 0; i < 5; ++i)
 	{
-	 	const vec2 offset = rmat * kQuincunx[i] * _shadowTexelSize * 1.0;
+		const vec2 offset = rmat * kQuincunx[i] * _shadowTexelSize * 1.0;
 		ret += Shadow_FetchBilinear(_txShadowMap, vec3(_shadowCoord.xy + offset, _shadowCoord.z), _arrayIndex, _shadowTexelSize);
 	}
 	return ret / 5.0;

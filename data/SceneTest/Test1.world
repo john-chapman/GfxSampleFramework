@@ -1,0 +1,285 @@
+{
+	"_class": "World",
+	"_version": 0,
+	"RootScene": {
+		"_class": "Scene",
+		"_version": 0,
+		"Root": ["0001", "#Root"],
+		"Nodes": [{
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0001",
+				"Name": "#Root",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0000", "--"],
+					"Children": [["0002", "#Camera1"], ["0003", "Sun"], ["0004", "Floor"], ["0006", "Boxes"], ["0009", "Torus_Pink"]]
+				},
+				"Components": []
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0002",
+				"Name": "#Camera1",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0000004768371583, -0.00003244110484956764, -0.0003913617110811174, 0.0, -0.000048214966227533299, 0.978900134563446, -0.20434188842773438, 0.0, 0.00038973288610577583, 0.20434188842773438, 0.9789000153541565, 0.0, -0.24943256378173829, 1.9232263565063477, 5.024733066558838, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0001", "CameraComponent"], ["0002", "FreeLookComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0003",
+				"Name": "Sun",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [0.8660250902175903, -0.4999998211860657, 0.0, 0.0, 0.4117299020290375, 0.7131370902061462, -0.5673733353614807, 0.0, 0.28368672728538515, 0.49135980010032656, 0.8234599828720093, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0003", "BasicLightComponent"], ["0004", "ImageLightComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0004",
+				"Name": "Floor",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0005", "BasicRenderableComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0005",
+				"Name": "Box_Green",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0006", "Boxes"],
+					"Children": []
+				},
+				"Components": [["0006", "BasicRenderableComponent"], ["0009", "XFormComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0006",
+				"Name": "Boxes",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.9000000357627869, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": [["0005", "Box_Green"], ["0007", "Box_Red"], ["0008", "Box_Blue"]]
+				},
+				"Components": []
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0007",
+				"Name": "Box_Red",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.399999976158142, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0006", "Boxes"],
+					"Children": []
+				},
+				"Components": [["0007", "BasicRenderableComponent"], ["000A", "XFormComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0008",
+				"Name": "Box_Blue",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.399999976158142, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0006", "Boxes"],
+					"Children": []
+				},
+				"Components": [["0008", "BasicRenderableComponent"], ["000B", "XFormComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0009",
+				"Name": "Torus_Pink",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 2.4000000953674318, -8.600000381469727, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["000C", "BasicRenderableComponent"], ["000D", "XFormComponent"]]
+			}],
+		"Components": [{
+				"ID": "0001",
+				"_class": "CameraComponent",
+				"_version": 0,
+				"Up": 0.4142135679721832,
+				"Down": -0.4142135679721832,
+				"Right": 0.7737120389938355,
+				"Left": -0.7737120389938355,
+				"Near": 0.10000000149011612,
+				"Far": 1000.0,
+				"WorldMatrix": [1.0000004768371583, -0.00003244110484956764, -0.0003913617110811174, 0.0, -0.000048214966227533299, 0.978900134563446, -0.20434188842773438, 0.0, 0.00038973288610577583, 0.20434188842773438, 0.9789000153541565, 0.0, -0.24943256378173829, 1.9232263565063477, 5.024733066558838, 1.0],
+				"Orthographic": false,
+				"Asymmetrical": false,
+				"Infinite": true,
+				"Reversed": false,
+				"HasGpuBuffer": false
+			}, {
+				"ID": "0002",
+				"_class": "FreeLookComponent",
+				"_version": 0,
+				"m_position": [-0.24943256378173829, 1.9232263565063477, 5.024733066558838],
+				"m_orientation": [-0.1027141809463501, 0.00019631191389635205, 0.000003964432380598737, 0.99471116065979],
+				"m_maxSpeed": 10.0,
+				"m_maxSpeedMul": 5.0,
+				"m_accelTime": 0.10000000149011612,
+				"m_rotationInputMul": 0.10000000149011612,
+				"m_rotationDamping": 0.0020000000949949028
+			}, {
+				"ID": "0003",
+				"_class": "BasicLightComponent",
+				"_version": 0,
+				"m_type": "Direct",
+				"m_colorBrightness": [1.0, 1.0, 1.0, 24.0],
+				"m_radius": 5.0,
+				"m_coneInnerAngle": 0.01745329238474369,
+				"m_coneOuterAngle": 0.3490658402442932,
+				"m_castShadows": true
+			}, {
+				"ID": "0004",
+				"_class": "ImageLightComponent",
+				"_version": 0,
+				"m_brightness": 1.0,
+				"m_texturePath": "common/textures/env_sky.exr",
+				"m_isBackground": true
+			}, {
+				"ID": "0005",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": false,
+				"m_colorAlpha": [1.0, 1.0, 1.0, 1.0],
+				"m_meshPath": "common/models/Plane_100.obj",
+				"m_materialPaths": ["common/materials/Grid2Dark.json"]
+			}, {
+				"ID": "0006",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [0.35587191581726076, 1.0, 0.0, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["common/materials/Grid0Dark.json"]
+			}, {
+				"ID": "0007",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [1.0, 0.19217079877853394, 0.0, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["common/materials/Grid0Dark.json"]
+			}, {
+				"ID": "0008",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [0.12099599838256836, 0.0, 1.0, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["common/materials/Grid0Dark.json"]
+			}, {
+				"ID": "0009",
+				"_class": "XFormComponent",
+				"_version": 0,
+				"XForms": [{
+						"_class": "XFormSpin",
+						"_version": 0,
+						"m_rate": 0.6283185482025147,
+						"m_axis": [0.0, 1.0, 0.0]
+					}, {
+						"_class": "XFormSpin",
+						"_version": 0,
+						"m_rate": -0.6283185482025147,
+						"m_axis": [0.0, 0.1809999942779541, 0.9834831357002258]
+					}, {
+						"_class": "XFormSpin",
+						"_version": 0,
+						"m_rate": 3.2044246196746828,
+						"m_axis": [0.3330000042915344, 0.8665769696235657, 0.37169262766838076]
+					}]
+			}, {
+				"ID": "000A",
+				"_class": "XFormComponent",
+				"_version": 0,
+				"XForms": [{
+						"_class": "XFormSpin",
+						"_version": 0,
+						"m_rate": 0.6283185482025147,
+						"m_axis": [1.0, 0.0, 0.0]
+					}]
+			}, {
+				"ID": "000B",
+				"_class": "XFormComponent",
+				"_version": 0,
+				"XForms": [{
+						"_class": "XFormSpin",
+						"_version": 0,
+						"m_rate": -0.6283185482025147,
+						"m_axis": [1.0, 0.0, 0.0]
+					}]
+			}, {
+				"ID": "000C",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [0.46975088119506838, 0.0, 0.2708173990249634, 1.0],
+				"m_meshPath": "common/models/Torus_1.obj",
+				"m_materialPaths": ["common/materials/Grid0Light.json"]
+			}, {
+				"ID": "000D",
+				"_class": "XFormComponent",
+				"_version": 0,
+				"XForms": [{
+						"_class": "XFormSpin",
+						"_version": 0,
+						"m_rate": 4.486194133758545,
+						"m_axis": [0.0, 1.0, 0.0]
+					}, {
+						"_class": "XFormSpin",
+						"_version": 0,
+						"m_rate": 1.4953981637954713,
+						"m_axis": [0.0, 0.0, 1.0]
+					}]
+			}]
+	}
+}

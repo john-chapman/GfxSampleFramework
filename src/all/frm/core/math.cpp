@@ -104,6 +104,64 @@ vec3 GetScale(const mat4& _m)
 	return ret;
 }
 
+vec2 GetScale(const mat3& _m)
+{
+	vec2 ret;
+	ret.x = Length(_m[0].xy());
+	ret.y = Length(_m[1].xy());
+	return ret;
+}
+
+void SetTranslation(mat4& _m_, const vec3& _translation)
+{
+	_m_[3] = vec4(_translation, 1.0f);
+}
+
+void SetTranslation(mat3& _m_, const vec2& _translation)
+{
+	_m_[2] = vec3(_translation, 1.0f);
+}
+
+void SetRotation(mat4& _m_, const mat3& _rotation)
+{
+	vec3 scale = GetScale(_m_);
+	_m_ = mat4(
+		vec4(_rotation[0] * scale.x, 0.0f),
+		vec4(_rotation[1] * scale.y, 0.0f),
+		vec4(_rotation[2] * scale.z, 0.0f),
+		_m_[3]
+		);
+}
+
+void SetRotation(mat3& _m_, const mat2& _rotation)
+{
+	vec2 scale = GetScale(_m_);
+	_m_ = mat3(
+		vec3(_rotation[0] * scale.x, 0.0f),
+		vec3(_rotation[1] * scale.y, 0.0f),
+		_m_[2]
+		);
+}
+
+void SetScale(mat4& _m_, const vec3& _scale)
+{
+	_m_ = mat4(
+		vec4(Normalize(_m_[0].xyz()) * _scale.x, 0.0f),
+		vec4(Normalize(_m_[1].xyz()) * _scale.y, 0.0f),
+		vec4(Normalize(_m_[2].xyz()) * _scale.z, 0.0f),
+		_m_[3]
+		);
+}
+
+void SetScale(mat3& _m_, const vec2& _scale)
+{
+	_m_ = mat3(
+		vec3(Normalize(_m_[0].xy()) * _scale.x, 0.0f),
+		vec3(Normalize(_m_[1].xy()) * _scale.y, 0.0f),
+		_m_[3]
+		);
+}
+
 vec3 ToEulerXYZ(const mat3& _m)
 {
  // http://www.staff.city.ac.uk/~sbbh653/publications/euler.pdf

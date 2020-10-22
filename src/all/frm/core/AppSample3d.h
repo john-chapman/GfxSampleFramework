@@ -3,9 +3,6 @@
 #include <frm/core/frm.h>
 #include <frm/core/geom.h>
 #include <frm/core/AppSample.h>
-#include <frm/core/Camera.h>
-#include <frm/core/FileSystem.h>
-#include <frm/core/Scene.h>
 #include <frm/core/Viewport.h>
 
 #include <im3d/im3d.h>
@@ -20,6 +17,7 @@ class Scene;
 class AppSample3d: public AppSample
 {
 public:
+
 	virtual bool init(const ArgList& _args) override;
 	virtual void shutdown() override;
 	virtual bool update() override;
@@ -30,7 +28,8 @@ public:
 	virtual Ray getCursorRayW(const Camera* _camera = nullptr) const;
 	virtual Ray getCursorRayV(const Camera* _camera = nullptr) const;
 
-protected:		
+protected:
+
 	static void DrawFrustum(const Frustum& _frustum);
 
 	AppSample3d(const char* _title);
@@ -38,24 +37,15 @@ protected:
 
 	void setIm3dDepthTexture(Texture* _tx);
 
-	Camera*  m_dbgCullCamera    = nullptr;
-	Scene*   m_scene            = nullptr;
+	
+	World* m_world = nullptr;
+	PathStr  m_worldPath = "";
+	WorldEditor* m_worldEditor = nullptr;
 
 	bool     m_showHelpers      = false;
-	bool     m_showSceneEditor  = false;
-	PathStr  m_scenePath        = "Scene.json";
+	bool     m_showWorldEditor = false;
 	
-//private:
-
-	void drawMainMenuBar();
-
-	Texture* m_txIm3dDepth = nullptr;
-
-	static bool Im3d_Init(AppSample3d* _app);
-	static void Im3d_Shutdown(AppSample3d* _app);
-	static void Im3d_Update(AppSample3d* _app);
-	static void Im3d_Draw(Camera* _camera, Texture* _txDepth);
-
+	
 	// Draw Im3d to multiple views.
 	void drawIm3d(
 		std::initializer_list<Camera*>      _cameras,
@@ -66,6 +56,19 @@ protected:
 
 	void drawIm3d(Camera* _camera, Framebuffer* _framebuffer = nullptr, Viewport _viewport = Viewport(), Texture* _depthTexture = nullptr);
 	
+private:
+
+	void drawMainMenuBar();
+
+	CameraComponent* m_restoreCullCamera = nullptr;
+	void createDebugCullCamera();
+	void destroyDebugCullCamera();
+
+	Texture* m_txIm3dDepth = nullptr;
+	static bool Im3d_Init(AppSample3d* _app);
+	static void Im3d_Shutdown(AppSample3d* _app);
+	static void Im3d_Update(AppSample3d* _app);
+
 }; // class AppSample3d
 
 } // namespace frm

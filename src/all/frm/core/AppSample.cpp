@@ -135,12 +135,12 @@ bool AppSample::init(const frm::ArgList& _args)
 	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, ctxFlags);
 	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 
-	m_imguiIniPath       = FileSystem::MakePath("imgui.ini");
-	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
 	if (!ImGui_Init(this)) 
 	{
 		return false;
-	}
+	}	
+	m_imguiIniPath = FileSystem::MakePath("imgui.ini");
+	ImGui::GetIO().IniFilename = (const char*)m_imguiIniPath;
 
 	ivec2 resolution = *Properties::Find("Resolution")->get<ivec2>();
 	m_resolution.x   = resolution.x == -1 ? m_windowSize.x : resolution.x;
@@ -364,6 +364,7 @@ void AppSample::draw()
 		m_glContext->setFramebufferAndViewport(m_fbDefault);
 		ImGui::GetIO().UserData = m_glContext;
 		ImGui::Render();
+		ImGui_RenderDrawLists(ImGui::GetDrawData());
 	}
 
 	{	PROFILER_MARKER("#VSYNC");
@@ -636,6 +637,16 @@ static TextureView s_txViewImGui; // default texture view for the ImGui texture
 static Shader*     s_shTextureView[frm::internal::kTextureTargetCount]; // shader per texture type
 static Texture*    s_txRadar;
 
+static void* ImGui_Malloc(size_t _size, void*)
+{
+	return frm::internal::malloc(_size);
+}
+
+static void ImGui_Free(void* _ptr, void*)
+{
+	return frm::internal::free(_ptr);
+}
+
 bool AppSample::initRenderdoc()
 {
 #ifndef FRM_PLATFORM_WIN
@@ -665,9 +676,13 @@ bool AppSample::initRenderdoc()
 
 bool AppSample::ImGui_Init(AppSample* _app)
 {
+	ImGuiContext* imgui = ImGui::CreateContext();
+	ImGui::SetCurrentContext(imgui);
+	ImGui::SetAllocatorFunctions(&ImGui_Malloc, &ImGui_Free);
+	
 	ImGuiIO& io = ImGui::GetIO();
-	io.MemAllocFn = frm::internal::malloc;
-	io.MemFreeFn = frm::internal::free;
+	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
+	io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
 
 	if (_app->m_hiddenMode) 
 	{
@@ -755,7 +770,6 @@ bool AppSample::ImGui_Init(AppSample* _app)
     io.KeyMap[ImGuiKey_Y]		   = Keyboard::Key_Y;
     io.KeyMap[ImGuiKey_Z]		   = Keyboard::Key_Z;
 	io.DisplayFramebufferScale     = ImVec2(1.0f, 1.0f);
-	io.RenderDrawListsFn           = ImGui_RenderDrawLists;
 	io.IniSavingRate               = -1.0f; // never save automatically
 
 	ImGui_InitStyle();
@@ -888,7 +902,7 @@ void AppSample::ImGui_Shutdown(AppSample* _app)
 	Texture::Release(s_txRadar);
 	Texture::Release(s_txImGui);
 	
-	ImGui::Shutdown();
+	ImGui::DestroyContext(ImGui::GetCurrentContext());
 }
 
 void AppSample::ImGui_Update(AppSample* _app)
@@ -896,6 +910,8 @@ void AppSample::ImGui_Update(AppSample* _app)
 	PROFILER_MARKER_CPU("#ImGui_Update");
 
 	ImGuiIO& io = ImGui::GetIO();
+
+	Window* window = _app->getWindow();
 
  // extract keyboard/mouse input
 	/*Mouse* mouse = Input::GetMouse();
@@ -914,32 +930,54 @@ void AppSample::ImGui_Update(AppSample* _app)
 	*/
 
  // consume keyboard/mouse input
-	if (io.WantCfrmureKeyboard)
+	if (io.WantCaptureKeyboard)
 	{
 		Input::ResetKeyboard();
 	}
-	if (io.WantCfrmureMouse)
+	if (io.WantCaptureMouse)
 	{
 		Input::ResetMouse();
 	}
 
-	io.ImeWindowHandle = _app->getWindow()->getHandle();
+	if (io.WantSetMousePos)
+	{
+		FRM_ASSERT(false); // \todo
+	}
+
+	io.ImeWindowHandle = window->getHandle();
 	if (_app->getDefaultFramebuffer())
 	{
 		io.DisplaySize = ImVec2((float)_app->getDefaultFramebuffer()->getWidth(), (float)_app->getDefaultFramebuffer()->getHeight());
 	}
 	else
 	{
-		io.DisplaySize = ImVec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
+		io.DisplaySize = ImVec2((float)window->getWidth(), (float)window->getHeight());
 	}
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 	io.DeltaTime = (float)_app->m_deltaTime;
 
-	if (!_app->getWindow()->hasFocus())
+	if (!window->hasFocus())
 	{
 	 // \todo keyboard/mouse input events aren't received when the window doesn't have focus which leads to an invalid device state
 		memset(io.KeysDown, 0, sizeof(io.KeysDown));
 		io.KeyAlt = io.KeyCtrl = io.KeyShift = false;
+	}
+
+	if (_app->canSetWindowCursorType())
+	{
+		switch (ImGui::GetMouseCursor())
+		{
+			default:
+			case ImGuiMouseCursor_Arrow:      window->setCursorType(Window::CursorType_Arrow);    break;
+			case ImGuiMouseCursor_TextInput:  window->setCursorType(Window::CursorType_Text);     break;
+			case ImGuiMouseCursor_ResizeAll:  window->setCursorType(Window::CursorType_Arrow);    break;
+			case ImGuiMouseCursor_ResizeNS:   window->setCursorType(Window::CursorType_SizeNS);   break;
+			case ImGuiMouseCursor_ResizeEW:   window->setCursorType(Window::CursorType_SizeEW);   break;
+			case ImGuiMouseCursor_ResizeNESW: window->setCursorType(Window::CursorType_SizeNESW); break;
+			case ImGuiMouseCursor_ResizeNWSE: window->setCursorType(Window::CursorType_SizeNWSE); break;
+			case ImGuiMouseCursor_Hand:       window->setCursorType(Window::CursorType_Hand);     break;
+			case ImGuiMouseCursor_NotAllowed: window->setCursorType(Window::CursorType_Arrow);    break;
+		};
 	}
 
 	ImGui::NewFrame(); // must call after m_window->pollEvents()
@@ -953,6 +991,7 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 
 	ImGuiIO& io = ImGui::GetIO();
 	GlContext* ctx = (GlContext*)io.UserData;
+	FRM_ASSERT(ctx);
 
 	if (_drawData->CmdListsCount == 0)
 	{
@@ -1002,6 +1041,11 @@ void AppSample::ImGui_RenderDrawLists(ImDrawData* _drawData)
 			else
 			{
 				TextureView* txView = (TextureView*)pcmd->TextureId;
+				if (!TextureView::CheckValid(txView))
+				{
+					continue;
+				}
+
 				const Texture* tx   = txView->m_texture;
 				Shader* sh          = txView->m_shader;
 				if (!sh)

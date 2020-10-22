@@ -165,7 +165,7 @@ bool Properties::DefaultEditFunc(Property& _prop)
 					StringBase& str = *(StringBase*)data;
 					FRM_ASSERT(str.getCapacity() < kStrBufLen);
 					memcpy(buf, (const char*)str, str.getLength() + 1);
-					if (ImGui::InputText((const char*)_prop.m_displayName, buf, kStrBufLen))
+					if (ImGui::InputText((const char*)_prop.m_displayName, buf, kStrBufLen, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue))
 					{
 						str.set(buf);
 						ret = true;
@@ -180,7 +180,7 @@ bool Properties::DefaultEditFunc(Property& _prop)
 						displayName.setf("%s[%d]", (const char*)_prop.m_displayName, i); 
 					 	StringBase& str = *(StringBase*)data;
 						FRM_ASSERT(str.getCapacity() < kStrBufLen);
-						if (ImGui::InputText((const char*)displayName, buf, kStrBufLen))
+						if (ImGui::InputText((const char*)displayName, buf, kStrBufLen, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue))
 						{
 							str.set(buf);
 							ret = true;
@@ -224,7 +224,7 @@ bool Properties::PathEditFunc(Property& _prop_)
 	FRM_ASSERT(data);
 	PathStr& pth = *((PathStr*)data);
 
-	if (ImGui::Button(_prop_.getDisplayName()))
+	if (ImGui::Button(String<32>(ICON_FA_FOLDER " %s", _prop_.getDisplayName()).c_str()))
 	{
 		if (FileSystem::PlatformSelect(pth))
 		{
@@ -779,6 +779,11 @@ int Property::getSizeBytes() const
 
 void Property::setExternalStorage(void* _storage_)
 {
+	if (m_storageExternal == _storage_)
+	{
+		return;
+	}
+
 	if (_storage_)
 	{
 	 // setting external storage, copy current value from internal storage

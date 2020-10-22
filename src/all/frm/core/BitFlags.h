@@ -1,23 +1,10 @@
 #pragma once
 
-#include <cstdint>
 #include <initializer_list>
-#include <type_traits>
 
 namespace frm {
 
 namespace internal {
-
-// Select an 8, 16, 32 or 64 bit type based on tEnum::_Count.
-// \todo move to a core header
-template <int kCount>
-struct _SelectUint
-{
-	typedef typename std::conditional<kCount < 8,  uint8_t,
-	        typename std::conditional<kCount < 16, uint16_t, 
-	        typename std::conditional<kCount < 32, uint32_t, uint64_t>::type>::type>::type
-		Type;
-};
 
 template <typename tType>
 constexpr tType _BitFlagsDefault(std::initializer_list<tType> list)
@@ -41,7 +28,6 @@ constexpr tType _BitFlagsDefault(std::initializer_list<tType> list)
 // BitFlags
 // Bitfield flags using an enum to index bits. 
 // 
-//
 // Example:
 //    enum class Mode
 //    {
@@ -61,9 +47,12 @@ template <typename tEnum>
 struct BitFlags
 {
 	static constexpr int kCount = (int)tEnum::_Count;
-	static_assert(tEnum::_Default >= (tEnum)0, "Ensure tEnum::_Default exists.");
+	static_assert(tEnum::_Default >= (tEnum)0, "BitFlags tEnum::_Default missing.");
 
-	typedef typename internal::_SelectUint<kCount>::Type ValueType;
+	// Select ValueType for kCount bits.
+	using ValueType = typename std::conditional<kCount < 8,  uint8_t,
+	                  typename std::conditional<kCount < 16, uint16_t, 
+	                  typename std::conditional<kCount < 32, uint32_t, uint64_t>::type>::type>::type;
 
 	constexpr BitFlags(ValueType bits = (ValueType)tEnum::_Default)
 		: _bits(bits) 
@@ -134,4 +123,4 @@ private:
 	
 };
 
-} // namespace frm
+} // namespace gef

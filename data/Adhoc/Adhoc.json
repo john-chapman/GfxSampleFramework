@@ -1,11 +1,11 @@
 {
 	"AppSample3d": {
-		"ScenePath": "Scene.json",
-		"ShowSceneEditor": false,
-		"ShowHelpers": true
+		"m_showHelpers": true,
+		"m_showWorldEditor": true,
+		"m_worldPath": ""
 	},
 	"AppSample": {
-		"VsyncMode": 2,
+		"VsyncMode": 1,
 		"ShowShaderViewer": false,
 		"ShowLogNotifications": true,
 		"ShowPropertyEditor": false,

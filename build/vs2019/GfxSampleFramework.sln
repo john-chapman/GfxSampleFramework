@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 16
+# Visual Studio Version 16
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Adhoc", "Adhoc.vcxproj", "{E4D7CF0C-50EC-F7BD-196E-9B1D8541F4EE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Animation", "Animation.vcxproj", "{859E00A2-F108-B518-3A47-66BEA6F0926D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BasicRenderer", "BasicRenderer.vcxproj", "{BE547F20-2A15-FB56-F34F-44D45FCF3F33}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Depth", "Depth.vcxproj", "{7AD0060D-E6E4-2EBE-AF66-D21D1B3A2BEF}"
 EndProject
@@ -16,6 +18,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Physics", "Physics.vcxproj", "{888B590D-F46A-D8A8-FD82-637F69E13E0A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Quadtree", "Quadtree.vcxproj", "{20EF7C54-0CBC-D75F-35D5-C50721010DEE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SceneTest", "SceneTest.vcxproj", "{F3658F7A-5FD0-43F1-A80E-F59614B82146}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StreamingQuadtree", "StreamingQuadtree.vcxproj", "{EA9827C3-56AF-2559-9F26-B17A0B7CF6E0}"
 EndProject
@@ -41,6 +45,10 @@ Global
 		{859E00A2-F108-B518-3A47-66BEA6F0926D}.Debug|Win64.Build.0 = Debug Win64|x64
 		{859E00A2-F108-B518-3A47-66BEA6F0926D}.Release|Win64.ActiveCfg = Release Win64|x64
 		{859E00A2-F108-B518-3A47-66BEA6F0926D}.Release|Win64.Build.0 = Release Win64|x64
+		{BE547F20-2A15-FB56-F34F-44D45FCF3F33}.Debug|Win64.ActiveCfg = Debug Win64|x64
+		{BE547F20-2A15-FB56-F34F-44D45FCF3F33}.Debug|Win64.Build.0 = Debug Win64|x64
+		{BE547F20-2A15-FB56-F34F-44D45FCF3F33}.Release|Win64.ActiveCfg = Release Win64|x64
+		{BE547F20-2A15-FB56-F34F-44D45FCF3F33}.Release|Win64.Build.0 = Release Win64|x64
 		{7AD0060D-E6E4-2EBE-AF66-D21D1B3A2BEF}.Debug|Win64.ActiveCfg = Debug Win64|x64
 		{7AD0060D-E6E4-2EBE-AF66-D21D1B3A2BEF}.Debug|Win64.Build.0 = Debug Win64|x64
 		{7AD0060D-E6E4-2EBE-AF66-D21D1B3A2BEF}.Release|Win64.ActiveCfg = Release Win64|x64
@@ -65,6 +73,10 @@ Global
 		{20EF7C54-0CBC-D75F-35D5-C50721010DEE}.Debug|Win64.Build.0 = Debug Win64|x64
 		{20EF7C54-0CBC-D75F-35D5-C50721010DEE}.Release|Win64.ActiveCfg = Release Win64|x64
 		{20EF7C54-0CBC-D75F-35D5-C50721010DEE}.Release|Win64.Build.0 = Release Win64|x64
+		{F3658F7A-5FD0-43F1-A80E-F59614B82146}.Debug|Win64.ActiveCfg = Debug Win64|x64
+		{F3658F7A-5FD0-43F1-A80E-F59614B82146}.Debug|Win64.Build.0 = Debug Win64|x64
+		{F3658F7A-5FD0-43F1-A80E-F59614B82146}.Release|Win64.ActiveCfg = Release Win64|x64
+		{F3658F7A-5FD0-43F1-A80E-F59614B82146}.Release|Win64.Build.0 = Release Win64|x64
 		{EA9827C3-56AF-2559-9F26-B17A0B7CF6E0}.Debug|Win64.ActiveCfg = Debug Win64|x64
 		{EA9827C3-56AF-2559-9F26-B17A0B7CF6E0}.Debug|Win64.Build.0 = Debug Win64|x64
 		{EA9827C3-56AF-2559-9F26-B17A0B7CF6E0}.Release|Win64.ActiveCfg = Release Win64|x64

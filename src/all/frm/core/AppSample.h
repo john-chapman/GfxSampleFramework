@@ -36,6 +36,9 @@ public:
 	GlContext*          getGlContext()                                { return m_glContext; }
 	const GlContext*    getGlContext() const                          { return m_glContext; }
 
+	bool                canSetWindowCursorType() const                { return m_canSetWindowCursorType; } 
+	void                setCanSetWindowCursorType(bool _value)        { m_canSetWindowCursorType = true; }
+
 protected:
 	AppSample(const char* _title);
 	virtual ~AppSample();
@@ -57,7 +60,9 @@ protected:
 	bool               m_showShaderViewer           = false;
 	bool               m_hiddenMode                 = false;  // don't display the app window, disable ImGui
 
+	static void ImGui_RenderDrawLists(ImDrawData* _drawData);
 private:
+
 	String<32>         m_name                       = "";
 	Window*            m_window                     = nullptr;
 	GlContext*         m_glContext                  = nullptr;
@@ -65,6 +70,7 @@ private:
 	PathStr            m_configPath                 = "";
 	int                m_rootCommon                 = 0;
 	int                m_rootApp                    = 0;
+	bool               m_canSetWindowCursorType     = true; // whether ImGui can set the window cursor type
 
 	void drawMainMenuBar();
 	void drawStatusBar();
@@ -78,7 +84,6 @@ private:
 	static bool ImGui_InitFont(AppSample* _app);
 	static void ImGui_Shutdown(AppSample* _app);
 	static void ImGui_Update(AppSample* _app);
-	static void ImGui_RenderDrawLists(ImDrawData* _drawData);
 	static bool ImGui_OnMouseButton(Window* _window, unsigned _button, bool _isDown);
 	static bool ImGui_OnMouseWheel(Window* _window, float _delta);
 	static bool ImGui_OnKey(Window* _window, unsigned _key, bool _isDown);

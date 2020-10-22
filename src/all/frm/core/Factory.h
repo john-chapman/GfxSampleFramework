@@ -60,6 +60,13 @@ namespace frm {
 //       cref->getName(); // returns a const char* matching the class name
 //       Entity* inst = Entity::Create(cref); // use the cref directly with Create().
 //    }
+//
+// In some cases, factory code my be treated as unreachable by the linker. In 
+// this case use the FRM_FORCE_LINK() mechanism described in frm.h.
+//
+// \todo
+// - More elegant solution than FRM_FORCE_LINK()?
+// - Static access to the class ref, based on the deriving type.
 ////////////////////////////////////////////////////////////////////////////////
 template <typename tType>
 class Factory
@@ -141,7 +148,6 @@ public:
 	// Return ptr to a new instance of the class specified by _cref, or nullptr if an error occurred.
 	static tType* Create(const ClassRef* _cref)
 	{
-		FRM_ASSERT(_cref);
 		if (_cref)
 		{
 			tType* ret = _cref->create();
@@ -169,6 +175,7 @@ private:
 	static eastl::vector_map<StringHash, ClassRef*>* s_registry;
 	const ClassRef* m_cref;
 };
+
 #define FRM_FACTORY_DEFINE(_baseClass) \
 	eastl::vector_map<frm::StringHash, frm::Factory<_baseClass>::ClassRef*>* frm::Factory<_baseClass>::s_registry
 #define FRM_FACTORY_REGISTER(_baseClass, _subClass, _createFunc, _destroyFunc) \

@@ -3,6 +3,8 @@
 #include <frm/core/frm.h>
 #include <frm/core/Time.h>
 
+#include <EASTL/fixed_vector.h>
+
 namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -27,6 +29,20 @@ public:
 	double         getTimeScale() const         { return m_timeScale; }
 	void           setTimeScale(double _scale)  { m_timeScale = _scale; }
 	
+	enum Event_
+	{
+		Event_OnInit,
+		Event_OnShutdown,
+		Event_OnUpdate,
+
+		Event_Count
+	};
+	typedef int Event;
+	typedef void (Callback)(void* _arg);
+
+	// Register/unregister a callback.
+	void  registerCallback(Event _event, Callback* _callback, void* _arg_);
+	void  unregisterCallback(Event _event, Callback* _callback, void* _arg_);
 
 protected:
 
@@ -35,6 +51,22 @@ protected:
 
 	App();
 	virtual ~App();
+
+private:
+
+	struct CallbackListEntry
+	{
+		Callback* func;
+		void*     arg;
+
+		bool operator==(const CallbackListEntry& _rhs) { return _rhs.func == func && _rhs.arg == arg; }
+		void operator()()                              { func(arg); }
+	};
+
+	using CallbackList = eastl::fixed_vector<CallbackListEntry, 1>;
+	CallbackList m_callbacks[Event_Count];
+
+	void dispatchCallbacks(Event _event);
 
 }; // class App
 

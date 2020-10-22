@@ -1,20 +1,23 @@
 #include "BasicRenderer.h"
+#include "BasicRenderableComponent.h"
+#include "BasicLightComponent.h"
+#include "BasicMaterial.h"
+#include "ImageLightComponent.h"
 
 #include <frm/core/geom.h>
 #include <frm/core/memory.h>
 #include <frm/core/types.h>
-#include <frm/core/BasicMaterial.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Camera.h>
-#include <frm/core/Component.h>
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/Profiler.h>
-#include <frm/core/Scene.h>
 #include <frm/core/Shader.h>
 #include <frm/core/ShadowAtlas.h>
 #include <frm/core/Texture.h>
+#include <frm/core/world/World.h>
+
 #include <frm/vr/VRContext.h>
 
 #include <imgui/imgui.h>
@@ -55,24 +58,24 @@ void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamer
 	{
 		renderTargets[i].nextFrame();
 	}
-	
+
 	postProcessData.motionBlurScale = motionBlurTargetFps * _dt;
 	postProcessData.frameIndex++;
 	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
 
 	GlContext* ctx = GlContext::GetCurrent();
 	{	PROFILER_MARKER("Shadow Maps");
-		
+
 		glAssert(glColorMask(false, false, false, false));
 		glScopedEnable(GL_POLYGON_OFFSET_FILL, GL_TRUE);
 		glAssert(glPolygonOffset(8.0f, 1.0f)); // \todo
-		
+
 		for (size_t i = 0; i < shadowCameras.size(); ++i)
 		{
 			const Camera& shadowCamera = shadowCameras[i];
 			const ShadowAtlas::ShadowMap* shadowMap = (ShadowAtlas::ShadowMap*)shadowMapAllocations[i];
 			const DrawCallMap& drawCalls = shadowDrawCalls[i];
-	
+
 			ctx->setFramebuffer(shadowAtlas->getFramebuffer(shadowMap->arrayIndex));
 			ctx->setViewport(shadowMap->origin.x, shadowMap->origin.y, shadowMap->size, shadowMap->size);
 
@@ -89,7 +92,7 @@ void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamer
 				glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 				glAssert(glDepthFunc(GL_LESS));
 				glScopedEnable(GL_CULL_FACE, GL_TRUE); // \todo per material?
-		
+
 				for (auto& it : drawCalls)
 				{
 					const DrawCall& drawCall = it.second;
@@ -131,11 +134,6 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	const bool isInterlaced        = flags.get(Flag::Interlaced);
 	const bool isWriteToBackBuffer = flags.get(Flag::WriteToBackBuffer);
 	const bool isWireframe         = flags.get(Flag::WireFrame);
-
-	if (sceneDrawCalls.empty() && imageLightInstances.empty())
-	{
-		return;
-	}
 
 	sceneCamera.copyFrom(*_drawCamera); // \todo separate draw/cull cameras
 	if (isTAA)
@@ -179,6 +177,11 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	fbFXAAResult->attach(txFXAAResult, GL_COLOR_ATTACHMENT0);
 	fbFinal->attach(txFinal, GL_COLOR_ATTACHMENT0);
 
+	if (sceneDrawCalls.empty() && imageLightInstances.empty())
+	{
+		return;
+	}
+
 	{	PROFILER_MARKER("GBuffer");
 
 		ctx->setFramebufferAndViewport(fbGBuffer);
@@ -187,11 +190,11 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 
 			//glAssert(glClearDepth(1.0)); // \todo set the depth clear value based on the camera's projection mode
 			glAssert(glClearStencil(0));
-			
+
 			#if FRM_MODULE_VR
 				if (vrCtx && vrCtx->isActive())
 				{
-				 // need to clear velocity since we don't run the static velocity pass 
+				 // need to clear velocity since we don't run the static velocity pass
 	 				glAssert(glClearColor(0.0f, 0.0f, 0.5f, 0.5f));
 					glAssert(glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)); // \todo set stencil mask
 					vrCtx->primeDepthBuffer(0);
@@ -222,7 +225,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 				ctx->setShader(drawCall.shaders[Pass_GBuffer]);
 				ctx->bindBuffer(sceneCamera.m_gpuBuffer);
 				ctx->setUniform("uTexelSize", texelSize);
-				bindAndDraw(drawCall);				
+				bindAndDraw(drawCall);
 			}
 
 			if (drawCallback)
@@ -236,7 +239,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 			if (!vrCtx || !vrCtx->isActive())
 		#endif
 			{	PROFILER_MARKER("Static Velocity");
-	
+
 				glScopedEnable(GL_STENCIL_TEST, GL_TRUE);
 				glAssert(glStencilFunc(GL_NOTEQUAL, 0xff, 0x01));
 				glAssert(glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
@@ -321,8 +324,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 				ctx->bindBuffer("bfShadowLights", bfShadowLights);
 			}
 			ctx->bindTexture("txShadowMap", shadowAtlas->getTexture());
-			
-			// \todo support >1 image light
+
 			ctx->setUniform("uImageLightCount", (int)imageLightInstances.size());
 			if (imageLightInstances.size() > 0 && imageLightInstances[0].texture)
 			{
@@ -331,8 +333,10 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 			}
 			else
 			{
+				// \todo Crashes if no texture bound?
 				ctx->setUniform("uImageLightCount", 0);
 			}
+
 			ctx->setUniform("uTexelSize", texelSize);
 			bindAndDraw(drawCall);
 		}
@@ -344,6 +348,60 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 		}
 	}
 
+	{
+		PROFILER_MARKER("Bloom");
+
+		{	PROFILER_MARKER("Downsample");
+
+			const ivec2 localSize = shBloomDownsample->getLocalSize().xy();
+			ctx->setShader(shBloomDownsample);
+			txScene->setMinFilter(GL_LINEAR_MIPMAP_NEAREST); // prevent any filtering between mips
+			for (int level = 1; level < txScene->getMipCount(); ++level)
+			{
+				ctx->clearTextureBindings();
+				ctx->clearImageBindings();
+				ctx->setUniform("uSrcLevel", level - 1);
+				ctx->bindTexture("txSrc", txScene);
+				ctx->bindImage("txDst", txScene, GL_WRITE_ONLY, level);
+
+				const int w = (int)txScene->getWidth() >> level;
+				const int h = (int)txScene->getHeight() >> level;
+				ctx->dispatch(
+					Max((w + localSize.x - 1) / localSize.x, 1),
+					Max((h + localSize.y - 1) / localSize.y, 1)
+					);
+
+				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+			}
+		}
+
+		{	PROFILER_MARKER("Upsample");
+
+			const ivec2 localSize = shBloomUpsample->getLocalSize().xy();
+			ctx->setShader(shBloomUpsample);
+			txScene->setMinFilter(GL_LINEAR_MIPMAP_NEAREST); // prevent any filtering between mips
+			for (int level = 1; level < txScene->getMipCount() - 1; ++level)
+			{
+				ctx->clearTextureBindings();
+				ctx->clearImageBindings();
+				ctx->setUniform("uSrcLevel", level + 1);
+				ctx->bindTexture("txSrc", txScene);
+				ctx->bindImage("txDst", txScene, GL_WRITE_ONLY, level);
+
+				const int w = (int)txScene->getWidth() >> level;
+				const int h = (int)txScene->getHeight() >> level;
+				ctx->dispatch(
+					Max((w + localSize.x - 1) / localSize.x, 1),
+					Max((h + localSize.y - 1) / localSize.y, 1)
+					);
+
+				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+			}
+		}
+
+		txScene->setMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+	}
+
 	if (isWireframe)
 	{
 		ctx->setFramebufferAndViewport(fbScene);
@@ -353,7 +411,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 		glScopedEnable(GL_BLEND, GL_TRUE);
 		glAssert(glDepthFunc(GL_LEQUAL));
 		glAssert(glLineWidth(3.0f));
-	
+
 		for (auto& it : sceneDrawCalls)
 		{
 			const DrawCall& drawCall = it.second;
@@ -376,9 +434,9 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 
 		glAssert(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 	}
-	
+
 	if (isPostProcess)
-	{	
+	{
 		PROFILER_MARKER("Post Process");
 
 		ctx->setShader(shPostProcess);
@@ -408,7 +466,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	if (isFXAA)
 	{
 		PROFILER_MARKER("FXAA");
-		
+
 		ctx->setShader(shFXAA);
 		ctx->setUniform("uTexelScaleX", isInterlaced ? 0.5f : 1.0f);
 		ctx->bindTexture("txIn", txPostProcessResult);
@@ -425,14 +483,14 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	if (isTAA || isInterlaced)
 	{
 		PROFILER_MARKER("TAA Resolve");
-		
+
 		const vec2 resolveKernel = vec2(-taaSharpen, (1.0f + (2.0f * taaSharpen)) / 2.0f);
 		Texture* txCurrent = isFXAA ? txFXAAResult : txPostProcessResult;
 		Texture* txPrevious = isInterlaced ? (isFXAA ? renderTargets[Target_FXAAResult].getTexture(-1) : renderTargets[Target_PostProcessResult].getTexture(-1)) : nullptr;
 		Texture* txCurrentResolve  = renderTargets[Target_TAAResolve].getTexture(0);
 		Texture* txPreviousResolve = renderTargets[Target_TAAResolve].getTexture(-1);
 		Texture* txPreviousGBuffer0 = renderTargets[Target_GBuffer0].getTexture(-1);
-				
+
 		ctx->setShader(shTAAResolve);
 		ctx->setUniform("uFrameIndex", (int)(ctx->getFrameIndex() & 1));
 		ctx->setUniform("uResolveKernel", resolveKernel);
@@ -446,7 +504,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 		ctx->bindImage("txCurrentResolve", txCurrentResolve, GL_WRITE_ONLY);
 		ctx->bindImage("txFinal", txFinal, GL_WRITE_ONLY);
 		ctx->dispatch(txFinal);
-		
+
 		glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 	}
 	else if (isFXAA)
@@ -456,7 +514,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 
 	if (isWriteToBackBuffer)
 	{
-		ctx->blitFramebuffer(fbFinal, nullptr, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		ctx->blitFramebuffer(fbFinal, nullptr, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	}
 }
 
@@ -465,6 +523,7 @@ bool BasicRenderer::edit()
 	bool ret = false;
 
 	ret |= ImGui::Checkbox("Pause Update", &pauseUpdate);
+	ret |= ImGui::Checkbox("Frustum Culling", &enableCulling);
 	ret |= ImGui::Checkbox("Cull by Submesh", &cullBySubmesh);
 	ret |= ImGui::SliderFloat("Motion Blur Target FPS", &motionBlurTargetFps, 0.0f, 90.0f);
 
@@ -530,6 +589,25 @@ bool BasicRenderer::edit()
 	}
 	#endif
 
+	ImGui::Spacing();
+
+	ImGui::SliderFloat("Bloom Brightness", &bloomBrightness, 0.0f, 1.0f);
+	ImGui::SliderFloat("Bloom Scale", &bloomScale, -4.0f, 4.0f);
+	{
+		// bloom weights are sampled along a line, slope is determined by bloomScale
+		float bloomBias  = 1.0f;
+		const float bloomWeightScale = 2.0f;
+		vec4 bloomWeights = vec4(
+			Max((bloomScale * bloomWeightScale) * -1.0f   + bloomBias, 0.0f),
+			Max((bloomScale * bloomWeightScale) * -0.333f + bloomBias, 0.0f),
+			Max((bloomScale * bloomWeightScale) *  0.333f + bloomBias, 0.0f),
+			Max((bloomScale * bloomWeightScale) *  1.0f   + bloomBias, 0.0f)
+			);
+		bloomWeights = Normalize(bloomWeights);
+		postProcessData.bloomWeights = bloomWeights * bloomBrightness;
+	}
+	ImGui::Text("Bloom Weights: %.3f, %.3f, %.3f, %.3f", postProcessData.bloomWeights.x, postProcessData.bloomWeights.y, postProcessData.bloomWeights.z, postProcessData.bloomWeights.w);
+
 	return ret;
 }
 
@@ -550,9 +628,9 @@ void BasicRenderer::setFlag(Flag _flag, bool _value)
 			ssMaterial->setLodBias(0.0f);
 		}
 
-		shTAAResolve->addGlobalDefines({ 
-			String<32>("TAA %d", isTAA ? 1 : 0).c_str(), 
-			String<32>("INTERLACED %d", isInterlaced ? 1 : 0).c_str() 
+		shTAAResolve->addGlobalDefines({
+			String<32>("TAA %d", isTAA ? 1 : 0).c_str(),
+			String<32>("INTERLACED %d", isInterlaced ? 1 : 0).c_str()
 			});
 	}
 }
@@ -607,7 +685,7 @@ BasicRenderer::~BasicRenderer()
 
 	shutdownRenderTargets();
 	shutdownShaders();
-	
+
 	clearDrawCalls(sceneDrawCalls);
 	sceneDrawCalls.clear();
 	for (DrawCallMap& drawCallMap : shadowDrawCalls)
@@ -630,7 +708,7 @@ BasicRenderer::~BasicRenderer()
 	Buffer::Destroy(bfPostProcessData);
 
 	for (size_t i = 0; i < shadowMapAllocations.size(); ++i)
-	{			
+	{
 		shadowAtlas->free((ShadowAtlas::ShadowMap*&)shadowMapAllocations[i]);
 	}
 	ShadowAtlas::Destroy(shadowAtlas);
@@ -662,7 +740,7 @@ void BasicRenderer::initRenderTargets()
 
 	renderTargets[Target_GBufferDepthStencil].init(interlacedResolution.x, interlacedResolution.y, GL_DEPTH32F_STENCIL8, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_GBufferDepthStencil].setName("#BasicRenderer_txGBufferDepth");
-		
+
 	//FRM_ASSERT(interlacedResolution.x % motionBlurTileWidth == 0 && interlacedResolution.y % motionBlurTileWidth == 0);
 	renderTargets[Target_VelocityTileMinMax].init(interlacedResolution.x / motionBlurTileWidth, interlacedResolution.y / motionBlurTileWidth, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_VelocityTileMinMax].setName("#BasicRenderer_txVelocityTileMinMax");
@@ -670,7 +748,7 @@ void BasicRenderer::initRenderTargets()
 	renderTargets[Target_VelocityTileNeighborMax].init(interlacedResolution.x / motionBlurTileWidth, interlacedResolution.y / motionBlurTileWidth, GL_RG16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_VelocityTileNeighborMax].setName("#BasicRenderer_txVelocityTileNeighborMax");
 
-	renderTargets[Target_Scene].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA16F, GL_CLAMP_TO_EDGE, GL_LINEAR, 1); // RGB = color, A = abs(linear depth)
+	renderTargets[Target_Scene].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA16F, GL_CLAMP_TO_EDGE, GL_LINEAR, 1, 8); // RGB = color, A = abs(linear depth) + mip chain for blur
 	renderTargets[Target_Scene].setName("#BasicRenderer_txScene");
 
 	renderTargets[Target_PostProcessResult].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, (isInterlaced && !isFXAA) ? 2 : 1);
@@ -702,14 +780,16 @@ void BasicRenderer::initShaders()
 	shImageLightBg	      = Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
 	shPostProcess         = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8);
 	shFXAA                = Shader::CreateCs("shaders/BasicRenderer/FXAA.glsl", 8, 8);
-	shDepthClear          = Shader::CreateVsFs("shaders/BasicRenderer/DepthClear.glsl", "shaders/BasicRenderer/DepthClear.glsl"); 
+	shDepthClear          = Shader::CreateVsFs("shaders/BasicRenderer/DepthClear.glsl", "shaders/BasicRenderer/DepthClear.glsl");
+	shBloomDownsample     = Shader::CreateCs("shaders/BasicRenderer/BloomDownsample.glsl", 8, 8);
+	shBloomUpsample       = Shader::CreateCs("shaders/BasicRenderer/BloomUpsample.glsl", 8, 8);
 
 	const bool isTAA        = flags.get(Flag::TAA);
 	const bool isInterlaced = flags.get(Flag::Interlaced);
 	shTAAResolve = Shader::CreateCs("shaders/BasicRenderer/TAAResolve.glsl", 8, 8, 1,
 		{
-			String<32>("TAA %d", !!isTAA).c_str(), 
-			String<32>("INTERLACED %d", !!isInterlaced).c_str() 
+			String<32>("TAA %d", !!isTAA).c_str(),
+			String<32>("INTERLACED %d", !!isInterlaced).c_str()
 		});
 }
 
@@ -722,6 +802,8 @@ void BasicRenderer::shutdownShaders()
 	Shader::Release(shPostProcess);
 	Shader::Release(shFXAA);
 	Shader::Release(shDepthClear);
+	Shader::Release(shBloomDownsample);
+	Shader::Release(shBloomUpsample);
 	Shader::Release(shTAAResolve);
 
 	for (auto& it : shaderMap)
@@ -736,7 +818,7 @@ void BasicRenderer::updateMaterialInstances()
 	PROFILER_MARKER_CPU("updateMaterialInstances");
 
 	materialInstances.resize(BasicMaterial::GetInstanceCount());
-	
+
 	for (int i = 0; i < BasicMaterial::GetInstanceCount(); ++i)
 	{
 		BasicMaterial* material = BasicMaterial::GetInstance(i);
@@ -799,7 +881,7 @@ Shader* BasicRenderer::findShader(ShaderMapKey _key)
 			{
 				defines.push_back(kGeometryDefines[i]);
 			}
-		}	
+		}
 
 		for (int i = 0; i < BasicMaterial::Flag_Count; ++i)
 		{
@@ -818,7 +900,7 @@ Shader* BasicRenderer::findShader(ShaderMapKey _key)
 void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 {
 	PROFILER_MARKER("BasicRenderer::updateDrawCalls");
-	
+
 	sceneBounds.m_min = shadowSceneBounds.m_min = vec3( FLT_MAX);
 	sceneBounds.m_max = shadowSceneBounds.m_max = vec3(-FLT_MAX);
 
@@ -826,19 +908,19 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 // \todo LOD selection should happen here.
 	{	PROFILER_MARKER_CPU("Phase 1");
 
+		const auto& activeRenderables = BasicRenderableComponent::GetActiveComponents();
 		culledSceneRenderables.clear();
-		culledSceneRenderables.reserve(Component_BasicRenderable::s_instances.size());
+		culledSceneRenderables.reserve(activeRenderables.size());
 		shadowRenderables.clear();
-		shadowRenderables.reserve(Component_BasicRenderable::s_instances.size());
-		for (Component_BasicRenderable* renderable : Component_BasicRenderable::s_instances)
+		shadowRenderables.reserve(activeRenderables.size());
+		for (BasicRenderableComponent* renderable : activeRenderables)
 		{
-			Node* sceneNode = renderable->getNode();
-			if (!sceneNode->isActive() || !renderable->m_mesh || renderable->m_materials.empty())
+			if (!renderable->m_mesh || renderable->m_materials.empty() || renderable->m_colorAlpha.w <= 0.0f)
 			{
 				continue;
 			}
 
-			const mat4& world = sceneNode->getWorldMatrix();
+			const mat4 world = renderable->m_world;
 			Sphere bs = renderable->m_mesh->getBoundingSphere();
 			bs.transform(world);
 			AlignedBox bb = renderable->m_mesh->getBoundingBox();
@@ -862,13 +944,12 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 
 // Phase 2: Generate draw calls for culled scene renderables, optionally cull by submesh.
 	{	PROFILER_MARKER_CPU("Phase 2");
-	
+
 		clearDrawCalls(sceneDrawCalls);
-		for (Component_BasicRenderable* renderable : culledSceneRenderables)
+		for (BasicRenderableComponent* renderable : culledSceneRenderables)
 		{
-			Node* sceneNode = renderable->getNode();
-			mat4 world = sceneNode->getWorldMatrix();
-			
+			const mat4 world = renderable->m_world;
+
 			int submeshCount = Min((int)renderable->m_materials.size(), renderable->m_mesh->getSubmeshCount());
 			for (int submeshIndex = 0; submeshIndex < submeshCount; ++submeshIndex)
 			{
@@ -884,7 +965,7 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 					AlignedBox bb = renderable->m_mesh->getBoundingBox(submeshIndex);
 					bb.transform(world);
 
-					if (!_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb))
+					if (enableCulling && !_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb))
 					{
 						continue;
 					}
@@ -903,7 +984,9 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 
 // Phase 3: Cull lights, generate shadow light cameras.
 	{	PROFILER_MARKER("Phase 3");
-		
+
+		const auto& activeLights = BasicLightComponent::GetActiveComponents();
+
 		shadowCameras.clear();
 		// \todo map allocations -> lights, avoid realloc every frame
 		while (!shadowMapAllocations.empty())
@@ -914,14 +997,14 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 		}
 
 		culledLights.clear();
-		culledLights.reserve(Component_BasicLight::s_instances.size());
+		culledLights.reserve(activeLights.size());
 		culledShadowLights.clear();
-		culledShadowLights.reserve(Component_BasicLight::s_instances.size());
-		shadowMapAllocations.reserve(Component_BasicLight::s_instances.size());
-		for (Component_BasicLight* light : Component_BasicLight::s_instances)
+		culledShadowLights.reserve(activeLights.size());
+		shadowMapAllocations.reserve(activeLights.size());
+		for (BasicLightComponent* light : activeLights)
 		{
-			Node* sceneNode = light->getNode();
-			if (!sceneNode->isActive() || light->m_colorBrightness.w <= 0.0f)
+			const SceneNode* sceneNode = light->getParentNode();
+			if (light->m_colorBrightness.w <= 0.0f)
 			{
 				continue;
 			}
@@ -939,19 +1022,19 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 				}
 				shadowMapAllocations.push_back(shadowMap);
 
-				const vec3 lightPosition = sceneNode->getWorldPosition();
-				const vec3 lightDirection = sceneNode->getWorldMatrix()[2].xyz();
+				const vec3 lightPosition = sceneNode->getPosition();
+				const vec3 lightDirection = sceneNode->getForward();
 
 				// \todo generate shadow camera + matrix
 				Camera& shadowCamera = shadowCameras.push_back();
-				
+
 				switch (light->m_type)
 				{
 					default: break;
-					case Component_BasicLight::Type_Direct:
+					case BasicLightComponent::Type_Direct:
 					{
 						const vec3 shadowSceneOrigin = shadowSceneBounds.getOrigin();
-						
+
 						shadowCamera.setOrtho(1.0f, -1.0f, 1.0f, -1.0f, 0.0f, 1.0f);
 						shadowCamera.m_world = LookAt(shadowSceneOrigin - lightDirection, shadowSceneOrigin);
 						shadowCamera.update();
@@ -992,16 +1075,16 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 							0.0f,     0.0f,    scale.z, bias.z,
 							0.0f,     0.0f,    0.0f,    1.0f
 							);
-						
+
 						shadowCamera.setProj(cropMatrix * shadowCamera.m_proj, shadowCamera.m_projFlags);
 						shadowCamera.updateView();
-	
+
 						//AppSample3d::DrawFrustum(shadowCamera.m_worldFrustum);
 
 						break;
 					}
-					case Component_BasicLight::Type_Spot:
-					{						
+					case BasicLightComponent::Type_Spot:
+					{
 						shadowCamera.setPerspective(Radians(light->m_coneOuterAngle) * 2.0f, 1.0f, 0.02f, light->m_radius);
 						shadowCamera.m_world = LookAt(lightPosition, lightPosition + lightDirection);
 						shadowCamera.update();
@@ -1010,10 +1093,10 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 
 						break;
 					}
-					
+
 				};
 
-				// \todo apply uv scale/bias to proj matrix				
+				// \todo apply uv scale/bias to proj matrix
 				shadowCamera.updateGpuBuffer();
 
 				culledShadowLights.push_back(light);
@@ -1030,9 +1113,9 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 
 		lightInstances.clear();
 		lightInstances.reserve(culledLights.size());
-		for (Component_BasicLight* light : culledLights)
+		for (BasicLightComponent* light : culledLights)
 		{
-			mat4 world = light->getNode()->getWorldMatrix();
+			const mat4 world = light->getParentNode()->getWorld();
 
 			LightInstance& lightInstance = lightInstances.push_back();
 			lightInstance.position       = vec4(world[3].xyz(), (float)light->m_type);
@@ -1053,16 +1136,16 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 		shadowLightInstances.reserve(culledShadowLights.size());
 		for (size_t i = 0; i < culledShadowLights.size(); ++i)
 		{
-			const Component_BasicLight* light = culledShadowLights[i];
+			const BasicLightComponent* light = culledShadowLights[i];
 			const ShadowAtlas::ShadowMap* shadowMap = (ShadowAtlas::ShadowMap*)shadowMapAllocations[i];
 			FRM_ASSERT(shadowMap != nullptr);
-			mat4 world = light->getNode()->getWorldMatrix();
+			const mat4 world = light->getParentNode()->getWorld();
 
 			ShadowLightInstance& shadowLightInstance = shadowLightInstances.push_back();
 			shadowLightInstance.position             = vec4(world[3].xyz(), (float)light->m_type);
 			shadowLightInstance.direction            = vec4(normalize(world[2].xyz()), 0.0f);
 			shadowLightInstance.color                = vec4(light->m_colorBrightness.xyz() * light->m_colorBrightness.w, light->m_colorBrightness.w);
-			
+
 			shadowLightInstance.invRadius2           = 1.0f / (light->m_radius * light->m_radius);
 
 			const float cosOuter                     = cosf(Radians(light->m_coneOuterAngle));
@@ -1094,11 +1177,10 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 			const Camera& shadowCamera = shadowCameras[i];
 			DrawCallMap& drawCallMap = shadowDrawCalls.push_back();
 
-			for (Component_BasicRenderable* renderable : shadowRenderables)
+			for (BasicRenderableComponent* renderable : shadowRenderables)
 			{
-				Node* sceneNode = renderable->getNode();
-				mat4 world = sceneNode->getWorldMatrix();
-				
+				const mat4 world = renderable->m_world;
+
 				int submeshCount = Min((int)renderable->m_materials.size(), renderable->m_mesh->getSubmeshCount());
 				for (int submeshIndex = 0; submeshIndex < submeshCount; ++submeshIndex)
 				{
@@ -1158,16 +1240,15 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 			UpdateDrawCalls(drawCallMap);
 		}
 	}
-	
+
 }
 
-void BasicRenderer::addDrawCall(const Component_BasicRenderable* _renderable, int _submeshIndex, DrawCallMap& map_)
+void BasicRenderer::addDrawCall(const BasicRenderableComponent* _renderable, int _submeshIndex, DrawCallMap& map_)
 {
-	const Node* sceneNode = _renderable->getNode();
 	const BasicMaterial* material = _renderable->m_materials[_submeshIndex];
 	const Mesh* mesh = _renderable->m_mesh;
 
-	uint64 drawCallKey = 0;	
+	uint64 drawCallKey = 0;
 	drawCallKey = BitfieldInsert(drawCallKey, (uint64)material->getIndex(), 40, 24);
 	drawCallKey = BitfieldInsert(drawCallKey, (uint64)mesh->getIndex(),     16, 24);
 	drawCallKey = BitfieldInsert(drawCallKey, (uint64)_submeshIndex,        16, 0);
@@ -1178,7 +1259,7 @@ void BasicRenderer::addDrawCall(const Component_BasicRenderable* _renderable, in
 	drawCall.submeshIndex        = _submeshIndex;
 
 	DrawInstance& drawInstance   = drawCall.instanceData.push_back();
-	drawInstance.world           = sceneNode->getWorldMatrix();
+	drawInstance.world           = _renderable->m_world;
 	drawInstance.prevWorld       = _renderable->m_prevWorld;
 	drawInstance.colorAlpha      = _renderable->m_colorAlpha;
 	drawInstance.materialIndex   = _renderable->m_materials[_submeshIndex]->getIndex();
@@ -1251,16 +1332,17 @@ void BasicRenderer::updateImageLightInstances()
 {
 	PROFILER_MARKER_CPU("updateImageLightInstances");
 
-	// \todo need a separate system for this, see Component_ImageLight
+	// \todo need a separate system for this, see ImageLightComponent
 
-	FRM_ASSERT(Component_ImageLight::s_instances.size() <= 1); // only 1 image light is currently supported
-	
+	const auto& activeImageLights = ImageLightComponent::GetActiveComponents();
+	FRM_ASSERT(activeImageLights.size() <= 1); // only 1 image light is currently supported
+
 	imageLightInstances.clear();
-	imageLightInstances.reserve(Component_ImageLight::s_instances.size());
-	for (Component_ImageLight* light : Component_ImageLight::s_instances)
+	imageLightInstances.reserve(activeImageLights.size());
+	for (ImageLightComponent* light : activeImageLights)
 	{
-		Node* sceneNode = light->getNode();
-		if (!sceneNode->isActive() || light->m_brightness <= 0.0f)
+		const SceneNode* sceneNode = light->getParentNode();
+		if (light->m_brightness <= 0.0f)
 		{
 			continue;
 		}
@@ -1309,7 +1391,7 @@ void BasicRenderer::initBRDFLut()
 		FRM_ASSERT(false);
 		return;
 	}
-	
+
 	GlContext* ctx = GlContext::GetCurrent();
 	ctx->setShader(sh);
 	ctx->bindImage("txBRDFLut", txBRDFLut, GL_WRITE_ONLY);

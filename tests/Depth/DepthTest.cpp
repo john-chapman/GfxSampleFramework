@@ -8,9 +8,9 @@
 #include <frm/core/Mesh.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Properties.h>
-#include <frm/core/Scene.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
+#include <frm/core/world/World.h>
 
 #include <imgui/imgui.h>
 
@@ -81,7 +81,7 @@ bool DepthTest::update()
 		return false;
 	}
 
-	Camera* drawCamera = Scene::GetDrawCamera();
+	Camera* drawCamera = World::GetDrawCamera();
 
 	if (ImGui::Combo("Depth Format", &m_depthFormat,
 		"DepthFormat_16\0"
@@ -131,7 +131,7 @@ bool DepthTest::update()
 void DepthTest::draw()
 {
 	GlContext* ctx = GlContext::GetCurrent();
-	Camera* drawCamera = Scene::GetDrawCamera();
+	Camera* drawCamera = World::GetDrawCamera();
 
 	{	PROFILER_MARKER("Depth Only");
 

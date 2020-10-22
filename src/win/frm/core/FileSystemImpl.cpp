@@ -209,8 +209,11 @@ PathStr FileSystem::MakeRelative(const char* _path, int _root)
 
 	char tmpbuf[MAX_PATH];
 	char* tmp = tmpbuf;
- // PathRelativePathTo will fail if tmp and root don't share a common prefix
-	FRM_VERIFY(PathRelativePathTo(tmp, root, FILE_ATTRIBUTE_DIRECTORY, path, PathIsDirectory(path) ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL));
+	if (!PathRelativePathTo(tmp, root, FILE_ATTRIBUTE_DIRECTORY, path, PathIsDirectory(path) ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL))
+	{
+		// PathRelativePathTo will fail if tmp and root don't share a common prefix, in this case return the absolute path.
+		strcpy(tmp, path);
+	}
 	while (*tmp == '.' || *tmp == '\\' || *tmp == '/')
 	{
 		++tmp;

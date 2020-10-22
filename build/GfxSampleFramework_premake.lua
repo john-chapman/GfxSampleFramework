@@ -301,7 +301,8 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 				path .. "/**.h",
 				path .. "/**.hpp",
 				path .. "/**.c",
-				path .. "/**.cpp"
+				path .. "/**.cpp",
+				path .. "/**.inl"
 				})
 
 			filter { "action:vs*" }

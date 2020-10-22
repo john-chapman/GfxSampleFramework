@@ -15,6 +15,8 @@
 #include <imgui/imgui.h>
 
 #include <EASTL/utility.h>
+#include <EASTL/map.h>
+#include <EASTL/unordered_set.h>
 
 using namespace frm;
 
@@ -23,6 +25,14 @@ using namespace frm;
                                  TextureView
 
 *******************************************************************************/
+
+static eastl::map<const TextureView*, bool>* s_textureViewInstances;
+
+bool TextureView::CheckValid(const TextureView* _txView)
+{
+	return s_textureViewInstances && (s_textureViewInstances->find(_txView) != s_textureViewInstances->end());
+}
+
 TextureView::TextureView(Texture* _texture, Shader* _shader)
 	: m_texture(_texture)
 	, m_shader(_shader)
@@ -33,15 +43,24 @@ TextureView::TextureView(Texture* _texture, Shader* _shader)
 {
 	m_rgbaMask[0] = m_rgbaMask[1] = m_rgbaMask[2] = /*m_rgbaMask[3] = */true;
 	m_rgbaMask[3] = false; // alpha off by default
-	if (m_texture) {
+	if (m_texture)
+	{
 		m_size = vec2(_texture->getWidth(), _texture->getHeight());
 		//Texture::Use(m_texture);
 	}
+
+	if (!s_textureViewInstances)
+	{
+		s_textureViewInstances = new eastl::map<const TextureView*, bool>;
+	}
+	(*s_textureViewInstances)[this] = true;
 }
 
 TextureView::~TextureView()
 {
 	//Texture::Release(m_texture);
+
+	s_textureViewInstances->erase(this);
 }
 
 void TextureView::reset()

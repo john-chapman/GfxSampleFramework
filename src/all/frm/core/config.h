@@ -57,3 +57,8 @@
 #if !defined(FRM_NDC_Z_ZERO_TO_ONE) && !defined(FRM_NDC_Z_NEG_ONE_TO_ONE)
 	#define FRM_NDC_Z_ZERO_TO_ONE 1
 #endif
+
+// Control whether the framework logs unreleased resources on close.
+#if !defined(FRM_RESOURCE_WARN_UNRELEASED)
+	#define FRM_RESOURCE_WARN_UNRELEASED 0
+#endif

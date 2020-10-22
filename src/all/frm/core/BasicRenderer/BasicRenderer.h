@@ -18,10 +18,10 @@ namespace frm {
 ////////////////////////////////////////////////////////////////////////////////
 // BasicRenderer
 //
-// Basic scene renderer with a prepass for depth, normal, velocity. 
+// Basic scene renderer with a prepass for depth, normal, velocity.
 // See Component_BasicRenderable, Component_BasicLight, Component_ImageLight.
 //
-// - Velocity rendering uses the camera's current and previous projection 
+// - Velocity rendering uses the camera's current and previous projection
 //   matrices to extract and compensate for XY jitter.
 //
 // \todo
@@ -30,8 +30,8 @@ namespace frm {
 //   - Tile min/max, neighborhood velocities at lower precision?
 //   - Tile classification as per Jimenez.
 // - Memory consumption/perf issues: some redundant render targets are allocated
-//   to simplify the pipeline logic, there are also redundant calls to 
-//   GlContext::blitFramebuffer() for the same reason (which have a not 
+//   to simplify the pipeline logic, there are also redundant calls to
+//   GlContext::blitFramebuffer() for the same reason (which have a not
 //   insignificant cost).
 //
 // \todo VR
@@ -41,8 +41,10 @@ namespace frm {
 // - Write directly to the HMD backbuffer.
 // - Reprojection stereo for background (alternate the 'source' eye between frames?).
 ////////////////////////////////////////////////////////////////////////////////
-struct BasicRenderer
+class BasicRenderer
 {
+public:
+
 	enum class Flag
 	{
 		PostProcess,       // Enable default post processor (motion blur, tonemap). If disabled, txFinal must be written manually.
@@ -68,7 +70,7 @@ struct BasicRenderer
 
 	void setFlag(Flag _flag, bool _value);
 	bool getFlag(Flag _flag) const         { return flags.get(_flag); }
-	
+
 	enum Target_
 	{
 		Target_GBuffer0,                 // Normal, velocity.
@@ -103,7 +105,7 @@ struct BasicRenderer
 		Pass_Count
 	};
 	typedef uint64 Pass;
-	
+
 	std::function<void(Pass _pass, const Camera& _camera)> drawCallback;
 
 	AlignedBox      sceneBounds;                              // Bounding box for all renderables in the scene.
@@ -122,7 +124,7 @@ struct BasicRenderer
 	Buffer*         bfImageLights              = nullptr;     // Image light instance data.
 	Buffer*         bfPostProcessData	       = nullptr;     // Data for the post process shader.
 	ShadowAtlas*    shadowAtlas                = nullptr;     // Shadow map allocations.
-	
+
 	Shader*         shStaticVelocity           = nullptr;     // Velocity fixup for static objects (i.e. camera-only velocity).
 	Shader*         shVelocityMinMax           = nullptr;     // Generate tile min/max.
 	Shader*         shVelocityNeighborMax      = nullptr;     // Generate tile neighbor max.
@@ -131,13 +133,18 @@ struct BasicRenderer
 	Shader*         shFXAA                     = nullptr;     // FXAA shader.
 	Shader*         shTAAResolve               = nullptr;     // Resolve TAA.
 	Shader*         shDepthClear               = nullptr;     // Used to clear subregions of the depth buffer.
+	Shader*         shBloomDownsample          = nullptr;
+	Shader*         shBloomUpsample            = nullptr;
 
 	float           motionBlurTargetFps        = 60.0f;
 	int             motionBlurTileWidth        = 20;
 	float           taaSharpen                 = 0.4f;
 	ivec2           resolution                 = ivec2(-1);
 	bool            pauseUpdate                = false;
+	bool            enableCulling              = true;
 	bool            cullBySubmesh              = true;
+	float           bloomScale                 = -1.0f;
+	float           bloomBrightness            = 0.075f;
 	Flags           flags;
 
 private:
@@ -149,8 +156,8 @@ private:
 
 	Camera sceneCamera;
 	eastl::vector<Camera> shadowCameras;
-	
-	struct alignas(16) MaterialInstance 
+
+	struct alignas(16) MaterialInstance
 	{
 		vec4    baseColorAlpha = vec4(1.0f);
 		vec4    emissiveColor  = vec4(0.0f);
@@ -182,7 +189,7 @@ private:
 		} fields;
 		uint64 value;
 
-		operator uint64() const { return value; } 
+		operator uint64() const { return value; }
 	};
 	using ShaderMap = eastl::unordered_map<ShaderMapKey, Shader*>;
 	ShaderMap shaderMap;
@@ -212,18 +219,18 @@ private:
 		eastl::vector<mat4>         skinningData;
 	};
 	using DrawCallMap = eastl::unordered_map<uint64, DrawCall>;
-	DrawCallMap sceneDrawCalls;
+	DrawCallMap                sceneDrawCalls;
 	eastl::vector<DrawCallMap> shadowDrawCalls;
-	eastl::vector<void*> shadowMapAllocations; // \todo encapsule draw call map, camera and shadow allocation
-		
-	eastl::vector<Component_BasicRenderable*> culledSceneRenderables;
-	eastl::vector<Component_BasicRenderable*> shadowRenderables;
-	eastl::vector<Component_BasicLight*>      culledLights;
-	eastl::vector<Component_BasicLight*>      culledShadowLights;
+	eastl::vector<void*>       shadowMapAllocations; // \todo encapsule draw call map, camera and shadow allocation
+
+	eastl::vector<BasicRenderableComponent*> culledSceneRenderables;
+	eastl::vector<BasicRenderableComponent*> shadowRenderables;
+	eastl::vector<BasicLightComponent*>      culledLights;
+	eastl::vector<BasicLightComponent*>      culledShadowLights;
 
 	void updateDrawCalls(Camera* _cullCamera);
 
-	void addDrawCall(const Component_BasicRenderable* _renderable, int _submeshIndex, DrawCallMap& map_);
+	void addDrawCall(const BasicRenderableComponent* _renderable, int _submeshIndex, DrawCallMap& map_);
 	void clearDrawCalls(DrawCallMap& map_);
 	void bindAndDraw(const DrawCall& _drawCall);
 
@@ -263,6 +270,7 @@ private:
 
 	struct alignas(16) PostProcessData
 	{
+		vec4   bloomWeights    = vec4(0.2f);
 		float  motionBlurScale = 0.0f;     // current fps / target fps
 		uint32 frameIndex      = 0;
 	};

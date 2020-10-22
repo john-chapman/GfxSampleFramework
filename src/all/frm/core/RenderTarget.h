@@ -16,7 +16,7 @@ struct RenderTarget
 	RenderTarget() = default;
 	~RenderTarget();
 
-	bool init(int _width, int _height, GLenum _format, GLenum _wrap, GLenum _filter, int _bufferCount);
+	bool init(int _width, int _height, GLenum _format, GLenum _wrap, GLenum _filter, int _bufferCount, int _mipCount = 1);
 	void shutdown();
 
 	void setName(const char* _name);

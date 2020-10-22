@@ -1,3 +1,4 @@
+#if 0
 #include "XForm.h"
 
 #include <frm/core/log.h>
@@ -770,3 +771,5 @@ FRM_FACTORY_REGISTER_DEFAULT(XForm, XForm_VRGamepad);
 XFORM_REGISTER_CALLBACK(XForm::Reset);
 XFORM_REGISTER_CALLBACK(XForm::RelativeReset);
 XFORM_REGISTER_CALLBACK(XForm::Reverse);
+
+#endif

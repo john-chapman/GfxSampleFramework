@@ -229,12 +229,16 @@ void FileSystem::SetExtension(PathStr& _path_, const char* _ext)
 		++_ext;
 	}
 	const char* ext = FindExtension(_path_.c_str());
-	ext = ext ? ext : _path_.end();
-	if (_stricmp(_ext, ext) == 0)
+	if (ext)
 	{
-		return;
+		ext = --ext; // remove '.'
 	}
-	_path_.setLength(ext - _path_.begin() - 1); // -1 for '.'
+	else
+	{
+		ext = _path_.end();
+	}
+
+	_path_.setLength(ext - _path_.begin());
 	_path_.appendf(".%s", _ext);
 }
 

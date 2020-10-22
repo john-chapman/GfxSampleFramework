@@ -34,6 +34,29 @@ public:
 	bool isMaximized() const;
 
 	void getWindowRelativeCursor(int* x_, int* y_) const;
+
+	enum CursorType_
+	{
+		CursorType_Arrow,
+		CursorType_Cross,
+		CursorType_Hand,
+		CursorType_Text,
+		CursorType_Busy,
+
+		CursorType_BusyArrow,
+		CursorType_HelpArrow,
+
+		CursorType_SizeNS,
+		CursorType_SizeEW,
+		CursorType_SizeNESW,
+		CursorType_SizeNWSE,
+
+		CursorType_Count
+	};
+	typedef int CursorType;
+	void       setCursorType(CursorType _cursorType) { m_cursorType = _cursorType; }
+	CursorType getCursorType() const                 { return m_cursorType; }
+	
 	
 	// Callbacks should return true if the event was consumed.
 	typedef bool (OnShow)       (Window* _window);
@@ -65,8 +88,8 @@ public:
 		OnFileDrop*    m_OnFileDrop       = nullptr;
 	};
 
-	void setCallbacks(const Callbacks& _callbacks) { m_callbacks = _callbacks; }
-	const Callbacks& getCallbacks() const          { return m_callbacks; }
+	void             setCallbacks(const Callbacks& _callbacks)  { m_callbacks = _callbacks; }
+	const Callbacks& getCallbacks() const                       { return m_callbacks; }
 	
 	// Return a list of files dropped onto the window during this frame.
 	// It is may be useful to call this function instead of using the OnFileDrop callback in cases where the application needs
@@ -87,6 +110,7 @@ private:
 	int         m_width         = -1;
 	int         m_height        = -1;
 	const char* m_title         = "";
+	CursorType  m_cursorType    = CursorType_Arrow;
 	Callbacks   m_callbacks;
 	FileList    m_fileDropList;
 	

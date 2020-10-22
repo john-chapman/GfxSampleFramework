@@ -1,14 +1,14 @@
 #include "AnimationTest.h"
 
 #include <frm/core/frm.h>
-#include <frm/core/BasicMaterial.h>
-#include <frm/core/BasicRenderer.h>
-#include <frm/core/Component.h>
+#include <frm/core/BasicRenderer/BasicMaterial.h>
+#include <frm/core/BasicRenderer/BasicRenderer.h>
+#include <frm/core/BasicRenderer/BasicRenderableComponent.h>
 #include <frm/core/FileSystem.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/Properties.h>
-#include <frm/core/Scene.h>
 #include <frm/core/SkeletonAnimation.h>
+#include <frm/core/world/World.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
@@ -44,10 +44,11 @@ bool AnimationTest::init(const frm::ArgList& _args)
 
 	m_material = BasicMaterial::Create();
 	
-	m_node = m_scene->createNode(Node::Type_Object);
-	m_node->setName("#AnimationTest");
-	m_node->setActive(true);
-	m_node->setDynamic(true);
+	World* world = World::GetCurrent();
+	Scene* scene = world->getRootScene();
+	m_sceneNode = scene->createTransientNode("#AnimationTest");
+	m_renderable = (BasicRenderableComponent*)Component::Create(StringHash("BasicRenderableComponent"));
+	m_sceneNode->addComponent(m_renderable);
 
 	m_world = TransformationMatrix(vec3(0.0f), RotationQuaternion(vec3(1.0f, 0.0f, 0.0f), Radians(-90.0f)), vec3(0.01f));
 
@@ -135,7 +136,7 @@ bool AnimationTest::update()
 			framePose.draw();
 		Im3d::PopMatrix();
 	}
-	m_node->setWorldMatrix(m_world);
+	m_sceneNode->setWorld(m_world);
 
 	if (ImGui::TreeNode("Material"))
 	{
@@ -155,10 +156,12 @@ bool AnimationTest::update()
 
 void AnimationTest::draw()
 {
-	Camera* drawCamera = Scene::GetDrawCamera();
-	Camera* cullCamera = Scene::GetCullCamera();
+	Camera* drawCamera = World::GetDrawCamera();
+	Camera* cullCamera = World::GetCullCamera();
 
-	m_basicRenderer->draw((float)getDeltaTime(), drawCamera, cullCamera);
+	const float dt = (float)getDeltaTime();
+	m_basicRenderer->nextFrame(dt, drawCamera, cullCamera);
+	m_basicRenderer->draw(dt, drawCamera, cullCamera);
 
 	AppBase::draw();
 }
@@ -172,12 +175,7 @@ bool AnimationTest::initMesh()
 		m_mesh = Mesh::Create(m_meshPath.c_str());
 		if (CheckResource(m_mesh))
 		{
-			if (!m_renderable)
-			{
-				m_renderable = Component_BasicRenderable::Create(m_mesh, m_material);
-				m_node->addComponent(m_renderable);
-			}
-			m_renderable->m_mesh = m_mesh;
+			//m_renderable->m_mesh = m_mesh;
 
 			return true;
 		}

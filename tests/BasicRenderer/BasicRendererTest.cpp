@@ -1,7 +1,7 @@
 #include "BasicRendererTest.h"
 
 #include <frm/core/frm.h>
-#include <frm/core/BasicRenderer.h>
+#include <frm/core/BasicRenderer/BasicRenderer.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Camera.h>
 #include <frm/core/Framebuffer.h>
@@ -9,9 +9,9 @@
 #include <frm/core/Mesh.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Properties.h>
-#include <frm/core/Scene.h>
 #include <frm/core/Shader.h>
 #include <frm/core/Texture.h>
+#include <frm/core/world/World.h>
 
 #include <imgui/imgui.h>
 
@@ -69,8 +69,8 @@ bool BasicRendererTest::update()
 
 void BasicRendererTest::draw()
 {
-	Camera* drawCamera = Scene::GetDrawCamera();
-	Camera* cullCamera = Scene::GetCullCamera();
+	Camera* drawCamera = World::GetDrawCamera();
+	Camera* cullCamera = World::GetCullCamera();
 
 	m_basicRenderer->nextFrame((float)getDeltaTime(), drawCamera, cullCamera);
 	m_basicRenderer->draw((float)getDeltaTime(), drawCamera, cullCamera);

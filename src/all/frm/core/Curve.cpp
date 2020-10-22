@@ -610,7 +610,7 @@ bool CurveEditor::drawEdit(const vec2& _sizePixels, float _t, int _flags)
 			delta.y = -delta.y;
 			m_regionBeg -= delta;
 			m_isDragging = true;
-			ImGui::CfrmureMouseFromApp();
+			ImGui::CaptureMouseFromApp();
 		} else {
 			m_isDragging = false;
 		}
@@ -814,7 +814,7 @@ bool CurveEditor::editCurve()
 					}
 					continue;
 				}
-				if (isInside(mousePos, p, kSizeSelectPoint) && !ImGui::IsMouseDragging()) {
+				if (isInside(mousePos, p, kSizeSelectPoint) && !ImGui::IsMouseDragging(0)) {
 					m_dragOffset = p - mousePos;
 					m_selectedEndpoint = m_dragEndpoint = i;
 					m_dragComponent = j;
@@ -853,7 +853,7 @@ bool CurveEditor::editCurve()
 			}
 
 			m_selectedEndpoint = m_dragEndpoint = curve.move(m_dragEndpoint, (Curve::Component)m_dragComponent, newPos);
-			ImGui::CfrmureMouseFromApp();
+			ImGui::CaptureMouseFromApp();
 
 		} else {
 		 // mouse just released

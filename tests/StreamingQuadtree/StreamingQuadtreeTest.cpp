@@ -2,8 +2,8 @@
 
 #include <frm/core/frm.h>
 #include <frm/core/Camera.h>
-#include <frm/core/Scene.h>
 #include <frm/core/StreamingQuadtree.h>
+#include <frm/core/world/World.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
@@ -47,7 +47,7 @@ bool StreamingQuadtreeTest::update()
 		return false;
 	}
 
-	Camera* cullCamera = Scene::GetCullCamera();
+	Camera* cullCamera = World::GetCullCamera();
 		
 	static mat4 quadtreeToWorld = TransformationMatrix(vec3(0.0f), RotationQuaternion(vec3(1.0f, 0.0f, 0.0f), Radians(90.0f)), vec3(16.0f, 16.0f, 1.0f));
 	Im3d::Gizmo("quadtreeToWorld", (float*)&quadtreeToWorld);

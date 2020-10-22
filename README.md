@@ -1,4 +1,4 @@
-OpenGL-based application framework for graphics samples, prototyping, etc. 
+OpenGL-based application framework for graphics samples, prototyping, etc.
 
 **This project is very much WIP and therefore frequently subject to breaking changes!**
 
@@ -30,12 +30,13 @@ Embedded dependencies:
 - [stb](https://github.com/nothings/stb)
 
 ## Change Log ##
+- `2020-10-22 (v0.32):` Major refactor of the scene/component system, updated ImGui.
 - `2020-04-13 (v0.31):` Version bump after merging PhysX integration, basic renderer implementation + properites refactor.
-- `2019-10-15 (v0.30):` Subsumed ApplicationTools.
+- `2019-10-15 (v0.30):` Subsumed ApplicationTools into GfxSampleFramework.
 - `2019-07-03 (v0.20):` File: fixed setData/appendData when _data is nullptr.
 - `2019-03-31 (v0.19):` String: removed internal use of `strncpy` to support strings which contain internal null chars.
 - `2018-09-15 (v0.18):` Compile fixes for GNU. Removed `Ini`. Renamed `static_initializer` -> `StaticInitializer`.
-- `2018-09-07 (v0.17):` Improved `static_initializer` to allow use of private static functions for init/shutdown. 
+- `2018-09-07 (v0.17):` Improved `static_initializer` to allow use of private static functions for init/shutdown.
 - `2018-09-07 (v0.16):` `FileSystem` supports arbitrary search paths (roots), removed `RootType` enum.
 - `2018-07-12 (v0.15):` Rewrite of the `Json` implementation.
 - `2018-04-17 (v0.14):` `File::Read` sleep/retry on sharing violation (Windows).

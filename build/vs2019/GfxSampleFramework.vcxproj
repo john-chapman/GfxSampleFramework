@@ -55,7 +55,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;FRM_MODULE_PHYSICS=0;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_PHYSICS=0;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;FRM_DEBUG;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
@@ -77,7 +77,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>NDEBUG;GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_VR=0;FRM_MODULE_PHYSICS=0;FRM_MODULE_CORE=1;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;GLEW_STATIC=1;FRM_MODULE_AUDIO=0;FRM_MODULE_PHYSICS=0;FRM_MODULE_CORE=1;FRM_MODULE_VR=0;EA_COMPILER_NO_EXCEPTIONS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\src\all;..\..\src\win;..\..\src\all\frm\core\extern;..\..\src\win\frm\core\extern;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Full</Optimization>
@@ -106,12 +106,15 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\AppSample.h" />
     <ClInclude Include="..\..\src\all\frm\core\AppSample3d.h" />
     <ClInclude Include="..\..\src\all\frm\core\ArgList.h" />
-    <ClInclude Include="..\..\src\all\frm\core\BasicMaterial.h" />
-    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer.h" />
+    <ClInclude Include="..\..\src\all\frm\core\Base64.h" />
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\BasicLightComponent.h" />
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\BasicMaterial.h" />
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\BasicRenderableComponent.h" />
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\BasicRenderer.h" />
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\ImageLightComponent.h" />
     <ClInclude Include="..\..\src\all\frm\core\BitFlags.h" />
     <ClInclude Include="..\..\src\all\frm\core\Buffer.h" />
     <ClInclude Include="..\..\src\all\frm\core\Camera.h" />
-    <ClInclude Include="..\..\src\all\frm\core\Component.h" />
     <ClInclude Include="..\..\src\all\frm\core\Curve.h" />
     <ClInclude Include="..\..\src\all\frm\core\Factory.h" />
     <ClInclude Include="..\..\src\all\frm\core\File.h" />
@@ -136,7 +139,8 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\RenderTarget.h" />
     <ClInclude Include="..\..\src\all\frm\core\Resource.h" />
     <ClInclude Include="..\..\src\all\frm\core\RingBuffer.h" />
-    <ClInclude Include="..\..\src\all\frm\core\Scene.h" />
+    <ClInclude Include="..\..\src\all\frm\core\Serializable.h" />
+    <ClInclude Include="..\..\src\all\frm\core\Serializable.inl" />
     <ClInclude Include="..\..\src\all\frm\core\Serializer.h" />
     <ClInclude Include="..\..\src\all\frm\core\Shader.h" />
     <ClInclude Include="..\..\src\all\frm\core\ShadowAtlas.h" />
@@ -300,9 +304,9 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imgui.h" />
     <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imgui_ext.h" />
     <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imgui_internal.h" />
-    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\stb_rect_pack.h" />
-    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\stb_textedit.h" />
-    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\stb_truetype.h" />
+    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imstb_truetype.h" />
     <ClInclude Include="..\..\src\all\frm\core\extern\json.hpp" />
     <ClInclude Include="..\..\src\all\frm\core\extern\linalg\linalg.h" />
     <ClInclude Include="..\..\src\all\frm\core\extern\lodepng.h" />
@@ -385,6 +389,13 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClInclude Include="..\..\src\all\frm\core\platform.h" />
     <ClInclude Include="..\..\src\all\frm\core\rand.h" />
     <ClInclude Include="..\..\src\all\frm\core\types.h" />
+    <ClInclude Include="..\..\src\all\frm\core\world\World.h" />
+    <ClInclude Include="..\..\src\all\frm\core\world\WorldEditor.h" />
+    <ClInclude Include="..\..\src\all\frm\core\world\components\CameraComponent.h" />
+    <ClInclude Include="..\..\src\all\frm\core\world\components\Component.h" />
+    <ClInclude Include="..\..\src\all\frm\core\world\components\FreeLookComponent.h" />
+    <ClInclude Include="..\..\src\all\frm\core\world\components\LookAtComponent.h" />
+    <ClInclude Include="..\..\src\all\frm\core\world\components\XFormComponent.h" />
     <ClInclude Include="..\..\src\win\frm\core\extern\renderdoc_app.h" />
     <ClInclude Include="..\..\src\win\frm\core\win.h" />
   </ItemGroup>
@@ -393,11 +404,14 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\AppSample.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\AppSample3d.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\ArgList.cpp" />
-    <ClCompile Include="..\..\src\all\frm\core\BasicMaterial.cpp" />
-    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\Base64.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\BasicLightComponent.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\BasicMaterial.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\BasicRenderableComponent.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\BasicRenderer.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\ImageLightComponent.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Buffer.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Camera.cpp" />
-    <ClCompile Include="..\..\src\all\frm\core\Component.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Curve.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\File.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\FileSystem.cpp" />
@@ -419,7 +433,6 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\RenderNodes.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\RenderTarget.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Resource.cpp" />
-    <ClCompile Include="..\..\src\all\frm\core\Scene.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Serializer.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\Shader.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\ShadowAtlas.cpp" />
@@ -453,6 +466,7 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\extern\imgui\imgui_demo.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\extern\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\extern\imgui\imgui_ext.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\extern\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\extern\lodepng.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\lapi.c" />
     <ClCompile Include="..\..\src\all\frm\core\extern\lua\lauxlib.c" />
@@ -496,6 +510,13 @@ if not exist "$(ProjectDir)../../bin/extern" mklink /j "$(ProjectDir)../../bin/e
     <ClCompile Include="..\..\src\all\frm\core\memory.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\rand.cpp" />
     <ClCompile Include="..\..\src\all\frm\core\types.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\world\World.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\world\WorldEditor.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\world\components\CameraComponent.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\world\components\Component.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\world\components\FreeLookComponent.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\world\components\LookAtComponent.cpp" />
+    <ClCompile Include="..\..\src\all\frm\core\world\components\XFormComponent.cpp" />
     <ClCompile Include="..\..\src\win\frm\core\FileImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\core\FileSystemImpl.cpp" />
     <ClCompile Include="..\..\src\win\frm\core\GlContextImpl.cpp" />

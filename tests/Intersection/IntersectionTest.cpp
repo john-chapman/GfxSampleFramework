@@ -4,7 +4,7 @@
 #include <frm/core/geom.h>
 #include <frm/core/Camera.h>
 #include <frm/core/Properties.h>
-#include <frm/core/Scene.h>
+#include <frm/core/world/World.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
@@ -56,7 +56,7 @@ bool IntersectionTest::update()
 		return false;
 	}
 
-	Camera* cullCamera = Scene::GetCullCamera();
+	Camera* cullCamera = World::GetCullCamera();
 
 	Im3d::PushDrawState();
 

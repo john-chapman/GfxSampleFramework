@@ -441,15 +441,30 @@ Audio::Audio()
 	paramsOut.device = Pa_GetDefaultOutputDevice();
 	paramsOut.sampleFormat = paFloat32;
 	paramsOut.suggestedLatency = m_deviceOut->m_outputLatency;
-	paCheckError(Pa_OpenStream(&m_streamOut, nullptr, &paramsOut, m_deviceOut->m_defaultFrameRate, 256, paNoFlag, (PaStreamCallback*)&StreamCallbackOut, this));
-	paCheckError(Pa_StartStream(m_streamOut));
+
+	PaError streamErr = Pa_OpenStream(&m_streamOut, nullptr, &paramsOut, m_deviceOut->m_defaultFrameRate, 256, paNoFlag, (PaStreamCallback*)&StreamCallbackOut, this);
+	if (streamErr != paNoError)
+	{
+		FRM_LOG_ERR("PortAudio error: Failed to open stream (%s)", Pa_GetErrorText(streamErr));
+	}
+	else
+	{
+		streamErr = Pa_StartStream(m_streamOut);
+		if (streamErr != paNoError)
+		{
+			FRM_LOG_ERR("PortAudio error: Failed to start stream (%s)", Pa_GetErrorText(streamErr));
+		}
+	}
 
 	AudioData::SetDefaultFormat((int)m_deviceOut->m_defaultFrameRate, DataType_Float32);
 }
 
 Audio::~Audio()
 {
-	paCheckError(Pa_AbortStream(m_streamOut));
+	if (m_streamOut)
+	{
+		paCheckError(Pa_AbortStream(m_streamOut));
+	}
 	paCheckError(Pa_Terminate());
 
 	m_deviceOut = nullptr;

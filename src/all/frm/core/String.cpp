@@ -315,10 +315,11 @@ void StringBase::toUpperCase()
 
 void StringBase::setLength(uint _length)
 {
-	if (_length > m_capacity) {
+	if ((_length + 1) > m_capacity) {
 		setCapacity(_length + 1);
 	}
 	m_length = _length;
+	m_buf[_length] = '\0';
 }
 void StringBase::setCapacity(uint _capacity)
 {

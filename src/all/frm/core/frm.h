@@ -1,6 +1,6 @@
 #pragma once
 
-#define FRM_VERSION "0.31"
+#define FRM_VERSION "0.32"
 
 #include <frm/core/config.h>
 
@@ -99,6 +99,17 @@ inline constexpr unsigned ArrayCount(const tType (&)[kCount]) { return kCount; }
 
 #define FRM_STATIC_ASSERT(e) { (void)sizeof(char[(e) ? 1 : -1]); }
 
+// Hack approach to forcing code which the linker decides is unreachable to be included.
+// In the relevant .cpp declare FRM_FORCE_LINK_REF(Name).
+// In frm .cpp decalre FRM_FORCE_LINK(Name).
+#define FRM_FORCE_LINK_REF(_name) int _ForceLinkRef_ ## _name;
+#define FRM_FORCE_LINK(_name) \
+	void _ForceLink_ ## _name(void) \
+	{ \
+		extern int _ForceLinkRef_ ## _name; \
+		++_ForceLinkRef_ ## _name; \
+	}
+
 #include <frm/core/types.h>
 
 namespace frm {
@@ -107,13 +118,16 @@ namespace frm {
 	class  AppSample;
 	class  AppSample3d;
 	class  BasicMaterial;
-	struct BasicRenderer;
+	class  BasicRenderer;
+		class BasicRenderableComponent;
+		class BasicLightComponent;
+		class ImageLightComponent;
 	class  Buffer;
 	class  Camera;
 	class  Component;
-		struct Component_BasicRenderable;
-		struct Component_BasicLight;
-		struct Component_EnvironmentLight;
+		class CameraComponent;
+		class FreeLookComponent;
+		class LookAtComponent;
 	class  Curve;
 	class  CurveEditor;
 	class  CurveGradient;
@@ -129,7 +143,6 @@ namespace frm {
 	class  MeshData;
 	class  MeshDesc;
 	class  Mouse;
-	class  Node;
 	class  Property;
 	class  PropertyGroup;
 	class  Properties;
@@ -139,6 +152,7 @@ namespace frm {
 	class  ProxyMouse;
 	struct RenderTarget;
 	class  Scene;
+	class  SceneNode;
 	class  Shader;
 	class  ShaderDesc;
 	class  ShadowAtlas;
@@ -157,7 +171,11 @@ namespace frm {
 	struct Viewport;
 	class  VirtualWindow;
 	class  Window;
+	class  World;
+	class  WorldEditor;
+	class  XFormComponent;
 	class  XForm;
+		class XFormSpin;
 
 	#if FRM_MODULE_AUDIO
 		class Audio;
@@ -169,7 +187,7 @@ namespace frm {
 		class  PhysicsConstraint;
 		class  PhysicsMaterial;
 		class  PhysicsGeometry;
-		struct Component_Physics;
+		struct PhysicsComponent;
 	#endif
 
 	#if FRM_MODULE_VR

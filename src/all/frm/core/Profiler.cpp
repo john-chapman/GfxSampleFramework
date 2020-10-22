@@ -32,7 +32,7 @@ using namespace frm;
 
 // \todo make these configurable
 static const int kFrameCount                 = 16;  // must be at least 2 (can't visualize the current write frame)
-static const int kMaxTotalMarkersPerFrame    = 1024;
+static const int kMaxTotalMarkersPerFrame    = 4096;
 static const int kValueHistoryCount          = 512;
 
 namespace {

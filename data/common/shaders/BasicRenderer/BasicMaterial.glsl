@@ -19,7 +19,7 @@ _VERTEX_IN(3, vec2, aTexcoord);
 #ifdef Geometry_SkinnedMesh
 	_VERTEX_IN(4, vec4,  aBoneWeights);
 	_VERTEX_IN(5, uvec4, aBoneIndices);
-	
+
 	layout(std430) restrict readonly buffer bfSkinning
 	{
 		mat4 uSkinning[];
@@ -35,7 +35,7 @@ _VERTEX_IN(3, vec2, aTexcoord);
 		_VARYING(smooth, vec3, vTangentV);
 		_VARYING(smooth, vec3, vBitangentV);
 	#endif
-	
+
 	struct DrawInstance
 	{
 		mat4 world;
@@ -68,7 +68,7 @@ layout(std430) restrict readonly buffer bfMaterials
 };
 
 #if defined(Pass_Scene) && defined(FRAGMENT_SHADER)
-	
+
 	#include "shaders/BasicRenderer/Lighting.glsl"
 	#include "shaders/BasicRenderer/Shadow.glsl"
 
@@ -117,7 +117,7 @@ void main()
 		#ifdef Geometry_SkinnedMesh
 		{
 			const uint offset = uDrawInstances[gl_InstanceID].skinningOffset;
-			const mat4 boneMatrix = 
+			const mat4 boneMatrix =
 				uSkinning[aBoneIndices.x * 2 + offset] * aBoneWeights.x +
 				uSkinning[aBoneIndices.y * 2 + offset] * aBoneWeights.y +
 				uSkinning[aBoneIndices.z * 2 + offset] * aBoneWeights.z +
@@ -125,7 +125,7 @@ void main()
 				;
 			positionW = TransformPosition(boneMatrix, positionW);
 			#ifdef Pass_GBuffer
-				const mat4 prevBoneMatrix = 
+				const mat4 prevBoneMatrix =
 					uSkinning[aBoneIndices.x * 2 + offset + 1] * aBoneWeights.x +
 					uSkinning[aBoneIndices.y * 2 + offset + 1] * aBoneWeights.y +
 					uSkinning[aBoneIndices.z * 2 + offset + 1] * aBoneWeights.z +
@@ -137,12 +137,12 @@ void main()
 			#endif
 		}
 		#endif
-		
+
 		const mat4 world = uDrawInstances[gl_InstanceID].world;
 		positionW = TransformPosition(world, positionW);
 		normalW = TransformDirection(world, normalW);
 		tangentW  = TransformDirection(world, tangentW);
-		gl_Position = uCamera.m_viewProj * vec4(positionW, 1.0);				
+		gl_Position = uCamera.m_viewProj * vec4(positionW, 1.0);
 		#ifdef Pass_GBuffer
 		{
 			const mat4 prevWorld = uDrawInstances[gl_InstanceID].prevWorld;
@@ -154,7 +154,7 @@ void main()
 			vBitangentV = cross(vNormalV, vTangentV);
 		}
 		#endif
-		
+
 
 		#ifdef Pass_Shadow
 		{
@@ -239,16 +239,16 @@ void main()
 		vec3 normalT = normalize(texture(uMaps[Map_Normal], vUv).xyz * 2.0 - 1.0);
 		vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
 		GBuffer_WriteNormal(normalV);
-		
+
 		vec2 positionP = gl_FragCoord.xy * uTexelSize;
 		vec2 prevPositionP = vPrevPositionP.xy / vPrevPositionP.z * 0.5 + 0.5;
 		vec2 velocity = positionP - prevPositionP;
-		
+
 		// Correct for any jitter in the projection matrices.
-    	// Here we need to account for the current and previous jitter since both positionP and prevPositionP have jitter applied.
+		// Here we need to account for the current and previous jitter since both positionP and prevPositionP have jitter applied.
 		vec2 jitterVelocity = (uCamera.m_prevProj[2].xy - uCamera.m_proj[2].xy) * 0.5;
-    	velocity -= jitterVelocity;
-    	
+		velocity -= jitterVelocity;
+
 		velocity *= alpha; // \hack scale velocity with alpha to reduce ghosting artefacts.
 
 		GBuffer_WriteVelocity(velocity);
@@ -262,7 +262,7 @@ void main()
 		vec3  V = Camera_GetFrustumRayW(iuv * uTexelSize * 2.0 - 1.0);
 		float D = abs(Camera_GetDepthV(GBuffer_ReadDepth(ivec2(iuv))));
 		vec3  P = Camera_GetPosition() + V * D;
-              V = normalize(-V);	
+		      V = normalize(-V);
 		vec3  N = GBuffer_ReadNormal(ivec2(iuv)); // view space
 		      N = normalize(TransformDirection(uCamera.m_world, N)); // world space
 		fResult.a = D;
@@ -276,7 +276,7 @@ void main()
 		float reflectance = texture(uMaps[Map_Reflectance], vUv).x   * uMaterials[materialIndex].reflectance;
 		Lighting_Init(lightingIn, N, V, roughness, baseColor, metallic, reflectance);
 		vec3 ret = vec3(0.0);
-		
+
 		// Lights.
 		for (int i = 0; i < uLightCount; ++i)
 		{
@@ -296,7 +296,7 @@ void main()
 					break;
 				}
 				case LightType_Spot:
-				{	
+				{
 					ret += Lighting_Spot(lightingIn, uLights[i], P, N, V);
 					break;
 				}
@@ -334,7 +334,7 @@ void main()
 					break;
 				}
 				case LightType_Spot:
-				{	
+				{
 					vec3 radiance = Lighting_Spot(lightingIn, uShadowLights[i].light, P, N, V);
 					if (!bool(Shadow_PREDICATE_NoL) || lightingIn.NoL > Lighting_EPSILON)
 					{

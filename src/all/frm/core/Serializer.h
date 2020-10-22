@@ -4,6 +4,7 @@
 #include <frm/core/compress.h>
 #include <frm/core/math.h>
 #include <frm/core/types.h>
+#include <frm/core/BitFlags.h>
 #include <frm/core/String.h>
 
 namespace frm {
@@ -156,6 +157,29 @@ bool SerializeEnum(Serializer& _serializer_, tType& _value_, const char* (&_strL
 			ret = false;
 		}
 	}
+	return ret;
+}
+
+// Helper for serializing bitflags to individual bools.
+template <typename tEnumType>
+bool Serialize(Serializer& _serializer_, BitFlags<tEnumType>& _bitFlags_, const char* (&_strList)[BitFlags<tEnumType>::kCount], const char* _name = nullptr)
+{
+	bool ret = false;
+
+	if (_serializer_.beginObject(_name))
+	{
+		ret = true;
+
+		for (int i = 0; i < BitFlags<tEnumType>::kCount; ++i)
+		{
+			bool flag = _bitFlags_.get((tEnumType)i);
+			ret &= Serialize(_serializer_, flag, _strList[i]);
+			_bitFlags_.set((tEnumType)i, flag);
+		}
+
+		_serializer_.endObject();
+	}
+
 	return ret;
 }
 

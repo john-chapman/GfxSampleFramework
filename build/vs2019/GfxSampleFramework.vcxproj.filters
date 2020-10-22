@@ -10,6 +10,9 @@
     <Filter Include="all\frm\core">
       <UniqueIdentifier>{6A73BAAA-56D6-494F-FF5B-8205EB9D15D2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="all\frm\core\BasicRenderer">
+      <UniqueIdentifier>{12B9692E-FEC8-15FF-6782-7A1D53B10498}</UniqueIdentifier>
+    </Filter>
     <Filter Include="all\frm\core\extern">
       <UniqueIdentifier>{4F3CA491-BB9D-819F-440B-C851B06BB85E}</UniqueIdentifier>
     </Filter>
@@ -64,6 +67,12 @@
     <Filter Include="all\frm\core\extern\tinyobjloader">
       <UniqueIdentifier>{D415ABBA-4084-003A-896D-BB39F51AF6D5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="all\frm\core\world">
+      <UniqueIdentifier>{C1856C0D-AD69-2D63-16CA-27B602CD17E5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="all\frm\core\world\components">
+      <UniqueIdentifier>{56D46787-C2EC-4EB1-8B99-DE4AF770E34A}</UniqueIdentifier>
+    </Filter>
     <Filter Include="win">
       <UniqueIdentifier>{13BB880B-7FC4-887C-0840-9F7C7448947C}</UniqueIdentifier>
     </Filter>
@@ -90,11 +99,23 @@
     <ClInclude Include="..\..\src\all\frm\core\ArgList.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\core\BasicMaterial.h">
+    <ClInclude Include="..\..\src\all\frm\core\Base64.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer.h">
-      <Filter>all\frm\core</Filter>
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\BasicLightComponent.h">
+      <Filter>all\frm\core\BasicRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\BasicMaterial.h">
+      <Filter>all\frm\core\BasicRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\BasicRenderableComponent.h">
+      <Filter>all\frm\core\BasicRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\BasicRenderer.h">
+      <Filter>all\frm\core\BasicRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\BasicRenderer\ImageLightComponent.h">
+      <Filter>all\frm\core\BasicRenderer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\BitFlags.h">
       <Filter>all\frm\core</Filter>
@@ -103,9 +124,6 @@
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Camera.h">
-      <Filter>all\frm\core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\core\Component.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Curve.h">
@@ -180,7 +198,10 @@
     <ClInclude Include="..\..\src\all\frm\core\RingBuffer.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\core\Scene.h">
+    <ClInclude Include="..\..\src\all\frm\core\Serializable.h">
+      <Filter>all\frm\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\Serializable.inl">
       <Filter>all\frm\core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\Serializer.h">
@@ -672,13 +693,13 @@
     <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imgui_internal.h">
       <Filter>all\frm\core\extern\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\stb_rect_pack.h">
+    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imstb_rectpack.h">
       <Filter>all\frm\core\extern\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\stb_textedit.h">
+    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imstb_textedit.h">
       <Filter>all\frm\core\extern\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\stb_truetype.h">
+    <ClInclude Include="..\..\src\all\frm\core\extern\imgui\imstb_truetype.h">
       <Filter>all\frm\core\extern\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\all\frm\core\extern\json.hpp">
@@ -927,6 +948,27 @@
     <ClInclude Include="..\..\src\all\frm\core\types.h">
       <Filter>all\frm\core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\world\World.h">
+      <Filter>all\frm\core\world</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\world\WorldEditor.h">
+      <Filter>all\frm\core\world</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\world\components\CameraComponent.h">
+      <Filter>all\frm\core\world\components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\world\components\Component.h">
+      <Filter>all\frm\core\world\components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\world\components\FreeLookComponent.h">
+      <Filter>all\frm\core\world\components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\world\components\LookAtComponent.h">
+      <Filter>all\frm\core\world\components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\core\world\components\XFormComponent.h">
+      <Filter>all\frm\core\world\components</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\win\frm\core\extern\renderdoc_app.h">
       <Filter>win\frm\core\extern</Filter>
     </ClInclude>
@@ -947,19 +989,28 @@
     <ClCompile Include="..\..\src\all\frm\core\ArgList.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\core\BasicMaterial.cpp">
+    <ClCompile Include="..\..\src\all\frm\core\Base64.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer.cpp">
-      <Filter>all\frm\core</Filter>
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\BasicLightComponent.cpp">
+      <Filter>all\frm\core\BasicRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\BasicMaterial.cpp">
+      <Filter>all\frm\core\BasicRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\BasicRenderableComponent.cpp">
+      <Filter>all\frm\core\BasicRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\BasicRenderer.cpp">
+      <Filter>all\frm\core\BasicRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\BasicRenderer\ImageLightComponent.cpp">
+      <Filter>all\frm\core\BasicRenderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Buffer.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Camera.cpp">
-      <Filter>all\frm\core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\core\Component.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Curve.cpp">
@@ -1023,9 +1074,6 @@
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Resource.cpp">
-      <Filter>all\frm\core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\all\frm\core\Scene.cpp">
       <Filter>all\frm\core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\Serializer.cpp">
@@ -1125,6 +1173,9 @@
       <Filter>all\frm\core\extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\extern\imgui\imgui_ext.cpp">
+      <Filter>all\frm\core\extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\extern\imgui\imgui_widgets.cpp">
       <Filter>all\frm\core\extern\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\extern\lodepng.cpp">
@@ -1255,6 +1306,27 @@
     </ClCompile>
     <ClCompile Include="..\..\src\all\frm\core\types.cpp">
       <Filter>all\frm\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\world\World.cpp">
+      <Filter>all\frm\core\world</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\world\WorldEditor.cpp">
+      <Filter>all\frm\core\world</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\world\components\CameraComponent.cpp">
+      <Filter>all\frm\core\world\components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\world\components\Component.cpp">
+      <Filter>all\frm\core\world\components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\world\components\FreeLookComponent.cpp">
+      <Filter>all\frm\core\world\components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\world\components\LookAtComponent.cpp">
+      <Filter>all\frm\core\world\components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\core\world\components\XFormComponent.cpp">
+      <Filter>all\frm\core\world\components</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\win\frm\core\FileImpl.cpp">
       <Filter>win\frm\core</Filter>

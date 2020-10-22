@@ -5,25 +5,27 @@
 
 #include <cstdarg> // va_list, va_start, va_end
 
-static thread_local frm::AssertCallback* g_AssertCallback = &frm::DefaultAssertCallback;
+namespace frm {
 
-void frm::SetAssertCallback(AssertCallback* _callback) 
+static thread_local AssertCallback* g_AssertCallback = &DefaultAssertCallback;
+
+void SetAssertCallback(AssertCallback* _callback) 
 {
 	g_AssertCallback = _callback;
 }
 
-frm::AssertCallback* frm::GetAssertCallback() 
+AssertCallback* GetAssertCallback() 
 {
 	return g_AssertCallback;
 }
 
-frm::AssertBehavior frm::DefaultAssertCallback(const char* _expr, const char* _msg, const char* _file, int _line) 
+AssertBehavior DefaultAssertCallback(const char* _expr, const char* _msg, const char* _file, int _line) 
 {
 	FRM_LOG_ERR("FRM_ASSERT (%s, line %d)\n\t'%s' %s", _file, _line, _expr ? _expr : "", _msg ? _msg : "");
 	return AssertBehavior_Break;
 }
 
-frm::AssertBehavior frm::internal::AssertAndCallback(const char* _expr, const char* _file, int _line, const char* _msg, ...) 
+AssertBehavior internal::AssertAndCallback(const char* _expr, const char* _file, int _line, const char* _msg, ...) 
 {
 	thread_local String<1024> msg = "";
 
@@ -37,12 +39,12 @@ frm::AssertBehavior frm::internal::AssertAndCallback(const char* _expr, const ch
 
 	if (g_AssertCallback) 
 	{
-		return g_AssertCallback(_expr, (const char*)msg, frm::internal::StripPath(_file), _line);
+		return g_AssertCallback(_expr, (const char*)msg, internal::StripPath(_file), _line);
 	}
 	return AssertBehavior_Break;
 }
 
-const char* frm::internal::StripPath(const char* _path) 
+const char* internal::StripPath(const char* _path) 
 {
 	int i = 0, last = 0;
 	while (_path[i] != 0) 
@@ -55,3 +57,14 @@ const char* frm::internal::StripPath(const char* _path)
 	}
 	return &_path[last];
 }
+
+// See note in frm.h
+FRM_FORCE_LINK(BasicRenderableComponent);
+FRM_FORCE_LINK(BasicLightComponent);
+FRM_FORCE_LINK(ImageLightComponent);
+FRM_FORCE_LINK(LookAtComponent);
+FRM_FORCE_LINK(XFormComponent);
+FRM_FORCE_LINK(XFormSpin);
+FRM_FORCE_LINK(XFormPositionTarget);
+
+} // namespace frm

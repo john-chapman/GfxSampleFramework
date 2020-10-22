@@ -25,11 +25,15 @@ bool App::init(const frm::ArgList& _args)
 		Audio::Init();
 	#endif
 
+	dispatchCallbacks(Event_OnInit);
+
 	return true;
 }
 
 void App::shutdown()
 {
+	dispatchCallbacks(Event_OnShutdown);
+
 	#if FRM_MODULE_AUDIO
 		Audio::Shutdown();
 	#endif
@@ -50,7 +54,26 @@ bool App::update()
 		Audio::Update();
 	#endif
 	
+	dispatchCallbacks(Event_OnUpdate);
+
 	return true;
+}
+
+void App::registerCallback(Event _event, Callback* _callback, void* _arg)
+{
+	CallbackList& callbackList = m_callbacks[(int)_event];
+	CallbackListEntry callback = { _callback, _arg };
+	FRM_ASSERT(eastl::find(callbackList.begin(), callbackList.end(), callback) == callbackList.end()); // double registration
+	callbackList.push_back(callback);
+}
+
+void App::unregisterCallback(Event _event, Callback* _callback, void* _arg)
+{
+	CallbackList& callbackList = m_callbacks[(int)_event];
+	CallbackListEntry callback = { _callback, _arg };
+	auto it = eastl::find(callbackList.begin(), callbackList.end(), callback);
+	FRM_ASSERT(it != callbackList.end()); // not found
+	callbackList.erase_unsorted(it);
 }
 
 // PROTECTED
@@ -78,3 +101,15 @@ App::App()
 App::~App()
 {
 }
+
+// PRIVATE
+
+void App::dispatchCallbacks(Event _event)
+{
+	CallbackList& callbackList = m_callbacks[(int)_event];
+	for (CallbackListEntry& callback : callbackList)
+	{
+		callback();
+	}
+}
+

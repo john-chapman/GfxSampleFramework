@@ -25,6 +25,10 @@
 
 namespace ImGui {
 
+// Present a modal dialog with a number choices. Return the index of the selected choice, -2 if the popup is not active or -1 if the popup is active.
+// Usage is as per standard ImGui popups: call OpenPopup(_title) to activate the popup, then call ChoicePopupModal() per frame to
+int ChoicePopupModal(const char* _title, const char* _message, std::initializer_list<const char*> _choices);
+
 // Return true if _p is inside the rectangle defined by _rectMin, _rectMax.
 inline bool IsInside(const ImVec2& _p, const ImVec2& _rectMin, const ImVec2& _rectMax)
 {

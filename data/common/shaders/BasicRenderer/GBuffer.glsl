@@ -4,7 +4,7 @@
 	          +---------------------------------------------------------------+
 	GBuffer0  | Normal X      | Normal Y      | Velocity X   | Velocity Y     |
 	          +---------------------------------------------------------------+
-			  
+
 	- Normal is stored in view space.
 	- Velocity is stored in screen space.
 */

@@ -142,14 +142,18 @@ void Resource<tDerived>::init(Id _id, const char* _name)
 template <typename tDerived>
 Resource<tDerived>::InstanceList::~InstanceList()
 {
-	if (size() != 0) {
-		String<256> list;
-		for (auto inst : (*this)) {
-			list.appendf("\n\t'%s' -- %d refs", inst->getName(), inst->getRefCount());
+	#if FRM_RESOURCE_WARN_UNRELEASED
+		if (size() != 0)
+		{
+			String<256> list;
+			for (auto inst : (*this))
+			{
+				list.appendf("\n\t'%s' -- %d refs", inst->getName(), inst->getRefCount());
+			}
+			list.append("\n");
+			FRM_LOG_ERR("Warning: %d %s instances were not released:%s", (int)size(), tDerived::s_className, (const char*)list);
 		}
-		list.append("\n");
-		FRM_LOG_ERR("Warning: %d %s instances were not released:%s", (int)size(), tDerived::s_className, (const char*)list);
-	}
+	#endif
 }
 
 
@@ -158,7 +162,7 @@ Resource<tDerived>::InstanceList::~InstanceList()
 	template class Resource<_name>; \
 	const char* Resource<_name>::s_className = #_name;
 
-#include <frm/core/BasicMaterial.h>
+#include <frm/core/BasicRenderer/BasicMaterial.h>
 DECL_RESOURCE(BasicMaterial);
 #include <frm/core/Mesh.h>
 DECL_RESOURCE(Mesh);

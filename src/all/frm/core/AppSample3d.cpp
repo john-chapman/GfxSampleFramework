@@ -12,10 +12,13 @@
 #include <frm/core/Profiler.h>
 #include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
-#include <frm/core/Scene.h>
 #include <frm/core/Texture.h>
 #include <frm/core/Viewport.h>
 #include <frm/core/Window.h>
+#include <frm/core/world/World.h>
+#include <frm/core/world/WorldEditor.h>
+#include <frm/core/world/components/Component.h>
+#include <frm/core/world/components/CameraComponent.h>
 #include <frm/core/XForm.h>
 
 #if FRM_MODULE_PHYSICS
@@ -23,6 +26,7 @@
 #endif
 
 #include <im3d/im3d.h>
+#include <imgui/imgui_ext.h>
 
 using namespace frm;
 
@@ -39,34 +43,31 @@ bool AppSample3d::init(const frm::ArgList& _args)
 		return false;
 	}
 
-	m_scene = new Scene;
-	Scene::SetCurrent(m_scene);
-
 	#if FRM_MODULE_PHYSICS
-		if (!Physics::Init()) {
+		if (!Physics::Init()) 
+		{
 			return false;
 		}
 	#endif
 
-	if (!Scene::Load((const char*)m_scenePath, *m_scene)) 
-	{
- 		Camera* defaultCamera = m_scene->createCamera(Camera());
-		defaultCamera->setPerspective(Radians(45.0f), 1.0f, 0.1f, 1000.0f, Camera::ProjFlag_Infinite);
-		defaultCamera->updateGpuBuffer(); // alloc the gpu buffer
-		Node* defaultCameraNode = defaultCamera->m_parent;
-		defaultCameraNode->setStateMask(Node::State_Active | Node::State_Dynamic | Node::State_Selected);
-		XForm* freeCam = XForm::Create("XForm_FreeCamera");
-		((XForm_FreeCamera*)freeCam)->m_position = vec3(0.0f, 5.0f, 22.5f);
-		defaultCameraNode->addXForm(freeCam);
-	}
+	m_world = World::Create(m_worldPath.c_str());
+	FRM_VERIFY(m_world->init() && m_world->postInit());
+
+	m_worldEditor = FRM_NEW(WorldEditor());
+	m_worldEditor->setWorld(m_world);
 
 	return true;
 }
 
 void AppSample3d::shutdown()
 {
-	Scene::SetCurrent(nullptr);
-	delete m_scene;
+	destroyDebugCullCamera();
+
+	FRM_DELETE(m_worldEditor); // \todo Detect pending changes which might need to be saved.
+
+	m_worldPath = m_world->getPath();
+	m_world->shutdown();
+	World::Destroy(m_world);
 
 	#if FRM_MODULE_PHYSICS
 		Physics::Shutdown();
@@ -90,41 +91,48 @@ bool AppSample3d::update()
 
 	PROFILER_MARKER_CPU("#AppSample3d::update");
 
+	const float dt = (float)getDeltaTime();
+
 	Im3d_Update(this);
 
-	Scene& scene = *Scene::GetCurrent();
-	scene.update((float)m_deltaTime, Node::State_Active | Node::State_Dynamic);
-	#ifdef frm_Scene_ENABLE_EDIT
-		if (m_showSceneEditor)
-		{
-			Scene::GetCurrent()->edit();
-		}
-	#endif
-	#if FRM_MODULE_PHYSICS
-	 // update *after* scene to capture kinematic targets and then override world matrices
-		Physics::Update((float)m_deltaTime);
-	#endif
+	{	PROFILER_MARKER_CPU("#World update");
+		Component::ClearActiveComponents();
+		m_world->update(dt, World::UpdatePhase::GatherActive);
+		m_world->update(dt, World::UpdatePhase::Hierarchy);
+		m_world->update(dt, World::UpdatePhase::PrePhysics);
+		#if FRM_MODULE_PHYSICS
+			Physics::Update(dt);
+		#endif
+		m_world->update(dt, World::UpdatePhase::Physics);
+		m_world->update(dt, World::UpdatePhase::PostPhysics);
+		m_world->update(dt, World::UpdatePhase::PreRender);
+	}
 
-	Camera* currentCamera = scene.getDrawCamera();
-	if (!currentCamera->getProjFlag(Camera::ProjFlag_Asymmetrical))
+	// Update draw camera aspect ratio to match window.
+	Camera* drawCamera = World::GetDrawCamera();
+	if (drawCamera && !drawCamera->getProjFlag(Camera::ProjFlag_Asymmetrical))
 	{
-	 // update aspect ratio to match window size
-		Window* win = getWindow();
-		int winX = win->getWidth();
-		int winY = win->getHeight();
+		const Window* win = getWindow();
+		const int winX = win->getWidth();
+		const int winY = win->getHeight();
 		if (winX != 0 && winY != 0)
 		{
 			float aspect = (float)winX / (float)winY;
-			if (currentCamera->m_aspectRatio != aspect)
+			if (drawCamera->m_aspectRatio != aspect)
 			{
-				currentCamera->setAspectRatio(aspect);
+				drawCamera->setAspectRatio(aspect);
 			}
 		}
 	}
 
+	if (m_showWorldEditor)
+	{
+		m_worldEditor->edit();
+	}
+
 	drawMainMenuBar();
 
- // keyboard shortcuts
+	// Keyboard shortcuts
 	Keyboard* keyb = Input::GetKeyboard();
 	if (keyb->wasPressed(Keyboard::Key_F2))
 	{
@@ -132,24 +140,17 @@ bool AppSample3d::update()
 	}
 	if (ImGui::IsKeyPressed(Keyboard::Key_0) && ImGui::IsKeyDown(Keyboard::Key_LCtrl))
 	{
-		m_showSceneEditor = !m_showSceneEditor;
+		m_showWorldEditor = !m_showWorldEditor;
 	}
 	if (ImGui::IsKeyPressed(Keyboard::Key_C) && ImGui::IsKeyDown(Keyboard::Key_LCtrl) && ImGui::IsKeyDown(Keyboard::Key_LShift))
 	{
-		if (m_dbgCullCamera)
+		if (m_restoreCullCamera)
 		{
-			scene.destroyCamera(m_dbgCullCamera);
-			scene.setCullCamera(scene.getDrawCamera());
+			destroyDebugCullCamera();
 		}
 		else
 		{
-			m_dbgCullCamera = scene.createCamera(*scene.getCullCamera());
-			Node* node = m_dbgCullCamera->m_parent;
-			node->setName("#DEBUG CULL CAMERA");
-			node->setDynamic(false);
-			node->setActive(false);
-			node->setLocalMatrix(scene.getCullCamera()->m_world);
-			scene.setCullCamera(m_dbgCullCamera);
+			createDebugCullCamera();
 		}
 	}
 
@@ -174,21 +175,6 @@ bool AppSample3d::update()
 					Im3d::Vertex((float)z - kGridHalf, 0.0f,  kGridHalf,  Im3d::Color(0.0f, 0.0f, 1.0f));
 				}
 			Im3d::End();
-
-		 // scene cameras
-			for (int i = 0; i < scene.getCameraCount(); ++i)
-			{
-				Camera* camera = scene.getCamera(i);
-				if (camera == scene.getDrawCamera())
-				{
-					continue;
-				}
-				Im3d::PushMatrix();
-					Im3d::MulMatrix(camera->m_world);
-					Im3d::DrawXyzAxes();
-				Im3d::PopMatrix();
-				DrawFrustum(camera->m_worldFrustum);
-			}
 		Im3d::PopDrawState();
 	}
 
@@ -202,41 +188,51 @@ void AppSample3d::draw()
 	{	
 		PROFILER_MARKER("#AppSample3d::draw");
 		getGlContext()->setFramebufferAndViewport(getDefaultFramebuffer());
-		drawIm3d(Scene::GetDrawCamera(), nullptr, Viewport(), m_txIm3dDepth);
+		drawIm3d(World::GetDrawCamera(), nullptr, Viewport(), m_txIm3dDepth);
 	}
 	AppSample::draw();
 }
 
 Ray AppSample3d::getCursorRayW(const Camera* _camera) const
 {
-	_camera = _camera ? _camera : Scene::GetDrawCamera();
-	Ray ret = getCursorRayV(_camera);
-	ret.transform(_camera->m_world);
+	Ray ret;
+	
+	_camera = _camera ? _camera : World::GetDrawCamera();
+	if (_camera)
+	{
+		ret = getCursorRayV(_camera);
+		ret.transform(_camera->m_world);
+	}
+
 	return ret;
 }
 
 Ray AppSample3d::getCursorRayV(const Camera* _camera) const
 {
-	_camera = _camera ? _camera : Scene::GetDrawCamera();
-	int mx, my;
-	getWindow()->getWindowRelativeCursor(&mx, &my);
-	vec2 wsize = vec2((float)getWindow()->getWidth(), (float)getWindow()->getHeight());
-	vec2 mpos  = vec2((float)mx, (float)my) / wsize;
 	Ray ret;
-	if (_camera->getProjFlag(Camera::ProjFlag_Orthographic))
+	
+	_camera = _camera ? _camera : World::GetDrawCamera();
+	if (_camera)
 	{
-		ret.m_origin.x    = lerp(_camera->m_left, _camera->m_right, mpos.x);
-		ret.m_origin.y    = lerp(_camera->m_up,   _camera->m_down,  mpos.y);
-		ret.m_origin.z    = 0.0f;
-		ret.m_direction   = vec3(0.0f, 0.0f, -1.0f);
-	}
-	else
-	{
-		ret.m_origin      = vec3(0.0f);
-		ret.m_direction.x = lerp(_camera->m_left, _camera->m_right, mpos.x);
-		ret.m_direction.y = lerp(_camera->m_up,   _camera->m_down,  mpos.y);
-		ret.m_direction.z = -1.0f;
-		ret.m_direction   = normalize(ret.m_direction);
+		int mx, my;
+		getWindow()->getWindowRelativeCursor(&mx, &my);
+		vec2 wsize = vec2((float)getWindow()->getWidth(), (float)getWindow()->getHeight());
+		vec2 mpos  = vec2((float)mx, (float)my) / wsize;
+		if (_camera->getProjFlag(Camera::ProjFlag_Orthographic))
+		{
+			ret.m_origin.x    = lerp(_camera->m_left, _camera->m_right, mpos.x);
+			ret.m_origin.y    = lerp(_camera->m_up,   _camera->m_down,  mpos.y);
+			ret.m_origin.z    = 0.0f;
+			ret.m_direction   = vec3(0.0f, 0.0f, -1.0f);
+		}
+		else
+		{
+			ret.m_origin      = vec3(0.0f);
+			ret.m_direction.x = lerp(_camera->m_left, _camera->m_right, mpos.x);
+			ret.m_direction.y = lerp(_camera->m_up,   _camera->m_down,  mpos.y);
+			ret.m_direction.z = -1.0f;
+			ret.m_direction   = normalize(ret.m_direction);
+		}
 	}
 
 	return ret;
@@ -308,15 +304,15 @@ AppSample3d::AppSample3d(const char* _title)
 {
 	Properties::PushGroup("AppSample3d");
 		//                  name                 default              min     max     storage
-		Properties::Add    ("ShowHelpers",       m_showHelpers,                       &m_showHelpers);
-		Properties::Add    ("ShowSceneEditor",   m_showSceneEditor,                   &m_showSceneEditor);
-		Properties::AddPath("ScenePath",         m_scenePath,                         &m_scenePath);
+		Properties::Add    ("m_showHelpers",     m_showHelpers,                       &m_showHelpers);
+		Properties::Add    ("m_showWorldEditor", m_showWorldEditor,                   &m_showWorldEditor);
+		Properties::AddPath("m_worldPath",       m_worldPath,                         &m_worldPath);
 	Properties::PopGroup(); // AppSample3d
 }
 
 AppSample3d::~AppSample3d()
 {
-	Properties::InvalidateGroup("AppSampleVR");
+	Properties::InvalidateGroup("AppSample3d");
 }
 
 void AppSample3d::setIm3dDepthTexture(Texture* _tx)
@@ -341,34 +337,17 @@ void AppSample3d::drawMainMenuBar()
 {
 	if (m_showMenu && ImGui::BeginMainMenuBar())
 	{
-		if (ImGui::BeginMenu("Scene"))
+		if (ImGui::BeginMenu("World"))
 		{
-			if (ImGui::MenuItem("Load..."))
+			if (ImGui::MenuItem("World Editor", "Ctrl+0", m_showWorldEditor))
 			{
-				if (FileSystem::PlatformSelect(m_scenePath, { "*.json" }))
-				{
-					m_scenePath = FileSystem::MakeRelative((const char*)m_scenePath);
-					Scene::Load((const char*)m_scenePath, *m_scene);
-				}
-			}
-			if (ImGui::MenuItem("Save"))
-			{
-				Scene::Save((const char*)m_scenePath, *m_scene);
-			}
-			if (ImGui::MenuItem("Save As..."))
-			{
-				if (FileSystem::PlatformSelect(m_scenePath, { "*.json" }))
-				{
-					m_scenePath = FileSystem::MakeRelative((const char*)m_scenePath);
-					Scene::Save((const char*)m_scenePath, *m_scene);
-				}
+				m_showWorldEditor = !m_showWorldEditor;
 			}
 
-			ImGui::Separator();
-
-			ImGui::MenuItem("Scene Editor",      "Ctrl+O",       m_showSceneEditor);
-			ImGui::MenuItem("Show Helpers",      "F2",           m_showHelpers);
-			ImGui::MenuItem("Pause Cull Camera", "Ctrl+Shift+C", m_showSceneEditor);
+			if (ImGui::MenuItem("Show Helpers", "F2", m_showHelpers))
+			{
+				m_showHelpers = !m_showHelpers;
+			}
 
 			ImGui::EndMenu();
 		}
@@ -377,6 +356,49 @@ void AppSample3d::drawMainMenuBar()
 	}
 }
 
+void AppSample3d::createDebugCullCamera()
+{
+	if (m_restoreCullCamera)
+	{
+		destroyDebugCullCamera();
+	}
+
+	Scene* rootScene = m_world->getRootScene();
+	
+	m_restoreCullCamera = CameraComponent::GetCullCamera();
+	if (!m_restoreCullCamera)
+	{
+		return;
+	}
+
+	SceneNode* cullCameraNode = rootScene->createTransientNode("#Debug Cull Camera");
+	CameraComponent* cullCameraComponent = (CameraComponent*)Component::Create(StringHash("CameraComponent"));
+	cullCameraComponent->getCamera().copyFrom(m_restoreCullCamera->getCamera());
+	cullCameraNode->addComponent(cullCameraComponent);	
+	cullCameraNode->setLocal(m_restoreCullCamera->getCamera().m_world);
+	CameraComponent::SetCullCamera(cullCameraComponent);
+
+	FRM_VERIFY(cullCameraNode->init() && cullCameraNode->postInit());
+}
+
+void AppSample3d::destroyDebugCullCamera()
+{
+	if (!m_restoreCullCamera)
+	{
+		return;
+	}
+	
+	CameraComponent* cullCameraComponent = CameraComponent::GetCullCamera();
+	if (!cullCameraComponent)
+	{
+		return;
+	}
+	Scene* rootScene = m_world->getRootScene();
+	rootScene->destroyNode(cullCameraComponent->getParentNode());
+
+	CameraComponent::SetCullCamera(m_restoreCullCamera);
+	m_restoreCullCamera = nullptr;
+}
 
 /*******************************************************************************
 
@@ -384,8 +406,9 @@ void AppSample3d::drawMainMenuBar()
 
 *******************************************************************************/
 
-static Shader* s_shIm3dPrimitives[Im3d::DrawPrimitive_Count][2]; // shader per primtive type (points, lines, tris), with/without depth test
-static Mesh*   s_msIm3dPrimitives[Im3d::DrawPrimitive_Count];
+static Shader*       s_shIm3dPrimitives[Im3d::DrawPrimitive_Count][2]; // Shader per primtive type (points, lines, tris), with/without depth test.
+static Mesh*         s_msIm3dPrimitives[Im3d::DrawPrimitive_Count];    // Mesh per primitive type.
+static ImGuiContext* s_im3dTextRenderContext = nullptr;                // Separate ImGui context for text rendering.
 
 bool AppSample3d::Im3d_Init(AppSample3d* _app)
 {
@@ -433,6 +456,16 @@ bool AppSample3d::Im3d_Init(AppSample3d* _app)
 	s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] = Mesh::Create(meshDesc);
 	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles]->getState() == Mesh::State_Loaded;
 
+	// Init separate ImGui context for Im3d text rendering.
+	s_im3dTextRenderContext = ImGui::CreateContext(ImGui::GetIO().Fonts); // Share main context font atlas.
+	ImGuiContext* prevImGuiContext = ImGui::GetCurrentContext();
+	ImGui::SetCurrentContext(s_im3dTextRenderContext); // \todo Could avoid this by including imgui_internal.h directly.
+	ImGuiIO& io = ImGui::GetIO();
+	io.IniFilename = nullptr;
+	io.UserData = _app->getGlContext();
+	
+	ImGui::SetCurrentContext(prevImGuiContext);
+
 	return ret;
 }
 
@@ -444,6 +477,8 @@ void AppSample3d::Im3d_Shutdown(AppSample3d* _app)
 		Shader::Release(s_shIm3dPrimitives[primitiveType][0]);
 		Shader::Release(s_shIm3dPrimitives[primitiveType][1]);
 	}
+
+	ImGui::DestroyContext(s_im3dTextRenderContext);
 }
 
 void AppSample3d::Im3d_Update(AppSample3d* _app)
@@ -452,17 +487,18 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 
 	Im3d::AppData& ad = Im3d::GetAppData();
 
-	ad.m_deltaTime = (float)_app->m_deltaTime;
-	ad.m_viewportSize = vec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
-	ad.m_projScaleY = Scene::GetDrawCamera()->m_up - Scene::GetDrawCamera()->m_down;
-	ad.m_projOrtho = Scene::GetDrawCamera()->getProjFlag(Camera::ProjFlag_Orthographic);
-	ad.m_viewOrigin = Scene::GetDrawCamera()->getPosition();
-	ad.m_viewDirection = Scene::GetDrawCamera()->getViewVector();
+	const Camera* drawCamera = World::GetDrawCamera();
+	ad.m_deltaTime           = (float)_app->m_deltaTime;
+	ad.m_viewportSize        = vec2((float)_app->getWindow()->getWidth(), (float)_app->getWindow()->getHeight());
+	ad.m_projScaleY          = drawCamera ? (drawCamera->m_up - drawCamera->m_down) : 1.0f;
+	ad.m_projOrtho           = drawCamera ? drawCamera->getProjFlag(Camera::ProjFlag_Orthographic) : false;
+	ad.m_viewOrigin          = drawCamera ? drawCamera->getPosition() : vec3(0.0f);
+	ad.m_viewDirection       = drawCamera ? drawCamera->getViewVector() : vec3(0.0f, 0.0f, -1.0f);
 	
-	Ray cursorRayW = _app->getCursorRayW();
-	ad.m_cursorRayOrigin = cursorRayW.m_origin;
-	ad.m_cursorRayDirection = cursorRayW.m_direction;
-	ad.m_worldUp = vec3(0.0f, 1.0f, 0.0f);
+	const Ray cursorRayW     = _app->getCursorRayW();
+	ad.m_cursorRayOrigin     = cursorRayW.m_origin;
+	ad.m_cursorRayDirection  = cursorRayW.m_direction;
+	ad.m_worldUp             = vec3(0.0f, 1.0f, 0.0f);
 
 	Mouse* mouse = Input::GetMouse();	
 	ad.m_keyDown[Im3d::Mouse_Left/*Im3d::Action_Select*/] = mouse->isDown(Mouse::Button_Left);
@@ -479,75 +515,6 @@ void AppSample3d::Im3d_Update(AppSample3d* _app)
 	ad.m_snapScale       = ctrlDown ? 0.5f : 0.0f;
 
 	Im3d::NewFrame();
-}
-
-void AppSample3d::Im3d_Draw(Camera* _camera, Texture* _txDepth)
-{
-	/*ImDrawList* imDrawList = ImGui::GetWindowDrawList();
-	const mat4& viewProj = _camera->m_viewProj;
-	for (unsigned i = 0; i < Im3d::GetTextDrawListCount(); ++i) 
-	{
-		const Im3d::TextDrawList& textDrawList = Im3d::GetTextDrawLists()[i];
-		
-		for (unsigned j = 0; j < textDrawList.m_textDataCount; ++j)
-		{
-			const Im3d::TextData& textData = textDrawList.m_textData[j];
-			if (textData.m_positionSize.w == 0.0f || textData.m_color.getA() == 0.0f)
-			{
-				continue;
-			}
-
-			// Project world -> screen space.
-			vec4 clip = viewProj * vec4(textData.m_positionSize.x, textData.m_positionSize.y, textData.m_positionSize.z, 1.0f);
-			vec2 screen = vec2(clip.x / clip.w, clip.y / clip.w);
-	
-			// Cull text which falls offscreen. Note that this doesn't take into account text size but works well enough in practice.
-			if (clip.w < 0.0f || screen.x >= 1.0f || screen.y >= 1.0f)
-			{
-				continue;
-			}
-
-			// Pixel coordinates for the ImGuiWindow ImGui.
-			screen = screen * vec2(0.5f) + vec2(0.5f);
-			screen.y = 1.0f - screen.y; // screen space origin is reversed by the projection.
-			screen = screen * (vec2)ImGui::GetWindowSize();
-
-			// All text data is stored in a single buffer; each textData instance has an offset into this buffer.
-			const char* text = textDrawList.m_textBuffer + textData.m_textBufferOffset;
-
-			// Calculate the final text size in pixels to apply alignment flags correctly.
-			ImGui::SetWindowFontScale(textData.m_positionSize.w); // NB no CalcTextSize API which takes a font/size directly...
-			vec2 textSize = ImGui::CalcTextSize(text, text + textData.m_textLength);
-			ImGui::SetWindowFontScale(1.0f);
-
-			// Generate a pixel offset based on text flags.
-			vec2 textOffset = vec2(-textSize.x * 0.5f, -textSize.y * 0.5f); // default to center
-			if ((textData.m_flags & Im3d::TextFlags_AlignLeft) != 0)
-			{
-				textOffset.x = -textSize.x;
-			}
-			else if ((textData.m_flags & Im3d::TextFlags_AlignRight) != 0)
-			{
-				textOffset.x = 0.0f;
-			}
-
-			if ((textData.m_flags & Im3d::TextFlags_AlignTop) != 0)
-			{
-				textOffset.y = -textSize.y;
-			}
-			else if ((textData.m_flags & Im3d::TextFlags_AlignBottom) != 0)
-			{
-				textOffset.y = 0.0f;
-			}
-
-			// Add text to the window draw list.
-			screen = screen + textOffset;
-			imDrawList->AddText(nullptr, textData.m_positionSize.w * ImGui::GetFontSize(), screen, textData.m_color.getABGR(), text, text + textData.m_textLength);
-		}
-	}
-
-	ImGui::End();
-	ImGui::PopStyleColor();*/
 }
 
 void AppSample3d::drawIm3d(
@@ -572,8 +539,8 @@ void AppSample3d::drawIm3d(
 	glScopedEnable(GL_BLEND,              GL_TRUE);
 	glScopedEnable(GL_PROGRAM_POINT_SIZE, GL_TRUE);
 	glScopedEnable(GL_CULL_FACE,          GL_FALSE);
-    glAssert(glBlendEquation(GL_FUNC_ADD));
-    //glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+	glAssert(glBlendEquation(GL_FUNC_ADD));
+	//glAssert(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 	glAssert(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE)); // preserve alpha
 	
 	GlContext* ctx = GlContext::GetCurrent();
@@ -607,12 +574,127 @@ void AppSample3d::drawIm3d(
 		}
 	}
 
-	// \todo text rendering
+	// Early-out if there is no text to draw (avoid overhead of updating ImGui context).
+	if (Im3d::GetTextDrawListCount() == 0)
+	{
+		return;
+	}
+
+	ImGuiContext* prevImGuiContext = ImGui::GetCurrentContext();
+	ImGui::SetCurrentContext(s_im3dTextRenderContext);
+
+	Window* window = getWindow();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ImeWindowHandle = window->getHandle();
+
+	for (size_t viewIndex = 0; viewIndex < viewCount; ++viewIndex)
+	{
+		Camera*      camera       = *(viewIndex + _cameras.begin());
+		Framebuffer* framebuffer  = *(viewIndex + _framebuffers.begin());
+		Viewport     viewport     = *(viewIndex + _viewports.begin());
+		Texture*     depthTexture = *(viewIndex + _depthTextures.begin());
+
+		io.DisplaySize = ImVec2((float)viewport.w, (float)viewport.h);
+		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+		io.DeltaTime = (float)getDeltaTime();
+		
+		ImGui::NewFrame();
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32_BLACK_TRANS);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(io.DisplaySize);
+		FRM_VERIFY(ImGui::Begin("###Im3dText", nullptr, 0
+			| ImGuiWindowFlags_NoTitleBar
+			| ImGuiWindowFlags_NoResize
+			| ImGuiWindowFlags_NoScrollbar
+			| ImGuiWindowFlags_NoInputs
+			| ImGuiWindowFlags_NoSavedSettings
+			| ImGuiWindowFlags_NoFocusOnAppearing
+			| ImGuiWindowFlags_NoBringToFrontOnFocus
+			));
+
+		ImDrawList* imDrawList = ImGui::GetWindowDrawList();
+		const mat4& viewProj = (*_cameras.begin())->m_viewProj;
+		for (unsigned textDrawListIndex = 0; textDrawListIndex < Im3d::GetTextDrawListCount(); ++textDrawListIndex)
+		{
+			const Im3d::TextDrawList& textDrawList = Im3d::GetTextDrawLists()[textDrawListIndex];		
+
+			for (unsigned textDataIndex = 0; textDataIndex < textDrawList.m_textDataCount; ++textDataIndex)
+			{
+				const Im3d::TextData& textData = textDrawList.m_textData[textDataIndex];
+				if (textData.m_positionSize.w == 0.0f || textData.m_color.getA() == 0.0f)
+				{
+					continue;
+				}
+
+				// Project world -> screen space.
+				const vec4 clip = viewProj * vec4(textData.m_positionSize.x, textData.m_positionSize.y, textData.m_positionSize.z, 1.0f);
+				vec2 screen = vec2(clip.x / clip.w, clip.y / clip.w);
+	
+				// Cull text which falls offscreen. Note that this doesn't take into account text size but works well enough in practice.
+				// \todo fade out near borders.
+				if (clip.w < 0.0f || screen.x >= 1.0f || screen.y >= 1.0f)
+				{
+					continue;
+				}
+
+				// Pixel coordinates for the ImGuiWindow ImGui.
+				screen = screen * vec2(0.5f) + vec2(0.5f);
+				screen.y = 1.0f - screen.y; // screen space origin is reversed by the projection.
+				screen = screen * (vec2)ImGui::GetWindowSize();
+
+				// All text data is stored in a single buffer; each textData instance has an offset into this buffer.
+				const char* text = textDrawList.m_textBuffer + textData.m_textBufferOffset;
+
+				// Calculate the final text size in pixels to apply alignment flags correctly.
+				ImGui::SetWindowFontScale(textData.m_positionSize.w); // NB no CalcTextSize API which takes a font/size directly...
+				const vec2 textSize = ImGui::CalcTextSize(text, text + textData.m_textLength);
+				ImGui::SetWindowFontScale(1.0f);
+
+				// Generate a pixel offset based on text flags.
+				vec2 textOffset = vec2(-textSize.x * 0.5f, -textSize.y * 0.5f); // default to center
+				if ((textData.m_flags & Im3d::TextFlags_AlignLeft) != 0)
+				{
+					textOffset.x = -textSize.x;
+				}
+				else if ((textData.m_flags & Im3d::TextFlags_AlignRight) != 0)
+				{
+					textOffset.x = 0.0f;
+				}
+
+				if ((textData.m_flags & Im3d::TextFlags_AlignTop) != 0)
+				{
+					textOffset.y = -textSize.y;
+				}
+				else if ((textData.m_flags & Im3d::TextFlags_AlignBottom) != 0)
+				{
+					textOffset.y = 0.0f;
+				}
+
+				// Add text to the window draw list.
+				screen = screen + textOffset;
+				imDrawList->AddText(nullptr, textData.m_positionSize.w * ImGui::GetFontSize(), screen + vec2(1.f), IM_COL32_BLACK, text, text + textData.m_textLength); // shadow
+				imDrawList->AddText(nullptr, textData.m_positionSize.w * ImGui::GetFontSize(), screen, textData.m_color.getABGR(), text, text + textData.m_textLength);
+			}
+		}
+		
+		ImGui::End();
+		ImGui::PopStyleColor(1);
+		ImGui::PopStyleVar(1);
+		ImGui::Render(); // calls EndFrame();
+
+		ImGui_RenderDrawLists(ImGui::GetDrawData());
+	}
+
+	ImGui::SetCurrentContext(prevImGuiContext);
 }
 
 void AppSample3d::drawIm3d(Camera* _camera, Framebuffer* _framebuffer, Viewport _viewport, Texture* _depthTexture)
 {
-	FRM_ASSERT(_camera);
+	if (!_camera)
+	{
+		return;
+	}
 
 	GlContext* ctx = GlContext::GetCurrent();
 
@@ -629,7 +711,7 @@ void AppSample3d::drawIm3d(Camera* _camera, Framebuffer* _framebuffer, Viewport 
 		}
 		else
 		{
-			_viewport = { 0, 0, m_resolution.x, m_resolution.y };
+			_viewport = { 0, 0, m_windowSize.x, m_windowSize.y };
 		}
 	}
 

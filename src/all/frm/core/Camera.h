@@ -37,7 +37,7 @@ public:
 		ProjFlag_Default      = ProjFlag_Infinite // symmetrical infinite perspective projection
 	};
 
-	Camera(Node* _parent = nullptr);
+	Camera();
 	~Camera();
 	
 	Camera(const Camera& _rhs);
@@ -49,7 +49,7 @@ public:
 	void copyFrom(const Camera& _other);
 
 	friend bool Serialize(frm::Serializer& _serializer_, Camera& _camera_);
-	void edit();
+	bool edit();
 	
 	// Set projection params. For a perspective projection _up/_down/_right/_near are ��radians from the view
 	// axis, for an orthographic projection they are offsets from the center of the projection plane.
@@ -102,7 +102,6 @@ public:
 	float   m_near;
 	float   m_far;		
 
-	Node*   m_parent;         // Overrides world matrix if set.
 	mat4    m_world;
 	mat4    m_view;
 	mat4    m_proj;

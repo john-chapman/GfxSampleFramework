@@ -12,14 +12,14 @@ RenderTarget::~RenderTarget()
 	shutdown();
 }
 
-bool RenderTarget::init(int _width, int _height, GLenum _format, GLenum _wrap, GLenum _filter, int _bufferCount)
+bool RenderTarget::init(int _width, int _height, GLenum _format, GLenum _wrap, GLenum _filter, int _bufferCount, int _mipCount)
 {
 	shutdown();
 
 	for (int i = 0; i < _bufferCount; ++i)
 	{
 		Texture*& tx = m_textures.push_back();
-		tx = Texture::Create2d(_width, _height, _format);
+		tx = Texture::Create2d(_width, _height, _format, _mipCount);
 		tx->setWrap(_wrap);
 		tx->setFilter(_filter);
 	}

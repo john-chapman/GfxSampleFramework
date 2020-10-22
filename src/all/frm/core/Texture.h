@@ -245,6 +245,10 @@ struct TextureView
 	GLint    m_array;
 	bool     m_rgbaMask[4];
 
+	// \hack TextureView* are sometimes passed to ImGui and subsequently destroyed before ImGui derences the ptr, causing a crash.
+	// To get around this we store a map of valid instances at all times and check during AppSample::ImGui_RenderDrawLists().
+	static bool CheckValid(const TextureView* _txView);
+
 	TextureView(Texture* _texture = nullptr, Shader* _shader = nullptr);
 	~TextureView();
 

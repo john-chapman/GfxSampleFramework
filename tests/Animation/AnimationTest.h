@@ -22,8 +22,8 @@ protected:
 	float                           m_animSpeed     = 1.0f;
 	float                           m_animTime      = 0.0f;
 	frm::mat4                       m_world         = frm::identity;
-	frm::Node*                      m_node          = nullptr;
-	frm::Component_BasicRenderable* m_renderable    = nullptr;
+	frm::SceneNode*                 m_sceneNode     = nullptr;
+	frm::BasicRenderableComponent*  m_renderable    = nullptr;
 	frm::Mesh*                      m_mesh          = nullptr;
 	frm::BasicMaterial*             m_material      = nullptr;
 	frm::SkeletonAnimation*         m_anim          = nullptr;

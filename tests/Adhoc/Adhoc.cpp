@@ -39,6 +39,9 @@ bool Adhoc::update()
 		return false;
 	}
 
+
+	ImGui::ShowDemoWindow();
+
 	return true;
 }
 

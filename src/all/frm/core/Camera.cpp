@@ -2,19 +2,19 @@
 
 #include <frm/core/Buffer.h>
 #include <frm/core/Serializer.h>
-#include <frm/core/Scene.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
+
+#include <EASTL/utility.h> // swap
 
 using namespace frm;
 
 // PUBLIC
 
-Camera::Camera(Node* _parent)
+Camera::Camera()
 {
 	defaultInit();
-	m_parent = _parent;
 }
 
 Camera::~Camera()
@@ -70,7 +70,6 @@ void frm::swap(Camera& _a_, Camera& _b_)
 	swap(_a_.m_left,         _b_.m_left);
 	swap(_a_.m_near,         _b_.m_near);
 	swap(_a_.m_far,          _b_.m_far);
-	swap(_a_.m_parent,       _b_.m_parent);
 	swap(_a_.m_world,        _b_.m_world);
 	swap(_a_.m_view,         _b_.m_view);
 	swap(_a_.m_proj,         _b_.m_proj);
@@ -124,17 +123,17 @@ bool frm::Serialize(frm::Serializer& _serializer_, Camera& _camera_)
 	return true;
 }
 
-void Camera::edit()
+bool Camera::edit()
 {
 	ImGui::PushID(this);
 	Im3d::PushId(this);
 
 	bool updated = false;
 
-	bool  orthographic = getProjFlag(ProjFlag_Orthographic);
-	bool  asymmetrical = getProjFlag(ProjFlag_Asymmetrical);
-	bool  infinite     = getProjFlag(ProjFlag_Infinite);
-	bool  reversed     = getProjFlag(ProjFlag_Reversed);
+	bool orthographic = getProjFlag(ProjFlag_Orthographic);
+	bool asymmetrical = getProjFlag(ProjFlag_Asymmetrical);
+	bool infinite     = getProjFlag(ProjFlag_Infinite);
+	bool reversed     = getProjFlag(ProjFlag_Reversed);
 
 	ImGui::Text("Projection:");
 	if (ImGui::Checkbox("Orthographic", &orthographic))
@@ -307,6 +306,8 @@ void Camera::edit()
 
 	Im3d::PopId();
 	ImGui::PopID();
+
+	return updated;
 }
 
 
@@ -464,10 +465,6 @@ void Camera::update()
 
 void Camera::updateView()
 {
-	if (m_parent)
-	{
-		m_world = m_parent->getWorldMatrix();
-	}
 	m_prevProj = m_proj;
 	m_prevViewProj = m_viewProj;
 
@@ -649,7 +646,6 @@ void Camera::defaultInit()
 	m_left               = -1.0f;
 	m_near               = 1.0f;
 	m_far                = 1000.0f;
-	m_parent             = nullptr;
 	m_world              = mat4(identity);
 	m_proj               = mat4(identity);
 	m_aspectRatio        = 1.0f;

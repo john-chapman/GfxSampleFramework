@@ -45,6 +45,19 @@ static constexpr const char* kDefaultMaps[] =
 	"textures/BasicMaterial/Default_alpha.png",
 };
 
+static constexpr const char* kDefaultSuffix[] =
+{
+	"_basecolor",
+	"_metallic",
+	"_roughness",
+	"_reflectance",
+	"_occlusion",
+	"_normal",
+	"_height",
+	"_emissive",
+	"_alpha",
+};
+
 static constexpr const char* kFlagStr[] =
 {
 	"AlphaTest",
@@ -91,16 +104,24 @@ void BasicMaterial::Destroy(BasicMaterial*& _basicMaterial_)
 
 bool BasicMaterial::Edit(BasicMaterial*& _basicMaterial_, bool* _open_)
 {
-	FRM_ASSERT(false); // \todo need a better way to call this function - separate window per material?
 	bool ret = false;
-	if (_basicMaterial_ && ImGui::Begin("Basic Material", _open_))
+
+	String<32> windowTitle = "Basic Material Editor";
+	if (_basicMaterial_ && !_basicMaterial_->m_path.isEmpty())
 	{
-		if (ImGui::Button("New"))
+		windowTitle.appendf(" -- '%s'", _basicMaterial_->m_path.c_str());
+	}
+	windowTitle.append("###BasicMaterialEditor");
+
+	if (_basicMaterial_ && ImGui::Begin(windowTitle.c_str(), _open_))
+	{
+		if (ImGui::Button(ICON_FA_PLUS " New"))
 		{
 			_basicMaterial_ = Create();
 		}
+
 		ImGui::SameLine();
-		if (ImGui::Button("Save"))
+		if (ImGui::Button(ICON_FA_FLOPPY_O " Save"))
 		{
 			if (_basicMaterial_->m_path.isEmpty())
 			{
@@ -110,6 +131,7 @@ bool BasicMaterial::Edit(BasicMaterial*& _basicMaterial_, bool* _open_)
 					FileSystem::SetExtension(path, "json");
 					path = FileSystem::MakeRelative(path.c_str());
 					_basicMaterial_->m_path = path;
+					ret = true;
 				}
 			}
 
@@ -119,12 +141,36 @@ bool BasicMaterial::Edit(BasicMaterial*& _basicMaterial_, bool* _open_)
 				SerializerJson serializer(json, SerializerJson::Mode_Write);
 				if (_basicMaterial_->serialize(serializer))
 				{
-					FRM_ASSERT(false); // \todo this is broken for relative paths which aren't the default root
 					Json::Write(json, _basicMaterial_->m_path.c_str());
 				}
 			}
 		}
+
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_FLOPPY_O " Save As.."))
+		{
+			PathStr path;
+			if (FileSystem::PlatformSelect(path))
+			{
+				FileSystem::SetExtension(path, "json");
+				path = FileSystem::MakeRelative(path.c_str());
+				_basicMaterial_->m_path = path;
+
+				
+				Json json;
+				SerializerJson serializer(json, SerializerJson::Mode_Write);
+				if (_basicMaterial_->serialize(serializer))
+				{
+					Json::Write(json, _basicMaterial_->m_path.c_str());
+				}
+
+				ret = true;
+			}
+		}
+		
+		ImGui::Separator();
 		ret |= _basicMaterial_->edit();
+
 		ImGui::End();
 	}
 	return ret;
@@ -175,6 +221,12 @@ bool BasicMaterial::reload()
 
 bool BasicMaterial::edit()
 {
+	struct EditorState
+	{
+		bool mapAutoSelect = true; // Auto-select maps in the same location based on prefix (_basecolor, _normal, etc.).
+	};
+	static EditorState s_editorState;
+
 	bool ret = false;
 	ImGui::PushID(this);
 
@@ -183,31 +235,68 @@ bool BasicMaterial::edit()
 	ret |= ImGui::SliderFloat("Metallic",    &m_metallic,    0.0f, 1.0f);
 	ret |= ImGui::SliderFloat("Roughness",   &m_roughness,   0.0f, 1.0f);
 	ret |= ImGui::SliderFloat("Reflectance", &m_reflectance, 0.0f, 1.0f);
-	ret |= ImGui::SliderFloat("Height",      &m_height,      0.0f, 1.0f);
+	ret |= ImGui::SliderFloat("Height",      &m_height,      0.0f, 4.0f);
 	
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Maps"))
 	{
+		ImGui::Checkbox("Auto Select", &s_editorState.mapAutoSelect);
+		ImGui::Spacing();
+
 		for (int i = 0; i < Map_Count; ++i)
 		{
 			ImGui::PushID(kMapStr[i]);
-			if (ImGui::Button(kMapStr[i]))
+
+			if (m_maps[i])
 			{
-				PathStr path = m_mapPaths[i];
-				if (FileSystem::PlatformSelect(path, { "*.dds", "*.psd", "*.tga", "*.png" }))
-				{
-					//path = FileSystem::MakeRelative(path.c_str());
-					//path = FileSystem::StripRoot(path.c_str());
-					setMap(i, path.c_str());
-				}
+				TextureView* txView = m_maps[i]->getTextureView();
+				ImGui::ImageButton((ImTextureID)txView, ImVec2(128,128), ImVec2(0, 1), ImVec2(1, 0), 1, ImColor(0.5f, 0.5f, 0.5f));
 			}
-			ImGui::SameLine();
-			ImGui::Text("'%s'", m_mapPaths[i].c_str());
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_TIMES))
 			{
 				setMap(i, nullptr);
 			}
+			ImGui::SameLine();
+			
+			if (ImGui::Button(kMapStr[i]))
+			{
+				PathStr path = m_mapPaths[i];
+				if (FileSystem::PlatformSelect(path, { "*.dds", "*.psd", "*.tga", "*.png", "*.jpg" }))
+				{
+					path = FileSystem::MakeRelative(path.c_str());
+					setMap(i, path.c_str());
+
+					// Automatically load textures with the same base name from the same location.
+					if (s_editorState.mapAutoSelect)
+					{
+						PathStr baseName = FileSystem::GetFileName(path.c_str());
+						PathStr basePath = FileSystem::GetPath(path.c_str());
+						PathStr baseExt  = FileSystem::GetExtension(path.c_str());
+						const char* suffixPos = baseName.find(kDefaultSuffix[i]);
+						if (suffixPos)
+						{
+							// Trim baseName to remove suffix.
+							baseName.setLength(suffixPos - baseName.begin());
+
+							// Attempt to load all other maps.
+							for (int j = 0; j < Map_Count; ++j)
+							{
+								if (j != i)
+								{
+									PathStr autoPath = PathStr("%s%s%s.%s", basePath.c_str(), baseName.c_str(), kDefaultSuffix[j], baseExt.c_str()).c_str();
+									if (FileSystem::Exists(autoPath.c_str())) // \hack Avoid spamming the error log if the path doesn't exist.
+									{
+										setMap(j, autoPath.c_str());
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			ImGui::SameLine();
+			ImGui::Text("'%s'", m_mapPaths[i].c_str());
 			ImGui::PopID();
 		}
 		ImGui::TreePop();
@@ -292,7 +381,7 @@ void BasicMaterial::setMap(Map _map, const char* _path)
 	if (m_mapPaths[_map] != _path)
 	{
 		Texture* tx = Texture::Create(_path);
-		if (tx)
+		if (CheckResource(tx))
 		{
 			Texture::Release(m_maps[_map]);
 			m_maps[_map] = tx;

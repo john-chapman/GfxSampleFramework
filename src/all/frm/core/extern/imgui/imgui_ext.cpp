@@ -234,6 +234,41 @@ static T* FindOrInsert(ImGuiID _id, const T& _value = T())
 } } // namespace ImGui::StateMap
 
 
+namespace ImGui {
+
+int ChoicePopupModal(const char* _title, const char* _message, std::initializer_list<const char*> _choices)
+{
+	int ret = -2;
+
+	if (ImGui::BeginPopupModal(_title, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ret = -1;
+
+		ImGui::Text(_message);
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		int i = 0;
+		for (auto& choice : _choices)
+		{
+			if (ImGui::Button(choice))
+			{
+				ret = i;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			++i;
+		}
+
+		ImGui::EndPopup();
+	}
+
+	return ret;
+}
+
+} // namespace ImGui
+
 /*******************************************************************************
 
                                  VirtualWindow
@@ -395,7 +430,7 @@ bool Begin(ImGuiID _id, const ImVec2& _size, Flags _flags)
 			ImVec2 offset = pan * subrectV.GetSize();
 			subrectV.Min -= offset;
 			subrectV.Max -= offset;
-			ImGui::CfrmureMouseFromApp();
+			ImGui::CaptureMouseFromApp();
 
 			setScroll = true;
 		}

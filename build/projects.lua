@@ -17,25 +17,25 @@ return
 		"../tests/BasicRenderer/**",
 		"../tests/_sample.cpp",
 	},
-	
+
 	Depth =
 	{
 		"../tests/Depth/**",
 		"../tests/_sample.cpp",
 	},
-	
+
 	Intersection =
 	{
 		"../tests/Intersection/**",
 		"../tests/_sample.cpp",
 	},
-	
+
 	LuaScript =
 	{
 		"../tests/LuaScript/**",
 		"../tests/_sample.cpp",
 	},
-	
+
 	Octree =
 	{
 		"../tests/Octree/**",
@@ -47,26 +47,32 @@ return
 		"../tests/Physics/**",
 		"../tests/_sample.cpp",
 	},
-	
+
 	Quadtree =
 	{
 		"../tests/Quadtree/**",
 		"../tests/_sample.cpp",
 	},
-	
+
+	SceneTest =
+	{
+		"../tests/SceneTest/**",
+		"../tests/_sample.cpp",
+	},
+
 	StreamingQuadtree =
 	{
 		"../tests/StreamingQuadtree/**",
 		"../tests/_sample.cpp",
 	},
-	
+
 	VirtualWindow =
 	{
 		"../tests/VirtualWindow/**",
 		"../tests/_sample.cpp",
 	},
 
-	VRTest = 
+	VRTest =
 	{
 		"../tests/VRTest/**",
 		"../tests/_sample.cpp",

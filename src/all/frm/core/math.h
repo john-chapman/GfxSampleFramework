@@ -66,6 +66,15 @@ namespace frm {
 	mat3 GetRotation(const mat4& _m);
 	mat2 GetRotation(const mat3& _m);
 	vec3 GetScale(const mat4& _m);
+	vec2 GetScale(const mat3& _m);
+
+	// Set translation/rotation/scale.
+	void SetTranslation(mat4& _m_, const vec3& _translation);
+	void SetTranslation(mat3& _m_, const vec2& _translation);
+	void SetRotation(mat4& _m_, const mat3& _rotation);
+	void SetRotation(mat3& _m_, const mat2& _rotation);
+	void SetScale(mat4& _m_, const vec3& _scale);
+	void SetScale(mat3& _m_, const vec2& _scale);
 
 	// Transform a position or direction by homogeneous matrix _m.
 	inline vec3 TransformPosition(const mat4& _m, const vec3& _p)               { return mul(_m, vec4(_p, 1.0f)).xyz(); }

@@ -1,3 +1,5 @@
+#if 0
+
 #pragma once
 
 #include <frm/core/frm.h>
@@ -219,3 +221,5 @@ struct XForm_OrbitalPath: public XForm
 };
 
 } // namespace frm
+
+#endif
