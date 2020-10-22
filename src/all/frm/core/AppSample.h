@@ -18,6 +18,7 @@ class AppSample: public App
 public:
 
 	static AppSample* AppSample::GetCurrent();
+	static void FileChangeNotification(const char* _path, FileSystem::FileAction _action);
 
 	virtual bool        init(const ArgList& _args) override;
 	virtual void        shutdown() override;
@@ -40,6 +41,7 @@ public:
 	void                setCanSetWindowCursorType(bool _value)        { m_canSetWindowCursorType = true; }
 
 protected:
+
 	AppSample(const char* _title);
 	virtual ~AppSample();
 

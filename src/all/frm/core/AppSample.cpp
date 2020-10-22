@@ -47,7 +47,15 @@ static int   kStatusBarFlags;
 
 *******************************************************************************/
 
-static void FileChangeNotification(const char* _path, FileSystem::FileAction _action)
+// PUBLIC
+
+AppSample* AppSample::GetCurrent()
+{
+	FRM_ASSERT(g_Current);
+	return g_Current;
+}
+
+void AppSample::FileChangeNotification(const char* _path, FileSystem::FileAction _action)
 {
  // some applications (e.g. Photoshop) write to a temporary file and then do a delete/rename, hence we need to check both _Modified and _Created actions
 	if (_action == FileSystem::FileAction_Modified || _action == FileSystem::FileAction_Created) 
@@ -68,14 +76,6 @@ static void FileChangeNotification(const char* _path, FileSystem::FileAction _ac
 			return;
 		}
 	}
-}
-
-// PUBLIC
-
-AppSample* AppSample::GetCurrent()
-{
-	FRM_ASSERT(g_Current);
-	return g_Current;
 }
 
 bool AppSample::init(const frm::ArgList& _args)
