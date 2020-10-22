@@ -120,14 +120,14 @@ void StreamingQuadtree::update()
 
 void StreamingQuadtree::drawDebug(const mat4& _world)
 {
-	ImGui::Text("Total node count: %u", m_nodePool.getUsedCount());
+	/*ImGui::Text("Total node count: %u", m_nodePool.getUsedCount());
 	ImGui::Text("Load queue:       %u", m_loadQueue.size());
 	ImGui::Text("Release queue:    %u", m_releaseQueue.size());
 	ImGui::Text("Draw list:        %u", m_drawList.size());
 	if (ImGui::SliderFloat("LOD Scale", &m_lodScale, 1e-4f, 2.0f))
 	{
 		setLodScale(m_lodScale);
-	}
+	}*/
 
 	Im3d::PushDrawState();
 	Im3d::PushMatrix(_world);
@@ -195,6 +195,10 @@ void StreamingQuadtree::drawDebug(const mat4& _world)
 		vec3 boxMin  = node->m_originQ + vec3(-boxSize.xy(), 0.0f);
 		vec3 boxMax  = node->m_originQ + vec3( boxSize.xy(), boxSize.z);
 		Im3d::DrawAlignedBoxFilled(boxMin, boxMax);	
+
+		int nodeLevel = Quadtree<NodeIndex, Node*>::FindLevel(nodeIndex);
+		uvec2 cartesian = Quadtree<NodeIndex, Node*>::ToCartesian(nodeIndex, nodeLevel);
+		Im3d::Text((boxMin + boxMax) * 0.5f, 1.0f, Im3d::Color_White, Im3d::TextFlags_AlignLeft, "[%d] %u, %u\n%.2f, %.2f", nodeLevel, cartesian.x, cartesian.y, node->m_originQ.x * 0.5f + 0.5f, node->m_originQ.y * 0.5f + 0.5f);
 	}
 	Im3d::PopEnableSorting();
 
@@ -347,8 +351,8 @@ void StreamingQuadtree::split(const Node* _node)
 	float childOffset = _node->m_widthQ / 4.0f;
 	m_nodeQuadtree[firstChildIndex + 0]->m_originQ = _node->m_originQ + vec3(-childOffset, -childOffset, _node->m_originQ.z);
 	m_nodeQuadtree[firstChildIndex + 1]->m_originQ = _node->m_originQ + vec3(-childOffset,  childOffset, _node->m_originQ.z);
-	m_nodeQuadtree[firstChildIndex + 2]->m_originQ = _node->m_originQ + vec3( childOffset,  childOffset, _node->m_originQ.z);
-	m_nodeQuadtree[firstChildIndex + 3]->m_originQ = _node->m_originQ + vec3( childOffset, -childOffset, _node->m_originQ.z);
+	m_nodeQuadtree[firstChildIndex + 2]->m_originQ = _node->m_originQ + vec3( childOffset, -childOffset, _node->m_originQ.z);
+	m_nodeQuadtree[firstChildIndex + 3]->m_originQ = _node->m_originQ + vec3( childOffset,  childOffset, _node->m_originQ.z);
 }
 
 void StreamingQuadtree::merge(const Node* _node)
