@@ -149,11 +149,11 @@ int FRM_QUADTREE_CLASS_DECL::FindLevel(Index _nodeIndex)
 FRM_QUADTREE_TEMPLATE_DECL 
 uvec2 FRM_QUADTREE_CLASS_DECL::ToCartesian(Index _nodeIndex, int _nodeLevel)
 {
- // traverse the index LSB -> MSB summing node width (node width = number of leaf nodes covered, start at 1) 
+ // traverse the index LSB -> MSB, deinterleaving bits
 	_nodeIndex -= GetLevelStartIndex(_nodeLevel);
 	Index width = 1;
 	uvec2 ret = uvec2(0u);
-	for (int i = 0; i < _nodeLevel; ++i, width *= 2)
+	for (int i = 0; i < _nodeLevel; ++i, width <<= 1)
 	{
 		ret.y += (_nodeIndex & 1) * width; 
 		_nodeIndex = _nodeIndex >> 1;
