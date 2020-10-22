@@ -64,6 +64,10 @@ public:
 
 	void      setPivot(const vec3& _pivotQ, const vec3& _directionQ = vec3(0.0f, 0.0f, 1.0f));
 	void      setLodScale(float _lodScale);
+	float     getLodScale() const { return m_lodScale; }
+
+	const Node* getNode(NodeIndex _nodeIndex) const      { return m_nodeQuadtree[_nodeIndex]; }
+	NodeState   getNodeState(NodeIndex _nodeIndex) const { return m_stateQuadtree[_nodeIndex]; }
 
 	void*     getNodeData(NodeIndex _nodeIndex) const { return m_dataQuadtree[_nodeIndex]; }
 	void      setNodeData(NodeIndex _nodeIndex, void* _data);
@@ -71,7 +75,13 @@ public:
 	NodeIndex popLoadQueue();
 	size_t    getLoadQueueCount() const    { return m_loadQueue.size(); }
 	NodeIndex popReleaseQueue();
-	size_t    getReleaseQueueCount() const { return m_releaseQueue.size(); }	
+	size_t    getReleaseQueueCount() const { return m_releaseQueue.size(); }
+
+	void      releaseAll();
+
+	size_t    getNodeCount() const         { return m_nodePool.getUsedCount(); }
+	size_t    getDrawListCount() const     { return m_drawList.size(); }
+	NodeIndex getDrawList(int i) const     { return m_drawList[i]; }
 
 protected:
 	
