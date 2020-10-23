@@ -706,7 +706,10 @@ SceneNode* Scene::createTransientNode(const char* _name, SceneNode* _parent)
 void Scene::destroyNode(SceneNode* _node_)
 {
 	FRM_ASSERT(_node_);
-	_node_->shutdown();
+	if (_node_->getState() != World::State::Shutdown)
+	{
+		_node_->shutdown();
+	}
 
 	if (_node_->getFlag(SceneNode::Flag::Transient))
 	{
@@ -1157,6 +1160,15 @@ void SceneNode::shutdown()
 	m_state = World::State::Shutdown;
 
 	dispatchCallbacks(Event::OnShutdown);
+
+	// At this point, any transient children should be destroyed.
+	for (LocalNodeReference& child : m_children)
+	{
+		if (child->getFlag(Flag::Transient))
+		{
+			m_parentScene->destroyNode(child.referent);
+		}
+	}
 
 	if (m_childScene)
 	{
