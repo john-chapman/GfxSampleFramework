@@ -110,12 +110,12 @@ private:
 }; // class Component
 
 #define FRM_COMPONENT_DECLARE(_class) \
-	class _class: public Component, public Serializable<_class>
+	class _class: public frm::Component, public frm::Serializable<_class>
 
 #define FRM_COMPONENT_DEFINE(_class, _version) \
 	FRM_SERIALIZABLE_DEFINE(_class, _version); \
-	FRM_FACTORY_REGISTER_DEFAULT(Component, _class); \
-	static Component::RegisterUpdateFunc s_ ## _class ## ComponentUpdateFunc(&_class::Update, #_class); \
+	FRM_FACTORY_REGISTER_DEFAULT(frm::Component, _class); \
+	static frm::Component::RegisterUpdateFunc s_ ## _class ## ComponentUpdateFunc(&_class::Update, #_class); \
 	FRM_FORCE_LINK_REF(_class)
 
 } // namespace frm
