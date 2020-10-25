@@ -105,6 +105,8 @@ bool CameraComponent::initImpl()
 		s_cullCamera[0] = this;
 	}
 
+	m_camera.updateGpuBuffer(); // \hack force allocation of GPU buffer.
+
 	return true;
 }
 
