@@ -198,7 +198,7 @@ void StreamingQuadtree::drawDebug(const mat4& _world)
 
 		int nodeLevel = Quadtree<NodeIndex, Node*>::FindLevel(nodeIndex);
 		uvec2 cartesian = Quadtree<NodeIndex, Node*>::ToCartesian(nodeIndex, nodeLevel);
-		Im3d::Text((boxMin + boxMax) * 0.5f, 1.0f, Im3d::Color_White, Im3d::TextFlags_AlignLeft, "[%d] %u, %u\n%.2f, %.2f", nodeLevel, cartesian.x, cartesian.y, node->m_originQ.x * 0.5f + 0.5f, node->m_originQ.y * 0.5f + 0.5f);
+		//Im3d::Text((boxMin + boxMax) * 0.5f, 1.0f, Im3d::Color_White, Im3d::TextFlags_AlignLeft, "[%d] %u, %u\n%.2f, %.2f", nodeLevel, cartesian.x, cartesian.y, node->m_originQ.x * 0.5f + 0.5f, node->m_originQ.y * 0.5f + 0.5f);
 	}
 	Im3d::PopEnableSorting();
 
@@ -228,6 +228,19 @@ void StreamingQuadtree::setLodScale(float _lodScale)
 	for (float& radius : m_lodRadii2)
 	{
 		radius = radius * radius;
+	}
+	m_updateDrawList = true;
+}
+
+void StreamingQuadtree::setMaxLevel(int _maxLevel)
+{
+	const int kAbsoluteMaxLevel = m_nodeQuadtree.getLevelCount() - 1;
+	int newMaxLevel = (_maxLevel < 0) ? kAbsoluteMaxLevel : Min(_maxLevel, kAbsoluteMaxLevel);
+	bool requireMerge = newMaxLevel < m_maxLevel;
+	m_maxLevel = newMaxLevel;
+	if (requireMerge)
+	{		
+		merge(m_nodeQuadtree[0]);
 	}
 	m_updateDrawList = true;
 }

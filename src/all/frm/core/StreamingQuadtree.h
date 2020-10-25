@@ -66,6 +66,9 @@ public:
 	void      setLodScale(float _lodScale);
 	float     getLodScale() const { return m_lodScale; }
 
+	// Set the max subdivision level. -1 = absolute max level for the quadtree. 
+	void      setMaxLevel(int _maxLevel);
+
 	const Node* getNode(NodeIndex _nodeIndex) const      { return m_nodeQuadtree[_nodeIndex]; }
 	NodeState   getNodeState(NodeIndex _nodeIndex) const { return m_stateQuadtree[_nodeIndex]; }
 
