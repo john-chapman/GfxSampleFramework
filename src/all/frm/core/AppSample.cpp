@@ -133,7 +133,7 @@ bool AppSample::init(const frm::ArgList& _args)
 		| (glHDR           ? GlContext::CreateFlags_HDR           : 0)
 		;
 	m_glContext          = GlContext::Create(m_window, glVersion.x, glVersion.y, ctxFlags);
-	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode));
+	m_glContext->setVsync((GlContext::Vsync)(m_vsyncMode - 1));
 
 	if (!ImGui_Init(this)) 
 	{

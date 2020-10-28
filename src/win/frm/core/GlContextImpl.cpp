@@ -201,6 +201,8 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 
 	FRM_VERIFY(ret->init());
 
+	FRM_PLATFORM_VERIFY(wglSwapIntervalEXT((int)ret->m_vsync));
+
 	return ret;
 }
 
@@ -253,7 +255,7 @@ void GlContext::present()
 
 void GlContext::setVsync(Vsync _mode)
 {
-	if (m_vsync	!= _mode)
+	if (m_vsync != _mode)
 	{
 		m_vsync = _mode;
 		FRM_PLATFORM_VERIFY(wglSwapIntervalEXT((int)_mode));
