@@ -40,6 +40,22 @@ inline ImU32 ColorInvertRGB(ImU32 _rgba)
 	return (~_rgba & 0x00ffffff) | (_rgba & 0xff000000);
 }
 
+inline bool StateButton(const char* _label, bool* _state, const ImVec2& _size = ImVec2(0, 0))
+{
+	const ImVec4 colorActive   = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
+	const ImVec4 colorInactive = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+	
+	ImGui::PushStyleColor(ImGuiCol_Button,        *_state ? colorActive   : colorInactive);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive,  *_state ? colorInactive : colorActive);
+	bool ret = ImGui::Button(_label, _size);
+	if (ret)
+	{
+		*_state = !(*_state);
+	}
+	ImGui::PopStyleColor(2);
+	return ret;
+}
+
 // VirtualWindow
 // Child frame as a window onto a rectangular subregion of a virtual space. Useful for 1D or 2D visualization with pan/zoom functionality.
 // \todo
