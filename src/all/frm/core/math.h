@@ -207,6 +207,8 @@ namespace frm {
 
 	namespace internal {
 		template <typename tType>
+		inline tType Sign(const tType& _x, ScalarT)                             { return _x < 0 ? -1 : 1; }
+		template <typename tType>
 		inline tType Sign(const tType& _x, FloatT)                              { return std::copysign(tType(1), _x); }
 		template <typename tType>
 		inline tType Sign(const tType& _x, CompositeT)                          { return linalg::copysign(tType(1), _x); }
