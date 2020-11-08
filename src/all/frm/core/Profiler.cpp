@@ -1118,7 +1118,7 @@ if (g_ViewMode == ViewMode_Markers) {
 
 void Profiler::DrawPinnedValues()
 {
-	ImVec2 size = ImVec2(160, 80);
+	ImVec2 size = ImVec2(256, 100);
 
 	ImVec2 padding = ImGui::GetStyle().ItemSpacing;
 	ImVec2 cursor = ImVec2(padding.x, ImGui::GetWindowSize().y - size.y - padding.y);
