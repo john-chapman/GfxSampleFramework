@@ -58,13 +58,15 @@ public:
 	template <typename T>
 	void addGlobalDefine(const char* _name, const T& _value)
 	{
-		for (int i = 0; i < internal::kShaderStageCount; ++i) {
+		for (int i = 0; i < internal::kShaderStageCount; ++i) 
+		{
 			addDefine(internal::kShaderStages[i], _name, _value);
 		}
 	}
 	void addGlobalDefine(const char* _nameValue)
 	{
-		for (int i = 0; i < internal::kShaderStageCount; ++i) {
+		for (int i = 0; i < internal::kShaderStageCount; ++i) 
+		{
 			addDefine(internal::kShaderStages[i], _nameValue);
 		}
 	}
@@ -166,7 +168,8 @@ public:
 	template <typename T>
 	bool   addGlobalDefine(const char* _name, const T& _value)
 	{
-		for (int i = 0; i < internal::kShaderStageCount; ++i) {
+		for (int i = 0; i < internal::kShaderStageCount; ++i) 
+		{
 			m_desc.addDefine(internal::kShaderStages[i], _name, _value);
 		}
 		return loadEnabledStagesAndLinkProgram(false);
