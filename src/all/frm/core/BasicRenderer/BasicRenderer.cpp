@@ -91,7 +91,6 @@ void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamer
 			{
 				glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 				glAssert(glDepthFunc(GL_LESS));
-				glScopedEnable(GL_CULL_FACE, GL_TRUE); // \todo per material?
 
 				for (auto& it : drawCalls)
 				{
@@ -100,6 +99,7 @@ void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamer
 					{
 						continue;
 					}
+					glScopedEnable(GL_CULL_FACE, drawCall.cullBackFace ? GL_TRUE : GL_FALSE);
 
 					ctx->setShader(drawCall.shaders[Pass_Shadow]);
 					ctx->bindBuffer(shadowCamera.m_gpuBuffer);
@@ -212,7 +212,6 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 			glScopedEnable(GL_STENCIL_TEST, GL_TRUE);
 			glAssert(glStencilFunc(GL_ALWAYS, 0xff, 0x01)); // \todo only stencil dynamic objects
 			glAssert(glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE));
-			glScopedEnable(GL_CULL_FACE, GL_TRUE); // \todo per material?
 
 			for (auto& it : sceneDrawCalls)
 			{
@@ -221,6 +220,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 				{
 					continue;
 				}
+				glScopedEnable(GL_CULL_FACE, drawCall.cullBackFace ? GL_TRUE : GL_FALSE);
 
 				ctx->setShader(drawCall.shaders[Pass_GBuffer]);
 				ctx->bindBuffer(sceneCamera.m_gpuBuffer);
@@ -297,7 +297,6 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 			glAssert(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		}
 
-		glScopedEnable(GL_CULL_FACE, GL_TRUE); // \todo per material?
 		for (auto& it : sceneDrawCalls)
 		{
 			const DrawCall& drawCall = it.second;
@@ -305,6 +304,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 			{
 				continue;
 			}
+			glScopedEnable(GL_CULL_FACE, drawCall.cullBackFace ? GL_TRUE : GL_FALSE);
 
 			ctx->setShader(drawCall.shaders[Pass_Scene]);
 			ctx->bindTexture("txGBuffer0", txGBuffer0);
@@ -859,6 +859,7 @@ Shader* BasicRenderer::findShader(ShaderMapKey _key)
 	{
 		"Material_AlphaTest",
 		"Material_AlphaDither",
+		"Material_ThinTranslucency",
 	};
 	static_assert(BasicMaterial::Flag_Count == FRM_ARRAY_COUNT(kMaterialDefines), "BasicMaterial::Flag_Count != FRM_ARRAY_COUNT(kMaterialDefines)");
 
@@ -1255,6 +1256,7 @@ void BasicRenderer::addDrawCall(const BasicRenderableComponent* _renderable, int
 
 	DrawCall& drawCall           = map_[drawCallKey];
 	drawCall.material            = material;
+	drawCall.cullBackFace        = (material->getFlags() & (1 << BasicMaterial::Flag_ThinTranslucent)) == 0;
 	drawCall.mesh                = mesh;
 	drawCall.submeshIndex        = _submeshIndex;
 

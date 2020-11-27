@@ -212,6 +212,7 @@ private:
 		const Mesh*                 mesh                = nullptr;
 		uint32                      submeshIndex        = 0;
 		Buffer*                     bfInstances         = nullptr;
+		bool                        cullBackFace        = true; // \todo Pipeline state flags.
 		eastl::vector<DrawInstance> instanceData;
 
 		// \todo This data can be shared between scene/shadow passes - split it out (but need to cull against *all* cameras).

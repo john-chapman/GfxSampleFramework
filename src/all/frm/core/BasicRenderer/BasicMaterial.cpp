@@ -30,19 +30,21 @@ static constexpr const char* kMapStr[] =
 	"Height",
 	"Emissive",
 	"Alpha",
+	"Translucency"
 };
 
 static constexpr const char* kDefaultMaps[] =
 {
-	"textures/BasicMaterial/Default_basecolor.png",
-	"textures/BasicMaterial/Default_metallic.png",
-	"textures/BasicMaterial/Default_roughness.png",
-	"textures/BasicMaterial/Default_reflectance.png",
-	"textures/BasicMaterial/Default_occlusion.png",
-	"textures/BasicMaterial/Default_normal.png",
-	"textures/BasicMaterial/Default_height.png",
-	"textures/BasicMaterial/Default_emissive.png",
-	"textures/BasicMaterial/Default_alpha.png",
+	"textures/BasicMaterial/default_basecolor.png",
+	"textures/BasicMaterial/default_metallic.png",
+	"textures/BasicMaterial/default_roughness.png",
+	"textures/BasicMaterial/default_reflectance.png",
+	"textures/BasicMaterial/default_occlusion.png",
+	"textures/BasicMaterial/default_normal.png",
+	"textures/BasicMaterial/default_height.png",
+	"textures/BasicMaterial/default_emissive.png",
+	"textures/BasicMaterial/default_alpha.png",
+	"textures/BasicMaterial/default_translucency.png"
 };
 
 static constexpr const char* kDefaultSuffix[] =
@@ -56,11 +58,14 @@ static constexpr const char* kDefaultSuffix[] =
 	"_height",
 	"_emissive",
 	"_alpha",
+	"_translucency"
 };
 
 static constexpr const char* kFlagStr[] =
 {
-	"AlphaTest",
+	"Alpha Test",
+	"Alpha Dither",	
+	"Thin Translucency"
 };
 
 
@@ -305,9 +310,13 @@ bool BasicMaterial::edit()
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Flags"))
 	{
-		bool alphaTest = BitfieldGet(m_flags, (uint32)Flag_AlphaTest);
-		ret |= ImGui::Checkbox("Alpha Test", &alphaTest);
-		m_flags = BitfieldSet(m_flags, (uint32)Flag_AlphaTest, alphaTest);
+		for (int i = 0; i < Flag_Count; ++i)
+		{
+			bool value = BitfieldGet(m_flags, (uint32)i);
+			ret |= ImGui::Checkbox(kFlagStr[i], &value);
+			m_flags = BitfieldSet(m_flags, (uint32)i, value);
+		}
+
 		ImGui::TreePop();
 	}
 

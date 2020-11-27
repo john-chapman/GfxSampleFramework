@@ -187,7 +187,8 @@ void main()
 #define Map_Height        6
 #define Map_Emissive      7
 #define Map_Alpha         8
-#define Map_Count         9
+#define Map_Translucency  9
+#define Map_Count         10
 uniform sampler2D uMaps[Map_Count];
 float Noise_InterleavedGradient(in vec2 _seed)
 {
@@ -212,8 +213,8 @@ float BasicMaterial_ApplyAlphaTest()
 	}
 	#endif
 
-	//#ifdef Material_AlphaDither
-	#if 1
+	#ifdef Material_AlphaDither
+	//#if 1
 	{
 		uvec2 seed = uvec2(gl_FragCoord.xy);
 		if (instanceAlpha
@@ -229,6 +230,106 @@ float BasicMaterial_ApplyAlphaTest()
 
 	return instanceAlpha;
 }
+
+#ifdef Pass_Scene
+vec3 BasicMaterial_ApplyLighting(inout Lighting_In _in_, in vec3 _P, in vec3 _N, in vec3 _V)
+{
+	vec3 ret = vec3(0.0);
+
+	// Simple lights.
+	for (int i = 0; i < uLightCount; ++i)
+	{
+		const int type = int(floor(uLights[i].position.a));
+
+		switch (type)
+		{
+			default:
+			case LightType_Direct:
+			{
+				ret += Lighting_Direct(_in_, uLights[i], _N, _V);
+				break;
+			}
+			case LightType_Point:
+			{
+				ret += Lighting_Point(_in_, uLights[i], _P, _N, _V);
+				break;
+			}
+			case LightType_Spot:
+			{
+				ret += Lighting_Spot(_in_, uLights[i], _P, _N, _V);
+				break;
+			}
+		};
+	}
+
+	// Shadow lights.
+	const float shadowTexelSize = 1.0 / float(textureSize(txShadowMap, 0).x);
+	for (int i = 0; i < uShadowLightCount; ++i)
+	{
+		const int type = int(floor(uShadowLights[i].light.position.a));
+
+		switch (type)
+		{
+			default:
+			case LightType_Direct:
+			{
+				vec3 radiance = Lighting_Direct(_in_, uShadowLights[i].light, _N, _V);
+				if (!bool(Shadow_PREDICATE_NoL) || _in_.NoL > Lighting_EPSILON)
+				{
+					vec3 shadowCoord = Shadow_Project(_P, uShadowLights[i].worldToShadow, shadowTexelSize, uShadowLights[i].uvScale, uShadowLights[i].uvBias);
+					radiance *= Shadow_FetchBilinear(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
+				}
+				ret += radiance;
+				break;
+			}
+			case LightType_Point:
+			{
+				vec3 radiance = Lighting_Point(_in_, uShadowLights[i].light, _P, _N, _V);
+				if (!bool(Shadow_PREDICATE_NoL) || _in_.NoL > Lighting_EPSILON)
+				{
+					// \todo
+				}
+				ret += radiance;
+				break;
+			}
+			case LightType_Spot:
+			{
+				vec3 radiance = Lighting_Spot(_in_, uShadowLights[i].light, _P, _N, _V);
+				if (!bool(Shadow_PREDICATE_NoL) || _in_.NoL > Lighting_EPSILON)
+				{
+					vec3 shadowCoord = Shadow_Project(_P, uShadowLights[i].worldToShadow, shadowTexelSize, uShadowLights[i].uvScale, uShadowLights[i].uvBias);
+					radiance *= Shadow_FetchBilinear(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
+				}
+				ret += radiance;
+				break;
+			}
+		};
+	}
+
+	// Image lights.
+	if (uImageLightCount > 0)
+	{
+		const float maxLevel = 7.0; // depends on envmap size, limit to prevent filtering artefacts
+
+	// Specular
+		vec3 R = reflect(-_V, _N);
+		// specular dominant direction correction (see Frostbite)
+		#if 1
+			vec3 Rdom = mix(_N, R, (1.0 - _in_.alpha) * (sqrt(1.0 - _in_.alpha) + _in_.alpha));
+		#else
+			vec3 Rdom = R;
+		#endif
+		float NoR = saturate(dot(_N, Rdom));
+		vec3 brdf = textureLod(txBRDFLut, vec2(NoR, _in_.alpha), 0.0).xyz;
+		//brdf = vec3(1,0,1);
+		ret += (_in_.f0 * brdf.x + _in_.f90 * brdf.y) * textureLod(txImageLight, R, _in_.alpha * maxLevel).rgb * uImageLightBrightness;
+	// Diffuse
+		ret += (textureLod(txImageLight, _N, maxLevel).rgb * uImageLightBrightness * brdf.z) * _in_.diffuse;
+	}
+
+	return ret;
+}
+#endif
 
 void main()
 {
@@ -269,112 +370,31 @@ void main()
 
 		const uint materialIndex = uDrawInstances[vInstanceId].materialIndex;
 		Lighting_In lightingIn;
-		vec3  baseColor   = texture(uMaps[Map_BaseColor], vUv).rgb * uMaterials[materialIndex].baseColorAlpha.rgb * uDrawInstances[vInstanceId].baseColorAlpha.rgb;
-		      baseColor   = Gamma_Apply(baseColor);
-		float metallic    = texture(uMaps[Map_Metallic],    vUv).x   * uMaterials[materialIndex].metallic;
-		float roughness   = texture(uMaps[Map_Roughness],   vUv).x   * uMaterials[materialIndex].roughness;
-		float reflectance = texture(uMaps[Map_Reflectance], vUv).x   * uMaterials[materialIndex].reflectance;
+		vec3  baseColor    = texture(uMaps[Map_BaseColor], vUv).rgb * uMaterials[materialIndex].baseColorAlpha.rgb * uDrawInstances[vInstanceId].baseColorAlpha.rgb;
+		      baseColor    = Gamma_Apply(baseColor);
+		float metallic     = texture(uMaps[Map_Metallic],     vUv).x   * uMaterials[materialIndex].metallic;
+		float roughness    = texture(uMaps[Map_Roughness],    vUv).x   * uMaterials[materialIndex].roughness;
+		float reflectance  = texture(uMaps[Map_Reflectance],  vUv).x   * uMaterials[materialIndex].reflectance;
 		Lighting_Init(lightingIn, N, V, roughness, baseColor, metallic, reflectance);
-		vec3 ret = vec3(0.0);
+		fResult.rgb = BasicMaterial_ApplyLighting(lightingIn, P, N, V);
 
-		// Lights.
-		for (int i = 0; i < uLightCount; ++i)
+		#ifdef Material_ThinTranslucency
 		{
-			const int type = int(floor(uLights[i].position.a));
-
-			switch (type)
-			{
-				default:
-				case LightType_Direct:
-				{
-					ret += Lighting_Direct(lightingIn, uLights[i], N, V);
-					break;
-				}
-				case LightType_Point:
-				{
-					ret += Lighting_Point(lightingIn, uLights[i], P, N, V);
-					break;
-				}
-				case LightType_Spot:
-				{
-					ret += Lighting_Spot(lightingIn, uLights[i], P, N, V);
-					break;
-				}
-			};
+			// \todo Quick hack to get something working: just do all the lighting again but with the normal flipped and basecolor = translucency. This is very expensive.
+			// Need to rework the lighting code to support thin/thick translucency in a more optimal way.
+			vec3 translucency = Gamma_Apply(texture(uMaps[Map_Translucency], vUv).rgb);
+			Lighting_Init(lightingIn, -N, V, 1, translucency, metallic, reflectance); // \todo roughness 1 = fake remove specular
+			fResult.rgb += BasicMaterial_ApplyLighting(lightingIn, P, -N, V) * 0.1; // \todo scale by phase
 		}
-
-		// Shadow lights.
-		const float shadowTexelSize = 1.0 / float(textureSize(txShadowMap, 0).x);
-		for (int i = 0; i < uShadowLightCount; ++i)
-		{
-			const int type = int(floor(uShadowLights[i].light.position.a));
-
-			switch (type)
-			{
-				default:
-				case LightType_Direct:
-				{
-					vec3 radiance = Lighting_Direct(lightingIn, uShadowLights[i].light, N, V);
-					if (!bool(Shadow_PREDICATE_NoL) || lightingIn.NoL > Lighting_EPSILON)
-					{
-						vec3 shadowCoord = Shadow_Project(P, uShadowLights[i].worldToShadow, shadowTexelSize, uShadowLights[i].uvScale, uShadowLights[i].uvBias);
-						radiance *= Shadow_FetchBilinear(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
-					}
-					ret += radiance;
-					break;
-				}
-				case LightType_Point:
-				{
-					vec3 radiance = Lighting_Point(lightingIn, uShadowLights[i].light, P, N, V);
-					if (!bool(Shadow_PREDICATE_NoL) || lightingIn.NoL > Lighting_EPSILON)
-					{
-						// \todo
-					}
-					ret += radiance;
-					break;
-				}
-				case LightType_Spot:
-				{
-					vec3 radiance = Lighting_Spot(lightingIn, uShadowLights[i].light, P, N, V);
-					if (!bool(Shadow_PREDICATE_NoL) || lightingIn.NoL > Lighting_EPSILON)
-					{
-						vec3 shadowCoord = Shadow_Project(P, uShadowLights[i].worldToShadow, shadowTexelSize, uShadowLights[i].uvScale, uShadowLights[i].uvBias);
-						radiance *= Shadow_FetchBilinear(txShadowMap, shadowCoord, uShadowLights[i].arrayIndex, shadowTexelSize);
-					}
-					ret += radiance;
-					break;
-				}
-			};
-		}
-
-		// Image lights.
-		if (uImageLightCount > 0)
-		{
-			const float maxLevel = 7.0; // depends on envmap size, limit to prevent filtering artefacts
-		
-		// Specular
-			vec3 R = reflect(-V, N);
-			// specular dominant direction correction (see Frostbite)
-			#if 1
-				vec3 Rdom = mix(N, R, (1.0 - lightingIn.alpha) * (sqrt(1.0 - lightingIn.alpha) + lightingIn.alpha));
-			#else
-				vec3 Rdom = R;
-			#endif
-			float NoR = saturate(dot(N, Rdom));
-			vec3 brdf = textureLod(txBRDFLut, vec2(NoR, roughness), 0.0).xyz;
-			//brdf = vec3(1,0,1);
-			ret += (lightingIn.f0 * brdf.x + lightingIn.f90 * brdf.y) * textureLod(txImageLight, R, roughness * maxLevel).rgb * uImageLightBrightness;
-		// Diffuse
-			ret += (textureLod(txImageLight, N, maxLevel).rgb * uImageLightBrightness * brdf.z) * lightingIn.diffuse;
-		}
-
-		fResult.rgb = ret;
+		#endif
 	}
 	#endif
 
 	#ifdef Pass_Wireframe
+	{
 		const uint materialIndex = uDrawInstances[vInstanceId].materialIndex;
 		fResult = uDrawInstances[vInstanceId].baseColorAlpha * uMaterials[materialIndex].baseColorAlpha;
+	}
 	#endif
 
 	#ifdef Pass_Shadow
