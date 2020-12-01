@@ -83,6 +83,19 @@ public:
 	void        addVirtualInclude(const char* _name, const char* _value);
 	void        clearVirtualIncludes();	
 	const char* findVirtualInclude(const char* _name) const;
+
+	// Add an extension.
+	void        addExtension(GLenum _stage, const char* _name, const char* _behavior);
+	void        addGlobalExtension(const char* _name, const char* _behavior)
+	{
+		for (int i = 0; i < internal::kShaderStageCount; ++i)
+		{
+			addExtension(internal::kShaderStages[i], _name, _behavior);
+		}
+	}
+	int         getExtensionCount(GLenum _stage) const;
+	const char* getExtensionName(GLenum _stage, int _i) const;
+	const char* getExtensionBehavior(GLenum _stage, int _i) const;
 	
 
 	// Hash the version string, shader paths, defines, virtual includes and source (if present).
@@ -100,7 +113,8 @@ private:
 		GLenum                      m_stage;
 		frm::PathStr                m_path;         // Only if from a file.
 		frm::String<0>              m_source;       // Excluding defines or virtual includes.
-		eastl::vector_map<Str, Str> m_defines;      // Name, value.	
+		eastl::vector_map<Str, Str> m_defines;      // Name, value.
+		eastl::vector_map<Str, Str> m_extensions;   // Name, behavior.
 		eastl::vector<frm::PathStr> m_dependencies;
 
 		bool isEnabled() const;

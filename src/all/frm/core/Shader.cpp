@@ -179,6 +179,17 @@ struct ShaderViewer
 
 								ImGui::TreePop();
 							}
+						 // extensions
+							if (desc.getExtensionCount(m_selectedStage) > 0 && ImGui::TreeNode("Extensions"))
+							{
+								for (int i = 0, n = desc.getExtensionCount(m_selectedStage); i < n; ++i)
+								{
+									ImGui::Text("%s : %s", desc.getExtensionName(m_selectedStage, i), desc.getExtensionBehavior(m_selectedStage, i));
+								}
+
+								ImGui::TreePop();
+							}
+
 						 // resources
 							if (sh->getHandle() != 0) // introspection only if shader was loaded
 							{
@@ -527,6 +538,22 @@ void ShaderDesc::clearVirtualIncludes()
 	m_vincludes.clear();
 }
 
+void ShaderDesc::addExtension(GLenum _stage, const char* _name, const char* _behavior)
+{
+	// \todo Need to warn in the case where _name already exists but _behavior is different.
+
+	StageDesc& stage = m_stages[internal::ShaderStageToIndex(_stage)];
+	auto val = stage.m_extensions.find(_name);
+	if (val == stage.m_extensions.end())
+	{
+		stage.m_extensions.insert(eastl::make_pair(Str(_name), Str(_behavior)));
+	}
+	else
+	{
+		val->second.set(_behavior);
+	}
+}
+
 uint64 ShaderDesc::getHash() const 
 {
 	uint64 ret = HashString<uint64>((const char*)m_version);
@@ -545,6 +572,11 @@ uint64 ShaderDesc::getHash() const
 		{
 			ret = HashString<uint64>((const char*)def.first, ret);
 			ret = HashString<uint64>((const char*)def.second, ret);
+		}
+		for (auto& ext : stage.m_extensions)
+		{
+			ret = HashString<uint64>((const char*)ext.first, ret);
+			ret = HashString<uint64>((const char*)ext.second, ret);
 		}
 	}
 
@@ -572,6 +604,25 @@ const char* ShaderDesc::findVirtualInclude(const char* _name) const
 	}
 
 	return (const char*)val->second;
+}
+
+int ShaderDesc::getExtensionCount(GLenum _stage) const
+{
+	return (int)m_stages[internal::ShaderStageToIndex(_stage)].m_extensions.size();
+}
+
+const char* ShaderDesc::getExtensionName(GLenum _stage, int _i) const
+{
+	auto& stage = m_stages[internal::ShaderStageToIndex(_stage)];
+	FRM_ASSERT(_i < stage.m_extensions.size());
+	return (const char*)(stage.m_extensions.begin() + _i)->first;
+}
+
+const char* ShaderDesc::getExtensionBehavior(GLenum _stage, int _i) const
+{
+	auto& stage = m_stages[internal::ShaderStageToIndex(_stage)];
+	FRM_ASSERT(_i < stage.m_extensions.size());
+	return (const char*)(stage.m_extensions.begin() + _i)->second;
 }
 
 // PRIVATE
@@ -720,6 +771,34 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 				tp.skipLine();
 				++lineCount;
 
+				continue; // don't advance tp or push to the result
+			}
+			else if (strncmp(tp, "#extension", sizeof("#extension") - 1) == 0)
+			{
+				tp.advanceToNextWhitespace();
+				tp.skipWhitespace();
+
+				const char* beg = tp;
+				tp.advanceToNextWhitespace();
+				Str name;
+				name.set(beg, tp - beg);
+
+				tp.advanceToNext(':');
+				tp.advance(); // step over ':'
+				tp.skipWhitespace();
+
+				beg = tp;
+				tp.advanceToNextWhitespace();
+				Str behavior;
+				behavior.set(beg, tp - beg);
+
+				const_cast<ShaderDesc&>(_shaderDesc).addExtension(m_stage, name.c_str(), behavior.c_str()); // \todo clean up the API!
+				
+			 // line pragma to resume
+				m_source.appendf("\n#line %d %d\n", lineCount, depCount);
+
+				tp.skipLine();
+				++lineCount;
 				continue; // don't advance tp or push to the result
 			}
 		}
@@ -972,6 +1051,11 @@ bool Shader::loadStage(int _i, bool _loadSource)
 	String<0> src;
 	// version pragma
 	src.appendf("#version %s\n", (const char*)m_desc.m_version);
+	// extensions
+	for (auto& ext : stageDesc.m_extensions)
+	{
+		src.appendf("#extension %s : %s\n", ext.first.c_str(), ext.second.c_str());
+	}
 	// defines
 	for (auto& def : stageDesc.m_defines) 
 	{
