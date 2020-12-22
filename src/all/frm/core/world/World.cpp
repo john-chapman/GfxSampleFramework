@@ -634,9 +634,11 @@ void Scene::shutdown()
 
 	for (auto& it : m_localNodeMap)
 	{
-		SceneNode* node = it.second;
-		node->shutdown();
-		m_nodePool.free(node);
+		it.second->shutdown();
+	}
+	for (auto& it : m_localNodeMap) // Need to free nodes in a second loop, because a node's memory may be read by its parent during shutdown().
+	{
+		m_nodePool.free(it.second);
 	}
 	m_localNodeMap.clear();
 	m_globalNodeMap.clear();
@@ -1166,6 +1168,7 @@ void SceneNode::shutdown()
 	{
 		if (child->getFlag(Flag::Transient))
 		{
+			FRM_ASSERT(child->getID() == 0u);
 			m_parentScene->destroyNode(child.referent);
 		}
 	}
