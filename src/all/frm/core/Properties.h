@@ -174,6 +174,7 @@ public:
 
 	void*         getDefault()                                  { return m_default; }
 	void          setDefault(void* _default);
+	bool          isDefault() const;
 
 	void*         getMin()                                      { return m_min; }
 	void          setMin(void* _min);
@@ -244,6 +245,7 @@ private:
 	bool            m_ownsStorage     = false;   // Whether m_storageExternal should be deleted by the property.
 
 	void copy(void* dst_, const void* _src);
+	bool compare(const void* _a, const void* _b) const;
 
 	friend class Properties;
 	friend bool Serialize(SerializerJson& _serializer_, Properties& _group_);

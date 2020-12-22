@@ -519,6 +519,11 @@ bool Serialize(SerializerJson& _serializer_, Properties& _group_)
 				continue;
 			}
 
+			if (prop->isDefault())
+			{
+				continue;
+			}
+
 			if (prop->m_storageExternal)
 			{
 			 // update internal storage before we write
@@ -762,6 +767,11 @@ void Property::setDefault(void* _default)
 	copy(m_default, _default);
 }
 
+bool Property::isDefault() const
+{
+	return compare(m_default, getStorage());
+}
+
 void Property::setMin(void* _min)
 {
 	copy(m_min, _min);
@@ -951,6 +961,7 @@ void Property::shutdown()
 void Property::copy(void* dst_, const void* _src)
 {
 	FRM_ASSERT(dst_ && _src);
+
 	switch (m_type)
 	{
 		default: 
@@ -981,6 +992,65 @@ void Property::copy(void* dst_, const void* _src)
 			}
 			break;
 	};
+}
+
+bool Property::compare(const void* _a, const void* _b) const
+{
+	FRM_ASSERT(_a && _b);
+
+	switch (m_type)
+	{
+		default:
+		case Properties::Type_Bool:
+		case Properties::Type_String:
+			return memcmp(_a, _b, getSizeBytes()) == 0;
+		case Properties::Type_Int:
+		case Properties::Type_Float:
+		{
+			for (int i = 0; i < m_count; ++i)
+			{
+				double da, db;
+				if (_a == m_storageInternal)
+				{
+					da = ((double*)_a)[i];
+				}
+				else
+				{
+					if (m_type == Properties::Type_Int)
+					{
+						da = (double)((sint32*)_a)[i];
+					}
+					else
+					{
+						da = (double)((float32*)_a)[i];
+					}
+				}
+
+				if (_b == m_storageInternal)
+				{
+					db = ((double*)_b)[i];
+				}
+				else
+				{
+					if (m_type == Properties::Type_Int)
+					{
+						db = (double)((sint32*)_b)[i];
+					}
+					else
+					{
+						db = (double)((float32*)_b)[i];
+					}
+				}
+
+				if (da != db)
+				{
+					return false;
+				}
+			}
+		}
+	};
+
+	return true;
 }
 
 } // namespace frm
