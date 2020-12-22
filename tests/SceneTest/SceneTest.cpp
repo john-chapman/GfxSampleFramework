@@ -29,7 +29,7 @@ bool SceneTest::init(const frm::ArgList& _args)
 		return false;
 	}
 
-	m_basicRenderer = BasicRenderer::Create(m_resolution.x, m_resolution.y);
+	m_basicRenderer = BasicRenderer::Create();
 	m_basicRenderer->setFlag(BasicRenderer::Flag::WriteToBackBuffer, false); // We manually draw ImGui/Im3d and then blit.
 
 	return true;

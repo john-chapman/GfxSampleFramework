@@ -40,7 +40,7 @@ bool AnimationTest::init(const frm::ArgList& _args)
 		return false;
 	}
 
-	m_basicRenderer = BasicRenderer::Create(m_resolution.x, m_resolution.y);
+	m_basicRenderer = BasicRenderer::Create();
 
 	m_material = BasicMaterial::Create();
 	

@@ -59,7 +59,7 @@ public:
 	};
 	using Flags = BitFlags<Flag>;
 
-	static BasicRenderer* Create(int _resolutionX, int _resolutionY, Flags _flags = Flags());
+	static BasicRenderer* Create(Flags _flags = Flags());
 	static void Destroy(BasicRenderer*& _inst_);
 
 	void nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamera);
@@ -136,20 +136,30 @@ public:
 	Shader*         shBloomDownsample          = nullptr;
 	Shader*         shBloomUpsample            = nullptr;
 
-	float           motionBlurTargetFps        = 60.0f;
-	int             motionBlurTileWidth        = 20;
-	float           taaSharpen                 = 0.4f;
-	ivec2           resolution                 = ivec2(-1);
 	bool            pauseUpdate                = false;
-	bool            enableCulling              = true;
-	bool            cullBySubmesh              = true;
-	float           bloomScale                 = -1.0f;
-	float           bloomBrightness            = 0.075f;
-	Flags           flags;
+	
+	struct Settings
+	{
+		ivec2 resolution                = ivec2(-1);
+		int   minShadowMapResolution    = 128;
+		int   maxShadowMapResolution    = 4096;
+		bool  enableCulling             = true;
+		bool  cullBySubmesh             = true;
+		float motionBlurTargetFps       = 60.0f;
+		int   motionBlurTileWidth       = 20;
+		int   motionBlurQuality         = 1;
+		float taaSharpen                = 0.4f;
+		float bloomScale                = -1.0f;
+		float bloomBrightness           = 0.0f;
+		int   bloomQuality              = 1;
+		float materialTextureAnisotropy = 4.0f;
+	};
+	Settings settings;
+	Flags    flags;
 
 private:
 
-	BasicRenderer(int _resolutionX, int _resolutionY, Flags _flags);
+	BasicRenderer(Flags _flags);
 	~BasicRenderer();
 
 	bool editFlag(const char* _name, Flag _flag);
@@ -276,6 +286,7 @@ private:
 		uint32 frameIndex      = 0;
 	};
 	PostProcessData postProcessData;
+	void updatePostProcessData(float _dt, uint32 _frameIndex);
 
 	void updateBuffer(Buffer*& bf_, const char* _name, GLsizei _size, void* _data);
 

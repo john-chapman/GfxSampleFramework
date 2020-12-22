@@ -4,6 +4,10 @@
 #define GBuffer_IN
 #include "shaders/BasicRenderer/GBuffer.glsl"
 
+#ifndef MOTION_BLUR_QUALITY
+	#define MOTION_BLUR_QUALITY 1
+#endif
+
 uniform sampler2D txScene;
 uniform sampler2D txVelocityTileNeighborMax;
 uniform writeonly image2D txOut;
@@ -110,8 +114,12 @@ void main()
 	const float baseLod = 0.0; // \todo use to blur for post fx
 	ret = textureLod(txScene, uv, baseLod).rgb;
 
-	//const int kMotionBlurSampleCount = 11; // \todo quality setting
-		const int kMotionBlurSampleCount = 5; // good for VR
+	#if (MOTION_BLUR_QUALITY == 0)
+		const int kMotionBlurSampleCount = 5;
+	#else
+		const int kMotionBlurSampleCount = 11;
+	#endif
+
 	#if 0
 	{
 	// Basic motion blur.

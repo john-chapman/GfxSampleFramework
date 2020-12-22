@@ -1,5 +1,9 @@
 #include "shaders/def.glsl"
 
+#ifndef BLOOM_QUALITY
+	#define BLOOM_QUALITY 1
+#endif
+
 uniform sampler2D txSrc;
 uniform writeonly image2D txDst;
 
@@ -22,11 +26,7 @@ void main()
 	const vec2 srcTexelSize = 1.0 / vec2(textureSize(txSrc, uSrcLevel).xy);
 	vec4 ret = vec4(0.0);
 
-// \todo
-// - Use hbox 4x4 for low quality where perf is crucial (it's a lot cheaper than jorge and nearly as good).
-// - Gaussian is much worse than jorge, it weights the centre samples too high.
-
-	#if 0
+	#if (BLOOM_QUALITY == 0)
 		// Low quality, fast = 4 bilinear samples.
 		ret.rgb += textureLod(txSrc, uv + vec2(-1, -1) * srcTexelSize, uSrcLevel).rgb;
 		ret.rgb += textureLod(txSrc, uv + vec2( 1, -1) * srcTexelSize, uSrcLevel).rgb;

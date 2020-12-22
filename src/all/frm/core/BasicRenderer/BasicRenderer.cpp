@@ -7,12 +7,14 @@
 #include <frm/core/geom.h>
 #include <frm/core/memory.h>
 #include <frm/core/types.h>
+#include <frm/core/AppSample.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Camera.h>
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Mesh.h>
 #include <frm/core/Profiler.h>
+#include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
 #include <frm/core/ShadowAtlas.h>
 #include <frm/core/Texture.h>
@@ -29,10 +31,9 @@ namespace frm {
 
 // PUBLIC
 
-BasicRenderer* BasicRenderer::Create(int _resolutionX, int _resolutionY, Flags _flags)
+BasicRenderer* BasicRenderer::Create(Flags _flags)
 {
-	BasicRenderer* ret = FRM_NEW(BasicRenderer(_resolutionX, _resolutionY, _flags));
-
+	BasicRenderer* ret = FRM_NEW(BasicRenderer(_flags));
 	return ret;
 }
 
@@ -59,10 +60,8 @@ void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamer
 		renderTargets[i].nextFrame();
 	}
 
-	postProcessData.motionBlurScale = motionBlurTargetFps * _dt;
-	postProcessData.frameIndex++;
-	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
-
+	updatePostProcessData(_dt, postProcessData.frameIndex + 1);
+	
 	GlContext* ctx = GlContext::GetCurrent();
 	{	PROFILER_MARKER("Shadow Maps");
 
@@ -128,12 +127,13 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 		VRContext* vrCtx = VRContext::GetCurrent();
 	#endif
 
-	const bool isPostProcess       = flags.get(Flag::PostProcess);
-	const bool isFXAA              = flags.get(Flag::FXAA);
-	const bool isTAA               = flags.get(Flag::TAA);
-	const bool isInterlaced        = flags.get(Flag::Interlaced);
-	const bool isWriteToBackBuffer = flags.get(Flag::WriteToBackBuffer);
-	const bool isWireframe         = flags.get(Flag::WireFrame);
+	const ivec2 resolution          = ivec2(renderTargets[Target_Final].getTexture(0)->getWidth(), renderTargets[Target_Final].getTexture(0)->getHeight());
+	const bool  isPostProcess       = flags.get(Flag::PostProcess);
+	const bool  isFXAA              = flags.get(Flag::FXAA);
+	const bool  isTAA               = flags.get(Flag::TAA);
+	const bool  isInterlaced        = flags.get(Flag::Interlaced);
+	const bool  isWriteToBackBuffer = flags.get(Flag::WriteToBackBuffer);
+	const bool  isWireframe         = flags.get(Flag::WireFrame);
 
 	sceneCamera.copyFrom(*_drawCamera); // \todo separate draw/cull cameras
 	if (isTAA)
@@ -256,7 +256,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 
 				{	PROFILER_MARKER("Tile Min/Max");
 
-					FRM_ASSERT(shVelocityMinMax->getLocalSize().x == motionBlurTileWidth);
+					FRM_ASSERT(shVelocityMinMax->getLocalSize().x == settings.motionBlurTileWidth);
 
 					ctx->setShader(shVelocityMinMax);
 					ctx->bindTexture("txGBuffer0", txGBuffer0);
@@ -484,7 +484,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	{
 		PROFILER_MARKER("TAA Resolve");
 
-		const vec2 resolveKernel = vec2(-taaSharpen, (1.0f + (2.0f * taaSharpen)) / 2.0f);
+		const vec2 resolveKernel = vec2(-settings.taaSharpen, (1.0f + (2.0f * settings.taaSharpen)) / 2.0f);
 		Texture* txCurrent = isFXAA ? txFXAAResult : txPostProcessResult;
 		Texture* txPrevious = isInterlaced ? (isFXAA ? renderTargets[Target_FXAAResult].getTexture(-1) : renderTargets[Target_PostProcessResult].getTexture(-1)) : nullptr;
 		Texture* txCurrentResolve  = renderTargets[Target_TAAResolve].getTexture(0);
@@ -522,10 +522,100 @@ bool BasicRenderer::edit()
 {
 	bool ret = false;
 
+	bool reinitRenderTargets = false;
+	bool reinitShaders = false;
+
 	ret |= ImGui::Checkbox("Pause Update", &pauseUpdate);
-	ret |= ImGui::Checkbox("Frustum Culling", &enableCulling);
-	ret |= ImGui::Checkbox("Cull by Submesh", &cullBySubmesh);
-	ret |= ImGui::SliderFloat("Motion Blur Target FPS", &motionBlurTargetFps, 0.0f, 90.0f);
+	ret |= ImGui::Checkbox("Frustum Culling", &settings.enableCulling);
+	ret |= ImGui::Checkbox("Cull by Submesh", &settings.cullBySubmesh);
+
+	const char* resolutionStr[] = { "Default (Window)", "3840x2160",       "2560x1440",       "1920x1080",       "1280x720",       "640x360"       };
+	const ivec2 resolutionVal[] = { ivec2(-1, -1),      ivec2(3840, 2160), ivec2(2560, 1440), ivec2(1920, 1080), ivec2(1280, 720), ivec2(640, 360) };
+	int selectedResolution = 0;
+	for (int i = 0; i < FRM_ARRAY_COUNT(resolutionVal); ++i)
+	{
+		if (resolutionVal[i] == settings.resolution)
+		{
+			selectedResolution = i;
+		}
+	}
+	if (ImGui::BeginCombo("Resolution", resolutionStr[selectedResolution]))
+	{
+		for (int i = 0; i < FRM_ARRAY_COUNT(resolutionVal); ++i)
+		{
+			const bool selected = i == selectedResolution;
+			if (ImGui::Selectable(resolutionStr[i], selected))
+			{
+				selectedResolution = i;
+				settings.resolution = resolutionVal[i];
+				ret = reinitRenderTargets = true;
+			}
+
+			if (selected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+	}
+
+	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+	if (ImGui::TreeNode("Flags"))
+	{
+		ret |= editFlag("Post Process", Flag::PostProcess);
+		if (editFlag("FXAA", Flag::FXAA))
+		{
+			ret = reinitRenderTargets = true;
+		}
+
+		if (editFlag("TAA", Flag::TAA))
+		{
+			ret = reinitRenderTargets = true;
+		}
+		if (flags.get(Flag::TAA))
+		{
+			ImGui::SameLine();
+			ret |= ImGui::SliderFloat("TAA Sharpen", &settings.taaSharpen, 0.0f, 2.0f);
+		}
+
+		if (editFlag("Interlaced", Flag::Interlaced))
+		{
+			ret = reinitRenderTargets = true;
+		}
+
+		ret |= editFlag("Write to Backbuffer", Flag::WriteToBackBuffer);
+		ret |= editFlag("Wireframe", Flag::WireFrame);
+
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Motion Blur"))
+	{
+		ret |= ImGui::SliderFloat("Motion Blur Target FPS", &settings.motionBlurTargetFps, 0.0f, 90.0f);
+
+		if (ImGui::SliderInt("Motion Blur Quality", &settings.motionBlurQuality, 0, 1))
+		{
+			ret = reinitShaders = true;
+		}
+
+		ImGui::TreePop();
+	}
+	
+
+	if (ImGui::TreeNode("Bloom"))
+	{
+		ImGui::SliderFloat("Bloom Brightness", &settings.bloomBrightness, 0.0f, 1.0f);
+		ImGui::SliderFloat("Bloom Scale", &settings.bloomScale, -4.0f, 4.0f);
+		ImGui::Text("Bloom Weights: %.3f, %.3f, %.3f, %.3f", postProcessData.bloomWeights.x, postProcessData.bloomWeights.y, postProcessData.bloomWeights.z, postProcessData.bloomWeights.w);
+
+		ImGui::Spacing();
+		if (ImGui::SliderInt("Bloom Quality", &settings.bloomQuality, 0, 1))
+		{
+			ret = reinitShaders = true;
+		}
+
+		ImGui::TreePop();
+	}
 
 	//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Material Sampler"))
@@ -545,43 +635,10 @@ bool BasicRenderer::edit()
 		ImGui::TreePop();
 	}
 
-	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
-	if (ImGui::TreeNode("Flags"))
-	{
-		ret |= editFlag("Post Process", Flag::PostProcess);
-		if (editFlag("FXAA", Flag::FXAA))
-		{
-			ret = true;
-			initRenderTargets();
-		}
-
-		if (editFlag("TAA", Flag::TAA))
-		{
-			ret = true;
-			initRenderTargets();
-		}
-		if (flags.get(Flag::TAA))
-		{
-			ImGui::SameLine();
-			ret |= ImGui::SliderFloat("TAA Sharpen", &taaSharpen, 0.0f, 2.0f);
-		}
-
-		if (editFlag("Interlaced", Flag::Interlaced))
-		{
-			ret = true;
-			initRenderTargets();
-		}
-
-		ret |= editFlag("Write to Backbuffer", Flag::WriteToBackBuffer);
-
-		ret |= editFlag("Wireframe", Flag::WireFrame);
-
-		ImGui::TreePop();
-	}
-
 	// Debug
 	#if 0
 	{
+		ImGui::Spacing();
 		if (ImGui::Button("Re-compute BRDF Lut"))
 		{
 			initBRDFLut();
@@ -589,24 +646,15 @@ bool BasicRenderer::edit()
 	}
 	#endif
 
-	ImGui::Spacing();
-
-	ImGui::SliderFloat("Bloom Brightness", &bloomBrightness, 0.0f, 1.0f);
-	ImGui::SliderFloat("Bloom Scale", &bloomScale, -4.0f, 4.0f);
+	if (reinitRenderTargets)
 	{
-		// bloom weights are sampled along a line, slope is determined by bloomScale
-		float bloomBias  = 1.0f;
-		const float bloomWeightScale = 2.0f;
-		vec4 bloomWeights = vec4(
-			Max((bloomScale * bloomWeightScale) * -1.0f   + bloomBias, 0.0f),
-			Max((bloomScale * bloomWeightScale) * -0.333f + bloomBias, 0.0f),
-			Max((bloomScale * bloomWeightScale) *  0.333f + bloomBias, 0.0f),
-			Max((bloomScale * bloomWeightScale) *  1.0f   + bloomBias, 0.0f)
-			);
-		bloomWeights = Normalize(bloomWeights);
-		postProcessData.bloomWeights = bloomWeights * bloomBrightness;
+		initRenderTargets();
 	}
-	ImGui::Text("Bloom Weights: %.3f, %.3f, %.3f, %.3f", postProcessData.bloomWeights.x, postProcessData.bloomWeights.y, postProcessData.bloomWeights.z, postProcessData.bloomWeights.w);
+
+	if (reinitShaders)
+	{
+		initShaders();
+	}
 
 	return ret;
 }
@@ -638,19 +686,35 @@ void BasicRenderer::setFlag(Flag _flag, bool _value)
 void BasicRenderer::setResolution(int _resolutionX, int _resolutionY)
 {
 	ivec2 newResolution = ivec2(_resolutionX, _resolutionY);
-	if (newResolution != resolution)
-	{
-		resolution = newResolution;
+	if (newResolution != settings.resolution)
+	{		
+		settings.resolution = newResolution;
 		initRenderTargets();
 	}
 }
 
 // PRIVATE
 
-BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, Flags _flags)
+BasicRenderer::BasicRenderer(Flags _flags)
 {
-	resolution = ivec2(_resolutionX, _resolutionY);
-	flags      = _flags;
+	flags = _flags;
+
+	Properties::PushGroup("BasicRenderer");
+
+		Properties::Add("resolution",                settings.resolution,                ivec2(0),   ivec2(8192), &settings.resolution);
+		Properties::Add("motionBlurTargetFps",       settings.motionBlurTargetFps,       0.f,        128.f,       &settings.motionBlurTargetFps);
+		Properties::Add("motionBlurQuality",         settings.motionBlurQuality,         0,          1,           &settings.motionBlurQuality);
+		Properties::Add("taaSharpen",                settings.taaSharpen,                0.f,        2.f,         &settings.taaSharpen);
+		Properties::Add("enableCulling",             settings.enableCulling,                                      &settings.enableCulling);
+		Properties::Add("cullBySubmesh",             settings.cullBySubmesh,                                      &settings.cullBySubmesh);
+		Properties::Add("bloomScale",                settings.bloomScale,               -2.f,        2.f,         &settings.bloomScale);
+		Properties::Add("bloomBrightness",           settings.bloomBrightness,           0.f,        2.f,         &settings.bloomBrightness);
+		Properties::Add("bloomQuality",              settings.bloomQuality,              0,          1,           &settings.bloomQuality);
+		Properties::Add("maxShadowMapResolution",    settings.maxShadowMapResolution,    16,         16*1024,     &settings.maxShadowMapResolution);
+		Properties::Add("minShadowMapResolution",    settings.minShadowMapResolution,    16,         16*1024,     &settings.minShadowMapResolution);
+		Properties::Add("materialTextureAnisotropy", settings.materialTextureAnisotropy, 0.f,        16.f,        &settings.materialTextureAnisotropy);
+
+	Properties::PopGroup();
 
 	initShaders();
 	initRenderTargets();
@@ -658,7 +722,7 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, Flags _flags)
 	bfPostProcessData = Buffer::Create(GL_UNIFORM_BUFFER, sizeof(PostProcessData), GL_DYNAMIC_STORAGE_BIT);
 	bfPostProcessData->setName("bfPostProcessData");
 
-	ssMaterial = TextureSampler::Create(GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, 4.0f); // \todo global anisotropy config
+	ssMaterial = TextureSampler::Create(GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, settings.materialTextureAnisotropy);
 	if (flags.get(Flag::TAA) || flags.get(Flag::Interlaced))
 	{
 		ssMaterial->setLodBias(-1.0f);
@@ -674,7 +738,7 @@ BasicRenderer::BasicRenderer(int _resolutionX, int _resolutionY, Flags _flags)
 	fbFXAAResult        = Framebuffer::Create();
 	fbFinal             = Framebuffer::Create();
 
-	shadowAtlas = ShadowAtlas::Create(4096, 256, GL_DEPTH_COMPONENT24); // \todo config
+	shadowAtlas = ShadowAtlas::Create(settings.maxShadowMapResolution, settings.minShadowMapResolution, GL_DEPTH_COMPONENT24);
 
 	initBRDFLut();
 }
@@ -712,6 +776,8 @@ BasicRenderer::~BasicRenderer()
 		shadowAtlas->free((ShadowAtlas::ShadowMap*&)shadowMapAllocations[i]);
 	}
 	ShadowAtlas::Destroy(shadowAtlas);
+
+	Properties::InvalidateGroup("BasicRenderer");
 }
 
 bool BasicRenderer::editFlag(const char* _name, Flag _flag)
@@ -729,11 +795,12 @@ void BasicRenderer::initRenderTargets()
 {
 	shutdownRenderTargets();
 
-	const bool  isFXAA               = flags.get(Flag::FXAA);
-	const bool  isTAA                = flags.get(Flag::TAA);
-	const bool  isInterlaced         = flags.get(Flag::Interlaced);
-	const ivec2 fullResolution       = resolution;
-	const ivec2 interlacedResolution = isInterlaced ? ivec2(fullResolution.x / 2, fullResolution.y) : fullResolution;
+	const bool  isFXAA         = flags.get(Flag::FXAA);
+	const bool  isTAA          = flags.get(Flag::TAA);
+	const bool  isInterlaced   = flags.get(Flag::Interlaced);
+	const ivec2 appResolution  = AppSample::GetCurrent()->getResolution();
+	const ivec2 fullResolution = ivec2(settings.resolution.x <= 0 ? appResolution.x : settings.resolution.x, settings.resolution.y <= 0 ? appResolution.y : settings.resolution.y);
+	ivec2 interlacedResolution = isInterlaced ? ivec2(fullResolution.x / 2, fullResolution.y) : fullResolution;
 
 	renderTargets[Target_GBuffer0].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, isInterlaced ? 2 : 1);
 	renderTargets[Target_GBuffer0].setName("#BasicRenderer_txGBuffer0");
@@ -742,10 +809,10 @@ void BasicRenderer::initRenderTargets()
 	renderTargets[Target_GBufferDepthStencil].setName("#BasicRenderer_txGBufferDepth");
 
 	//FRM_ASSERT(interlacedResolution.x % motionBlurTileWidth == 0 && interlacedResolution.y % motionBlurTileWidth == 0);
-	renderTargets[Target_VelocityTileMinMax].init(interlacedResolution.x / motionBlurTileWidth, interlacedResolution.y / motionBlurTileWidth, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	renderTargets[Target_VelocityTileMinMax].init(interlacedResolution.x / settings.motionBlurTileWidth, interlacedResolution.y / settings.motionBlurTileWidth, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_VelocityTileMinMax].setName("#BasicRenderer_txVelocityTileMinMax");
 
-	renderTargets[Target_VelocityTileNeighborMax].init(interlacedResolution.x / motionBlurTileWidth, interlacedResolution.y / motionBlurTileWidth, GL_RG16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+	renderTargets[Target_VelocityTileNeighborMax].init(interlacedResolution.x / settings.motionBlurTileWidth, interlacedResolution.y / settings.motionBlurTileWidth, GL_RG16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_VelocityTileNeighborMax].setName("#BasicRenderer_txVelocityTileNeighborMax");
 
 	renderTargets[Target_Scene].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA16F, GL_CLAMP_TO_EDGE, GL_LINEAR, 1, 8); // RGB = color, A = abs(linear depth) + mip chain for blur
@@ -774,15 +841,21 @@ void BasicRenderer::shutdownRenderTargets()
 
 void BasicRenderer::initShaders()
 {
+	shutdownShaders();
+
+	#define DEF_STR(_name, _val) String<32>(_name " %d", _val).c_str()
+
 	shStaticVelocity      = Shader::CreateVsFs("shaders/NdcQuad_vs.glsl", "shaders/BasicRenderer/StaticVelocity.glsl");
-	shVelocityMinMax      = Shader::CreateCs("shaders/BasicRenderer/VelocityMinMax.glsl", motionBlurTileWidth);
+	shVelocityMinMax      = Shader::CreateCs("shaders/BasicRenderer/VelocityMinMax.glsl", settings.motionBlurTileWidth);
 	shVelocityNeighborMax = Shader::CreateCs("shaders/BasicRenderer/VelocityNeighborMax.glsl", 8, 8);
 	shImageLightBg	      = Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
-	shPostProcess         = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8);
+	shPostProcess         = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8, 1, { DEF_STR("MOTION_BLUR_QUALITY", settings.motionBlurQuality) });
 	shFXAA                = Shader::CreateCs("shaders/BasicRenderer/FXAA.glsl", 8, 8);
 	shDepthClear          = Shader::CreateVsFs("shaders/BasicRenderer/DepthClear.glsl", "shaders/BasicRenderer/DepthClear.glsl");
-	shBloomDownsample     = Shader::CreateCs("shaders/BasicRenderer/BloomDownsample.glsl", 8, 8);
+	shBloomDownsample     = Shader::CreateCs("shaders/BasicRenderer/BloomDownsample.glsl", 8, 8, 1, { DEF_STR("BLOOM_QUALITY", settings.bloomQuality) });
 	shBloomUpsample       = Shader::CreateCs("shaders/BasicRenderer/BloomUpsample.glsl", 8, 8);
+
+	#undef DEF_STR
 
 	const bool isTAA        = flags.get(Flag::TAA);
 	const bool isInterlaced = flags.get(Flag::Interlaced);
@@ -959,14 +1032,14 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 					continue;
 				}
 
-				if (submeshIndex > 0 && cullBySubmesh)
+				if (submeshIndex > 0 && settings.cullBySubmesh)
 				{
 					Sphere bs = renderable->m_mesh->getBoundingSphere(submeshIndex);
 					bs.transform(world);
 					AlignedBox bb = renderable->m_mesh->getBoundingBox(submeshIndex);
 					bb.transform(world);
 
-					if (enableCulling && !_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb))
+					if (settings.enableCulling && !_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb))
 					{
 						continue;
 					}
@@ -1190,7 +1263,7 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 						continue;
 					}
 
-					if (submeshIndex > 0 && cullBySubmesh)
+					if (submeshIndex > 0 && settings.cullBySubmesh)
 					{
 						Sphere bs = renderable->m_mesh->getBoundingSphere(submeshIndex);
 						bs.transform(world);
@@ -1354,6 +1427,28 @@ void BasicRenderer::updateImageLightInstances()
 		lightInstance.isBackground        = light->m_isBackground;
 		lightInstance.texture             = light->m_texture;
 	}
+}
+
+void BasicRenderer::updatePostProcessData(float _dt, uint32 _frameIndex)
+{
+	postProcessData.motionBlurScale = settings.motionBlurTargetFps * _dt;
+	postProcessData.frameIndex = _frameIndex;
+	
+	{
+		// Bloom weights are sampled along a line, slope is determined by bloomScale.
+		float bloomBias  = 1.0f;
+		const float bloomWeightScale = 2.0f;
+		vec4 bloomWeights = vec4(
+			Max((settings.bloomScale * bloomWeightScale) * -1.0f   + bloomBias, 0.0f),
+			Max((settings.bloomScale * bloomWeightScale) * -0.333f + bloomBias, 0.0f),
+			Max((settings.bloomScale * bloomWeightScale) *  0.333f + bloomBias, 0.0f),
+			Max((settings.bloomScale * bloomWeightScale) *  1.0f   + bloomBias, 0.0f)
+			);
+		bloomWeights = Normalize(bloomWeights);
+		postProcessData.bloomWeights = bloomWeights * settings.bloomBrightness;
+	}
+
+	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
 }
 
 void BasicRenderer::updateBuffer(Buffer*& _bf_, const char* _name, GLsizei _size, void* _data)
