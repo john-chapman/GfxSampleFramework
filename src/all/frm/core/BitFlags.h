@@ -4,26 +4,6 @@
 
 namespace frm {
 
-namespace internal {
-
-template <typename tType>
-constexpr tType _BitFlagsDefault(std::initializer_list<tType> list)
-{
-	tType ret = 0;
-	if (list.size() > 0)
-	{
-		for (tType i : list)
-		{
-			ret |= (tType)1 << (tType)i;
-		}
-	}
-
-	return ret;
-}
-#define BIT_FLAGS_DEFAULT(...) frm::internal::_BitFlagsDefault({__VA_ARGS__})
-
-} // namespace internal
-
 ////////////////////////////////////////////////////////////////////////////////
 // BitFlags
 // Bitfield flags using an enum to index bits. 
@@ -34,14 +14,19 @@ constexpr tType _BitFlagsDefault(std::initializer_list<tType> list)
 //       Foo,
 //       Bar,
 //
-//       _Count,
-//       _Default = BIT_FLAGS_DEFAULT(Foo, Bar)
+//       BIT_FLAGS_COUNT_DEFAULT(Foo, Bar)
 //    };
 //
 //    BitFlags<Mode> flags; // set to Mode::_Default
 //    bool isFoo = flags.get(Mode::Foo);
 //    flags.set(Mode::Foo, false);
-//       
+//
+// Note that BIT_FLAGS_COUNT_DEFAULT(Foo, Bar) in the example above is equivalent 
+// to:
+//
+//   _Count,
+//   _Default = BIT_FLAGS_DEFAULT(Foo, Bar)
+//
 ////////////////////////////////////////////////////////////////////////////////
 template <typename tEnum>
 struct BitFlags
@@ -122,5 +107,25 @@ private:
 	}
 	
 };
+
+namespace internal {
+
+template <typename tType>
+constexpr tType _BitFlagsDefault(std::initializer_list<tType> list)
+{
+	tType ret = (tType)0;
+	if (list.size() > 0)
+	{
+		for (tType i : list)
+		{
+			ret |= (tType)1 << (tType)i;
+		}
+	}
+	return ret;
+}
+#define BIT_FLAGS_DEFAULT(...) frm::internal::_BitFlagsDefault({ __VA_ARGS__ })
+#define BIT_FLAGS_COUNT_DEFAULT(...) _Count, _Default = frm::internal::_BitFlagsDefault({ __VA_ARGS__ })
+
+} // namespace internal
 
 } // namespace gef
