@@ -7,6 +7,10 @@
 #include <frm/core/world/World.h>
 #include <frm/core/world/WorldEditor.h>
 
+#if FRM_MODULE_PHYSICS
+	#include <frm/physics/Physics.h>
+#endif
+
 #include <im3d/im3d.h>
 
 using namespace frm;
@@ -32,6 +36,10 @@ bool SceneTest::init(const frm::ArgList& _args)
 	m_basicRenderer = BasicRenderer::Create();
 	m_basicRenderer->setFlag(BasicRenderer::Flag::WriteToBackBuffer, false); // We manually draw ImGui/Im3d and then blit.
 
+	#if FRM_MODULE_PHYSICS
+		Physics::AddGroundPlane();
+	#endif
+
 	return true;
 }
 
@@ -49,7 +57,22 @@ bool SceneTest::update()
 		return false;
 	}
 
-	m_basicRenderer->edit();
+	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+	if (ImGui::TreeNode("Renderer"))
+	{
+		m_basicRenderer->edit();
+
+		ImGui::TreePop();
+	}
+	#if FRM_MODULE_PHYSICS
+		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Physics"))
+		{
+			Physics::Edit();
+			
+			ImGui::TreePop();
+		}
+	#endif
 
 	return true;
 }
