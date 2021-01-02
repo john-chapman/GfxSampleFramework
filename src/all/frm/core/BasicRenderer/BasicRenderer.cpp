@@ -532,7 +532,7 @@ bool BasicRenderer::edit()
 	const char* resolutionStr[] = { "Default (Window)", "3840x2160",       "2560x1440",       "1920x1080",       "1280x720",       "640x360"       };
 	const ivec2 resolutionVal[] = { ivec2(-1, -1),      ivec2(3840, 2160), ivec2(2560, 1440), ivec2(1920, 1080), ivec2(1280, 720), ivec2(640, 360) };
 	int selectedResolution = 0;
-	for (int i = 0; i < FRM_ARRAY_COUNT(resolutionVal); ++i)
+	for (int i = 0; i < (int)FRM_ARRAY_COUNT(resolutionVal); ++i)
 	{
 		if (resolutionVal[i] == settings.resolution)
 		{
@@ -541,7 +541,7 @@ bool BasicRenderer::edit()
 	}
 	if (ImGui::BeginCombo("Resolution", resolutionStr[selectedResolution]))
 	{
-		for (int i = 0; i < FRM_ARRAY_COUNT(resolutionVal); ++i)
+		for (int i = 0; i < (int)FRM_ARRAY_COUNT(resolutionVal); ++i)
 		{
 			const bool selected = i == selectedResolution;
 			if (ImGui::Selectable(resolutionStr[i], selected))
