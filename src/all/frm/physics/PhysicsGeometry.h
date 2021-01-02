@@ -18,7 +18,6 @@ namespace frm {
 class PhysicsGeometry: public Resource<PhysicsGeometry>
 {
 	friend class Physics;
-	friend class PhysicsShape;
 
 public:
 
@@ -48,25 +47,21 @@ public:
 	static PhysicsGeometry* CreateTriangleMesh(const char* _path, const char* _name = nullptr);
 	// Create a unique instance from a serializer (e.g. for inline geometries).
 	static PhysicsGeometry* Create(Serializer& _serializer_);
-	
 	// Destroy _inst_.
-	static void  Destroy(PhysicsGeometry*& _inst_);
+	static void             Destroy(PhysicsGeometry*& _inst_);
 
-	bool         load() { return reload(); }
-	bool         reload();
+	bool                    load() { return reload(); }
+	bool                    reload();
 
-	bool         edit();
-	bool         serialize(Serializer& _serializer_);
+	bool                    edit();
+	bool                    serialize(Serializer& _serializer_);
 
-	const char*  getPath() const { return m_path.c_str(); }
-	Type         getType() const { return m_type; }
+	const char*             getPath() const { return m_path.c_str(); }
+	Type                    getType() const { return m_type; }
 
-	Id           getHash() const;
+	Id                      getHash() const;
 	
-private:
-
-	PhysicsGeometry(uint64 _id, const char* _name);
-	~PhysicsGeometry();
+//private:
 
 	struct Sphere
 	{
@@ -103,15 +98,18 @@ private:
 		}
 	};
 
-	PathStr m_path       = "";           // Empty if not from a file.
-	Type    m_type       = Type_Invalid; // Geometry type (determines how m_data is interpreted).
-	Data    m_data;                      // Type-dependent data.
-	PathStr m_dataPath   = "";           // Source path for convex/triangle meshes and heightfield data.
-	void*   m_impl       = nullptr;
+	PathStr m_path      = "";           // Empty if not from a file.
+	Type    m_type      = Type_Invalid; // Geometry type (determines how m_data is interpreted).
+	Data    m_data;                     // Type-dependent data.
+	PathStr m_dataPath  = "";           // Source path for convex/triangle meshes and heightfield data.
+	void*   m_impl      = nullptr;
+
+
+	     PhysicsGeometry(uint64 _id, const char* _name);
+	     ~PhysicsGeometry();
 
 	bool initImpl();
 	void shutdownImpl();
-
-}; // class PhysicsGeometry
+};
 
 } // namespace frm

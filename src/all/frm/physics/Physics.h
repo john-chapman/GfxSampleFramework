@@ -1,53 +1,40 @@
-/* \todo
-	- Mass ratio/interpenetration issues.
-		- Test gym for different cases: material friction (boxes on a slope), stacked boxes.
-	- Trigger shape component + callback.
-	- Aggregate API (do BeginGroup()/EndGroup() - give groups an ID and allow them to be reset independently).
-	- Filtering for raycasts (static vs. dynamic objects).
-	- Articulation component (e.g. for ragdolls).
-	- Vehicle component.
-*/
 #pragma once
-
-#include <frm/core/frm.h>
-#include <frm/core/BitFlags.h>
-#include <frm/core/Component.h>
-#include <frm/core/String.h>
-
-#include <EASTL/vector.h>
 
 #if !FRM_MODULE_PHYSICS
 	#error FRM_MODULE_PHYSICS was not enabled
 #endif
 
-namespace frm {
+#include <frm/core/frm.h>
+#include <frm/core/BitFlags.h>
+#include <frm/core/world/components/Component.h>
 
-class Physics;
-class PhysicsMaterial;
-class PhysicsGeometry;
-class PhysicsConstraint;
-struct Component_Physics;
+#include <EASTL/span.h>
+#include <EASTL/vector.h>
+
+namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Physics
+// \todo
+// - Raycast CCD (cheaper alternative to full builtin CCD).
 ////////////////////////////////////////////////////////////////////////////////
 class Physics
 {
 public:
-	
+
 	enum class Flag: uint8
 	{
-		Static,
-		Kinematic,
-		Dynamic,
+		Static,           // Fixed position, infinite mass.
+		Kinematic,        // Animated position, infinite mass.
+		Dynamic,          // Simulated position.
 
-		Simulation,
-		Query,
+		Simulation,       // Participates in simulation.
+		Query,            // Visible to queries only.
+	
+		DisableGravity,   // Ignore global gravity.
+		EnableCCD,        // Enable CCD (prevent tunnelling at high velocities).
 
-		DisableGravity,
-
-		_Count,
-		_Default = BIT_FLAGS_DEFAULT(Dynamic, Simulation, Query)
+		BIT_FLAGS_COUNT_DEFAULT(Dynamic, Simulation, Query)
 	};
 	using Flags = BitFlags<Flag>;
 
@@ -56,24 +43,20 @@ public:
 	static void Update(float _dt);
 	static void Edit();
 
-	static bool InitComponent(Component_Physics* _component_);
-	static void ShutdownComponent(Component_Physics* _component_);
-	static void RegisterComponent(Component_Physics* _component_);
-	static void UnregisterComponent(Component_Physics* _component_);
+	static void RegisterComponent(PhysicsComponent* _component_);
+	static void UnregisterComponent(PhysicsComponent* _component_);
 
-	static const PhysicsMaterial* GetDefaultMaterial();
+	static PhysicsMaterial* GetDefaultMaterial();
 
-	static void AddGroundPlane(const PhysicsMaterial* _material = nullptr);
+	static void AddGroundPlane(PhysicsMaterial* _material = GetDefaultMaterial());
 
-	
 	enum class RayCastFlag: uint8
 	{
 		Position, // Get the position.
 		Normal,   // Get the normal.
 		AnyHit,   // Get any hit (else closest).
 
-		_Count,
-		_Default = BIT_FLAGS_DEFAULT(Position, Normal)
+		BIT_FLAGS_COUNT_DEFAULT(Position, Normal)
 	};
 	using RayCastFlags = BitFlags<RayCastFlag>;
 
@@ -93,10 +76,10 @@ public:
 
 	struct RayCastOut
 	{
-		vec3               position  = vec3(0.0f); // position of the intersection
-		vec3               normal    = vec3(0.0f); // normal at the intersection
-		float              distance  = 0.0f;       // intersection distance along ray
-		Component_Physics* component = nullptr;    // component
+		vec3              position  = vec3(0.0f); // Position of the intersection.
+		vec3              normal    = vec3(0.0f); // Normal at the intersection.
+		float             distance  = 0.0f;       // Hit distance along ray.
+		PhysicsComponent* component = nullptr;    // Component that was hit.
 	};
 
 	// Return true if an intersection was found, in which case out_ contains valid data.
@@ -116,101 +99,72 @@ private:
 	vec3  m_gravityDirection  = vec3(0.0f, -1.0f, 0.0f);
 
 	// \todo better containers for these - fast iteration, insertion/deletion?
-	eastl::vector<Component_Physics*> m_static;
-	eastl::vector<Component_Physics*> m_kinematic;
-	eastl::vector<Component_Physics*> m_dynamic;
+	eastl::vector<PhysicsComponent*> m_static;
+	eastl::vector<PhysicsComponent*> m_kinematic;
+	eastl::vector<PhysicsComponent*> m_dynamic;
 
-	static void ApplyNodeTransforms();
+	     Physics();
+	     ~Physics();
+
+	void updateComponentTransforms();
 };
 
+
 ////////////////////////////////////////////////////////////////////////////////
-// Component_Physics
+// PhysicsComponent
 ////////////////////////////////////////////////////////////////////////////////
-struct Component_Physics: public Component
+FRM_COMPONENT_DECLARE(PhysicsComponent)
 {
 	friend class Physics;
 
-	static Component_Physics* Create(
-		const PhysicsGeometry* _geometry, 
-		const PhysicsMaterial* _material, 
-		float                  _mass, 
-		const mat4&            _initialTransform = identity,
-		Physics::Flags         _flags             = Physics::Flags()
-		);
+public:
 
-	void           setFlags(Physics::Flags _flags);
-	Physics::Flags getFlags() const                      { return m_flags; }
-	bool           getFlag(Physics::Flag _flag) const    { return m_flags.get(_flag); }
+	using Flag  = Physics::Flag;
+	using Flags = Physics::Flags;
 
-	virtual bool   init() override;
-	virtual void   shutdown() override;
-	virtual void   update(float _dt) override;
-	virtual bool   edit() override;
-	virtual bool   serialize(Serializer& _serializer_) override;
+	static void Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
+	static eastl::span<PhysicsComponent*> GetActiveComponents();
 
-	virtual void   reset();
+	static PhysicsComponent* CreateTransient(PhysicsMaterial* _material, PhysicsGeometry* _geometry, Flags _flags = Flags(), const mat4& _initialTransform = identity);
 
-	void           addForce(const vec3& _force);
-	void           setLinearVelocity(const vec3& _linearVelocity);
-	void           setAngularVelocity(const vec3& _angularVelocity);
+	void         setFlags(Flags _flags);
+	Flags        getFlags() const           { return m_flags; }
+	bool         getFlag(Flag _flag) const  { return m_flags.get(_flag); }
 
-	// Explicitly copy internal transform to the node's transform.
-	void           forceUpdateNode();
+	void         addForce(const vec3& _force);
+	void         setLinearVelocity(const vec3& _linearVelocity);
+	vec3         getLinearVelocity() const;
+	void         setAngularVelocity(const vec3& _angularVelocity);
+	vec3         getAngularVelocity() const;
+
+	void         setMass(float _mass);
+	float        getMass() const            { return m_mass; }
+
+	// Reset to the initial state, zero velocities.
+	virtual void reset();
+
+	// Explicitly copy internal transform back to the parent node.
+	void         forceUpdateNodeTransform();
 
 	// Explicitly wake the physics actor.
-	void           forceWake() { addForce(vec3(0.0f)); }
-
-	struct Impl;
-	Impl* getImpl() { return m_impl; }
+	void         forceWake() { addForce(vec3(0.0f)); }
 
 protected:
 
-	Impl*               m_impl             = nullptr;
+	Flags            m_flags;
+	mat4             m_initialTransform = identity;
+	float            m_mass             = 1.0f;
+	PhysicsMaterial* m_material         = nullptr;
+	PhysicsGeometry* m_geometry         = nullptr;
+	void*            m_impl             = nullptr;
 
-	Physics::Flags      m_flags;
-	mat4                m_initialTransform = identity;
-	PhysicsGeometry*    m_geometry         = nullptr;
-	PhysicsMaterial*    m_material         = nullptr;
-	float               m_mass             = 1.0f;
+	bool initImpl() override;
+	void shutdownImpl() override;
+	bool editImpl() override;
+	bool serializeImpl(Serializer& _serializer_) override;
 
 	bool editFlags();
-	bool serializeFlags(Serializer& _serializer_);
-
-	bool editGeometry();
-	bool editMaterial();
-
 };
 
-////////////////////////////////////////////////////////////////////////////////
-// Component_PhysicsTemporary
-// Temporary physics component. Upon entering an idle state, deletes itself
-// (and its parent node) after idleTimeout seconds.
-////////////////////////////////////////////////////////////////////////////////
-struct Component_PhysicsTemporary: public Component_Physics
-{
-	friend class Physics;
-
-	static Component_PhysicsTemporary* Create(
-		const PhysicsGeometry* _geometry, 
-		const PhysicsMaterial* _material, 
-		float                  _mass,
-		const mat4&            _initialTransform = identity, 
-		Physics::Flags         _flags            = Physics::Flags()
-		);
-
-	virtual bool init() override;
-	virtual void shutdown() override;
-	virtual void update(float _dt) override;
-	virtual bool edit() override;
-	virtual bool serialize(Serializer& _serializer_) override;
-	virtual void reset() override;
-
-	float velocityThreshold = 1e-1f;
-	float idleTimeout       = 0.5f;
-	float timer             = 0.0f;
-
-	Component_BasicRenderable* basicRenderable = nullptr;
-
-};
 
 } // namespace frm

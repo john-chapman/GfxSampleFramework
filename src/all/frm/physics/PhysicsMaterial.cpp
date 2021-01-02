@@ -139,10 +139,10 @@ bool PhysicsMaterial::edit()
 bool PhysicsMaterial::serialize(Serializer& _serializer_)
 {
 	bool ret = true;
-	ret &= Serialize(_serializer_, m_staticFriction,  "StaticFriction");
-	ret &= Serialize(_serializer_, m_dynamicFriction, "DynamicFriction");
-	ret &= Serialize(_serializer_, m_restitution,     "Restitution");
-	       Serialize(_serializer_, m_name,            "Name"); // optional
+	ret &= Serialize(_serializer_, m_staticFriction,  "m_staticFriction");
+	ret &= Serialize(_serializer_, m_dynamicFriction, "m_dynamicFriction");
+	ret &= Serialize(_serializer_, m_restitution,     "m_restitution");
+	       Serialize(_serializer_, m_name,            "m_name"); // optional
 	setState(ret ? State_Unloaded : State_Error);
 	return ret;
 }
@@ -169,6 +169,7 @@ void PhysicsMaterial::updateImpl()
 	{
 		m_impl = g_pxPhysics->createMaterial(m_staticFriction, m_dynamicFriction, m_restitution);
 	}
+
 	physx::PxMaterial* pxMaterial = (physx::PxMaterial*)m_impl;
 	pxMaterial->setRestitution(m_restitution);
 	pxMaterial->setDynamicFriction(m_dynamicFriction);

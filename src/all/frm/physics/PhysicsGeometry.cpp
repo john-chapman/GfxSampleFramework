@@ -11,9 +11,7 @@
 
 #include <imgui/imgui.h>
 
-#include <PxPhysicsAPI.h>
-
-using namespace frm;
+namespace frm {
 
 static const char* kTypeStr[PhysicsGeometry::Type_Count]
 {
@@ -162,6 +160,7 @@ bool PhysicsGeometry::edit()
 		ret = true;
 		// \todo need to reinit any Component_Physics instances which reference this
 	}
+
 	switch (m_type)
 	{
 		default:
@@ -338,6 +337,7 @@ bool PhysicsGeometry::initImpl()
 	physx::PxGeometryHolder* geometryUnion = FRM_NEW(physx::PxGeometryHolder);
 	switch (m_type)
 	{
+		default:
 			break;
 		case Type_Sphere:
 			geometryUnion->sphere() = physx::PxSphereGeometry(m_data.sphere.radius);
@@ -357,7 +357,7 @@ bool PhysicsGeometry::initImpl()
 			{
 				MeshData* meshData = MeshData::Create(m_dataPath.c_str());
 				physx::PxDefaultMemoryOutputStream pxOutput;
-				if (!CookConvexMesh(meshData, pxOutput))
+				if (!PxCookConvexMesh(meshData, pxOutput))
 				{
 					setState(State_Error);
 					return false;
@@ -377,7 +377,7 @@ bool PhysicsGeometry::initImpl()
 			{
 				MeshData* meshData = MeshData::Create(m_dataPath.c_str());
 				physx::PxDefaultMemoryOutputStream pxOutput;
-				if (!CookTriangleMesh(meshData, pxOutput))
+				if (!PxCookTriangleMesh(meshData, pxOutput))
 				{
 					setState(State_Error);
 					return false;
@@ -392,10 +392,10 @@ bool PhysicsGeometry::initImpl()
 			break;
 		}
 		case Type_Heightfield:
-		default:
 			FRM_ASSERT(false);
 			break;		
 	};
+
 	m_impl = geometryUnion;
 	
 	return true;
@@ -429,3 +429,5 @@ void PhysicsGeometry::shutdownImpl()
 		m_impl = nullptr;
 	}
 }
+
+} // namespace frm

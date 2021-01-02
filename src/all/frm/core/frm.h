@@ -183,11 +183,11 @@ namespace frm {
 	#endif
 
 	#if FRM_MODULE_PHYSICS
-		class  Physics;
-		class  PhysicsConstraint;
-		class  PhysicsMaterial;
-		class  PhysicsGeometry;
-		struct PhysicsComponent;
+		class Physics;
+		class PhysicsComponent;
+			class PhysicsComponentTemporary;
+		class PhysicsMaterial;
+		class PhysicsGeometry;
 	#endif
 
 	#if FRM_MODULE_VR
