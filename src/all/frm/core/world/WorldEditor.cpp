@@ -1043,7 +1043,7 @@ bool WorldEditor::editNode(SceneNode* _node_)
 	}
 
 	// Transform
-	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+	//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	bool filterPassTransform = filter.PassFilter("TRANSFORM");
 	if ((filter.IsActive() && !filterPassTransform) || (filterPassTransform && ImGui::TreeNodeEx("TRANSFORM", ImGuiTreeNodeFlags_CollapsingHeader)))
 	{

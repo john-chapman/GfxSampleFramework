@@ -1,6 +1,7 @@
 /*	\todo
 	- Resolving hierarchical transforms may need to happen pre- and post- physics, as kinematic animation and physics simluation may modify the parent world transform.
 		- Potentially fix this by doing an explicit resolve on nodes whose world space transforms have been modified?
+	- Bug whereby deleting a parent node does not correctly delete child nodes/components.
 	- Child scene implementation.
 	- Store timestamps to avoid re-loading child scenes during serialization.
 	- Allocate scenes from a pool?
@@ -205,8 +206,7 @@ public:
 		Active,
 		Transient,
 
-		_Count,
-		_Default = BIT_FLAGS_DEFAULT(Active)
+		BIT_FLAGS_COUNT_DEFAULT(Active)
 	};
 
 	enum class Event
