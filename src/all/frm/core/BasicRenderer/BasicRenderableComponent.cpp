@@ -38,6 +38,17 @@ eastl::span<BasicRenderableComponent*> BasicRenderableComponent::GetActiveCompon
 	return eastl::span<BasicRenderableComponent*>(*((eastl::vector<BasicRenderableComponent*>*)&activeList));
 }
 
+BasicRenderableComponent* BasicRenderableComponent::Create(Mesh* _mesh, BasicMaterial* _material)
+{
+	BasicRenderableComponent* ret = (BasicRenderableComponent*)Component::Create(StringHash("BasicRenderableComponent"));
+	ret->m_mesh = _mesh;
+	ret->m_meshPath = _mesh->getPath();
+	ret->m_materials.push_back(_material);
+	ret->m_materialPaths.push_back(_material->getPath());
+
+	return ret;
+}
+
 void BasicRenderableComponent::setPose(const Skeleton& _skeleton)
 {
 	const mat4* pose = _skeleton.getPose();

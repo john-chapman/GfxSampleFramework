@@ -20,6 +20,11 @@ public:
 	static void  Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
 	static eastl::span<BasicRenderableComponent*> GetActiveComponents();
 
+	static BasicRenderableComponent* Create(
+		Mesh* _mesh,
+		BasicMaterial* _material
+		);
+
 
 	void         setPose(const Skeleton& _skeleton);
 	void         clearPose();
@@ -28,6 +33,10 @@ public:
 	void         setCastShadows(bool _castShadows)        { m_castShadows = _castShadows; }
 	const vec4&  getColorAlpha() const                    { return m_colorAlpha; }
 	void         setColorAlpha(const vec4& _colorAlpha)   { m_colorAlpha = _colorAlpha; }
+	void         setColor(const vec3& _color)             { m_colorAlpha = vec4(_color, m_colorAlpha.w); }
+	vec3         getColor() const                         { return m_colorAlpha.xyz(); }
+	void         setAlpha(float _alpha)                   { m_colorAlpha.w = _alpha; }
+	float        getAlpha() const                         { return m_colorAlpha.w; }
 	const mat4&  getPrevWorld() const                     { return m_prevWorld; }
 	void         setPrevWorld(const mat4& _prevWorld)     { m_prevWorld = _prevWorld; }
 
