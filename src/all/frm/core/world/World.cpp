@@ -67,6 +67,8 @@ Camera* World::GetCullCamera()
 
 bool World::serialize(Serializer& _serializer_)
 {
+	Component::ClearActiveComponents(); // Active component ptrs are cached, need to clear these before we realloc.
+
 	bool ret = SerializeAndValidateClass(_serializer_);
 	if (!ret)
 	{
