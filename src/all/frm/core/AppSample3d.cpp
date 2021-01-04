@@ -178,6 +178,10 @@ bool AppSample3d::update()
 		Im3d::PopDrawState();
 	}
 
+	#if FRM_MODULE_PHYSICS
+		Physics::DrawDebug();
+	#endif
+
 	return true;
 }
 

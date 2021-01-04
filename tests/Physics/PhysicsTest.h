@@ -32,14 +32,11 @@ protected:
 	Geometry              m_spawnType                         = Geometry_Random;
 	frm::Mesh*            m_meshes[Geometry_Count]            = { nullptr };
 	frm::PhysicsGeometry* m_physicsGeometries[Geometry_Count] = { nullptr };
-	frm::SceneNode*       m_rootNode                          = nullptr;
 	
 	frm::BasicRenderer*   m_basicRenderer                     = nullptr;
 	frm::BasicMaterial*   m_defaultMaterial                   = nullptr;
 
 	void spawnPhysicsObject(Geometry _type, const frm::vec3& _position, const frm::vec3& _linearVelocity);
-	
-	void shutdownRootNode(frm::SceneNode*& _root_);
 
 };
 

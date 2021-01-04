@@ -4,15 +4,15 @@
 
 #include <frm/core/frm.h>
 #include <frm/core/rand.h>
-#include <frm/core/BasicMaterial.h>
-#include <frm/core/BasicRenderer.h>
+#include <frm/core/BasicRenderer/BasicRenderer.h>
+#include <frm/core/BasicRenderer/BasicRenderableComponent.h>
+#include <frm/core/BasicRenderer/BasicMaterial.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Input.h>
 #include <frm/core/Mesh.h>
-#include <frm/core/Scene.h>
+#include <frm/core/world/World.h>
 
 #include <frm/physics/Physics.h>
-#include <frm/physics/PhysicsConstraint.h>
 #include <frm/physics/PhysicsGeometry.h>
 #include <frm/physics/PhysicsMaterial.h>
 
@@ -24,7 +24,7 @@ static PhysicsTest s_inst;
 
 static bool GetRayCameraPlaneIntersection(const Ray& _ray, const vec3& _planeOrigin, vec3& out_)
 {
-	const Plane plane(-Scene::GetDrawCamera()->getViewVector(), _planeOrigin);
+	const Plane plane(-World::GetDrawCamera()->getViewVector(), _planeOrigin);
 	float t0;
 	if (Intersect(_ray, plane, t0))
 	{
@@ -50,7 +50,7 @@ bool PhysicsTest::init(const frm::ArgList& _args)
 		return false;
 	}
 
-	m_basicRenderer = BasicRenderer::Create(m_resolution.x, m_resolution.y);
+	m_basicRenderer = BasicRenderer::Create();
 
 	m_defaultMaterial = BasicMaterial::Create("materials/Grid1Light.json");
 	FRM_ASSERT(m_defaultMaterial->getState() == BasicMaterial::State_Loaded);
@@ -65,23 +65,15 @@ bool PhysicsTest::init(const frm::ArgList& _args)
 	m_physicsGeometries[Geometry_Sphere]   = PhysicsGeometry::CreateSphere(0.5f);
 	for (int i = 0; i < (int)Geometry_Count; ++i)
 	{
-		FRM_ASSERT(m_meshes[i]->getState() != Mesh::State_Error);
-		FRM_ASSERT(m_physicsGeometries[i]->getState() != PhysicsGeometry::State_Error);
+		FRM_ASSERT(CheckResource(m_meshes[i]));
+		FRM_ASSERT(CheckResource(m_physicsGeometries[i]));
 	}
-
-	// Attach dynamically-created nodes to our own root which isn't serialized (name starts with a #).
-	m_rootNode = m_scene->createNode(Node::Type_Root);
-	m_rootNode->setName("#PhysicsTest");
-
-	Physics::AddGroundPlane(Physics::GetDefaultMaterial());
 
 	return true;
 }
 
 void PhysicsTest::shutdown()
 {
-	shutdownRootNode(m_rootNode);
-
 	for (Mesh* mesh : m_meshes)
 	{
 		Mesh::Release(mesh);
@@ -101,8 +93,8 @@ bool PhysicsTest::update()
 	}
 
 	const float dt = (float)getDeltaTime();
-	Camera* drawCamera = Scene::GetDrawCamera();
-	Camera* cullCamera = Scene::GetCullCamera();
+	Camera* drawCamera = World::GetDrawCamera();
+	Camera* cullCamera = World::GetCullCamera();
 
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Spawn Projectile"))
@@ -140,7 +132,6 @@ bool PhysicsTest::update()
 	if (ImGui::TreeNode("Physics"))
 	{
 		Physics::Edit();
-
 		ImGui::TreePop();
 	}
 	
@@ -237,17 +228,14 @@ bool PhysicsTest::update()
 						Mesh* boxMesh = Mesh::Create(*boxMeshData);
 						MeshData::Destroy(boxMeshData);
 
-						Node* newNode = m_scene->createNode(Node::Type_Object);
-						newNode->setNamef("#box");
-						newNode->setActive(true);
-						newNode->setDynamic(true);
+						SceneNode* newNode = World::GetCurrent()->getRootScene()->createTransientNode("#box");
 	
-						Component_BasicRenderable* renderableComponent = Component_BasicRenderable::Create(boxMesh, m_defaultMaterial);
+						BasicRenderableComponent* renderableComponent = BasicRenderableComponent::Create(boxMesh, m_defaultMaterial);
 						newNode->addComponent(renderableComponent);
 
-						float boxMass = 0.5f;//boxSize.x * boxSize.y * boxSize.z;
+						float boxMass = boxSize.x * boxSize.y * boxSize.z;
 						mat4 initialTransform = TranslationMatrix(Min(boxA, boxB) + boxSize * 0.5f + vec3(0.0f, 1e-6f, 0.0f));
-						Component_Physics* physicsComponent = Component_Physics::Create(boxPhysicsGeometry, Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags());
+						PhysicsComponent* physicsComponent = PhysicsComponent::CreateTransient(boxPhysicsGeometry, Physics::GetDefaultMaterial(), boxMass, initialTransform, Physics::Flags());
 						newNode->addComponent(physicsComponent);
 
 						Mesh::Release(boxMesh);
@@ -282,8 +270,8 @@ bool PhysicsTest::update()
 		}
 
 		static bool isSelecting = false;
-		static Node* selectedNode = nullptr;
-		if (ImGui::Button(isSelecting ? "Cancel (ESC)" : "Select"))
+		static SceneNode* selectedNode = nullptr;
+		if (ImGui::Button(isSelecting ? "Cancel (ESC)" : "Select " ICON_FA_EYEDROPPER))
 		{
 			isSelecting = true;
 		}
@@ -297,17 +285,17 @@ bool PhysicsTest::update()
 		{
 			if (io.MouseClicked[0] && Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlag::Position))
 			{
-				selectedNode = raycastOut.component->getNode();
+				selectedNode = raycastOut.component->getParentNode();
 				if (selectedNode)
 				{
-					selectedNode->setSelected(true);
+					FRM_ASSERT(false); // \todo set selected on editor
 				}
 				isSelecting = false;
 			}
 		}
 
-		static bool isJointTest = false;
-		static Component_Physics* jointTestComponent[2] = { nullptr };
+		/*static bool isJointTest = false;
+		static PhysicsComponent* jointTestComponent[2] = { nullptr };
 		static mat4 sceneNodeFrame = identity;
 		static PhysicsConstraint* joint = nullptr;
 		if (ImGui::Button(isJointTest ? "Cancel (ESC)" : "Joint Test"))
@@ -392,7 +380,7 @@ bool PhysicsTest::update()
 					ImGui::TreePop();
 				}
 			}
-		}
+		}*/
 
 		ImGui::TreePop();
 	}
@@ -401,14 +389,13 @@ bool PhysicsTest::update()
 	if (ImGui::TreeNode("Renderer"))
 	{
 		m_basicRenderer->edit();
-
 		ImGui::TreePop();
 	}		
 
 	if (Input::GetKeyboard()->wasPressed(Keyboard::Key_Space))
 	{
 		vec3 position  = cullCamera->getPosition();
-		vec3 linearVelocity = cullCamera->getViewVector() * 20.0f;
+		vec3 linearVelocity = cullCamera->getViewVector() * 1000.0f;
 		spawnPhysicsObject(m_spawnType, position, linearVelocity);
 	}
 
@@ -430,8 +417,8 @@ void PhysicsTest::draw()
 {
 	const GlContext* ctx = GlContext::GetCurrent();	
 
-	Camera* drawCamera = Scene::GetDrawCamera();
-	Camera* cullCamera = Scene::GetCullCamera();
+	Camera* drawCamera = World::GetDrawCamera();
+	Camera* cullCamera = World::GetCullCamera();
 
 	m_basicRenderer->nextFrame((float)getDeltaTime(), drawCamera, cullCamera);
 	m_basicRenderer->draw((float)getDeltaTime(), drawCamera, cullCamera);
@@ -449,31 +436,20 @@ void PhysicsTest::spawnPhysicsObject(Geometry _type, const frm::vec3& _position,
 		_type = (Geometry)rand.get<int>(0, Geometry_Random - 1);
 	}
 
-	int index = m_rootNode->getChildCount();
-	Node* newNode = m_scene->createNode(Node::Type_Object, m_rootNode);
-	newNode->setNamef("#PhysicsObject%d", index);
-	newNode->setActive(true);
-	newNode->setDynamic(true);
+	SceneNode* newNode = World::GetCurrent()->getRootScene()->createTransientNode("#PhysicsTransient");
 	
-	Component_BasicRenderable* renderableComponent = Component_BasicRenderable::Create(m_meshes[_type], m_defaultMaterial);
+	BasicRenderableComponent* renderableComponent = BasicRenderableComponent::Create(m_meshes[_type], m_defaultMaterial);
 	newNode->addComponent(renderableComponent);
 
 	mat4 initialTransform = LookAt(_position, _position + _linearVelocity);						
-	Component_PhysicsTemporary* physicsComponent = Component_PhysicsTemporary::Create(m_physicsGeometries[_type], Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags());
+	PhysicsComponentTemp* physicsComponent = PhysicsComponentTemp::CreateTransient(m_physicsGeometries[_type], Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags());
+	//physicsComponent->setFlag(Physics::Flag::EnableCCD, true);
+	physicsComponent->setIdleTimeout(0.1f);
+
 	newNode->addComponent(physicsComponent);
+	FRM_VERIFY(newNode->init() && newNode->postInit());
+
 	physicsComponent->setLinearVelocity(_linearVelocity);
-
-	physicsComponent->idleTimeout = 0.1f;
-}
-
-void PhysicsTest::shutdownRootNode(Node*& _root_)
-{
-	for (int childIndex = 0; childIndex < _root_->getChildCount(); ++childIndex)
-	{
-		Node* child = _root_->getChild(childIndex);
-		shutdownRootNode(child);
-	}
-	m_scene->destroyNode(_root_);
 }
 
 #endif // FRM_MODULE_PHYSICS

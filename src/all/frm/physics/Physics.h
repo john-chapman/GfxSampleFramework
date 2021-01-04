@@ -42,13 +42,14 @@ public:
 	static void Shutdown();
 	static void Update(float _dt);
 	static void Edit();
+	static void DrawDebug();
 
 	static void RegisterComponent(PhysicsComponent* _component_);
 	static void UnregisterComponent(PhysicsComponent* _component_);
 
-	static PhysicsMaterial* GetDefaultMaterial();
+	static const PhysicsMaterial* GetDefaultMaterial();
 
-	static void AddGroundPlane(PhysicsMaterial* _material = GetDefaultMaterial());
+	static void AddGroundPlane(const PhysicsMaterial* _material = GetDefaultMaterial());
 
 	enum class RayCastFlag: uint8
 	{
@@ -91,7 +92,7 @@ private:
 
 	bool  m_paused            = false;
 	bool  m_step              = true;
-	bool  m_debugDraw         = false;
+	bool  m_drawDebug         = false;
 	float m_stepLengthSeconds = 1.0f/60.0f;
 	float m_stepAccumulator   = 0.0f;
 
@@ -125,11 +126,18 @@ public:
 	static void Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
 	static eastl::span<PhysicsComponent*> GetActiveComponents();
 
-	static PhysicsComponent* CreateTransient(PhysicsMaterial* _material, PhysicsGeometry* _geometry, Flags _flags = Flags(), const mat4& _initialTransform = identity);
+	static PhysicsComponent* CreateTransient(
+		const PhysicsGeometry* _geometry,
+		const PhysicsMaterial* _material,
+		float                  _mass, 
+		const mat4&            _initialTransform = identity,
+		Flags                  _flags            = Flags()
+		); 
 
 	void         setFlags(Flags _flags);
-	Flags        getFlags() const           { return m_flags; }
-	bool         getFlag(Flag _flag) const  { return m_flags.get(_flag); }
+	void         setFlag(Flag _flag, bool _value);
+	Flags        getFlags() const                   { return m_flags; }
+	bool         getFlag(Flag _flag) const          { return m_flags.get(_flag); }
 
 	void         addForce(const vec3& _force);
 	void         setLinearVelocity(const vec3& _linearVelocity);
@@ -151,12 +159,12 @@ public:
 
 protected:
 
-	Flags            m_flags;
-	mat4             m_initialTransform = identity;
-	float            m_mass             = 1.0f;
-	PhysicsMaterial* m_material         = nullptr;
-	PhysicsGeometry* m_geometry         = nullptr;
-	void*            m_impl             = nullptr;
+	Flags                  m_flags;
+	mat4                   m_initialTransform = identity;
+	float                  m_mass             = 1.0f;
+	const PhysicsMaterial* m_material         = nullptr;
+	const PhysicsGeometry* m_geometry         = nullptr;
+	void*                  m_impl             = nullptr;
 
 	bool initImpl() override;
 	void shutdownImpl() override;
@@ -164,6 +172,43 @@ protected:
 	bool serializeImpl(Serializer& _serializer_) override;
 
 	bool editFlags();
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// PhysicsComponentTemp
+////////////////////////////////////////////////////////////////////////////////
+FRM_COMPONENT_DECLARE_DERIVED(PhysicsComponentTemp, PhysicsComponent)
+{
+	friend class Physics;
+
+public:
+
+	static void Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
+	static eastl::span<PhysicsComponentTemp*> GetActiveComponents();
+
+	static PhysicsComponentTemp* CreateTransient(
+		const PhysicsGeometry* _geometry,
+		const PhysicsMaterial* _material,
+		float                  _mass, 
+		const mat4&            _initialTransform = identity,
+		Flags                  _flags            = Flags()
+		);
+
+	float getIdleTimeout() const             { return m_idleTimeout; }
+	void  setIdleTimeout(float _idleTimeout) { m_idleTimeout = _idleTimeout; m_timer = 0.0f; }
+
+private:
+
+	float                     m_idleTimeout              = 0.5f;
+	float                     m_timer                    = 0.0f;
+	BasicRenderableComponent* m_basicRenderableComponent = nullptr;
+
+	bool postInitImpl() override;
+	bool editImpl() override;
+	bool serializeImpl(Serializer& _serializer_) override;
+
+	void updateTimer(float _dt);
+
 };
 
 

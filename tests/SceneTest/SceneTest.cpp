@@ -36,10 +36,6 @@ bool SceneTest::init(const frm::ArgList& _args)
 	m_basicRenderer = BasicRenderer::Create();
 	m_basicRenderer->setFlag(BasicRenderer::Flag::WriteToBackBuffer, false); // We manually draw ImGui/Im3d and then blit.
 
-	#if FRM_MODULE_PHYSICS
-		Physics::AddGroundPlane();
-	#endif
-
 	return true;
 }
 

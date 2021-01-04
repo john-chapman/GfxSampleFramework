@@ -51,6 +51,12 @@ public:
 	static bool     Load(Derived* _inst_)            { return _inst_->load();   }
 	static bool     Reload(Derived* _inst_)          { return _inst_->reload(); }
 
+	// \hack \todo Resource ptrs should ideally be const everywhere.
+	static void     Use(const Derived* _inst_)       { Use(const_cast<Derived*>(_inst_)); }
+	static void     Release(const Derived*& _inst_)  { Release(const_cast<Derived*&>(_inst_)); }
+	static bool     Load(const Derived* _inst_)      { return Load(const_cast<Derived*>(_inst_)); }
+	static bool     Reload(const Derived* _inst_)    { return Reload(const_cast<Derived*>(_inst_)); }
+
 	static Derived* Find(Id _id);
 	static Derived* Find(const char* _name);
 	static int      GetInstanceCount()               { return (int)s_instances.size(); }

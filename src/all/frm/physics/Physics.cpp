@@ -5,6 +5,7 @@
 
 #include <frm/core/log.h>
 #include <frm/core/memory.h>
+#include <frm/core/BasicRenderer/BasicRenderableComponent.h> // used by PhysicsComponentTemp to manage fadeout
 #include <frm/core/Properties.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Serializable.inl>
@@ -36,6 +37,8 @@ static const char* kPhysicsFlagStr[] =
 	"EnableCCD",
 };
 
+static PhysicsMaterial* s_defaultMaterial;
+
 // PUBLIC
 
 bool Physics::Init()
@@ -61,6 +64,11 @@ bool Physics::Init()
 void Physics::Shutdown()
 {
 	FRM_ASSERT(s_instance);
+
+	if (s_defaultMaterial)
+	{
+		PhysicsMaterial::Release(s_defaultMaterial);
+	}
 
 	PxShutdown();
 
@@ -151,7 +159,7 @@ void Physics::Edit()
 		g_pxScene->setGravity(Vec3ToPx(g));
 	}
 
-	bool& debugDraw = s_instance->m_debugDraw;
+	bool& debugDraw = s_instance->m_drawDebug;
 	if (ImGui::Checkbox("Debug Draw", &debugDraw))
 	{
 		if (debugDraw)
@@ -171,47 +179,73 @@ void Physics::Edit()
 		}
 	}
 
-	if (debugDraw)
+	ImGui::Spacing();
+	if (ImGui::TreeNode("Stats"))
 	{
-		const physx::PxRenderBuffer& drawList = g_pxScene->getRenderBuffer();
+		physx::PxSimulationStatistics stats;
+		g_pxScene->getSimulationStatistics(stats);
 
-		Im3d::PushDrawState();
+		ImGui::Text("Static Bodies:      %u",             stats.nbStaticBodies);
+		ImGui::Text("Dynamic Bodies:     %u (%u active)", stats.nbDynamicBodies,   stats.nbActiveDynamicBodies);
+		ImGui::Text("Kinematic Bodies:   %u (%u active)", stats.nbKinematicBodies, stats.nbActiveKinematicBodies);
+		ImGui::Text("Active Constraints: %u ",            stats.nbActiveConstraints);
 
-		Im3d::BeginTriangles();
-			for (auto i = 0u; i < drawList.getNbTriangles(); ++i)
-			{
-				const physx::PxDebugTriangle& tri = drawList.getTriangles()[i];
-				Im3d::Vertex(PxToVec3(tri.pos0), Im3d::Color(tri.color0));
-				Im3d::Vertex(PxToVec3(tri.pos1), Im3d::Color(tri.color1));
-				Im3d::Vertex(PxToVec3(tri.pos2), Im3d::Color(tri.color2));				
-			}
-		Im3d::End();
+		ImGui::Spacing();
+		
+		ImGui::Text("Broad Phase:");
+		ImGui::Text("\tAdds:    %u", stats.getNbBroadPhaseAdds());
+		ImGui::Text("\tRemoves: %u", stats.getNbBroadPhaseRemoves());
 
-		Im3d::SetSize(2.0f); // \todo parameterize
-		Im3d::BeginLines();
-			for (auto i = 0u; i < drawList.getNbLines(); ++i)
-			{
-				const physx::PxDebugLine& line = drawList.getLines()[i];
-				Im3d::Vertex(PxToVec3(line.pos0), Im3d::Color(line.color0));
-				Im3d::Vertex(PxToVec3(line.pos1), Im3d::Color(line.color1));
-			}
-		Im3d::End();
-
-		Im3d::BeginPoints();
-			for (auto i = 0u; i < drawList.getNbPoints(); ++i)
-			{
-				const physx::PxDebugPoint& point = drawList.getPoints()[i];
-				Im3d::Vertex(PxToVec3(point.pos), Im3d::Color(point.color));
-			}
-		Im3d::End();
-
-		for (physx::PxU32 i = 0; i < drawList.getNbTexts(); ++i)
-		{
-		 // \todo
-		}
-
-		Im3d::PopDrawState();
+		ImGui::TreePop();
 	}
+}
+
+void Physics::DrawDebug()
+{
+	if (!s_instance->m_drawDebug)
+	{
+		return;
+	}
+	
+	// \todo This seems to have a 1 frame latency, calling DrawDebug() before/after the update doesn't seem to have any effect.
+	const physx::PxRenderBuffer& drawList = g_pxScene->getRenderBuffer();
+
+	Im3d::PushDrawState();
+
+	Im3d::BeginTriangles();
+		for (auto i = 0u; i < drawList.getNbTriangles(); ++i)
+		{
+			const physx::PxDebugTriangle& tri = drawList.getTriangles()[i];
+			Im3d::Vertex(PxToVec3(tri.pos0), Im3d::Color(tri.color0));
+			Im3d::Vertex(PxToVec3(tri.pos1), Im3d::Color(tri.color1));
+			Im3d::Vertex(PxToVec3(tri.pos2), Im3d::Color(tri.color2));				
+		}
+	Im3d::End();
+
+	Im3d::SetSize(2.0f); // \todo parameterize
+	Im3d::BeginLines();
+		for (auto i = 0u; i < drawList.getNbLines(); ++i)
+		{
+			const physx::PxDebugLine& line = drawList.getLines()[i];
+			Im3d::Vertex(PxToVec3(line.pos0), Im3d::Color(line.color0));
+			Im3d::Vertex(PxToVec3(line.pos1), Im3d::Color(line.color1));
+		}
+	Im3d::End();
+
+	Im3d::BeginPoints();
+		for (auto i = 0u; i < drawList.getNbPoints(); ++i)
+		{
+			const physx::PxDebugPoint& point = drawList.getPoints()[i];
+			Im3d::Vertex(PxToVec3(point.pos), Im3d::Color(point.color));
+		}
+	Im3d::End();
+
+	for (physx::PxU32 i = 0; i < drawList.getNbTexts(); ++i)
+	{
+	 // \todo
+	}
+
+	Im3d::PopDrawState();
 }
 
 void Physics::RegisterComponent(PhysicsComponent* _component_)
@@ -260,13 +294,17 @@ void Physics::UnregisterComponent(PhysicsComponent* _component_)
 	}
 }
 
-PhysicsMaterial* Physics::GetDefaultMaterial()
+const PhysicsMaterial* Physics::GetDefaultMaterial()
 {
-	static PhysicsMaterial* s_defaultMaterial = PhysicsMaterial::Create(0.5f, 0.5f, 0.2f, "Default");
+	if (!s_defaultMaterial)
+	{
+		s_defaultMaterial = PhysicsMaterial::Create(0.5f, 0.5f, 0.2f, "#PhysicsDefaultMaterial");
+		PhysicsMaterial::Use(s_defaultMaterial);
+	}
 	return s_defaultMaterial;
 }
 
-void Physics::AddGroundPlane(PhysicsMaterial* _material)
+void Physics::AddGroundPlane(const PhysicsMaterial* _material)
 {
 	static SceneNode* groundNode;
 	if (!groundNode)
@@ -275,8 +313,10 @@ void Physics::AddGroundPlane(PhysicsMaterial* _material)
 		groundNode = rootScene->createTransientNode("#GroundPlane");
 
 		PhysicsComponent* physicsComponent = PhysicsComponent::CreateTransient(
-			_material,
 			PhysicsGeometry::CreatePlane(vec3(0.0f, 1.0f, 0.0f), vec3(0.0f), "#GroundPlaneGeometry"),
+			_material,
+			1.0f,
+			identity,
 			{ Flag::Static, Flag::Simulation, Flag::Query}
 			);			
 		groundNode->addComponent(physicsComponent);
@@ -318,7 +358,7 @@ Physics::Physics()
 {
 	Properties::PushGroup("Physics");
 
-		Properties::Add("m_debugDraw",          m_debugDraw,                                       &m_debugDraw);
+		Properties::Add("m_drawDebug",          m_drawDebug,                                       &m_drawDebug);
 		Properties::Add("m_paused",             m_paused,                                          &m_paused);
 		Properties::Add("m_stepLengthSeconds",  m_stepLengthSeconds,     0.0f,       1.0f,         &m_stepLengthSeconds);
 		Properties::Add("m_gravity",            m_gravity,               0.0f,       20.0f,        &m_gravity);
@@ -393,13 +433,14 @@ eastl::span<PhysicsComponent*> PhysicsComponent::GetActiveComponents()
 	return eastl::span<PhysicsComponent*>(*((eastl::vector<PhysicsComponent*>*)&activeList));
 }
 
-PhysicsComponent* PhysicsComponent::CreateTransient(PhysicsMaterial* _material, PhysicsGeometry* _geometry, Flags _flags, const mat4& _initialTransform)
+PhysicsComponent* PhysicsComponent::CreateTransient(const PhysicsGeometry* _geometry, const PhysicsMaterial* _material, float _mass, const mat4& _initialTransform, Flags _flags)
 {
 	PhysicsComponent* ret   = (PhysicsComponent*)Create(StringHash("PhysicsComponent"));
-	ret->m_material         = _material;
 	ret->m_geometry         = _geometry;
-	ret->m_flags            = _flags;
+	ret->m_material         = _material;
+	ret->m_mass             = _mass;
 	ret->m_initialTransform = _initialTransform;
+	ret->m_flags            = _flags;
 
 	return ret;
 }
@@ -412,9 +453,23 @@ void PhysicsComponent::setFlags(Flags _flags)
 	}
 
 	// \todo Fast path for mutable flags. Probably need a diff method on BitFlags?
-	shutdownImpl();
-	m_flags = _flags;
-	initImpl();
+	if (getState() == World::State::Shutdown)
+	{
+		m_flags = _flags;
+	}
+	else
+	{
+		shutdownImpl();
+		m_flags = _flags;
+		initImpl();
+	}
+}
+
+void PhysicsComponent::setFlag(Flag _flag, bool _value)
+{
+	Flags newFlags = m_flags;
+	newFlags.set(_flag, _value);
+	setFlags(newFlags);
 }
 
 void PhysicsComponent::addForce(const vec3& _force)
@@ -512,8 +567,7 @@ void PhysicsComponent::forceUpdateNodeTransform()
 }
 
 
-
-// PRIVATE
+// PROTECTED
 
 bool PhysicsComponent::initImpl()
 {
@@ -635,6 +689,16 @@ bool PhysicsComponent::editImpl()
 		ret = true;
 	}
 
+	if (m_geometry)
+	{
+		ret |= const_cast<PhysicsGeometry*>(m_geometry)->edit();
+	}
+
+	if (m_material)
+	{
+		ret |= const_cast<PhysicsMaterial*>(m_material)->edit();
+	}
+
 	if (ImGui::TreeNode("Initial Transform"))
 	{
 		if (Im3d::Gizmo("InitialTransform", (float*)&m_initialTransform) && m_impl)
@@ -727,7 +791,7 @@ bool PhysicsComponent::serializeImpl(Serializer& _serializer_)
 			{
 				// serialize inline
 				_serializer_.beginObject("Geometry");
-				m_geometry->serialize(_serializer_);
+				const_cast<PhysicsGeometry*>(m_geometry)->serialize(_serializer_);
 				_serializer_.endObject();
 			}
 			else
@@ -744,7 +808,7 @@ bool PhysicsComponent::serializeImpl(Serializer& _serializer_)
 			{
 				// serialize inline
 				_serializer_.beginObject("Material");
-				m_material->serialize(_serializer_);
+				const_cast<PhysicsMaterial*>(m_material)->serialize(_serializer_);
 				_serializer_.endObject();
 			}
 			else
@@ -812,6 +876,127 @@ bool PhysicsComponent::editFlags()
 	}
 	
 	return ret;
+}
+
+
+/******************************************************************************
+
+                             PhysicsComponentTemp
+
+******************************************************************************/
+
+FRM_COMPONENT_DEFINE(PhysicsComponentTemp, 0);
+
+// PUBLIC
+
+void PhysicsComponentTemp::Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase)
+{
+	PROFILER_MARKER_CPU("PhysicsComponentTemp::Update");
+
+	if (_phase != World::UpdatePhase::PostPhysics)
+	{
+		return;
+	}
+
+	for (; _from != _to; ++_from)
+	{
+		PhysicsComponentTemp* component = (PhysicsComponentTemp*)*_from;
+		if (!component->getFlag(Flag::Dynamic))
+		{
+			continue;
+		}
+		
+		PxComponentImpl* impl = (PxComponentImpl*)component->m_impl;
+		FRM_ASSERT(impl);
+		physx::PxRigidDynamic* actor = (physx::PxRigidDynamic*)impl->pxRigidActor;
+		FRM_ASSERT(actor->is<physx::PxRigidDynamic>());
+		mat4 worldMatrix = PxToMat4(actor->getGlobalPose());
+		component->getParentNode()->setWorld(worldMatrix);
+
+		// \todo This may destroy the node and component, which will modify the list we're iterating on. Need to defer all deletions at the scene/world level.
+		//component->updateTimer(_dt);
+	}
+}
+
+eastl::span<PhysicsComponentTemp*> PhysicsComponentTemp::GetActiveComponents()
+{
+	static ComponentList& activeList = (ComponentList&)Component::GetActiveComponents(StringHash("PhysicsComponentTemp"));
+	return eastl::span<PhysicsComponentTemp*>(*((eastl::vector<PhysicsComponentTemp*>*)&activeList));
+}
+
+PhysicsComponentTemp* PhysicsComponentTemp::CreateTransient(const PhysicsGeometry* _geometry, const PhysicsMaterial* _material, float _mass, const mat4& _initialTransform, Flags _flags)
+{
+	PhysicsComponentTemp* ret = (PhysicsComponentTemp*)Create(StringHash("PhysicsComponentTemp"));
+	ret->m_geometry           = _geometry;
+	ret->m_material           = _material;
+	ret->m_mass               = _mass;
+	ret->m_initialTransform   = _initialTransform;
+	ret->m_flags              = _flags;
+
+	return ret;
+}
+
+
+// PRIVATE
+
+bool PhysicsComponentTemp::postInitImpl()
+{
+	bool ret =PhysicsComponent::postInitImpl();
+	m_basicRenderableComponent = (BasicRenderableComponent*)m_parentNode->findComponent(StringHash("BasicRenderableComponent"));
+
+	if (m_flags.get(Flag::Static) || m_flags.get(Flag::Dynamic))
+	{
+		m_timer = m_idleTimeout; // Static and kinematic components begin to die immediately.
+	}
+	else
+	{
+		m_timer = 0.0f; // Dynamic components only die when idle, see updateTimer().
+	}
+
+	return ret;
+}
+
+bool PhysicsComponentTemp::editImpl()
+{
+	bool ret = PhysicsComponent::editImpl();
+	ImGui::Spacing();
+	ret |= ImGui::SliderFloat("Idle Timeout", &m_idleTimeout, 0.0f, 10.0f);
+	ImGui::Text("Timer %f", m_timer);
+
+	return ret;
+}
+
+bool PhysicsComponentTemp::serializeImpl(Serializer& _serializer_)
+{
+	FRM_ASSERT(false); // 
+	return false;
+}
+
+void PhysicsComponentTemp::updateTimer(float _dt)
+{
+	if (m_timer > 0.0f)
+	{
+		if (m_basicRenderableComponent)
+		{			
+			float alpha = Clamp(m_timer / m_idleTimeout, 0.0f, 1.0f);
+			m_basicRenderableComponent->setAlpha(alpha);
+		}
+
+		m_timer -= _dt;
+		if (m_timer <= 0.0f)
+		{
+			m_parentNode->getParentScene()->destroyNode(m_parentNode);
+		}
+	}
+	else
+	{
+		physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)((PxComponentImpl*)m_impl)->pxRigidActor;
+		FRM_ASSERT(pxRigidDynamic->is<physx::PxRigidDynamic>());
+		if (pxRigidDynamic->isSleeping())
+		{
+			m_timer = m_idleTimeout;
+		}
+	}
 }
 
 } // namespace frm
