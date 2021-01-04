@@ -198,7 +198,6 @@ MeshData* MeshData::Create(const char* _path, const MeshDesc& _desc)
 	}
 	MeshData* ret = FRM_NEW(MeshData);
 	ret->m_desc = _desc;
-	ret->m_path.set(_path);
 
 	if (FileSystem::CompareExtension("obj", _path))
 	{
@@ -227,6 +226,8 @@ MeshData* MeshData::Create(const char* _path, const MeshDesc& _desc)
 		goto MeshData_Create_error;
 	}
 	
+	ret->m_path.set(_path); // Read* functions above might not correctly preserve the path, so reset it here.
+
 	return ret;
 
 MeshData_Create_error:
@@ -557,14 +558,13 @@ void MeshData::Destroy(MeshData*& _meshData_)
 
 void frm::swap(MeshData& _a, MeshData& _b)
 {
-	using std::swap;
-	swap(_a.m_path,           _b.m_path);
-	swap(_a.m_bindPose,       _b.m_bindPose);
-	swap(_a.m_desc,           _b.m_desc);
-	swap(_a.m_vertexData,     _b.m_vertexData);
-	swap(_a.m_indexData,      _b.m_indexData);
-	swap(_a.m_indexDataType,  _b.m_indexDataType);
-	swap(_a.m_submeshes,      _b.m_submeshes);
+	frm::swap(_a.m_path,           _b.m_path);
+	std::swap(_a.m_bindPose,       _b.m_bindPose);
+	std::swap(_a.m_desc,           _b.m_desc);
+	std::swap(_a.m_vertexData,     _b.m_vertexData);
+	std::swap(_a.m_indexData,      _b.m_indexData);
+	std::swap(_a.m_indexDataType,  _b.m_indexDataType);
+	std::swap(_a.m_submeshes,      _b.m_submeshes);
 }
 
 void MeshData::setVertexData(const void* _src)
