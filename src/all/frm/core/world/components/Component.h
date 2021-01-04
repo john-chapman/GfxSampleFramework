@@ -79,7 +79,6 @@ public:
 	SceneID      getID() const                                { return m_id; }
 	World::State getState() const                             { return m_state; }
 
-
 protected:
 
 	SceneNode* m_parentNode = nullptr;
@@ -111,6 +110,9 @@ private:
 
 #define FRM_COMPONENT_DECLARE(_class) \
 	class _class: public frm::Component, public frm::Serializable<_class>
+
+#define FRM_COMPONENT_DECLARE_DERIVED(_class, _baseComponent) \
+	class _class: public _baseComponent
 
 #define FRM_COMPONENT_DEFINE(_class, _version) \
 	FRM_SERIALIZABLE_DEFINE(_class, _version); \
