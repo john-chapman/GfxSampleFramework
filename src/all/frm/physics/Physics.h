@@ -129,7 +129,8 @@ public:
 	static PhysicsComponent* CreateTransient(
 		const PhysicsGeometry* _geometry,
 		const PhysicsMaterial* _material,
-		float                  _mass, 
+		float                  _mass,
+		float                  _idleTimeout,
 		const mat4&            _initialTransform = identity,
 		Flags                  _flags            = Flags()
 		); 
@@ -145,11 +146,17 @@ public:
 	void         setAngularVelocity(const vec3& _angularVelocity);
 	vec3         getAngularVelocity() const;
 
+	void         setWorldTransform(const mat4& _world);
+	mat4         getWorldTransform() const;
+
 	void         setMass(float _mass);
 	float        getMass() const                    { return m_mass; }
 
 	void         setIdleTimeout(float _idleTimeout) { m_idleTimeout = _idleTimeout; }
 	float        getIdleTimeout() const             { return m_idleTimeout; }
+
+	const PhysicsGeometry* getGeometry() const  { return m_geometry; }
+	const PhysicsMaterial* getMaterial() const  { return m_material; }
 
 	// Reset to the initial state, zero velocities.
 	virtual void reset();
@@ -159,6 +166,9 @@ public:
 
 	// Explicitly wake the physics actor.
 	void         forceWake() { addForce(vec3(0.0f)); }
+
+	// \hack Re-initialize (e.g. after edit).
+	bool         reinit();
 
 protected:
 

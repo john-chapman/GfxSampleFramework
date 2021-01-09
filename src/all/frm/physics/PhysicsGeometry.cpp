@@ -1,5 +1,6 @@
 #include "PhysicsGeometry.h"
 #include "PhysicsInternal.h"
+#include "Physics.h"
 
 #include <frm/core/hash.h>
 #include <frm/core/log.h>
@@ -21,8 +22,7 @@ static const char* kTypeStr[PhysicsGeometry::Type_Count]
 	"Capsule",      //Type_Capsule,
 	"ConvexMesh",   //Type_ConvexMesh,
 	"TriangleMesh", //Type_TriangleMesh,
-	"Heightfield",  //Type_Heightfield,
-	"Invalid"
+	"Heightfield"   //Type_Heightfield,
 };
 
 // PUBLIC
@@ -155,10 +155,60 @@ bool PhysicsGeometry::edit()
 		ret = true;
 	}
 	
-	if (ImGui::Combo("Type", &m_type, kTypeStr, Type_Count))
+	Type newType = m_type;
+	if (ImGui::Combo("Type", &newType, kTypeStr, Type_Count))
 	{
-		ret = true;
-		reinit = true;
+		if (newType != m_type)
+		{
+			switch (newType)
+			{
+				default:
+					break;
+				case Type_Sphere:
+					m_data.sphere.radius = 0.5f;
+					break;
+				case Type_Box:
+					m_data.box.halfExtents = vec3(0.5f);
+					break;
+				case Type_Plane:
+					m_data.plane.normal = vec3(0.0f, 1.0f, 0.0f);
+					m_data.plane.offset = 0.0f;
+					break;
+				case Type_Capsule:
+					m_data.capsule.radius = 0.5f;
+					m_data.capsule.halfHeight = 1.0f;
+					break;
+				case Type_ConvexMesh:
+				case Type_TriangleMesh:
+				case Type_Heightfield:
+					if (editDataPath())
+					{
+						ret = reinit = true;
+					}
+					else
+					{
+						newType = m_type;
+					}
+					break;
+			};
+
+			if (newType == Type_ConvexMesh || newType == Type_TriangleMesh || newType == Type_Heightfield)
+			{
+				if (editDataPath())
+				{
+					ret = reinit = true;
+				}
+				else
+				{
+					newType = m_type;
+				}
+			}
+			else
+			{
+				ret = true;
+				reinit = true;
+			}
+		}
 	}
 
 	switch (m_type)
@@ -166,33 +216,42 @@ bool PhysicsGeometry::edit()
 		default:
 			break;
 		case Type_Sphere:
-			ret |= ImGui::SliderFloat("Radius", &m_data.sphere.radius, 1e-4f, 16.0f);
+			if (ImGui::SliderFloat("Radius", &m_data.sphere.radius, 1e-4f, 16.0f))
+			{
+				ret = reinit = true;
+			}
 			break;
 		case Type_Box:
-			ret |= ImGui::SliderFloat3("Half Extents", &m_data.box.halfExtents.x, 1e-4f, 16.0f);
+			if (ImGui::SliderFloat3("Half Extents", &m_data.box.halfExtents.x, 1e-4f, 16.0f))
+			{
+				ret = reinit = true;
+			}
 			break;
 		case Type_Plane:
 		{
 			// \todo better editor for this?
-			ret |= ImGui::SliderFloat3("Normal", &m_data.plane.normal.x, -1.0f, 1.0f); 
+			bool changed = false;
+			changed |= ImGui::SliderFloat3("Normal", &m_data.plane.normal.x, -1.0f, 1.0f); 
 			m_data.plane.normal = Normalize(m_data.plane.normal);
-			ret |= ImGui::DragFloat("Offset", &m_data.plane.offset);
+			changed |= ImGui::DragFloat("Offset", &m_data.plane.offset);
+			if (changed)
+			{
+				ret = reinit = true;
+			}
 			break;
 		}
 		case Type_ConvexMesh:
 		case Type_TriangleMesh:
-		{
+		{			
 			if (ImGui::Button("Mesh Data"))
 			{
-				PathStr dataPath = m_dataPath;
-				if (FileSystem::PlatformSelect(dataPath))
+				if (editDataPath())
 				{
-					m_dataPath = dataPath;
-					ret = true;
+					ret = reinit = true;
 				}
 			}
 			ImGui::SameLine();
-			ImGui::Text(internal::StripPath(m_dataPath.c_str()));
+			ImGui::Text(m_dataPath.c_str());
 			break;
 		}
 	};
@@ -233,8 +292,23 @@ bool PhysicsGeometry::edit()
 
 	if (reinit)
 	{
+		// \hack Component shutdown may end up destroying this resource if it's the only reference, need to keep alive.
+		PhysicsGeometry* thisPtr = this;
+		Use(thisPtr);
+
+		shutdownImpl();
+		m_type = newType;
 		initImpl();
-		FRM_ASSERT(false); // \todo Need to iterate over components and reset pxShape
+		for (auto component : PhysicsComponent::GetActiveComponents())
+		{
+			if (component->getGeometry() == this && component->getState() == World::State::PostInit)
+			{
+				FRM_VERIFY(component->reinit());
+
+			}
+		}
+		
+		Release(thisPtr); // \hack See above.
 	}
 
 	ImGui::PopID();
@@ -363,13 +437,14 @@ bool PhysicsGeometry::initImpl()
 			{
 				MeshData* meshData = MeshData::Create(m_dataPath.c_str());
 				physx::PxDefaultMemoryOutputStream pxOutput;
-				if (!PxCookConvexMesh(meshData, pxOutput))
+				if (!meshData || !PxCookConvexMesh(meshData, pxOutput))
 				{
 					setState(State_Error);
 					return false;
 				}
 				cachedData.setData((const char*)pxOutput.getData(), pxOutput.getSize());
 				FileSystem::Write(cachedData, cachedPath.c_str());
+				MeshData::Destroy(meshData);
 			}
 
 			physx::PxDefaultMemoryInputData pxInput((physx::PxU8*)cachedData.getData(), (physx::PxU32)cachedData.getDataSize());
@@ -383,13 +458,14 @@ bool PhysicsGeometry::initImpl()
 			{
 				MeshData* meshData = MeshData::Create(m_dataPath.c_str());
 				physx::PxDefaultMemoryOutputStream pxOutput;
-				if (!PxCookTriangleMesh(meshData, pxOutput))
+				if (!meshData || !PxCookTriangleMesh(meshData, pxOutput))
 				{
 					setState(State_Error);
 					return false;
 				}
 				cachedData.setData((const char*)pxOutput.getData(), pxOutput.getSize()); // \todo avoid this copy?
 				FileSystem::Write(cachedData, cachedPath.c_str());
+				MeshData::Destroy(meshData);
 			}
 
 			physx::PxDefaultMemoryInputData pxInput((physx::PxU8*)cachedData.getData(), (physx::PxU32)cachedData.getDataSize());
@@ -420,10 +496,16 @@ void PhysicsGeometry::shutdownImpl()
 			case Type_Capsule:
 				break;
 			case Type_ConvexMesh:
-				geometryUnion->convexMesh().convexMesh->release();
+				if (geometryUnion->convexMesh().convexMesh)
+				{
+					geometryUnion->convexMesh().convexMesh->release();
+				}
 				break;
 			case Type_TriangleMesh:
-				geometryUnion->triangleMesh().triangleMesh->release();
+				if (geometryUnion->triangleMesh().triangleMesh)
+				{
+					geometryUnion->triangleMesh().triangleMesh->release();
+				}
 				break;
 			case Type_Heightfield:
 			default:
@@ -434,6 +516,18 @@ void PhysicsGeometry::shutdownImpl()
 		FRM_DELETE(geometryUnion);
 		m_impl = nullptr;
 	}
+}
+
+bool PhysicsGeometry::editDataPath()
+{
+	PathStr dataPath = m_dataPath;
+	if (FileSystem::PlatformSelect(dataPath))
+	{
+		m_dataPath = FileSystem::MakeRelative(dataPath.c_str());
+		return true;
+	}
+
+	return false;
 }
 
 } // namespace frm

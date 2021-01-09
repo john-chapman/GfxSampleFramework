@@ -66,6 +66,10 @@ public:
 	static const ComponentList& GetActiveComponents(StringHash _classNameHash);
 	
 
+	bool         init()                                       { FRM_ASSERT(m_state == World::State::Shutdown); m_state = World::State::Init; return initImpl(); }
+	bool         postInit()                                   { FRM_ASSERT(m_state == World::State::Init); m_state = World::State::PostInit; return postInitImpl(); }
+	void         shutdown()                                   { FRM_ASSERT(m_state == World::State::PostInit); m_state = World::State::Shutdown; shutdownImpl(); }
+
 	bool         edit();
 	bool         serialize(Serializer& _serializer_);
 	
@@ -100,9 +104,6 @@ private:
 	static eastl::map<StringHash, ComponentList> s_activeComponents;
 	static eastl::map<StringHash, UpdateFunc*>*  s_updateFuncs;
 
-	bool init()                                               { FRM_ASSERT(m_state == World::State::Shutdown); m_state = World::State::Init; return initImpl(); }
-	bool postInit()                                           { FRM_ASSERT(m_state == World::State::Init); m_state = World::State::PostInit; return postInitImpl(); }
-	void shutdown()                                           { FRM_ASSERT(m_state == World::State::PostInit); m_state = World::State::Shutdown; shutdownImpl(); }
 
 	friend class Scene;
 	friend class SceneNode;

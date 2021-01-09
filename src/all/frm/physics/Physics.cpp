@@ -318,6 +318,7 @@ void Physics::AddGroundPlane(const PhysicsMaterial* _material)
 			PhysicsGeometry::CreatePlane(vec3(0.0f, 1.0f, 0.0f), vec3(0.0f), "#GroundPlaneGeometry"),
 			_material,
 			1.0f,
+			-1.0f,
 			identity,
 			{ Flag::Static, Flag::Simulation, Flag::Query}
 			);			
@@ -440,12 +441,13 @@ eastl::span<PhysicsComponent*> PhysicsComponent::GetActiveComponents()
 	return eastl::span<PhysicsComponent*>(*((eastl::vector<PhysicsComponent*>*)&activeList));
 }
 
-PhysicsComponent* PhysicsComponent::CreateTransient(const PhysicsGeometry* _geometry, const PhysicsMaterial* _material, float _mass, const mat4& _initialTransform, Flags _flags)
+PhysicsComponent* PhysicsComponent::CreateTransient(const PhysicsGeometry* _geometry, const PhysicsMaterial* _material, float _mass, float _idleTimeout, const mat4& _initialTransform, Flags _flags)
 {
 	PhysicsComponent* ret   = (PhysicsComponent*)Create(StringHash("PhysicsComponent"));
 	ret->m_geometry         = _geometry;
 	ret->m_material         = _material;
 	ret->m_mass             = _mass;
+	ret->m_idleTimeout      = _idleTimeout;
 	ret->m_initialTransform = _initialTransform;
 	ret->m_flags            = _flags;
 
@@ -466,9 +468,17 @@ void PhysicsComponent::setFlags(Flags _flags)
 	}
 	else
 	{
+
+// \hack \todo Keep the geometry/material alive; shutdownImpl() may destroy the resource in which case they cannot be properly reinit.
+PhysicsGeometry::Use(m_geometry);
+PhysicsMaterial::Use(m_material);
+
 		shutdownImpl();
 		m_flags = _flags;
 		initImpl();
+
+PhysicsGeometry::Release(m_geometry);
+PhysicsMaterial::Release(m_material);
 	}
 }
 
@@ -534,6 +544,28 @@ vec3 PhysicsComponent::getAngularVelocity() const
 	return PxToVec3(pxRigidDynamic->getAngularVelocity());
 }
 
+void PhysicsComponent::setWorldTransform(const mat4& _world)
+{
+	if (!m_impl)
+	{
+		return;
+	}
+
+	PxComponentImpl* impl = (PxComponentImpl*)m_impl;
+	return impl->pxRigidActor->setGlobalPose(Mat4ToPxTransform(_world));
+}
+
+mat4 PhysicsComponent::getWorldTransform() const
+{
+	if (!m_impl)
+	{
+		return identity;
+	}
+
+	PxComponentImpl* impl = (PxComponentImpl*)m_impl;
+	return PxToMat4(impl->pxRigidActor->getGlobalPose());
+}
+
 void PhysicsComponent::setMass(float _mass)
 {
 	if (!m_impl || !m_flags.get(Physics::Flag::Dynamic))
@@ -554,10 +586,17 @@ void PhysicsComponent::reset()
 		return;
 	}
 	
-	physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)((PxComponentImpl*)m_impl)->pxRigidActor;
-	pxRigidDynamic->setGlobalPose(Mat4ToPxTransform(m_initialTransform));
-	pxRigidDynamic->setLinearVelocity(Vec3ToPx(vec3(0.0f)));
-	pxRigidDynamic->setAngularVelocity(Vec3ToPx(vec3(0.0f)));
+	if (isTransient())
+	{
+		m_parentNode->getParentScene()->destroyNode(m_parentNode);
+	}
+	else
+	{
+		physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)((PxComponentImpl*)m_impl)->pxRigidActor;
+		pxRigidDynamic->setGlobalPose(Mat4ToPxTransform(m_initialTransform));
+		pxRigidDynamic->setLinearVelocity(Vec3ToPx(vec3(0.0f)));
+		pxRigidDynamic->setAngularVelocity(Vec3ToPx(vec3(0.0f)));
+	}
 }
 
 void PhysicsComponent::forceUpdateNodeTransform()
@@ -573,6 +612,24 @@ void PhysicsComponent::forceUpdateNodeTransform()
 	m_parentNode->setWorld(worldMatrix);
 }
 
+bool PhysicsComponent::reinit()
+{
+	const mat4 world = getWorldTransform();
+	const vec3 linearVelocity = getLinearVelocity();
+	const vec3 angularVelocity = getAngularVelocity();
+
+	shutdown();
+	if (!init() || !postInit())
+	{
+		return false;
+	}
+
+	setWorldTransform(world);
+	setLinearVelocity(linearVelocity);
+	setAngularVelocity(angularVelocity);
+
+	return true;
+}
 
 // PROTECTED
 
@@ -605,7 +662,6 @@ bool PhysicsComponent::initImpl()
 			pxRigidDynamic->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, true);
 		}
 
-		physx::PxRigidBodyExt::updateMassAndInertia(*pxRigidDynamic, m_mass);
 		pxRigidActor = pxRigidDynamic;
 
 		if (m_flags.get(Flag::DisableGravity))
@@ -642,6 +698,10 @@ bool PhysicsComponent::initImpl()
 	const physx::PxGeometry& geometry = ((physx::PxGeometryHolder*)m_geometry->m_impl)->any();
 	const physx::PxMaterial& material = *((physx::PxMaterial*)m_material->m_impl);
 	pxShape = g_pxPhysics->createShape(geometry, material, false);
+	if (!pxShape)
+	{
+		return false;
+	}
 
 	// some geometry types require a local pose to be set at the shape level
 	switch (geometry.getType())
@@ -660,7 +720,13 @@ bool PhysicsComponent::initImpl()
 			break;
 		}		
 	};
+
 	pxRigidActor->attachShape(*pxShape);
+	if (m_flags.get(Flag::Dynamic) || m_flags.get(Flag::Kinematic))
+	{
+		physx::PxRigidDynamic* pxRigidDynamic = (physx::PxRigidDynamic*)pxRigidActor;		
+		physx::PxRigidBodyExt::updateMassAndInertia(*pxRigidDynamic, m_mass);
+	}
 
 	Physics::RegisterComponent(this);
 
@@ -690,9 +756,19 @@ void PhysicsComponent::shutdownImpl()
 
 	PxComponentImpl*& impl = (PxComponentImpl*&)m_impl;
 
-	impl->pxRigidActor->detachShape(*impl->pxShape);
-	impl->pxShape->release();
-	impl->pxRigidActor->release();
+	if (impl->pxRigidActor)
+	{
+		if (impl->pxShape)
+		{
+			impl->pxRigidActor->detachShape(*impl->pxShape);
+		}
+		impl->pxRigidActor->release();
+	}
+	if (impl->pxShape)
+	{
+		impl->pxShape->release();
+	}
+
 	g_pxComponentPool.free(impl);
 	impl = nullptr;
 
@@ -872,20 +948,29 @@ bool PhysicsComponent::editFlags()
 
 	if (ImGui::Checkbox("Static", &flagStatic))
 	{
-		flagKinematic = flagDynamic = false;
-		ret = true;
+		if (!m_flags.get(Flag::Static))
+		{
+			flagKinematic = flagDynamic = false;
+			ret = true;
+		}
 	}
 	ImGui::SameLine();
 	if (ImGui::Checkbox("Kinematic", &flagKinematic))
 	{
-		flagStatic = flagDynamic = false;
-		ret = true;
+		if (!m_flags.get(Flag::Kinematic))
+		{
+			flagStatic = flagDynamic = false;
+			ret = true;
+		}
 	}
 	ImGui::SameLine();
 	if (ImGui::Checkbox("Dynamic", &flagDynamic))
 	{
-		flagStatic = flagKinematic = false;
-		ret = true;
+		if (!m_flags.get(Flag::Dynamic))
+		{
+			flagStatic = flagKinematic = false;
+			ret = true;
+		}
 	}
 	
 	ret |= ImGui::Checkbox("Simulation", &flagSimulation);

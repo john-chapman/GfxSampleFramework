@@ -31,7 +31,6 @@ public:
 		Type_TriangleMesh,
 		Type_Heightfield,
 
-		Type_Invalid,
 		Type_Count
 	};
 	typedef int Type;
@@ -98,10 +97,10 @@ public:
 		}
 	};
 
-	PathStr m_path      = "";           // Empty if not from a file.
-	Type    m_type      = Type_Invalid; // Geometry type (determines how m_data is interpreted).
-	Data    m_data;                     // Type-dependent data.
-	PathStr m_dataPath  = "";           // Source path for convex/triangle meshes and heightfield data.
+	PathStr m_path      = "";         // Empty if not from a file.
+	Type    m_type      = Type_Count; // Geometry type (determines how m_data is interpreted).
+	Data    m_data;                   // Type-dependent data.
+	PathStr m_dataPath  = "";         // Source path for convex/triangle meshes and heightfield data.
 	void*   m_impl      = nullptr;
 
 
@@ -110,6 +109,8 @@ public:
 
 	bool initImpl();
 	void shutdownImpl();
+
+	bool editDataPath();
 };
 
 } // namespace frm
