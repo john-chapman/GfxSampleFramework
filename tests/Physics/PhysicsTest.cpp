@@ -241,7 +241,7 @@ bool PhysicsTest::update()
 
 						float boxMass = boxSize.x * boxSize.y * boxSize.z;
 						mat4 initialTransform = TranslationMatrix(Min(boxA, boxB) + boxSize * 0.5f + vec3(0.0f, 1e-6f, 0.0f));
-						PhysicsComponent* physicsComponent = PhysicsComponent::CreateTransient(boxPhysicsGeometry, Physics::GetDefaultMaterial(), boxMass, initialTransform, Physics::Flags());
+						PhysicsComponent* physicsComponent = PhysicsComponent::CreateTransient(boxPhysicsGeometry, Physics::GetDefaultMaterial(), boxMass, -1.0f, initialTransform, Physics::Flags());
 						newNode->addComponent(physicsComponent);
 						FRM_VERIFY(newNode->init() && newNode->postInit());
 
@@ -449,9 +449,8 @@ void PhysicsTest::spawnPhysicsObject(Geometry _type, const frm::vec3& _position,
 	newNode->addComponent(renderableComponent);
 
 	mat4 initialTransform = LookAt(_position, _position + _linearVelocity);						
-	PhysicsComponent* physicsComponent = PhysicsComponent::CreateTransient(m_physicsGeometries[_type], Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags());
+	PhysicsComponent* physicsComponent = PhysicsComponent::CreateTransient(m_physicsGeometries[_type], Physics::GetDefaultMaterial(), 1.0f, 0.1f, initialTransform, Physics::Flags());
 	//physicsComponent->setFlag(Physics::Flag::EnableCCD, true);
-	physicsComponent->setIdleTimeout(0.2f);
 
 	newNode->addComponent(physicsComponent);
 	FRM_VERIFY(newNode->init() && newNode->postInit());

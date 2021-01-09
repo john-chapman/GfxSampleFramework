@@ -1,0 +1,219 @@
+{
+	"_class": "World",
+	"_version": 0,
+	"RootScene": {
+		"_class": "Scene",
+		"_version": 0,
+		"Root": ["0001", "#Root"],
+		"Nodes": [{
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0001",
+				"Name": "#Root",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0000", "--"],
+					"Children": [["0002", "#Camera1"], ["0003", "Sun"], ["0004", "Floor"], ["0005", "Box1"]]
+				},
+				"Components": []
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0002",
+				"Name": "#Camera1",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [-0.6814379096031189, -0.000032961368560791019, -0.7318769693374634, 0.0, -0.515418291091919, 0.7099824547767639, 0.47986501455307009, 0.0, 0.5196036100387573, 0.7042204737663269, -0.4838256239891052, 0.0, 4.801417350769043, 3.1620118618011476, -1.1536948680877686, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0001", "CameraComponent"], ["0002", "FreeLookComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0003",
+				"Name": "Sun",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [0.6085732579231262, -0.023553991690278055, -0.7931479811668396, 0.0, -0.6802339553833008, -0.5301427841186523, -0.5061920881271362, 0.0, -0.4085582494735718, 0.847579836845398, -0.33865246176719668, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0003", "ImageLightComponent"], ["0005", "BasicLightComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0004",
+				"Name": "Floor",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0004", "BasicRenderableComponent"], ["0009", "PhysicsComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0005",
+				"Name": "Box1",
+				"Flags": {
+					"Active": true,
+					"Transient": false
+				},
+				"Local": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -0.5, 0.5, 0.5, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0006", "BasicRenderableComponent"], ["0007", "XFormComponent"], ["0008", "PhysicsComponent"]]
+			}],
+		"Components": [{
+				"ID": "0001",
+				"_class": "CameraComponent",
+				"_version": 0,
+				"Up": 0.4142135679721832,
+				"Down": -0.4142135679721832,
+				"Right": 0.7737120389938355,
+				"Left": -0.7737120389938355,
+				"Near": 0.10000000149011612,
+				"Far": 1000.0,
+				"WorldMatrix": [-0.6814379096031189, -0.000032961368560791019, -0.7318769693374634, 0.0, -0.515418291091919, 0.7099824547767639, 0.47986501455307009, 0.0, 0.5196036100387573, 0.7042204737663269, -0.4838256239891052, 0.0, 4.801417350769043, 3.1620118618011476, -1.1536948680877686, 1.0],
+				"Orthographic": false,
+				"Asymmetrical": false,
+				"Infinite": true,
+				"Reversed": false,
+				"HasGpuBuffer": true
+			}, {
+				"ID": "0002",
+				"_class": "FreeLookComponent",
+				"_version": 0,
+				"m_position": [4.801417350769043, 3.1620118618011476, -1.1536948680877686],
+				"m_orientation": [0.15199176967144013, -0.8478276133537293, -0.3491527736186981, -0.36902564764022829],
+				"m_maxSpeed": 10.0,
+				"m_maxSpeedMul": 5.0,
+				"m_accelTime": 0.10000000149011612,
+				"m_rotationInputMul": 0.10000000149011612,
+				"m_rotationDamping": 0.0020000000949949028
+			}, {
+				"ID": "0003",
+				"_class": "ImageLightComponent",
+				"_version": 0,
+				"m_brightness": 2.0,
+				"m_texturePath": "common/textures/env_sky.exr",
+				"m_isBackground": true
+			}, {
+				"ID": "0004",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": false,
+				"m_colorAlpha": [1.0, 1.0, 1.0, 1.0],
+				"m_meshPath": "common/models/Plane_100.obj",
+				"m_materialPaths": ["common/materials/Grid2Dark.json"]
+			}, {
+				"ID": "0005",
+				"_class": "BasicLightComponent",
+				"_version": 0,
+				"m_type": "Direct",
+				"m_colorBrightness": [1.0, 1.0, 1.0, 10.0],
+				"m_radius": 5.0,
+				"m_coneInnerAngle": 0.01745329238474369,
+				"m_coneOuterAngle": 0.3490658402442932,
+				"m_castShadows": true
+			}, {
+				"ID": "0006",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [1.0, 1.0, 1.0, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["common/materials/Grid1Dark.json"]
+			}, {
+				"ID": "0007",
+				"_class": "XFormComponent",
+				"_version": 0,
+				"XForms": [{
+						"_class": "XFormPositionTarget",
+						"_version": 0,
+						"m_start": [0.5, 0.5, 4.5],
+						"m_end": [0.5, 0.5, -4.5],
+						"m_duration": 1.0,
+						"m_onComplete": "Reverse"
+					}]
+			}, {
+				"ID": "0008",
+				"_class": "PhysicsComponent",
+				"_version": 0,
+				"m_flags": {
+					"Static": false,
+					"Kinematic": true,
+					"Dynamic": false,
+					"Simulation": true,
+					"Query": true,
+					"DisableGravity": false,
+					"EnableCCD": false
+				},
+				"m_initialTransform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -0.5, 0.5, 0.5, 1.0],
+				"m_mass": 1.0,
+				"Geometry": {
+					"Type": "Box",
+					"HalfExtents": [0.5, 0.5, 0.5],
+					"Name": "#PhysicsDefaultGeometry"
+				},
+				"Material": {
+					"m_staticFriction": 0.5,
+					"m_dynamicFriction": 0.5,
+					"m_restitution": 0.20000000298023225,
+					"m_name": "#PhysicsDefaultMaterial"
+				}
+			}, {
+				"ID": "0009",
+				"_class": "PhysicsComponent",
+				"_version": 0,
+				"m_flags": {
+					"Static": true,
+					"Kinematic": false,
+					"Dynamic": false,
+					"Simulation": true,
+					"Query": true,
+					"DisableGravity": false,
+					"EnableCCD": false
+				},
+				"m_initialTransform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"m_mass": 1.0,
+				"Geometry": {
+					"Type": "Plane",
+					"Normal": [0.0, 1.0, 0.0],
+					"Offset": 0.0,
+					"Name": "FloorPlane"
+				},
+				"Material": {
+					"m_staticFriction": 0.5,
+					"m_dynamicFriction": 0.5,
+					"m_restitution": 0.20000000298023225,
+					"m_name": "#PhysicsDefaultMaterial"
+				}
+			}, {
+				"ID": "000B",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [1.0, 1.0, 1.0, 1.0],
+				"m_meshPath": "common/models/Gear_1.gltf",
+				"m_materialPaths": ["materials/BasicMaterial.json", ""]
+			}]
+	}
+}

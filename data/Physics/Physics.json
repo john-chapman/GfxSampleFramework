@@ -1,31 +1,20 @@
 {
+	"Physics": {
+		"m_drawDebug": true
+	},
+	"BasicRenderer": {
+		"enableCulling": false,
+		"cullBySubmesh": false
+	},
 	"AppSample3d": {
-		"ScenePath": "Scene.json",
-		"ShowSceneEditor": true,
-		"ShowHelpers": false
+		"m_showWorldEditor": true,
+		"m_worldPath": "PhysicsTest.world"
 	},
 	"AppSample": {
 		"VsyncMode": 2,
-		"ShowShaderViewer": false,
-		"ShowLogNotifications": true,
-		"ShowPropertyEditor": false,
-		"WindowSize": [-1, -1],
-		"ShowMenu": true,
-		"ShowTextureViewer": false,
-		"Resolution": [-1, -1],
-		"ShowProfiler": false,
-		"ShowLog": false,
 		"Font": {
-			"FontEnableScaling": true,
-			"FontSize": 13.0,
-			"FontOversample": 1,
 			"FontPath": ""
 		},
-		"GlContext": {
-			"HDR": false,
-			"GlDebug": false,
-			"GlCompatibility": false,
-			"GlVersion": [-1, -1]
-		}
+		"GlContext": {}
 	}
 }
