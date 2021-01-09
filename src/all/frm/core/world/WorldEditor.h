@@ -88,15 +88,16 @@ private:
 
 	bool                 m_showNodeIDs             = true;
 	bool                 m_show3DNodeLabels        = false;
+	bool                 m_showTransientNodes      = false;
 
-	World*     m_currentWorld            = nullptr;
-	Scene*     m_currentScene            = nullptr;
-	SceneNode* m_currentNode             = nullptr;
-	SceneNode* m_hoveredNode             = nullptr;
+	World*               m_currentWorld            = nullptr;
+	Scene*               m_currentScene            = nullptr;
+	SceneNode*           m_currentNode             = nullptr;
+	SceneNode*           m_hoveredNode             = nullptr;
 	SceneMap             m_modifiedScenes;
 	bool                 m_worldModified           = false;
-	SceneID    m_nextNodeID              = 0u; // \todo per SCENE
-	SceneID    m_nextComponentID         = 0u; // \todo per SCENE
+	SceneID              m_nextNodeID              = 0u; // \todo per SCENE
+	SceneID              m_nextComponentID         = 0u; // \todo per SCENE
 	float                m_hierarchyViewHeight     = 256.0f;
 	float                m_flash                   = 0.0f;
 	bool                 m_debugShowNodeHierarchy  = true;

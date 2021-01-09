@@ -19,7 +19,14 @@ static inline frm::String<48> GetNodeLabel(const frm::SceneNode* _node, bool _sh
 {
 	if (_showUID)
 	{
-		return frm::String<48>("%-24s [%04X]", _node->getName(), _node->getID());
+		if (_node->getFlag(frm::SceneNode::Flag::Transient))
+		{
+			return frm::String<48>("%-24s [~]", _node->getName(), _node->getID());
+		}
+		else
+		{
+			return frm::String<48>("%-24s [%04X]", _node->getName(), _node->getID());
+		}
 	}
 	else
 	{
@@ -684,9 +691,9 @@ bool WorldEditor::viewMenu()
 	
 	if (ImGui::BeginMenu("View"))
 	{
-
 		ImGui::MenuItem("Show node IDs", nullptr, &m_showNodeIDs);
 		ImGui::MenuItem("Show 3D node labels", nullptr, &m_show3DNodeLabels);
+		ImGui::MenuItem("Show transient nodes", nullptr, &m_showTransientNodes);
 
 		ImGui::EndMenu();
 	}
@@ -712,10 +719,16 @@ bool WorldEditor::hierarchyView(SceneNode* _rootNode_)
 		SceneNode* node = tstack.back();
 		tstack.pop_back();
 
-		// nullptr used as a sentinel to marker the end of a group of children
+		// nullptr used as a sentinel to mark the end of a group of children
 		if (!node)
 		{
 			ImGui::TreePop();
+			continue;
+		}
+
+		bool isTransient = node->getFlag(SceneNode::Flag::Transient);
+		if (!m_showTransientNodes && isTransient)
+		{
 			continue;
 		}
 
@@ -740,7 +753,7 @@ bool WorldEditor::hierarchyView(SceneNode* _rootNode_)
 		{
 			nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 			ImGui::TreeNodeEx(node, nodeFlags, nodeLabel.c_str());
-			selectNode = ImGui::IsItemClicked();
+			selectNode = ImGui::IsItemClicked() && !isTransient;
 			hoverNode = ImGui::IsItemHovered();
 
 			ImGui::SameLine(ImGui::GetWindowWidth() - 48.0f);
@@ -752,7 +765,7 @@ bool WorldEditor::hierarchyView(SceneNode* _rootNode_)
 		else
 		{
 			bool nodeOpen = ImGui::TreeNodeEx(node, nodeFlags, nodeLabel.c_str());
-			selectNode = ImGui::IsItemClicked();
+			selectNode = ImGui::IsItemClicked() && !isTransient;
 			hoverNode = ImGui::IsItemHovered();
 
 			ImGui::SameLine(ImGui::GetWindowWidth() - 48.0f);
