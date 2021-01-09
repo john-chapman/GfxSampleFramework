@@ -525,7 +525,7 @@ bool BasicRenderer::edit()
 	bool reinitRenderTargets = false;
 	bool reinitShaders = false;
 
-	ret |= ImGui::Checkbox("Pause Update", &pauseUpdate);
+	ret |= ImGui::Checkbox("Pause Update",    &pauseUpdate);
 	ret |= ImGui::Checkbox("Frustum Culling", &settings.enableCulling);
 	ret |= ImGui::Checkbox("Cull by Submesh", &settings.cullBySubmesh);
 
@@ -1009,10 +1009,12 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 				shadowRenderables.push_back(renderable);
 			}
 
-			if (_cullCamera->m_worldFrustum.insideIgnoreNear(bs) && _cullCamera->m_worldFrustum.insideIgnoreNear(bb))
+			if (settings.enableCulling && !_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb))
 			{
-				culledSceneRenderables.push_back(renderable);
+				continue;
 			}
+
+			culledSceneRenderables.push_back(renderable);
 		}
 	}
 
