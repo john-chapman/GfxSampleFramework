@@ -185,7 +185,6 @@ namespace frm {
 	#if FRM_MODULE_PHYSICS
 		class Physics;
 		class PhysicsComponent;
-			class PhysicsComponentTemporary;
 		class PhysicsMaterial;
 		class PhysicsGeometry;
 	#endif

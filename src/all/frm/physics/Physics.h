@@ -146,7 +146,10 @@ public:
 	vec3         getAngularVelocity() const;
 
 	void         setMass(float _mass);
-	float        getMass() const            { return m_mass; }
+	float        getMass() const                    { return m_mass; }
+
+	void         setIdleTimeout(float _idleTimeout) { m_idleTimeout = _idleTimeout; }
+	float        getIdleTimeout() const             { return m_idleTimeout; }
 
 	// Reset to the initial state, zero velocities.
 	virtual void reset();
@@ -159,57 +162,27 @@ public:
 
 protected:
 
-	Flags                  m_flags;
-	mat4                   m_initialTransform = identity;
-	float                  m_mass             = 1.0f;
-	const PhysicsMaterial* m_material         = nullptr;
-	const PhysicsGeometry* m_geometry         = nullptr;
-	void*                  m_impl             = nullptr;
+	Flags                     m_flags;
+	mat4                      m_initialTransform         = identity;
+	float                     m_mass                     = 1.0f;
+	const PhysicsMaterial*    m_material                 = nullptr;
+	const PhysicsGeometry*    m_geometry                 = nullptr;
+	void*                     m_impl                     = nullptr;
+
+	// Transient properties.
+	float                     m_idleTimeout              = 0.5f;
+	float                     m_timer                    = 0.0f;
+	BasicRenderableComponent* m_basicRenderableComponent = nullptr;
 
 	bool initImpl() override;
+	bool postInitImpl() override;
 	void shutdownImpl() override;
 	bool editImpl() override;
 	bool serializeImpl(Serializer& _serializer_) override;
 
 	bool editFlags();
+
+	void updateTransient(float _dt);
 };
-
-////////////////////////////////////////////////////////////////////////////////
-// PhysicsComponentTemp
-////////////////////////////////////////////////////////////////////////////////
-FRM_COMPONENT_DECLARE_DERIVED(PhysicsComponentTemp, PhysicsComponent)
-{
-	friend class Physics;
-
-public:
-
-	static void Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
-	static eastl::span<PhysicsComponentTemp*> GetActiveComponents();
-
-	static PhysicsComponentTemp* CreateTransient(
-		const PhysicsGeometry* _geometry,
-		const PhysicsMaterial* _material,
-		float                  _mass, 
-		const mat4&            _initialTransform = identity,
-		Flags                  _flags            = Flags()
-		);
-
-	float getIdleTimeout() const             { return m_idleTimeout; }
-	void  setIdleTimeout(float _idleTimeout) { m_idleTimeout = _idleTimeout; m_timer = 0.0f; }
-
-private:
-
-	float                     m_idleTimeout              = 0.5f;
-	float                     m_timer                    = 0.0f;
-	BasicRenderableComponent* m_basicRenderableComponent = nullptr;
-
-	bool postInitImpl() override;
-	bool editImpl() override;
-	bool serializeImpl(Serializer& _serializer_) override;
-
-	void updateTimer(float _dt);
-
-};
-
 
 } // namespace frm

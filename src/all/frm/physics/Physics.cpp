@@ -142,6 +142,8 @@ void Physics::Edit()
 
 	if (ImGui::Button("Reset"))
 	{
+		// \todo Destroy transient components (and their parent nodes, if transient).
+
 		for (PhysicsComponent* component : s_instance->m_kinematic)
 		{
 			component->reset();
@@ -424,6 +426,11 @@ void PhysicsComponent::Update(Component** _from, Component** _to, float _dt, Wor
 		FRM_ASSERT(actor->is<physx::PxRigidDynamic>());
 		mat4 worldMatrix = PxToMat4(actor->getGlobalPose());
 		component->getParentNode()->setWorld(worldMatrix);
+
+		if (component->isTransient())
+		{
+			component->updateTransient(_dt);
+		}
 	}
 }
 
@@ -619,7 +626,7 @@ bool PhysicsComponent::initImpl()
 	// \todo This is actually broken; if shutdownImpl() was called previously we can't re-init the component in the case where the PhysicsGeometry/PhysicsMaterial Release() method actually destroyed the resource (ptr will be null). This is an issue with the resource system.
 	if (!m_geometry)
 	{
-		m_geometry = PhysicsGeometry::CreateBox(vec3(0.5f), "#PhysicsTempBox");
+		m_geometry = PhysicsGeometry::CreateBox(vec3(0.5f), "#PhysicsDefaultGeometry");
 	}
 	PhysicsGeometry::Use(m_geometry);
 
@@ -634,7 +641,7 @@ bool PhysicsComponent::initImpl()
 	physx::PxShape*& pxShape = impl->pxShape;
 	const physx::PxGeometry& geometry = ((physx::PxGeometryHolder*)m_geometry->m_impl)->any();
 	const physx::PxMaterial& material = *((physx::PxMaterial*)m_material->m_impl);
-	pxShape = g_pxPhysics->createShape(geometry, material, true);
+	pxShape = g_pxPhysics->createShape(geometry, material, false);
 
 	// some geometry types require a local pose to be set at the shape level
 	switch (geometry.getType())
@@ -656,6 +663,23 @@ bool PhysicsComponent::initImpl()
 	pxRigidActor->attachShape(*pxShape);
 
 	Physics::RegisterComponent(this);
+
+	return true;
+}
+
+bool PhysicsComponent::postInitImpl()
+{
+	if (isTransient())
+	{
+		if (m_flags.get(Flag::Static) || m_flags.get(Flag::Kinematic))
+		{
+			m_timer = m_idleTimeout; // Static and kinematic components begin to die immediately.
+		}
+		else
+		{
+			m_timer = 0.0f; // Dynamic components only die when idle, see updateTimer().
+		}
+	}
 
 	return true;
 }
@@ -692,12 +716,22 @@ bool PhysicsComponent::editImpl()
 
 	if (m_geometry)
 	{
-		ret |= const_cast<PhysicsGeometry*>(m_geometry)->edit();
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Geometry"))
+		{
+			ret |= const_cast<PhysicsGeometry*>(m_geometry)->edit();
+			ImGui::TreePop();
+		}
 	}
 
 	if (m_material)
 	{
-		ret |= const_cast<PhysicsMaterial*>(m_material)->edit();
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Material"))
+		{
+			ret |= const_cast<PhysicsMaterial*>(m_material)->edit();
+			ImGui::TreePop();
+		}
 	}
 
 	if (ImGui::TreeNode("Initial Transform"))
@@ -879,103 +913,15 @@ bool PhysicsComponent::editFlags()
 	return ret;
 }
 
-
-/******************************************************************************
-
-                             PhysicsComponentTemp
-
-******************************************************************************/
-
-FRM_COMPONENT_DEFINE(PhysicsComponentTemp, 0);
-
-// PUBLIC
-
-void PhysicsComponentTemp::Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase)
-{
-	PROFILER_MARKER_CPU("PhysicsComponentTemp::Update");
-
-	if (_phase != World::UpdatePhase::PostPhysics)
-	{
-		return;
-	}
-
-	for (; _from != _to; ++_from)
-	{
-		PhysicsComponentTemp* component = (PhysicsComponentTemp*)*_from;
-		if (!component->getFlag(Flag::Dynamic))
-		{
-			continue;
-		}
-		
-		PxComponentImpl* impl = (PxComponentImpl*)component->m_impl;
-		FRM_ASSERT(impl);
-		physx::PxRigidDynamic* actor = (physx::PxRigidDynamic*)impl->pxRigidActor;
-		FRM_ASSERT(actor->is<physx::PxRigidDynamic>());
-		mat4 worldMatrix = PxToMat4(actor->getGlobalPose());
-		component->getParentNode()->setWorld(worldMatrix);
-
-		component->updateTimer(_dt);
-	}
-}
-
-eastl::span<PhysicsComponentTemp*> PhysicsComponentTemp::GetActiveComponents()
-{
-	static ComponentList& activeList = (ComponentList&)Component::GetActiveComponents(StringHash("PhysicsComponentTemp"));
-	return eastl::span<PhysicsComponentTemp*>(*((eastl::vector<PhysicsComponentTemp*>*)&activeList));
-}
-
-PhysicsComponentTemp* PhysicsComponentTemp::CreateTransient(const PhysicsGeometry* _geometry, const PhysicsMaterial* _material, float _mass, const mat4& _initialTransform, Flags _flags)
-{
-	PhysicsComponentTemp* ret = (PhysicsComponentTemp*)Create(StringHash("PhysicsComponentTemp"));
-	ret->m_geometry           = _geometry;
-	ret->m_material           = _material;
-	ret->m_mass               = _mass;
-	ret->m_initialTransform   = _initialTransform;
-	ret->m_flags              = _flags;
-
-	return ret;
-}
-
-
-// PRIVATE
-
-bool PhysicsComponentTemp::postInitImpl()
-{
-	bool ret =PhysicsComponent::postInitImpl();
-	m_basicRenderableComponent = (BasicRenderableComponent*)m_parentNode->findComponent(StringHash("BasicRenderableComponent"));
-
-	if (m_flags.get(Flag::Static) || m_flags.get(Flag::Kinematic))
-	{
-		m_timer = m_idleTimeout; // Static and kinematic components begin to die immediately.
-	}
-	else
-	{
-		m_timer = 0.0f; // Dynamic components only die when idle, see updateTimer().
-	}
-
-	return ret;
-}
-
-bool PhysicsComponentTemp::editImpl()
-{
-	bool ret = PhysicsComponent::editImpl();
-	ImGui::Spacing();
-	ret |= ImGui::SliderFloat("Idle Timeout", &m_idleTimeout, 0.0f, 10.0f);
-	ImGui::Text("Timer %f", m_timer);
-
-	return ret;
-}
-
-bool PhysicsComponentTemp::serializeImpl(Serializer& _serializer_)
-{
-	FRM_ASSERT(false); // 
-	return false;
-}
-
-void PhysicsComponentTemp::updateTimer(float _dt)
+void PhysicsComponent::updateTransient(float _dt)
 {
 	if (m_timer > 0.0f)
 	{
+		if (!m_basicRenderableComponent)
+		{
+			m_basicRenderableComponent = (BasicRenderableComponent*)m_parentNode->findComponent(StringHash("BasicRenderableComponent"));
+		}
+
 		if (m_basicRenderableComponent)
 		{			
 			float alpha = Clamp(m_timer / m_idleTimeout, 0.0f, 1.0f);

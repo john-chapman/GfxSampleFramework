@@ -449,9 +449,9 @@ void PhysicsTest::spawnPhysicsObject(Geometry _type, const frm::vec3& _position,
 	newNode->addComponent(renderableComponent);
 
 	mat4 initialTransform = LookAt(_position, _position + _linearVelocity);						
-	PhysicsComponentTemp* physicsComponent = PhysicsComponentTemp::CreateTransient(m_physicsGeometries[_type], Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags());
+	PhysicsComponent* physicsComponent = PhysicsComponent::CreateTransient(m_physicsGeometries[_type], Physics::GetDefaultMaterial(), 1.0f, initialTransform, Physics::Flags());
 	//physicsComponent->setFlag(Physics::Flag::EnableCCD, true);
-	physicsComponent->setIdleTimeout(0.1f);
+	physicsComponent->setIdleTimeout(0.2f);
 
 	newNode->addComponent(physicsComponent);
 	FRM_VERIFY(newNode->init() && newNode->postInit());

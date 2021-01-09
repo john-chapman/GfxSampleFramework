@@ -145,6 +145,7 @@ bool PhysicsGeometry::reload()
 bool PhysicsGeometry::edit()
 {
 	bool ret = false;
+	bool reinit = false;
 
 	ImGui::PushID(this);
 	String<32> buf = m_name;
@@ -157,7 +158,7 @@ bool PhysicsGeometry::edit()
 	if (ImGui::Combo("Type", &m_type, kTypeStr, Type_Count))
 	{
 		ret = true;
-		// \todo need to reinit any Component_Physics instances which reference this
+		reinit = true;
 	}
 
 	switch (m_type)
@@ -228,6 +229,12 @@ bool PhysicsGeometry::edit()
 		{
 			Json::Write(json, m_path.c_str());
 		}
+	}
+
+	if (reinit)
+	{
+		initImpl();
+		FRM_ASSERT(false); // \todo Need to iterate over components and reset pxShape
 	}
 
 	ImGui::PopID();
