@@ -1255,7 +1255,7 @@ bool WorldEditor::editNode(SceneNode* _node_)
 			ImGui::PushID(component);
 
 			float cursorY = ImGui::GetCursorPosY();
-			ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+			//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 			if (ImGui::TreeNodeEx(className, ImGuiTreeNodeFlags_AllowItemOverlap))
 			{
 				ret |= component->edit();
