@@ -91,11 +91,19 @@ bool BasicRenderableComponent::initImpl()
 	bool ret = true;
 
 	// Mesh.
-	if (m_meshPath.isEmpty())
+	if (!m_mesh)
 	{
-		m_meshPath = "models/Box_1.obj";
+		if (m_meshPath.isEmpty())
+		{
+			m_meshPath = "models/Box_1.obj";
+		}
+		m_mesh = Mesh::Create(m_meshPath.c_str());
 	}
-	m_mesh = Mesh::Create(m_meshPath.c_str());
+	else
+	{
+		// Need to explicitly call Use here (Mesh::Create does it by default).
+		Mesh::Use(m_mesh);
+	}
 	if (!CheckResource(m_mesh))
 	{
 		Mesh::Release(m_mesh);
