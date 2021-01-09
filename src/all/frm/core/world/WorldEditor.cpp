@@ -875,6 +875,7 @@ bool WorldEditor::editorView()
 		ImGui::Checkbox("Show Node Hierarchy", &m_debugShowNodeHierarchy);
 
 		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+		ImGui::Separator();
 		if (ImGui::TreeNode("Debug Counters"))
 		{
 			size_t sceneCount     = 0;
@@ -897,6 +898,28 @@ bool WorldEditor::editorView()
 	
 			ImGui::TreePop();
 		}
+
+		if (m_currentNode)
+		{
+			ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+			ImGui::Separator();
+			if (ImGui::TreeNode("Current Node"))
+			{
+				auto nodeLabel = GetNodeLabel(m_currentNode, true);
+				ImGui::Text(nodeLabel.c_str());
+
+				ImGui::Text("Flags: %s %s", 
+					m_currentNode->getFlag(SceneNode::Flag::Active)    ? "ACTIVE"    : "",
+					m_currentNode->getFlag(SceneNode::Flag::Transient) ? "TRANSIENT" : ""
+					);
+				const World::State nodeState = m_currentNode->getState();
+				ImGui::Text("State: %s", (nodeState == World::State::Init) ? "INIT" : (nodeState == World::State::PostInit ? "POST INIT" : (nodeState == World::State::Shutdown ? "SHUTDOWN" : "UNKNOWN")));
+				ImGui::Spacing();
+
+				ImGui::TreePop();
+			}
+		}
+		
 
 		if (m_debugShowNodeHierarchy)
 		{
@@ -930,6 +953,7 @@ bool WorldEditor::editorView()
 			Im3d::PopAlpha();
 		}
 
+		ImGui::Separator();
 		if (ImGui::TreeNode("Action Stack"))
 		{
 			for (int i = (int)m_actionStack.size() - 1; i >= 0; --i)
