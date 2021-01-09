@@ -79,6 +79,8 @@ public:
 	SceneID      getID() const                                { return m_id; }
 	World::State getState() const                             { return m_state; }
 
+	bool         isTransient() const                          { return m_id == 0u; }
+
 protected:
 
 	SceneNode* m_parentNode = nullptr;
