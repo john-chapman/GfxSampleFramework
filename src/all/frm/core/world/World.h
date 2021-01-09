@@ -325,7 +325,8 @@ public:
 	// init() and postInit() must subsequently be called on the node.
 	SceneNode*     createTransientNode(const char* _name = nullptr, SceneNode* _parent = nullptr);
 
-	// Destroy _node_, which must be in a 'shutdown' state.
+	// Destroy _node_.
+	// Note that deletes are deferred until the next update().
 	void           destroyNode(SceneNode* _node_);
 
 	// Depth-first traversal of the scene starting at _root, call _onVisit for each node. 
@@ -369,6 +370,7 @@ private:
 	LocalNodeMap              m_localNodeMap;
 	LocalComponentMap         m_componentMap;
 	GlobalNodeMap             m_globalNodeMap;
+	eastl::vector<SceneNode*> m_pendingDeletes;
 
 	static Scene* CreateDefault(World* _world);
 
@@ -380,6 +382,8 @@ private:
 	void removeComponent(Component* _component);
 
 	void resetGlobalNodeMap();
+
+	void flushPendingDeletes();
 
 	GlobalNodeReference findGlobal(const SceneNode* _node) const;
 	LocalNodeReference  findLocal(const SceneNode* _node) const;

@@ -637,11 +637,10 @@ void Scene::shutdown()
 	for (auto& it : m_localNodeMap)
 	{
 		it.second->shutdown();
+		destroyNode(it.second);
 	}
-	for (auto& it : m_localNodeMap) // Need to free nodes in a second loop, because a node's memory may be read by its parent during shutdown().
-	{
-		m_nodePool.free(it.second);
-	}
+	
+	flushPendingDeletes();
 	m_localNodeMap.clear();
 	m_globalNodeMap.clear();
 
@@ -666,6 +665,11 @@ void Scene::update(float _dt, World::UpdatePhase _phase)
 	if_unlikely (!m_root.isResolved())
 	{
 		return;
+	}
+
+	if (_phase == World::UpdatePhase::GatherActive)
+	{
+		flushPendingDeletes();
 	}
 
 	traverse([_dt, _phase](SceneNode* _node) -> bool
@@ -709,34 +713,9 @@ SceneNode* Scene::createTransientNode(const char* _name, SceneNode* _parent)
 
 void Scene::destroyNode(SceneNode* _node_)
 {
-	FRM_ASSERT(_node_);
-	if (_node_->getState() != World::State::Shutdown)
+	if (eastl::find(m_pendingDeletes.begin(), m_pendingDeletes.end(), _node_) == m_pendingDeletes.end())
 	{
-		_node_->shutdown();
-	}
-
-	if (_node_->getFlag(SceneNode::Flag::Transient))
-	{
-		// Transient nodes can simply be deleted.
-		FRM_ASSERT(_node_->getID() == 0u);
-		m_nodePool.free(_node_);	
-	}
-	else
-	{
-		// Removal from the parent is automatic for transient nodes (happens during shutdown). Permanent nodes must do this manually.
-		if (_node_->m_parent.isResolved())
-		{
-			_node_->m_parent->removeChild(_node_);
-		}
-
-		// Permanent nodes must be removed from the local/global node maps.
-		SceneID id = _node_->getID();
-		FRM_ASSERT(id != 0u);
-		auto it = m_localNodeMap.find(id);
-		FRM_ASSERT(it != m_localNodeMap.end());
-		m_localNodeMap.erase(it);
-		m_nodePool.free(_node_);
-		resetGlobalNodeMap();
+		m_pendingDeletes.push_back(_node_);
 	}
 }
 
@@ -980,6 +959,53 @@ void Scene::resetGlobalNodeMap()
 	}
 }
 
+void Scene::flushPendingDeletes()
+{
+	bool requireGlobalNodeMapReset = false;	
+	while (!m_pendingDeletes.empty())
+	{
+		SceneNode* node = m_pendingDeletes.back();
+		m_pendingDeletes.pop_back();
+	
+		FRM_ASSERT(node);
+		FRM_ASSERT(node->m_parentScene == this);
+
+		if (node->getState() != World::State::Shutdown)
+		{
+			node->shutdown(); // \todo This may append nodes to m_pendingDelets, is this safe?
+		}
+
+		if (node->getFlag(SceneNode::Flag::Transient))
+		{
+			// Transient nodes can simply be deleted.
+			FRM_ASSERT(node->getID() == 0u);
+			m_nodePool.free(node);	
+		}
+		else
+		{
+			// Removal from the parent is automatic for transient nodes (happens during shutdown). Permanent nodes must do this manually.
+			if (node->m_parent.isResolved())
+			{
+				node->m_parent->removeChild(node);
+			}
+
+			// Permanent nodes must be removed from the local/global node maps.
+			SceneID id = node->getID();
+			FRM_ASSERT(id != 0u);
+			auto it = m_localNodeMap.find(id);
+			FRM_ASSERT(it != m_localNodeMap.end());
+			m_localNodeMap.erase(it);
+			m_nodePool.free(node);
+			requireGlobalNodeMapReset = true;
+		}
+	}
+	
+	if (requireGlobalNodeMapReset)
+	{
+		resetGlobalNodeMap();
+	}
+}
+
 GlobalNodeReference Scene::findGlobal(const SceneNode* _node) const
 {
 	for (auto& it : m_globalNodeMap)
@@ -1173,6 +1199,7 @@ void SceneNode::shutdown()
 			FRM_ASSERT(child->getID() == 0u);
 			m_parentScene->destroyNode(child.referent);
 		}
+		child->m_parent.referent = nullptr;
 	}
 
 	if (m_childScene)
@@ -1181,25 +1208,23 @@ void SceneNode::shutdown()
 		FRM_DELETE(m_childScene); FRM_ASSERT(false); // \todo Create/Destroy members on Scene?
 	}
 
-	m_children.clear();
-
 	for (LocalComponentReference& component : m_components)
 	{
 		component->shutdown();
 		if (component->getID() == 0u)
 		{
 			// Destroy transient components.
+			// \todo Remove reference from the component list.
 			Component::Destroy(component.referent);
 		}
 	}
-	m_components.clear();
 
 	for (auto& callbackList : m_callbacks)
 	{
 		callbackList.clear();
 	}
 
-	if (getFlag(Flag::Transient))
+	if (m_parent.isResolved() && getFlag(Flag::Transient))
 	{
 		m_parent->removeChild(this);
 	}
