@@ -113,7 +113,6 @@ PhysicsGeometry* PhysicsGeometry::Create(Serializer& _serializer_)
 void PhysicsGeometry::Destroy(PhysicsGeometry*& _inst_)
 {
 	FRM_DELETE(_inst_);
-	_inst_ = nullptr;
 }
 
 bool PhysicsGeometry::reload()

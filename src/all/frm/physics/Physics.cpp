@@ -345,7 +345,7 @@ bool Physics::RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flag
 	out_.position  = PxToVec3(queryResult.block.position);
 	out_.normal    = PxToVec3(queryResult.block.normal);
 	out_.distance  = queryResult.block.distance;
-	FRM_ASSERT(false);//out_.component = (Component_Physics*)queryResult.block.actor->userData;
+	out_.component = (PhysicsComponent*)queryResult.block.actor->userData;
 
 	return true;
 }
@@ -616,6 +616,7 @@ bool PhysicsComponent::initImpl()
 	pxRigidActor->userData = this;
 
 	// Ensure geometry/material aren't null.
+	// \todo This is actually broken; if shutdownImpl() was called previously we can't re-init the component in the case where the PhysicsGeometry/PhysicsMaterial Release() method actually destroyed the resource (ptr will be null). This is an issue with the resource system.
 	if (!m_geometry)
 	{
 		m_geometry = PhysicsGeometry::CreateBox(vec3(0.5f), "#PhysicsTempBox");
@@ -913,8 +914,7 @@ void PhysicsComponentTemp::Update(Component** _from, Component** _to, float _dt,
 		mat4 worldMatrix = PxToMat4(actor->getGlobalPose());
 		component->getParentNode()->setWorld(worldMatrix);
 
-		// \todo This may destroy the node and component, which will modify the list we're iterating on. Need to defer all deletions at the scene/world level.
-		//component->updateTimer(_dt);
+		component->updateTimer(_dt);
 	}
 }
 
@@ -944,7 +944,7 @@ bool PhysicsComponentTemp::postInitImpl()
 	bool ret =PhysicsComponent::postInitImpl();
 	m_basicRenderableComponent = (BasicRenderableComponent*)m_parentNode->findComponent(StringHash("BasicRenderableComponent"));
 
-	if (m_flags.get(Flag::Static) || m_flags.get(Flag::Dynamic))
+	if (m_flags.get(Flag::Static) || m_flags.get(Flag::Kinematic))
 	{
 		m_timer = m_idleTimeout; // Static and kinematic components begin to die immediately.
 	}

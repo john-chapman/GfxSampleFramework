@@ -42,7 +42,6 @@ PhysicsMaterial* PhysicsMaterial::Create(Serializer& _serializer_)
 void PhysicsMaterial::Destroy(PhysicsMaterial*& _inst_)
 {
 	FRM_DELETE(_inst_);
-	_inst_ = nullptr;
 }
 
 bool PhysicsMaterial::reload()

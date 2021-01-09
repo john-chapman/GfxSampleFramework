@@ -65,6 +65,7 @@ bool PhysicsTest::init(const frm::ArgList& _args)
 	m_physicsGeometries[Geometry_Sphere]   = PhysicsGeometry::CreateSphere(0.5f);
 	for (int i = 0; i < (int)Geometry_Count; ++i)
 	{
+		PhysicsGeometry::Use(m_physicsGeometries[i]);
 		FRM_ASSERT(CheckResource(m_meshes[i]));
 		FRM_ASSERT(CheckResource(m_physicsGeometries[i]));
 	}
@@ -77,6 +78,11 @@ void PhysicsTest::shutdown()
 	for (Mesh* mesh : m_meshes)
 	{
 		Mesh::Release(mesh);
+	}
+
+	for (int i = 0; i < (int)Geometry_Count; ++i)
+	{
+		PhysicsGeometry::Release(m_physicsGeometries[i]);
 	}
 
 	BasicMaterial::Release(m_defaultMaterial);
@@ -237,9 +243,10 @@ bool PhysicsTest::update()
 						mat4 initialTransform = TranslationMatrix(Min(boxA, boxB) + boxSize * 0.5f + vec3(0.0f, 1e-6f, 0.0f));
 						PhysicsComponent* physicsComponent = PhysicsComponent::CreateTransient(boxPhysicsGeometry, Physics::GetDefaultMaterial(), boxMass, initialTransform, Physics::Flags());
 						newNode->addComponent(physicsComponent);
+						FRM_VERIFY(newNode->init() && newNode->postInit());
 
 						Mesh::Release(boxMesh);
-						PhysicsGeometry::Release(boxPhysicsGeometry);						
+						//PhysicsGeometry::Release(boxPhysicsGeometry);						
 
 						boxDrawState = BoxDrawState_None;
 					}
@@ -395,7 +402,7 @@ bool PhysicsTest::update()
 	if (Input::GetKeyboard()->wasPressed(Keyboard::Key_Space))
 	{
 		vec3 position  = cullCamera->getPosition();
-		vec3 linearVelocity = cullCamera->getViewVector() * 1000.0f;
+		vec3 linearVelocity = cullCamera->getViewVector() * 20.0f;
 		spawnPhysicsObject(m_spawnType, position, linearVelocity);
 	}
 
