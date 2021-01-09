@@ -9,18 +9,20 @@
 #include <EASTL/algorithm.h>
 
 using namespace frm;
-using namespace frm;
 
 // PUBLIC
 
 template <typename tDerived>
 void Resource<tDerived>::Use(Derived* _inst_)
 {
-	if (_inst_) {
+	if (_inst_)
+	{
 		++(_inst_->m_refs);
-		if (_inst_->m_refs == 1 && _inst_->m_state != State_Loaded) {
+		if (_inst_->m_refs == 1 && _inst_->m_state != State_Loaded)
+		{
 			_inst_->m_state = State_Error;
-			if (_inst_->load()) {
+			if (_inst_->load())
+			{
 				_inst_->m_state = State_Loaded;
 			}
 		}
@@ -30,13 +32,15 @@ void Resource<tDerived>::Use(Derived* _inst_)
 template <typename tDerived>
 void Resource<tDerived>::Release(Derived*& _inst_)
 {
-	if (_inst_) {
+	if (_inst_)
+	{
 		--(_inst_->m_refs);
 		FRM_ASSERT(_inst_->m_refs >= 0);
-		if (_inst_->m_refs == 0) {
+		if (_inst_->m_refs == 0)
+		{
 			Derived::Destroy(_inst_);
+			_inst_ = nullptr;
 		}
-		_inst_ = nullptr;
 	}
 }
 
@@ -44,7 +48,8 @@ template <typename tDerived>
 bool Resource<tDerived>::ReloadAll()
 {
 	bool ret = true;
-	for (auto& inst : s_instances) {
+	for (auto& inst : s_instances)
+	{
 		ret &= inst->reload();
 	}
 	return ret;
@@ -53,8 +58,10 @@ bool Resource<tDerived>::ReloadAll()
 template <typename tDerived>
 tDerived* Resource<tDerived>::Find(Id _id)
 {
-	for (auto it = s_instances.begin(); it != s_instances.end(); ++it) {
-		if ((*it)->m_id == _id) {
+	for (auto it = s_instances.begin(); it != s_instances.end(); ++it)
+	{
+		if ((*it)->m_id == _id)
+		{
 			return *it;
 		}
 	}
@@ -64,8 +71,10 @@ tDerived* Resource<tDerived>::Find(Id _id)
 template <typename tDerived>
 tDerived* Resource<tDerived>::Find(const char* _name)
 {
-	for (auto it = s_instances.begin(); it != s_instances.end(); ++it) {
-		if ((*it)->m_name == _name) {
+	for (auto it = s_instances.begin(); it != s_instances.end(); ++it)
+	{
+		if ((*it)->m_name == _name)
+		{
 			return *it;
 		}
 	}
@@ -128,7 +137,7 @@ template <typename tDerived> typename Resource<tDerived>::InstanceList Resource<
 template <typename tDerived>
 void Resource<tDerived>::init(Id _id, const char* _name)
 {
- // at this point an id collision is an error; reusing existing resources must happen prior to calling the Resource ctor
+	// At this point an id collision is an error; reusing existing resources must happen prior to calling the Resource ctor.
 	FRM_ASSERT_MSG(Find(_id) == 0, "Resource '%s' already exists", _name);
 
 	m_state = State_Unloaded;

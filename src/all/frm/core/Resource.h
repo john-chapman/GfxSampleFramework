@@ -27,14 +27,15 @@ template <typename tDerived>
 class Resource: private frm::non_copyable<Resource<tDerived> >
 {
 public:
+
 	typedef tDerived Derived;
 	typedef uint64   Id;
 
 	enum State_
 	{
-		State_Error,       // failed to load
-		State_Unloaded,    // created but not loaded
-		State_Loaded,      // successfully loaded
+		State_Error,       // Failed to load.
+		State_Unloaded,    // Created but not loaded.
+		State_Loaded,      // Successfully loaded.
 
 		State_Count
 	};
@@ -48,7 +49,7 @@ public:
 	// Call reload() on all instances. Return true if *all* instances were successfully reloaded, false if any failed.
 	static bool     ReloadAll();
 
-	static bool     Load(Derived* _inst_)            { return _inst_->load();   }
+	static bool     Load(Derived* _inst_)            { return _inst_->load(); }
 	static bool     Reload(Derived* _inst_)          { return _inst_->reload(); }
 
 	// \hack \todo Resource ptrs should ideally be const everywhere.
@@ -62,16 +63,17 @@ public:
 	static int      GetInstanceCount()               { return (int)s_instances.size(); }
 	static Derived* GetInstance(int _index)          { FRM_ASSERT(_index < GetInstanceCount()); return s_instances[_index]; }
 
-	int             getIndex() const                 { return m_index;             }
-	Id              getId() const                    { return m_id;                }
+	int             getIndex() const                 { return m_index; }
+	Id              getId() const                    { return m_id; }
 	const char*     getName() const                  { return (const char*)m_name; }
-	State           getState() const                 { return m_state;             }
-	sint64          getRefCount() const              { return m_refs;              }
+	State           getState() const                 { return m_state; }
+	sint64          getRefCount() const              { return m_refs; }
 
 	void            setName(const char* _name)       { setNamef(_name); }
 	void            setNamef(const char* _fmt, ...);
 
 protected:
+
 	static Id       GetUniqueId();
 	static Id       GetHashId(const char* _str);
 	
@@ -85,6 +87,7 @@ protected:
 	void setState(State _state) { m_state = _state; }
 
 private:
+
 	struct InstanceList: public eastl::vector<Derived*>
 	{
 		typedef eastl::vector<Derived*> BaseType;
