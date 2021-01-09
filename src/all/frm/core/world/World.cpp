@@ -602,7 +602,7 @@ bool Scene::init()
 	for (auto& it : m_localNodeMap)
 	{
 		SceneNode* node = it.second;
-		ret &= node->init();
+		/*ret &= */node->init(); // \todo Allow nodes to fail to initialize?
 	}
 
 	m_root.referent = findNode(m_root.id);
