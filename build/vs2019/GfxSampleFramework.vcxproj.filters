@@ -73,6 +73,9 @@
     <Filter Include="all\frm\core\world\components">
       <UniqueIdentifier>{56D46787-C2EC-4EB1-8B99-DE4AF770E34A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="all\frm\physics">
+      <UniqueIdentifier>{44D1AC80-B05C-1A45-B96D-9D3925787645}</UniqueIdentifier>
+    </Filter>
     <Filter Include="win">
       <UniqueIdentifier>{13BB880B-7FC4-887C-0840-9F7C7448947C}</UniqueIdentifier>
     </Filter>
@@ -969,11 +972,23 @@
     <ClInclude Include="..\..\src\all\frm\core\world\components\XFormComponent.h">
       <Filter>all\frm\core\world\components</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\physics\Physics.h">
+      <Filter>all\frm\physics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsInternal.h">
+      <Filter>all\frm\physics</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\win\frm\core\extern\renderdoc_app.h">
       <Filter>win\frm\core\extern</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\win\frm\core\win.h">
       <Filter>win\frm\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsGeometry.h">
+      <Filter>all\frm\physics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\all\frm\physics\PhysicsMaterial.h">
+      <Filter>all\frm\physics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1328,6 +1343,12 @@
     <ClCompile Include="..\..\src\all\frm\core\world\components\XFormComponent.cpp">
       <Filter>all\frm\core\world\components</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\Physics.cpp">
+      <Filter>all\frm\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsCooker.cpp">
+      <Filter>all\frm\physics</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\win\frm\core\FileImpl.cpp">
       <Filter>win\frm\core</Filter>
     </ClCompile>
@@ -1348,6 +1369,15 @@
     </ClCompile>
     <ClCompile Include="..\..\src\win\frm\core\platform.cpp">
       <Filter>win\frm\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsInternal.cpp">
+      <Filter>all\frm\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsMaterial.cpp">
+      <Filter>all\frm\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\all\frm\physics\PhysicsGeometry.cpp">
+      <Filter>all\frm\physics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
