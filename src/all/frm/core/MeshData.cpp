@@ -198,6 +198,7 @@ MeshData* MeshData::Create(const char* _path, const MeshDesc& _desc)
 	}
 	MeshData* ret = FRM_NEW(MeshData);
 	ret->m_desc = _desc;
+	ret->m_path.set(_path);
 
 	if (FileSystem::CompareExtension("obj", _path))
 	{
