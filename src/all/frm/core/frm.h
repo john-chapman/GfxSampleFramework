@@ -128,6 +128,7 @@ namespace frm {
 		class CameraComponent;
 		class FreeLookComponent;
 		class LookAtComponent;
+		class OrbitLookComponent;
 	class  Curve;
 	class  CurveEditor;
 	class  CurveGradient;
