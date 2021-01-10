@@ -37,6 +37,13 @@ eastl::span<ImageLightComponent*> ImageLightComponent::GetActiveComponents()
 	return eastl::span<ImageLightComponent*>(*((eastl::vector<ImageLightComponent*>*)&activeList));
 }
 
+ImageLightComponent* ImageLightComponent::Create(const char* _texturePath)
+{
+	ImageLightComponent* ret = (ImageLightComponent*)Component::Create("ImageLightComponent");
+	ret->m_texturePath = _texturePath;
+	return ret;
+}
+
 // PROTECTED
 
 bool ImageLightComponent::initImpl()

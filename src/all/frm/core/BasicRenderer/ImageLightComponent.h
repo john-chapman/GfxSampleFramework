@@ -22,10 +22,13 @@ public:
 	static void Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
 	static eastl::span<ImageLightComponent*> GetActiveComponents();
 
-	float  getBrightness() const                 { return m_brightness; }
-	void   getBrightness(float _brightness)      { m_brightness = _brightness; }
-	bool   getIsBackground() const               { return m_isBackground; }
-	void   setIsBackground(bool _isBackground)   { m_isBackground = _isBackground; }
+	static ImageLightComponent* Create(const char* _texturePath);
+
+	float    getBrightness() const                 { return m_brightness; }
+	void     getBrightness(float _brightness)      { m_brightness = _brightness; }
+	bool     getIsBackground() const               { return m_isBackground; }
+	void     setIsBackground(bool _isBackground)   { m_isBackground = _isBackground; }
+	Texture* getTexture() const                    { return m_texture; }
 
 protected:
 
