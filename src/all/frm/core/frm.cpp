@@ -64,8 +64,6 @@ FRM_FORCE_LINK(BasicLightComponent);
 FRM_FORCE_LINK(ImageLightComponent);
 FRM_FORCE_LINK(LookAtComponent);
 FRM_FORCE_LINK(FreeLookComponent);
-FRM_FORCE_LINK(ImageLightComponent);
-FRM_FORCE_LINK(LookAtComponent);
 FRM_FORCE_LINK(OrbitLookComponent);
 FRM_FORCE_LINK(XFormComponent);
 FRM_FORCE_LINK(XFormSpin);
