@@ -1,6 +1,7 @@
 #pragma once
 
 #include <frm/core/frm.h>
+#include <frm/core/BitFlags.h>
 #include <frm/core/String.h>
 
 #include <EASTL/vector.h>
@@ -22,6 +23,15 @@ namespace frm {
 //   - Implement Create(), Destroy(), load(), reload().
 //   - Set a unique id and optional name via one of the Resource ctors.
 //   - Correctly set the resource state during load(), reload().
+//
+// \todo
+// - Use of paths to generate resource IDs is generally flawed: the *resolved*
+//   file path should be used, not the relative path passed to the Create() 
+//   function.
+// - Refactor: 
+//   - Use dynamic binding rather than CRTP.
+//   - Specific resource base class for resources backed by a disk file, with
+//     extra helpers for doing UI etc.
 ////////////////////////////////////////////////////////////////////////////////
 template <typename tDerived>
 class Resource: private frm::non_copyable<Resource<tDerived> >
@@ -107,9 +117,9 @@ private:
 }; // class Resource
 
 template <typename tResourceType>
-bool CheckResource(const tResourceType* p)
+bool CheckResource(const tResourceType* _resource)
 {
-	return p && p->getState() != tResourceType::State_Error;
+	return _resource && _resource->getState() != tResourceType::State_Error;
 }
 
 } // namespace frm
