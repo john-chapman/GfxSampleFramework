@@ -166,14 +166,18 @@ void Physics::Edit()
 	{
 		if (debugDraw)
 		{
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE,            1.0f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE,              1.0f);
 
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
-			//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_AABBS,  1.0f);
-			//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_AXES,        1.0f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_NORMAL,     1.0f);
-			//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.5f);
+			//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_AABBS,    1.0f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES,   1.0f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES,     1.0f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_POINT,      1.0f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_NORMAL,     2.0f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_ERROR,      1.0f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.5f);
 			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_LIN_VELOCITY,  0.25f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_ANG_VELOCITY,  0.25f);
 		}
 		else
 		{
@@ -208,6 +212,16 @@ void Physics::DrawDebug()
 	{
 		return;
 	}
+
+	auto PxToIm3dColor = [](physx::PxU32 c) -> Im3d::Color
+		{
+			return Im3d::Color(0
+				| ((c & 0x00ff0000) << 8)
+				| ((c & 0x0000ff00) << 8)
+				| ((c & 0x000000ff) << 8)
+				| ((c & 0xff000000) >> 24)
+				);
+		};
 	
 	// \todo This seems to have a 1 frame latency, calling DrawDebug() before/after the update doesn't seem to have any effect.
 	const physx::PxRenderBuffer& drawList = g_pxScene->getRenderBuffer();
@@ -218,9 +232,9 @@ void Physics::DrawDebug()
 		for (auto i = 0u; i < drawList.getNbTriangles(); ++i)
 		{
 			const physx::PxDebugTriangle& tri = drawList.getTriangles()[i];
-			Im3d::Vertex(PxToVec3(tri.pos0), Im3d::Color(tri.color0));
-			Im3d::Vertex(PxToVec3(tri.pos1), Im3d::Color(tri.color1));
-			Im3d::Vertex(PxToVec3(tri.pos2), Im3d::Color(tri.color2));				
+			Im3d::Vertex(PxToVec3(tri.pos0), PxToIm3dColor(tri.color0));
+			Im3d::Vertex(PxToVec3(tri.pos1), PxToIm3dColor(tri.color1));
+			Im3d::Vertex(PxToVec3(tri.pos2), PxToIm3dColor(tri.color2));				
 		}
 	Im3d::End();
 
@@ -229,8 +243,8 @@ void Physics::DrawDebug()
 		for (auto i = 0u; i < drawList.getNbLines(); ++i)
 		{
 			const physx::PxDebugLine& line = drawList.getLines()[i];
-			Im3d::Vertex(PxToVec3(line.pos0), Im3d::Color(line.color0));
-			Im3d::Vertex(PxToVec3(line.pos1), Im3d::Color(line.color1));
+			Im3d::Vertex(PxToVec3(line.pos0), PxToIm3dColor(line.color0));
+			Im3d::Vertex(PxToVec3(line.pos1), PxToIm3dColor(line.color1));
 		}
 	Im3d::End();
 
@@ -238,13 +252,15 @@ void Physics::DrawDebug()
 		for (auto i = 0u; i < drawList.getNbPoints(); ++i)
 		{
 			const physx::PxDebugPoint& point = drawList.getPoints()[i];
-			Im3d::Vertex(PxToVec3(point.pos), Im3d::Color(point.color));
+			Im3d::Vertex(PxToVec3(point.pos), PxToIm3dColor(point.color));
 		}
 	Im3d::End();
 
 	for (physx::PxU32 i = 0; i < drawList.getNbTexts(); ++i)
 	{
-	 // \todo
+		const physx::PxDebugText& text = drawList.getTexts()[i];
+		Im3d::Text(PxToVec3(text.position), text.size, PxToIm3dColor(text.color), Im3d::TextFlags_Default, text.string);
+
 	}
 
 	Im3d::PopDrawState();
