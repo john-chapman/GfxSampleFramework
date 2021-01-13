@@ -139,7 +139,7 @@ PathStr FileSystem::MakePath(const char* _path, int _root)
 	if (useRoot)
 	{
 	 // check if the root already exists in path as a directory
-		const char* r = strstr((const char*)root, _path);
+		const char* r = strstr(_path, (const char*)root);
 		if (!r || *(r + root.getLength()) != '/')
 		{
 			ret.setf("%s%c%s", (const char*)root, '/', _path);
