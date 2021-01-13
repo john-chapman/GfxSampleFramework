@@ -1009,7 +1009,7 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 				shadowRenderables.push_back(renderable);
 			}
 
-			if (settings.enableCulling && !_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb))
+			if (settings.enableCulling && (!_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb)))
 			{
 				continue;
 			}
@@ -1034,14 +1034,14 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 					continue;
 				}
 
-				if (submeshIndex > 0 && settings.cullBySubmesh)
+				if (submeshIndex > 0 && settings.enableCulling && settings.cullBySubmesh)
 				{
 					Sphere bs = renderable->m_mesh->getBoundingSphere(submeshIndex);
 					bs.transform(world);
 					AlignedBox bb = renderable->m_mesh->getBoundingBox(submeshIndex);
 					bb.transform(world);
 
-					if (settings.enableCulling && !_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb))
+					if (!_cullCamera->m_worldFrustum.insideIgnoreNear(bs) || !_cullCamera->m_worldFrustum.insideIgnoreNear(bb))
 					{
 						continue;
 					}
@@ -1327,7 +1327,7 @@ void BasicRenderer::addDrawCall(const BasicRenderableComponent* _renderable, int
 	uint64 drawCallKey = 0;
 	drawCallKey = BitfieldInsert(drawCallKey, (uint64)material->getIndex(), 40, 24);
 	drawCallKey = BitfieldInsert(drawCallKey, (uint64)mesh->getIndex(),     16, 24);
-	drawCallKey = BitfieldInsert(drawCallKey, (uint64)_submeshIndex,        16, 0);
+	drawCallKey = BitfieldInsert(drawCallKey, (uint64)_submeshIndex,        0,  16);
 
 	DrawCall& drawCall           = map_[drawCallKey];
 	drawCall.material            = material;
