@@ -322,6 +322,7 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 			local binDir  = projDir .. _binDir
 			local rootDir = projDir .. _root
 			postbuildcommands({
+				"if not exist \"" .. binDir .. "\" mkdir \"" .. binDir .. "\"",
 			 	"if not exist \"" .. binDir .. "/common\" mklink /j \"" .. binDir .. "/common\" \"" .. rootDir .. "/data/common\"",
 				"if not exist \"" .. binDir .. "/extern\" mklink /j \"" .. binDir .. "/extern\" \"" .. rootDir .. "/extern\"",
 				})
