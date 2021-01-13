@@ -794,6 +794,15 @@ void PhysicsComponent::shutdownImpl()
 
 bool PhysicsComponent::editImpl()
 {
+	// \hack Static state for popup geometry/material editors.
+	struct PhysicsGeometryEditorState
+	{
+		bool show = false;
+		PhysicsComponent* callingComponent = nullptr;
+	};
+	static PhysicsGeometryEditorState geometryEditorState;
+
+
 	bool ret = false;
 
 	PxComponentImpl* impl = (PxComponentImpl*)m_impl;
@@ -806,16 +815,42 @@ bool PhysicsComponent::editImpl()
 		ret = true;
 	}
 
+	// Geometry.
+	PhysicsGeometry*& geometry = const_cast<PhysicsGeometry*&>(m_geometry);
+
+	if (ImGui::Button("Geometry"))
+	{
+		// \todo select existing/load new
+	}
 	if (m_geometry)
 	{
-		ImGui::Spacing();
-		if (ImGui::TreeNode("Geometry"))
+		ImGui::SameLine();
+		if (*m_geometry->getPath() != '\0')
 		{
-			ret |= const_cast<PhysicsGeometry*>(m_geometry)->edit();
-			ImGui::TreePop();
+			ImGui::Text(geometry->getPath());
+		}
+		else
+		{
+			ImGui::Text("INLINE");
 		}
 	}
+	ImGui::SameLine();
+	if (ImGui::Button(ICON_FA_EXTERNAL_LINK "##editGeometry"))
+	{
+		geometryEditorState.show = true;
+		geometryEditorState.callingComponent = this;
+	}
 
+	if (geometryEditorState.callingComponent == this && geometryEditorState.show && PhysicsGeometry::Edit(geometry, &geometryEditorState.show))
+	{
+		if (!geometryEditorState.show) // the window was closed
+		{
+			geometryEditorState.callingComponent = nullptr;
+		}
+		ret = true;
+	}
+
+	// Material.
 	if (m_material)
 	{
 		ImGui::Spacing();

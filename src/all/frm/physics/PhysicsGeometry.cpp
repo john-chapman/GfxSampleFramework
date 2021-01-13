@@ -115,8 +115,132 @@ void PhysicsGeometry::Destroy(PhysicsGeometry*& _inst_)
 	FRM_DELETE(_inst_);
 }
 
+bool PhysicsGeometry::Edit(PhysicsGeometry*& _physicsGeom_, bool* _open_)
+{
+	auto SelectPath = [](PathStr& path_) -> bool
+		{
+			if (FileSystem::PlatformSelect(path_, { "*.physgeo" }))
+			{
+				FileSystem::SetExtension(path_, "physgeo");
+				path_ = FileSystem::MakeRelative(path_.c_str());
+				return true;
+			}
+			return false;
+		};
+
+	bool ret = false;
+
+	String<32> windowTitle = "Physics Geometry Editor";
+	if (_physicsGeom_ && !_physicsGeom_->m_path.isEmpty())
+	{
+		windowTitle.appendf(" -- '%s'", _physicsGeom_->m_path.c_str());
+	}
+	windowTitle.append("###PhysicsGeometryEditor");
+
+	if (_physicsGeom_ && ImGui::Begin(windowTitle.c_str(), _open_, ImGuiWindowFlags_MenuBar))
+	{
+		if (ImGui::BeginMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("New"))
+				{			
+					Release(_physicsGeom_);
+					_physicsGeom_ = CreateBox(vec3(1.0f));
+					Use(_physicsGeom_);
+					ret = true;
+				}
+
+				if (ImGui::MenuItem("Open.."))
+				{
+					PathStr newPath;
+					if (SelectPath(newPath))
+					{
+						if (newPath != _physicsGeom_->m_path)
+						{
+							PhysicsGeometry* newPhysGeom = Create(newPath.c_str());
+							if (CheckResource(newPhysGeom))
+							{
+								Release(_physicsGeom_);
+								_physicsGeom_ = newPhysGeom;
+								Use(_physicsGeom_);
+								ret = true;
+							}
+							else
+							{
+								Release(newPhysGeom);
+							}
+						}
+					}
+				}
+				
+				if (ImGui::MenuItem("Save", nullptr, nullptr, !_physicsGeom_->m_path.isEmpty()))
+				{
+					if (!_physicsGeom_->m_path.isEmpty())
+					{
+						Json json;
+						SerializerJson serializer(json, SerializerJson::Mode_Write);
+						if (_physicsGeom_->serialize(serializer))
+						{
+							Json::Write(json, _physicsGeom_->m_path.c_str());
+						}
+					}
+				}
+
+				if (ImGui::MenuItem("Save As.."))
+				{
+					if (SelectPath(_physicsGeom_->m_path))
+					{
+						Json json;
+						SerializerJson serializer(json, SerializerJson::Mode_Write);
+						if (_physicsGeom_->serialize(serializer))
+						{
+							Json::Write(json, _physicsGeom_->m_path.c_str());
+						}
+						ret = true;
+					}
+				}
+								
+				if (ImGui::MenuItem("Reload", nullptr, nullptr, !_physicsGeom_->m_path.isEmpty()))
+				{
+					_physicsGeom_->reload();
+				}
+
+				ImGui::EndMenu();
+			}
+			
+			ImGui::EndMenuBar();
+		}
+
+		ret |= _physicsGeom_->edit();
+
+		ImGui::End();
+	}
+
+	// If modified, need to reinit all component instances which use this resource.
+	if (ret)
+	{
+		// \hack Component shutdown may end up destroying this resource if it's the only reference, need to keep alive.
+		PhysicsGeometry* resPtr = _physicsGeom_;
+		Use(resPtr);	
+		for (auto component : PhysicsComponent::GetActiveComponents())
+		{
+			if (component->getGeometry() == resPtr && component->getState() == World::State::PostInit)
+			{
+				FRM_VERIFY(component->reinit());
+
+			}
+		}		
+		Release(resPtr); // \hack See above.
+	}
+
+	return ret;
+}
+
 bool PhysicsGeometry::reload()
 {
+	shutdownImpl(); // Need to call this first; if the type changes after serialization, a later call to shutdownImpl will crash.
+
 	if (!m_path.isEmpty())
 	{	
 		File file;
@@ -148,18 +272,21 @@ bool PhysicsGeometry::edit()
 	bool reinit = false;
 
 	ImGui::PushID(this);
-	String<32> buf = m_name;
+	
+	/*String<32> buf = m_name;
 	if (ImGui::InputText("Name", &buf[0], buf.getCapacity(), ImGuiInputTextFlags_EnterReturnsTrue) && buf[0] != '\0')
 	{
 		m_name.set(buf.c_str());
 		ret = true;
-	}
+	}*/
 	
 	Type newType = m_type;
 	if (ImGui::Combo("Type", &newType, kTypeStr, Type_Count))
 	{
 		if (newType != m_type)
 		{
+			ret = reinit = true;
+
 			switch (newType)
 			{
 				default:
@@ -181,33 +308,13 @@ bool PhysicsGeometry::edit()
 				case Type_ConvexMesh:
 				case Type_TriangleMesh:
 				case Type_Heightfield:
-					if (editDataPath())
-					{
-						ret = reinit = true;
-					}
-					else
+					if (!editDataPath())
 					{
 						newType = m_type;
+						ret = reinit = false;
 					}
 					break;
 			};
-
-			if (newType == Type_ConvexMesh || newType == Type_TriangleMesh || newType == Type_Heightfield)
-			{
-				if (editDataPath())
-				{
-					ret = reinit = true;
-				}
-				else
-				{
-					newType = m_type;
-				}
-			}
-			else
-			{
-				ret = true;
-				reinit = true;
-			}
 		}
 	}
 
@@ -218,12 +325,14 @@ bool PhysicsGeometry::edit()
 		case Type_Sphere:
 			if (ImGui::SliderFloat("Radius", &m_data.sphere.radius, 1e-4f, 16.0f))
 			{
+				m_data.sphere.radius = Max(m_data.sphere.radius, 1e-4f);
 				ret = reinit = true;
 			}
 			break;
 		case Type_Box:
 			if (ImGui::SliderFloat3("Half Extents", &m_data.box.halfExtents.x, 1e-4f, 16.0f))
 			{
+				m_data.box.halfExtents = Max(m_data.box.halfExtents, vec3(1e-4f));
 				ret = reinit = true;
 			}
 			break;
@@ -256,59 +365,11 @@ bool PhysicsGeometry::edit()
 		}
 	};
 
-	ImGui::Spacing();
-	bool save = false;
-	if (!m_path.isEmpty())
-	{
-		if (ImGui::Button(ret ? "Save*" : "Save"))
-		{
-			save = true;
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Load"))
-		{
-			reload();
-			ret = false;
-		}
-		ImGui::SameLine();
-	}
-	if (ImGui::Button(ret ? "Save As*" : "Save As"))
-	{
-		if (FileSystem::PlatformSelect(m_path, { "*.physgeo" }))
-		{
-			save = true;
-			FileSystem::SetExtension(m_path, "physgeo");
-		}
-	}
-	if (save)
-	{
-		Json json;
-		SerializerJson serializer(json, SerializerJson::Mode_Write);
-		if (serialize(serializer))
-		{
-			Json::Write(json, m_path.c_str());
-		}
-	}
-
 	if (reinit)
-	{
-		// \hack Component shutdown may end up destroying this resource if it's the only reference, need to keep alive.
-		PhysicsGeometry* thisPtr = this;
-		Use(thisPtr);
-
+	{	
 		shutdownImpl();
 		m_type = newType;
 		initImpl();
-		for (auto component : PhysicsComponent::GetActiveComponents())
-		{
-			if (component->getGeometry() == this && component->getState() == World::State::PostInit)
-			{
-				FRM_VERIFY(component->reinit());
-
-			}
-		}
-		
-		Release(thisPtr); // \hack See above.
 	}
 
 	ImGui::PopID();
@@ -521,7 +582,7 @@ void PhysicsGeometry::shutdownImpl()
 bool PhysicsGeometry::editDataPath()
 {
 	PathStr dataPath = m_dataPath;
-	if (FileSystem::PlatformSelect(dataPath))
+	if (FileSystem::PlatformSelect(dataPath, { "*.obj", "*.gltf" }))
 	{
 		m_dataPath = FileSystem::MakeRelative(dataPath.c_str());
 		return true;

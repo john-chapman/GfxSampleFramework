@@ -14,6 +14,9 @@ namespace frm {
 // PhysicsGeometry
 // Notes:
 // - Create* methods don't implicitly call Use() like other resources.
+//
+// \todo
+// - Auto-generate names for sphere/box/capsule/plane types.
 ////////////////////////////////////////////////////////////////////////////////
 class PhysicsGeometry: public Resource<PhysicsGeometry>
 {
@@ -48,6 +51,8 @@ public:
 	static PhysicsGeometry* Create(Serializer& _serializer_);
 	// Destroy _inst_.
 	static void             Destroy(PhysicsGeometry*& _inst_);
+
+	static bool             Edit(PhysicsGeometry*& _physicsGeometry_, bool* _open_);
 
 	bool                    load() { return reload(); }
 	bool                    reload();
