@@ -168,7 +168,7 @@ void BasicRenderableComponent::shutdownImpl()
 
 bool BasicRenderableComponent::editImpl()
 {
-	// \hack Static state for popup mateiral editor.
+	// \hack Static state for popup material editor.
 	struct MaterialEditorState
 	{
 		bool show = false;
@@ -187,39 +187,88 @@ bool BasicRenderableComponent::editImpl()
 
 	if (ImGui::Button("Mesh"))
 	{
-		PathStr path = m_meshPath;
-		if (FileSystem::PlatformSelect(path, { "*.obj", "*.gltf", "*.md5mesh" }))
-		{
-			path = FileSystem::MakeRelative(path.c_str());
-			if (path != m_meshPath)
-			{
-				Mesh* mesh = Mesh::Create(path.c_str());
-				if (CheckResource(mesh))
-				{
-					Mesh::Release(m_mesh);
-					m_mesh = mesh;
-					m_meshPath = path;
-					ret = true;
+		ImGui::OpenPopup("BasicRenderableComponent::selectMesh");
+	}
+	if (ImGui::BeginPopup("BasicRenderableComponent::selectMesh"))
+	{
+		static ImGuiTextFilter filter;
+		filter.Draw("Filter##BasicRenderableComponent::selectMesh");
 
-					if (m_materialPaths.size() != m_mesh->getSubmeshCount())
+		if (!filter.IsActive())
+		{
+			if (ImGui::Selectable("Load.."))
+			{
+				PathStr newPath;
+				if (FileSystem::PlatformSelect(newPath, { "*.obj", "*.gltf", "*.md5mesh" }))
+				{
+					newPath = FileSystem::MakeRelative(newPath.c_str());
+					if (newPath != m_meshPath)
 					{
-						m_materialPaths.resize(m_mesh->getSubmeshCount());
-						while (m_materials.size() > m_materialPaths.size())
+						Mesh* newMesh = Mesh::Create(newPath.c_str());
+						if (CheckResource(newMesh))
 						{
-							BasicMaterial::Release(m_materials.back());
-							m_materials.pop_back();
+							Mesh::Release(m_mesh);
+							m_mesh = newMesh;
+							m_meshPath = newMesh->getPath();
+							ret = true;
+
+							ImGui::CloseCurrentPopup();
 						}
-						while (m_materials.size() < m_materialPaths.size())
+						else
 						{
-							m_materials.push_back(nullptr);
+							Mesh::Release(newMesh);
 						}
+					}	
+				}
+			}
+			ImGui::Separator();
+
+			
+			for (int resIndex = 0; resIndex < Mesh::GetInstanceCount(); ++resIndex)
+			{
+				Mesh* mesh = Mesh::GetInstance(resIndex);
+				
+				if (mesh == m_mesh)
+				{
+					continue;
+				}
+				
+				if (*mesh->getPath() != '\0' && filter.PassFilter(mesh->getName()))
+				{
+					if (ImGui::Selectable(mesh->getName()))
+					{
+						Mesh::Use(mesh);
+						Mesh::Release(m_mesh);
+						m_mesh = mesh;
+						m_meshPath = mesh->getPath();
+						ret = true;
+
+						ImGui::CloseCurrentPopup();
 					}
 				}
 			}
 		}
+
+		ImGui::EndPopup();
 	}
 	ImGui::SameLine();
 	ImGui::Text(m_meshPath.c_str());
+
+	if (ret && m_materialPaths.size() != m_mesh->getSubmeshCount())
+	{
+		m_materialPaths.resize(m_mesh->getSubmeshCount());
+
+		while (m_materials.size() > m_materialPaths.size())
+		{
+			BasicMaterial::Release(m_materials.back());
+			m_materials.pop_back();
+		}
+
+		while (m_materials.size() < m_materialPaths.size())
+		{
+			m_materials.push_back(nullptr);
+		}
+	}
 
 	ImGui::Spacing();
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
@@ -228,26 +277,73 @@ bool BasicRenderableComponent::editImpl()
 		for (size_t i = 0; i < m_materialPaths.size(); ++i)
 		{
 			ImGui::PushID((int)i);
-			String<16> label(i == 0 ? "Global" : "Submesh %u", i - 1);
+			String<16> label(i == 0 ? "Global.." : "Submesh %u..", i - 1);
 			if (ImGui::Button(label.c_str()))
 			{
-				PathStr path = m_materialPaths[i];
-				if (FileSystem::PlatformSelect(path, { "*.json" }))
+				ImGui::OpenPopup("BasicRenderableComponent::selectMaterial");
+			}
+			if (ImGui::BeginPopup("BasicRenderableComponent::selectMaterial"))
+			{
+				static ImGuiTextFilter filter;
+				filter.Draw("Filter##BasicRenderableComponent::selectMaterial");
+
+				if (!filter.IsActive())
 				{
-					path = FileSystem::MakeRelative(path.c_str());
-					if (path != m_materialPaths[i])
+					if (ImGui::Selectable("Load.."))
 					{
-						BasicMaterial* material = BasicMaterial::Create(path.c_str());
-						if (material)
+						PathStr newPath;
+						if (FileSystem::PlatformSelect(newPath, { "*.mat", "*.json" }))
 						{
+							newPath = FileSystem::MakeRelative(newPath.c_str());
+							if (newPath != m_materialPaths[i])
+							{
+								BasicMaterial* newMaterial = BasicMaterial::Create(newPath.c_str());
+								if (CheckResource(newMaterial))
+								{
+									BasicMaterial::Release(m_materials[i]);
+									m_materials[i] = newMaterial;
+									m_materialPaths[i] = newMaterial->getPath();
+									ret = true;
+
+									ImGui::CloseCurrentPopup();
+								}
+								else
+								{
+									BasicMaterial::Release(newMaterial);
+								}
+							}	
+						}
+					}
+					ImGui::Separator();
+				}
+
+				for (int resIndex = 0; resIndex < BasicMaterial::GetInstanceCount(); ++resIndex)
+				{
+					BasicMaterial* material = BasicMaterial::GetInstance(resIndex);
+					
+					if (material == m_materials[i])
+					{
+						continue;
+					}
+					
+					if (*material->getPath() != '\0' && filter.PassFilter(material->getName()))
+					{
+						if (ImGui::Selectable(material->getName()))
+						{
+							BasicMaterial::Use(material);
 							BasicMaterial::Release(m_materials[i]);
 							m_materials[i] = material;
-							m_materialPaths[i] = path;
+							m_materialPaths[i] = material->getPath();
 							ret = true;
+
+							ImGui::CloseCurrentPopup();
 						}
-					}	
+					}
 				}
+
+				ImGui::EndPopup();
 			}
+
 			ImGui::SameLine();
 			ImGui::Text(m_materialPaths[i].c_str());
 			if (m_materials[i])
@@ -256,6 +352,7 @@ bool BasicRenderableComponent::editImpl()
 				if (ImGui::Button(ICON_FA_TIMES "##delete"))
 				{
 					BasicMaterial::Release(m_materials[i]);
+					m_materials[i] = nullptr;
 					m_materialPaths[i] = "";
 					ret = true;
 				}

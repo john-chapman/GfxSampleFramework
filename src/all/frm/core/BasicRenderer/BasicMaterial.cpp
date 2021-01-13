@@ -109,6 +109,17 @@ void BasicMaterial::Destroy(BasicMaterial*& _basicMaterial_)
 
 bool BasicMaterial::Edit(BasicMaterial*& _basicMaterial_, bool* _open_)
 {
+	auto SelectMaterialPath = [](PathStr& path_) -> bool
+		{
+			if (FileSystem::PlatformSelect(path_, { "*.mat", "*.json" }))
+			{
+				//FileSystem::SetExtension(path_, "mat");
+				path_ = FileSystem::MakeRelative(path_.c_str());
+				return true;
+			}
+			return false;
+		};
+
 	bool ret = false;
 
 	String<32> windowTitle = "Basic Material Editor";
@@ -118,62 +129,79 @@ bool BasicMaterial::Edit(BasicMaterial*& _basicMaterial_, bool* _open_)
 	}
 	windowTitle.append("###BasicMaterialEditor");
 
-	if (_basicMaterial_ && ImGui::Begin(windowTitle.c_str(), _open_))
+	if (_basicMaterial_ && ImGui::Begin(windowTitle.c_str(), _open_, ImGuiWindowFlags_MenuBar))
 	{
-		if (ImGui::Button(ICON_FA_PLUS " New"))
+		if (ImGui::BeginMenuBar())
 		{
-			_basicMaterial_ = Create();
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button(ICON_FA_FLOPPY_O " Save"))
-		{
-			if (_basicMaterial_->m_path.isEmpty())
+			if (ImGui::BeginMenu("File"))
 			{
-				PathStr path;
-				if (FileSystem::PlatformSelect(path))
-				{
-					FileSystem::SetExtension(path, "json");
-					path = FileSystem::MakeRelative(path.c_str());
-					_basicMaterial_->m_path = path;
+				if (ImGui::MenuItem("New"))
+				{			
+					Release(_basicMaterial_);
+					_basicMaterial_ = Create();
 					ret = true;
 				}
-			}
 
-			if (!_basicMaterial_->m_path.isEmpty())
-			{
-				Json json;
-				SerializerJson serializer(json, SerializerJson::Mode_Write);
-				if (_basicMaterial_->serialize(serializer))
+				if (ImGui::MenuItem("Open.."))
 				{
-					Json::Write(json, _basicMaterial_->m_path.c_str());
+					PathStr newPath;
+					if (SelectMaterialPath(newPath))
+					{
+						if (newPath != _basicMaterial_->m_path)
+						{
+							BasicMaterial* newMaterial = Create(newPath.c_str());
+							if (CheckResource(newMaterial))
+							{
+								Release(_basicMaterial_);
+								_basicMaterial_ = newMaterial;
+								ret = true;
+							}
+							else
+							{
+								Release(newMaterial);
+							}
+						}
+					}
 				}
-			}
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button(ICON_FA_FLOPPY_O " Save As.."))
-		{
-			PathStr path;
-			if (FileSystem::PlatformSelect(path))
-			{
-				FileSystem::SetExtension(path, "json");
-				path = FileSystem::MakeRelative(path.c_str());
-				_basicMaterial_->m_path = path;
-
 				
-				Json json;
-				SerializerJson serializer(json, SerializerJson::Mode_Write);
-				if (_basicMaterial_->serialize(serializer))
+				if (ImGui::MenuItem("Save", nullptr, nullptr, !_basicMaterial_->m_path.isEmpty()))
 				{
-					Json::Write(json, _basicMaterial_->m_path.c_str());
+					if (!_basicMaterial_->m_path.isEmpty())
+					{
+						Json json;
+						SerializerJson serializer(json, SerializerJson::Mode_Write);
+						if (_basicMaterial_->serialize(serializer))
+						{
+							Json::Write(json, _basicMaterial_->m_path.c_str());
+						}
+					}
 				}
 
-				ret = true;
+				if (ImGui::MenuItem("Save As.."))
+				{
+					if (SelectMaterialPath(_basicMaterial_->m_path))
+					{
+						Json json;
+						SerializerJson serializer(json, SerializerJson::Mode_Write);
+						if (_basicMaterial_->serialize(serializer))
+						{
+							Json::Write(json, _basicMaterial_->m_path.c_str());
+						}
+						ret = true;
+					}
+				}
+
+				if (ImGui::MenuItem("Reload", nullptr, nullptr, !_basicMaterial_->m_path.isEmpty()))
+				{
+					_basicMaterial_->reload();
+				}
+
+				ImGui::EndMenu();
 			}
+			
+			ImGui::EndMenuBar();
 		}
-		
-		ImGui::Separator();
+
 		ret |= _basicMaterial_->edit();
 
 		ImGui::End();
