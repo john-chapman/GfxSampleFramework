@@ -60,5 +60,5 @@
 
 // Control whether the framework logs unreleased resources on close.
 #if !defined(FRM_RESOURCE_WARN_UNRELEASED)
-	#define FRM_RESOURCE_WARN_UNRELEASED 0
+	#define FRM_RESOURCE_WARN_UNRELEASED 1
 #endif

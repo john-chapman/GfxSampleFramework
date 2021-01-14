@@ -36,6 +36,7 @@ PhysicsGeometry* PhysicsGeometry::Create(const char* _path)
 		ret = FRM_NEW(PhysicsGeometry(id, FileSystem::GetFileName(_path).c_str()));
 		ret->m_path.set(_path);
 	}
+	Use(ret);
 	return ret;
 }
 
@@ -46,6 +47,7 @@ PhysicsGeometry* PhysicsGeometry::CreateSphere(float _radius, const char* _name)
 	PhysicsGeometry* ret = FRM_NEW(PhysicsGeometry(id, name.c_str()));
 	ret->m_type = Type_Sphere;
 	ret->m_data.sphere.radius = _radius;
+	Use(ret);
 	return ret;
 }
 
@@ -56,6 +58,7 @@ PhysicsGeometry* PhysicsGeometry::CreateBox(const vec3& _halfExtents, const char
 	PhysicsGeometry* ret = FRM_NEW(PhysicsGeometry(id, name.c_str()));
 	ret->m_type = Type_Box;
 	ret->m_data.box.halfExtents = _halfExtents;
+	Use(ret);
 	return ret;
 }
 
@@ -67,6 +70,7 @@ PhysicsGeometry* PhysicsGeometry::CreateCapsule(float _radius, float _halfHeight
 	ret->m_type = Type_Capsule;
 	ret->m_data.capsule.radius = _radius;
 	ret->m_data.capsule.halfHeight = _halfHeight;
+	Use(ret);
 	return ret;
 }
 
@@ -78,6 +82,7 @@ PhysicsGeometry* PhysicsGeometry::CreatePlane(const vec3& _normal, const vec3& _
 	ret->m_type = Type_Plane;
 	ret->m_data.plane.normal = Normalize(_normal);
 	ret->m_data.plane.offset = Dot(_normal, _origin);
+	Use(ret);
 	return ret;
 }
 
@@ -88,6 +93,7 @@ PhysicsGeometry* PhysicsGeometry::CreateConvexMesh(const char* _path, const char
 	PhysicsGeometry* ret = FRM_NEW(PhysicsGeometry(id, name.c_str()));
 	ret->m_type = Type_ConvexMesh;
 	ret->m_dataPath = _path;
+	Use(ret);
 	return ret;
 }
 
@@ -98,6 +104,7 @@ PhysicsGeometry* PhysicsGeometry::CreateTriangleMesh(const char* _path, const ch
 	PhysicsGeometry* ret = FRM_NEW(PhysicsGeometry(id, name.c_str()));
 	ret->m_type = Type_TriangleMesh;
 	ret->m_dataPath = _path;
+	Use(ret);
 	return ret;
 }
 
@@ -107,6 +114,7 @@ PhysicsGeometry* PhysicsGeometry::Create(Serializer& _serializer_)
 	String<32> name("PhysicsGeometry%llu", id);
 	PhysicsGeometry* ret = FRM_NEW(PhysicsGeometry(id, name.c_str()));
 	ret->serialize(_serializer_);
+	Use(ret);
 	return ret;
 }
 
@@ -147,7 +155,6 @@ bool PhysicsGeometry::Edit(PhysicsGeometry*& _physicsGeom_, bool* _open_)
 				{			
 					Release(_physicsGeom_);
 					_physicsGeom_ = CreateBox(vec3(1.0f));
-					Use(_physicsGeom_);
 					ret = true;
 				}
 
@@ -163,7 +170,6 @@ bool PhysicsGeometry::Edit(PhysicsGeometry*& _physicsGeom_, bool* _open_)
 							{
 								Release(_physicsGeom_);
 								_physicsGeom_ = newPhysGeom;
-								Use(_physicsGeom_);
 								ret = true;
 							}
 							else
@@ -204,6 +210,7 @@ bool PhysicsGeometry::Edit(PhysicsGeometry*& _physicsGeom_, bool* _open_)
 				if (ImGui::MenuItem("Reload", nullptr, nullptr, !_physicsGeom_->m_path.isEmpty()))
 				{
 					_physicsGeom_->reload();
+					ret = true;
 				}
 
 				ImGui::EndMenu();
@@ -220,18 +227,13 @@ bool PhysicsGeometry::Edit(PhysicsGeometry*& _physicsGeom_, bool* _open_)
 	// If modified, need to reinit all component instances which use this resource.
 	if (ret)
 	{
-		// \hack Component shutdown may end up destroying this resource if it's the only reference, need to keep alive.
-		PhysicsGeometry* resPtr = _physicsGeom_;
-		Use(resPtr);	
 		for (auto component : PhysicsComponent::GetActiveComponents())
 		{
-			if (component->getGeometry() == resPtr && component->getState() == World::State::PostInit)
+			if (component->getGeometry() == _physicsGeom_ && component->getState() == World::State::PostInit)
 			{
 				FRM_VERIFY(component->reinit());
-
 			}
 		}		
-		Release(resPtr); // \hack See above.
 	}
 
 	return ret;

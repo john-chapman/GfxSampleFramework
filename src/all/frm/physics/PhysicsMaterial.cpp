@@ -21,6 +21,7 @@ PhysicsMaterial* PhysicsMaterial::Create(const char* _path)
 		ret = FRM_NEW(PhysicsMaterial(id, FileSystem::GetFileName(_path).c_str()));
 		ret->m_path.set(_path);
 	}
+	Use(ret);
 	return ret;
 }
 
@@ -29,19 +30,144 @@ PhysicsMaterial* PhysicsMaterial::Create(float _staticFriction, float _dynamicFr
 	Id id = GetUniqueId();
 	String<32> name = _name ? _name : String<32>("PhysicsMaterial%llu", id);
 	PhysicsMaterial* ret = FRM_NEW(PhysicsMaterial(id, name.c_str()));
+	Use(ret);
 	return ret;
 }
 
 PhysicsMaterial* PhysicsMaterial::Create(Serializer& _serializer_)
 {
-	PhysicsMaterial* ret = Create(0.5f, 0.5f, 0.5f); // create unique, calls Use()
+	Id id = GetUniqueId();
+	String<32> name = String<32>("PhysicsMaterial%llu", id);
+	PhysicsMaterial* ret = FRM_NEW(PhysicsMaterial(id, name.c_str()));
 	ret->serialize(_serializer_);
+	Use(ret);
 	return ret;
 }
 
 void PhysicsMaterial::Destroy(PhysicsMaterial*& _inst_)
 {
 	FRM_DELETE(_inst_);
+}
+
+bool PhysicsMaterial::Edit(PhysicsMaterial*& _material_, bool* _open_)
+{
+	auto SelectPath = [](PathStr& path_) -> bool
+		{
+			if (FileSystem::PlatformSelect(path_, { "*.physmat" }))
+			{
+				FileSystem::SetExtension(path_, "physmat");
+				path_ = FileSystem::MakeRelative(path_.c_str());
+				return true;
+			}
+			return false;
+		};
+
+	bool ret = false;
+
+	String<32> windowTitle = "Physics Material Editor";
+	if (_material_ && !_material_->m_path.isEmpty())
+	{
+		windowTitle.appendf(" -- '%s'", _material_->m_path.c_str());
+	}
+	windowTitle.append("###PhysicsMaterialEditor");
+
+	if (_material_ && ImGui::Begin(windowTitle.c_str(), _open_, ImGuiWindowFlags_MenuBar))
+	{
+		if (ImGui::BeginMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("New"))
+				{			
+					Release(_material_);
+					_material_ = Create(0.5f, 0.5f, 0.2f);
+					ret = true;
+				}
+
+				if (ImGui::MenuItem("Open.."))
+				{
+					PathStr newPath;
+					if (SelectPath(newPath))
+					{
+						if (newPath != _material_->m_path)
+						{
+							PhysicsMaterial* newMaterial = Create(newPath.c_str());
+							if (CheckResource(newMaterial))
+							{
+								Release(_material_);
+								_material_ = newMaterial;
+								ret = true;
+							}
+							else
+							{
+								Release(newMaterial);
+							}
+						}
+					}
+				}
+				
+				if (ImGui::MenuItem("Save", nullptr, nullptr, !_material_->m_path.isEmpty()))
+				{
+					if (!_material_->m_path.isEmpty())
+					{
+						Json json;
+						SerializerJson serializer(json, SerializerJson::Mode_Write);
+						if (_material_->serialize(serializer))
+						{
+							Json::Write(json, _material_->m_path.c_str());
+						}
+					}
+				}
+
+				if (ImGui::MenuItem("Save As.."))
+				{
+					if (SelectPath(_material_->m_path))
+					{
+						Json json;
+						SerializerJson serializer(json, SerializerJson::Mode_Write);
+						if (_material_->serialize(serializer))
+						{
+							Json::Write(json, _material_->m_path.c_str());
+						}
+						ret = true;
+					}
+				}
+								
+				if (ImGui::MenuItem("Reload", nullptr, nullptr, !_material_->m_path.isEmpty()))
+				{
+					_material_->reload();
+					ret = true;
+				}
+
+				ImGui::EndMenu();
+			}
+			
+			ImGui::EndMenuBar();
+		}
+
+		ret |= _material_->edit();
+
+		ImGui::End();
+	}
+
+	// If modified, need to reinit all component instances which use this resource.
+	if (ret)
+	{
+		// \hack Component shutdown may end up destroying this resource if it's the only reference, need to keep alive.
+		PhysicsMaterial* resPtr = _material_;
+		Use(resPtr);	
+		for (auto component : PhysicsComponent::GetActiveComponents())
+		{
+			if (component->getMaterial() == resPtr && component->getState() == World::State::PostInit)
+			{
+				FRM_VERIFY(component->reinit());
+
+			}
+		}		
+		Release(resPtr); // \hack See above.
+	}
+
+	return ret;
 }
 
 bool PhysicsMaterial::reload()
@@ -80,12 +206,12 @@ bool PhysicsMaterial::edit()
 	bool ret = false;
 
 	ImGui::PushID(this);
-	String<32> buf = m_name;
+	/*String<32> buf = m_name;
 	if (ImGui::InputText("Name", &buf[0], buf.getCapacity(), ImGuiInputTextFlags_EnterReturnsTrue) && buf[0] != '\0')
 	{
 		m_name.set(buf.c_str());
 		ret = true;
-	}
+	}*/
 	ret |= ImGui::SliderFloat("Static Friction", &m_staticFriction, 0.0f, 1.0f);
 	ret |= ImGui::SliderFloat("Dynamic Friction", &m_dynamicFriction, 0.0f, 1.0f);
 	ret |= ImGui::SliderFloat("Restitution", &m_restitution, 0.0f, 1.0f);
@@ -106,24 +232,6 @@ bool PhysicsMaterial::edit()
 		}
 		ImGui::SameLine();
 	}
-	if (ImGui::Button("Save As"))
-	{
-		if (FileSystem::PlatformSelect(m_path, { "*.physmat" }))
-		{
-			save = true;
-			FileSystem::SetExtension(m_path, "physmat");
-		}
-	}
-	if (save)
-	{
-		Json json;
-		SerializerJson serializer(json, SerializerJson::Mode_Write);
-		if (serialize(serializer))
-		{
-			Json::Write(json, m_path.c_str());
-		}
-	}
-
 	ImGui::PopID();
 
 	m_staticFriction = Max(m_staticFriction, m_dynamicFriction); // matches behavior of PxMaterial

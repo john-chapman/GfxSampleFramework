@@ -131,6 +131,8 @@ bool PhysicsTest::update()
 			ImGui::EndCombo();
 		}
 
+		ImGui::SliderFloat("Spawn Speed", &m_spawnSpeed, 1.0f, 500.0f);
+
 		ImGui::TreePop();
 	}
 
@@ -402,7 +404,7 @@ bool PhysicsTest::update()
 	if (Input::GetKeyboard()->wasPressed(Keyboard::Key_Space))
 	{
 		vec3 position  = cullCamera->getPosition();
-		vec3 linearVelocity = cullCamera->getViewVector() * 20.0f;
+		vec3 linearVelocity = cullCamera->getViewVector() * m_spawnSpeed;
 		spawnPhysicsObject(m_spawnType, position, linearVelocity);
 	}
 

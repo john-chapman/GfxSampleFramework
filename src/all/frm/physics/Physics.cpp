@@ -6,6 +6,7 @@
 #include <frm/core/log.h>
 #include <frm/core/memory.h>
 #include <frm/core/BasicRenderer/BasicRenderableComponent.h> // used by PhysicsComponentTemp to manage fadeout
+#include <frm/core/FileSystem.h>
 #include <frm/core/Properties.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Serializable.inl>
@@ -37,8 +38,6 @@ static const char* kPhysicsFlagStr[] =
 	"EnableCCD",
 };
 
-static PhysicsMaterial* s_defaultMaterial;
-
 // PUBLIC
 
 bool Physics::Init()
@@ -64,14 +63,7 @@ bool Physics::Init()
 void Physics::Shutdown()
 {
 	FRM_ASSERT(s_instance);
-
-	if (s_defaultMaterial)
-	{
-		PhysicsMaterial::Release(s_defaultMaterial);
-	}
-
 	PxShutdown();
-
 	FRM_DELETE(s_instance);
 	s_instance = nullptr;
 }
@@ -314,12 +306,7 @@ void Physics::UnregisterComponent(PhysicsComponent* _component_)
 
 const PhysicsMaterial* Physics::GetDefaultMaterial()
 {
-	if (!s_defaultMaterial)
-	{
-		s_defaultMaterial = PhysicsMaterial::Create(0.5f, 0.5f, 0.2f, "#PhysicsDefaultMaterial");
-		PhysicsMaterial::Use(s_defaultMaterial);
-	}
-	return s_defaultMaterial;
+	return PhysicsMaterial::Create(0.5f, 0.5f, 0.5f);
 }
 
 void Physics::AddGroundPlane(const PhysicsMaterial* _material)
@@ -634,11 +621,18 @@ bool PhysicsComponent::reinit()
 	const vec3 linearVelocity = getLinearVelocity();
 	const vec3 angularVelocity = getAngularVelocity();
 
+// \hack Keep geometry/material resources alive while we call shutdown().
+PhysicsGeometry::Use(m_geometry);
+PhysicsMaterial::Use(m_material);
 	shutdown();
+
 	if (!init() || !postInit())
 	{
 		return false;
 	}
+
+PhysicsGeometry::Release(m_geometry);
+PhysicsMaterial::Release(m_material);
 
 	setWorldTransform(world);
 	setLinearVelocity(linearVelocity);
@@ -700,14 +694,19 @@ bool PhysicsComponent::initImpl()
 	{
 		m_geometry = PhysicsGeometry::CreateBox(vec3(0.5f), "#PhysicsDefaultGeometry");
 	}
-	PhysicsGeometry::Use(m_geometry);
+	else
+	{
+		PhysicsGeometry::Use(m_geometry);
+	}
 
 	if (!m_material)
 	{
-		m_material = Physics::GetDefaultMaterial();
+		m_material = PhysicsMaterial::Create(0.5f, 0.5f, 0.2f);
 	}
-	PhysicsMaterial::Use(m_material);
-	
+	else
+	{
+		PhysicsMaterial::Use(m_material);
+	}
 
 	// PxShape
 	physx::PxShape*& pxShape = impl->pxShape;
@@ -759,7 +758,7 @@ bool PhysicsComponent::postInitImpl()
 		}
 		else
 		{
-			m_timer = 0.0f; // Dynamic components only die when idle, see updateTimer().
+			m_timer = 0.0f; // Dynamic components only die when idle, see updateTransient().
 		}
 	}
 
@@ -788,8 +787,8 @@ void PhysicsComponent::shutdownImpl()
 	g_pxComponentPool.free(impl);
 	impl = nullptr;
 
-	PhysicsMaterial::Release(m_material);
 	PhysicsGeometry::Release(m_geometry);
+	PhysicsMaterial::Release(m_material);
 }
 
 bool PhysicsComponent::editImpl()
@@ -801,6 +800,14 @@ bool PhysicsComponent::editImpl()
 		PhysicsComponent* callingComponent = nullptr;
 	};
 	static PhysicsGeometryEditorState geometryEditorState;
+	
+	struct PhysicsMaterialEditorState
+	{
+		bool show = false;
+		PhysicsComponent* callingComponent = nullptr;
+	};
+	static PhysicsMaterialEditorState materialEditorState;
+
 
 
 	bool ret = false;
@@ -815,49 +822,81 @@ bool PhysicsComponent::editImpl()
 		ret = true;
 	}
 
-	// Geometry.
-	PhysicsGeometry*& geometry = const_cast<PhysicsGeometry*&>(m_geometry);
+	{	// Geometry
 
-	if (ImGui::Button("Geometry"))
-	{
-		// \todo select existing/load new
-	}
-	if (m_geometry)
-	{
+		PhysicsGeometry*& geometry = const_cast<PhysicsGeometry*&>(m_geometry);
+		if (PhysicsGeometry::Select(geometry, "Geometry", { "*.physgeo" }))
+		{
+			reinit();
+			ret = true;
+		}
+		
+		if (geometry)
+		{
+			ImGui::SameLine();
+			if (*geometry->getPath() != '\0')
+			{
+				ImGui::Text(geometry->getPath());
+			}
+			else
+			{
+				ImGui::Text("INLINE");
+			}
+		}
+		
 		ImGui::SameLine();
-		if (*m_geometry->getPath() != '\0')
+		if (ImGui::Button(ICON_FA_EXTERNAL_LINK "##editGeometry"))
 		{
-			ImGui::Text(geometry->getPath());
+			geometryEditorState.show = true;
+			geometryEditorState.callingComponent = this;
 		}
-		else
+		
+		if (geometryEditorState.callingComponent == this && geometryEditorState.show && PhysicsGeometry::Edit(geometry, &geometryEditorState.show))
 		{
-			ImGui::Text("INLINE");
+			if (!geometryEditorState.show) // the window was closed
+			{
+				geometryEditorState.callingComponent = nullptr;
+			}
+			ret = true;
 		}
-	}
-	ImGui::SameLine();
-	if (ImGui::Button(ICON_FA_EXTERNAL_LINK "##editGeometry"))
-	{
-		geometryEditorState.show = true;
-		geometryEditorState.callingComponent = this;
-	}
-
-	if (geometryEditorState.callingComponent == this && geometryEditorState.show && PhysicsGeometry::Edit(geometry, &geometryEditorState.show))
-	{
-		if (!geometryEditorState.show) // the window was closed
-		{
-			geometryEditorState.callingComponent = nullptr;
-		}
-		ret = true;
 	}
 
-	// Material.
-	if (m_material)
-	{
-		ImGui::Spacing();
-		if (ImGui::TreeNode("Material"))
+	{	// Material
+
+		PhysicsMaterial*& material = const_cast<PhysicsMaterial*&>(m_material);
+		if (PhysicsMaterial::Select(material, "Material", { "*.physmat" }))
 		{
-			ret |= const_cast<PhysicsMaterial*>(m_material)->edit();
-			ImGui::TreePop();
+			reinit();
+			ret = true;
+		}
+
+		if (material)
+		{
+			ImGui::SameLine();
+			if (*material->getPath() != '\0')
+			{
+				ImGui::Text(material->getPath());
+			}
+			else
+			{
+				ImGui::Text("INLINE");
+			}
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_EXTERNAL_LINK "##editMaterial"))
+		{
+			materialEditorState.show = true;
+			materialEditorState.callingComponent = this;
+		}
+
+		if (materialEditorState.callingComponent == this && materialEditorState.show && PhysicsMaterial::Edit(material, &materialEditorState.show))
+		{
+			if (!materialEditorState.show) // the window was closed
+			{
+				materialEditorState.callingComponent = nullptr;
+			}
+			ret = true;
 		}
 	}
 
@@ -924,7 +963,7 @@ bool PhysicsComponent::serializeImpl(Serializer& _serializer_)
 			}
 			m_geometry = PhysicsGeometry::Create(path.c_str());
 		}
-		ret &= m_geometry && m_geometry->getState() != PhysicsGeometry::State_Error;
+		ret &= m_geometry && CheckResource(m_geometry);
 
 		if (_serializer_.beginObject("Material"))
 		{
@@ -943,7 +982,7 @@ bool PhysicsComponent::serializeImpl(Serializer& _serializer_)
 			}
 			m_material = PhysicsMaterial::Create(path.c_str());
 		}
-		ret &= m_material && m_material->getState() != PhysicsMaterial::State_Error;
+		ret &= m_material && CheckResource(m_material);
 	}
 	else
 	{

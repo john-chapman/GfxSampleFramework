@@ -12,11 +12,6 @@ namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // PhysicsGeometry
-// Notes:
-// - Create* methods don't implicitly call Use() like other resources.
-//
-// \todo
-// - Auto-generate names for sphere/box/capsule/plane types.
 ////////////////////////////////////////////////////////////////////////////////
 class PhysicsGeometry: public Resource<PhysicsGeometry>
 {

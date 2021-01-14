@@ -30,6 +30,7 @@ protected:
 		Geometry_Random = Geometry_Count
 	};
 	Geometry              m_spawnType                         = Geometry_Random;
+	float                 m_spawnSpeed                        = 30.0f;
 	frm::Mesh*            m_meshes[Geometry_Count]            = { nullptr };
 	frm::PhysicsGeometry* m_physicsGeometries[Geometry_Count] = { nullptr };
 	

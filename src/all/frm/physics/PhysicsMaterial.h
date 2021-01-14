@@ -11,8 +11,6 @@ namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // PhysicsMaterials
-// Notes:
-// - Create* methods don't implicitly call Use() like other resources.
 ////////////////////////////////////////////////////////////////////////////////
 class PhysicsMaterial: public Resource<PhysicsMaterial>
 {
@@ -28,6 +26,8 @@ public:
 	static PhysicsMaterial* Create(Serializer& _serializer_);
 	// Destroy _inst_.
 	static void             Destroy(PhysicsMaterial*& _inst_);
+
+	static bool             Edit(PhysicsMaterial*& _material_, bool* _open_);
 
 	bool                    load() { return reload(); }
 	bool                    reload();
