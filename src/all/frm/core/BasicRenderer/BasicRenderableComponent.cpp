@@ -185,90 +185,28 @@ bool BasicRenderableComponent::editImpl()
 
 	ImGui::Spacing();
 
-	if (ImGui::Button("Mesh"))
+	if (Mesh::Select(m_mesh, "Mesh", { "*.gltf", "*.obj", "*.md5mesh" }))
 	{
-		ImGui::OpenPopup("BasicRenderableComponent::selectMesh");
-	}
-	if (ImGui::BeginPopup("BasicRenderableComponent::selectMesh"))
-	{
-		static ImGuiTextFilter filter;
-		filter.Draw("Filter##BasicRenderableComponent::selectMesh");
-
-		if (!filter.IsActive())
+		if (ret && m_materialPaths.size() != m_mesh->getSubmeshCount())
 		{
-			if (ImGui::Selectable("Load.."))
-			{
-				PathStr newPath;
-				if (FileSystem::PlatformSelect(newPath, { "*.obj", "*.gltf", "*.md5mesh" }))
-				{
-					newPath = FileSystem::MakeRelative(newPath.c_str());
-					if (newPath != m_meshPath)
-					{
-						Mesh* newMesh = Mesh::Create(newPath.c_str());
-						if (CheckResource(newMesh))
-						{
-							Mesh::Release(m_mesh);
-							m_mesh = newMesh;
-							m_meshPath = newMesh->getPath();
-							ret = true;
+			m_materialPaths.resize(m_mesh->getSubmeshCount());
 
-							ImGui::CloseCurrentPopup();
-						}
-						else
-						{
-							Mesh::Release(newMesh);
-						}
-					}	
-				}
+			while (m_materials.size() > m_materialPaths.size())
+			{
+				BasicMaterial::Release(m_materials.back());
+				m_materials.pop_back();
 			}
-			ImGui::Separator();
 
-			
-			for (int resIndex = 0; resIndex < Mesh::GetInstanceCount(); ++resIndex)
+			while (m_materials.size() < m_materialPaths.size())
 			{
-				Mesh* mesh = Mesh::GetInstance(resIndex);
-				
-				if (mesh == m_mesh)
-				{
-					continue;
-				}
-				
-				if (*mesh->getPath() != '\0' && filter.PassFilter(mesh->getName()))
-				{
-					if (ImGui::Selectable(mesh->getName()))
-					{
-						Mesh::Use(mesh);
-						Mesh::Release(m_mesh);
-						m_mesh = mesh;
-						m_meshPath = mesh->getPath();
-						ret = true;
-
-						ImGui::CloseCurrentPopup();
-					}
-				}
+				m_materials.push_back(nullptr);
 			}
 		}
 
-		ImGui::EndPopup();
-	}
+		ret = true;
+	}	
 	ImGui::SameLine();
 	ImGui::Text(m_meshPath.c_str());
-
-	if (ret && m_materialPaths.size() != m_mesh->getSubmeshCount())
-	{
-		m_materialPaths.resize(m_mesh->getSubmeshCount());
-
-		while (m_materials.size() > m_materialPaths.size())
-		{
-			BasicMaterial::Release(m_materials.back());
-			m_materials.pop_back();
-		}
-
-		while (m_materials.size() < m_materialPaths.size())
-		{
-			m_materials.push_back(nullptr);
-		}
-	}
 
 	ImGui::Spacing();
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
@@ -278,7 +216,13 @@ bool BasicRenderableComponent::editImpl()
 		{
 			ImGui::PushID((int)i);
 			String<16> label(i == 0 ? "Global.." : "Submesh %u..", i - 1);
-			if (ImGui::Button(label.c_str()))
+
+			if (BasicMaterial::Select(m_materials[i], label.c_str(), { "*.mat", "*.json" }))
+			{
+				m_materialPaths[i] = m_materials[i]->getPath();
+				ret = true;
+			}
+			/*if (ImGui::Button(label.c_str()))
 			{
 				ImGui::OpenPopup("BasicRenderableComponent::selectMaterial");
 			}
@@ -342,7 +286,7 @@ bool BasicRenderableComponent::editImpl()
 				}
 
 				ImGui::EndPopup();
-			}
+			}*/
 
 			ImGui::SameLine();
 			ImGui::Text(m_materialPaths[i].c_str());

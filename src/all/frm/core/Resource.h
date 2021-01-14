@@ -1,7 +1,6 @@
 #pragma once
 
 #include <frm/core/frm.h>
-#include <frm/core/BitFlags.h>
 #include <frm/core/String.h>
 
 #include <EASTL/vector.h>
@@ -73,6 +72,8 @@ public:
 	static int      GetInstanceCount()               { return (int)s_instances.size(); }
 	static Derived* GetInstance(int _index)          { FRM_ASSERT(_index < GetInstanceCount()); return s_instances[_index]; }
 
+	static bool     Select(Derived*& _resource_, const char* _buttonLabel, std::initializer_list<const char*> _fileExtensions);
+
 	int             getIndex() const                 { return m_index; }
 	Id              getId() const                    { return m_id; }
 	const char*     getName() const                  { return (const char*)m_name; }
@@ -81,6 +82,9 @@ public:
 
 	void            setName(const char* _name)       { setNamef(_name); }
 	void            setNamef(const char* _fmt, ...);
+
+	// \hack Dummy method Select().
+	const char*     getPath() const                  { FRM_ASSERT(false); return ""; }
 
 protected:
 

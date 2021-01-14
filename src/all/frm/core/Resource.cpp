@@ -5,8 +5,11 @@
 #include <frm/core/String.h>
 #include <frm/core/Time.h>
 
-#include <cstdarg> // va_list
 #include <EASTL/algorithm.h>
+
+#include <cstdarg> // va_list
+
+#include <imgui/imgui.h>
 
 using namespace frm;
 
@@ -163,6 +166,85 @@ Resource<tDerived>::InstanceList::~InstanceList()
 			FRM_LOG_ERR("Warning: %d %s instances were not released:%s", (int)size(), tDerived::s_className, (const char*)list);
 		}
 	#endif
+}
+
+template <typename tDerived>
+bool Resource<tDerived>::Select(Derived*& _resource_, const char* _buttonLabel, std::initializer_list<const char*> _fileExtensions)
+{
+	bool ret = false;
+
+	ImGui::PushID(s_className);
+	ImGui::PushID("EditSelect");
+
+	if (ImGui::Button(_buttonLabel))
+	{
+		ImGui::OpenPopup("SelectPopup");
+	}
+	
+	if (ImGui::BeginPopup("SelectPopup"))
+	{
+		static ImGuiTextFilter filter;
+		filter.Draw("Filter");
+
+		if (!filter.IsActive())
+		{
+			if (ImGui::Selectable("Load.."))
+			{
+				PathStr newPath;
+				if (FileSystem::PlatformSelect(newPath, _fileExtensions))
+				{
+					newPath = FileSystem::MakeRelative(newPath.c_str());
+					if (newPath != _resource_->getPath())
+					{
+						Derived* newResource = Derived::Create(newPath.c_str());
+						if (CheckResource(newResource))
+						{
+							Derived::Release(_resource_);
+							_resource_ = newResource;						
+							ret = true;
+
+							ImGui::CloseCurrentPopup();
+						}
+						else
+						{
+							Release(newResource);
+						}
+					}	
+				}
+			}
+			ImGui::Separator();
+					
+			for (int resIndex = 0; resIndex < GetInstanceCount(); ++resIndex)
+			{
+				Derived* selectResource = GetInstance(resIndex);
+				
+				if (selectResource == _resource_)
+				{
+					continue;
+				}
+				
+				if (*selectResource->getPath() != '\0' && filter.PassFilter(selectResource->getName()))
+				{
+					if (ImGui::Selectable(selectResource->getName()))
+					{
+						Release(_resource_);
+						Use(selectResource);
+						_resource_ = selectResource;
+						ret = true;
+
+						ImGui::CloseCurrentPopup();
+					}
+				}
+			}
+		}
+
+		ImGui::EndPopup();
+	}
+	
+	ImGui::PopID();
+	ImGui::PopID();
+
+	return ret;
 }
 
 

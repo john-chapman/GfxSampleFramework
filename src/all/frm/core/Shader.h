@@ -143,6 +143,10 @@ public:
 	static Shader* CreateVsFs(const char* _vsPath, const char* _fsPath, std::initializer_list<const char*> _defines = {});
 	static Shader* CreateVsGsFs(const char* _vsPath, const char* _gsPath, const char* _fsPath, std::initializer_list<const char*> _defines = {});
 	static Shader* CreateCs(const char* _csPath, int _localX = 1, int _localY = 1, int _localZ = 1, std::initializer_list<const char*> _defines = {});
+
+	// \hack Dummy method for Resource::Select().
+	static Shader* Create(const char* _path) { FRM_ASSERT(false); return nullptr; }
+
 	static void    Destroy(Shader*& _inst_);
 
 	// Reload any shaders dependent on _path.
