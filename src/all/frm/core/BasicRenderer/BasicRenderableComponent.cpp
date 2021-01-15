@@ -217,76 +217,11 @@ bool BasicRenderableComponent::editImpl()
 			ImGui::PushID((int)i);
 			String<16> label(i == 0 ? "Global.." : "Submesh %u..", i - 1);
 
-			if (BasicMaterial::Select(m_materials[i], label.c_str(), { "*.mat", "*.json" }))
+			if (BasicMaterial::Select(m_materials[i], label.c_str(), { "*.mat" }))
 			{
 				m_materialPaths[i] = m_materials[i]->getPath();
 				ret = true;
 			}
-			/*if (ImGui::Button(label.c_str()))
-			{
-				ImGui::OpenPopup("BasicRenderableComponent::selectMaterial");
-			}
-			if (ImGui::BeginPopup("BasicRenderableComponent::selectMaterial"))
-			{
-				static ImGuiTextFilter filter;
-				filter.Draw("Filter##BasicRenderableComponent::selectMaterial");
-
-				if (!filter.IsActive())
-				{
-					if (ImGui::Selectable("Load.."))
-					{
-						PathStr newPath;
-						if (FileSystem::PlatformSelect(newPath, { "*.mat", "*.json" }))
-						{
-							newPath = FileSystem::MakeRelative(newPath.c_str());
-							if (newPath != m_materialPaths[i])
-							{
-								BasicMaterial* newMaterial = BasicMaterial::Create(newPath.c_str());
-								if (CheckResource(newMaterial))
-								{
-									BasicMaterial::Release(m_materials[i]);
-									m_materials[i] = newMaterial;
-									m_materialPaths[i] = newMaterial->getPath();
-									ret = true;
-
-									ImGui::CloseCurrentPopup();
-								}
-								else
-								{
-									BasicMaterial::Release(newMaterial);
-								}
-							}	
-						}
-					}
-					ImGui::Separator();
-				}
-
-				for (int resIndex = 0; resIndex < BasicMaterial::GetInstanceCount(); ++resIndex)
-				{
-					BasicMaterial* material = BasicMaterial::GetInstance(resIndex);
-					
-					if (material == m_materials[i])
-					{
-						continue;
-					}
-					
-					if (*material->getPath() != '\0' && filter.PassFilter(material->getName()))
-					{
-						if (ImGui::Selectable(material->getName()))
-						{
-							BasicMaterial::Use(material);
-							BasicMaterial::Release(m_materials[i]);
-							m_materials[i] = material;
-							m_materialPaths[i] = material->getPath();
-							ret = true;
-
-							ImGui::CloseCurrentPopup();
-						}
-					}
-				}
-
-				ImGui::EndPopup();
-			}*/
 
 			ImGui::SameLine();
 			ImGui::Text(m_materialPaths[i].c_str());

@@ -226,9 +226,9 @@ bool BasicMaterial::reload()
 	}
 	m_path = f.getPath(); // use f.getPath() to include the root - this is required for reload to work correctly
 
-	if (!FileSystem::CompareExtension("json", m_path.c_str()))
+	if (!FileSystem::CompareExtension("mat", m_path.c_str()))
 	{
-		FRM_LOG_ERR("BasicMaterial: Invalid file '%s' (expected .json)", FileSystem::StripPath(m_path.c_str()).c_str());
+		FRM_LOG_ERR("BasicMaterial: Invalid file '%s' (expected .mat)", FileSystem::StripPath(m_path.c_str()).c_str());
 		setState(State_Error);
 		return false;		
 	}
