@@ -275,6 +275,8 @@ void PhysicsMaterial::updateImpl()
 	if (!m_impl)
 	{
 		m_impl = g_pxPhysics->createMaterial(m_staticFriction, m_dynamicFriction, m_restitution);
+		physx::PxMaterial* pxMaterial = (physx::PxMaterial*)m_impl;
+		pxMaterial->userData = this;
 	}
 
 	physx::PxMaterial* pxMaterial = (physx::PxMaterial*)m_impl;

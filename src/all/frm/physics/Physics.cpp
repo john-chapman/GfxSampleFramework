@@ -103,6 +103,8 @@ void Physics::Update(float _dt)
 	s_instance->m_stepAccumulator += _dt - (stepCount * stepLengthSeconds);
 	for (int i = 0; i < (int)stepCount; ++i)
 	{
+		PROFILER_MARKER_CPU("Step");
+
 		g_pxScene->simulate(stepLengthSeconds);
 		FRM_VERIFY(g_pxScene->fetchResults(true)); // true = block until the results are ready
 	}
@@ -712,11 +714,12 @@ bool PhysicsComponent::initImpl()
 	physx::PxShape*& pxShape = impl->pxShape;
 	const physx::PxGeometry& geometry = ((physx::PxGeometryHolder*)m_geometry->m_impl)->any();
 	const physx::PxMaterial& material = *((physx::PxMaterial*)m_material->m_impl);
-	pxShape = g_pxPhysics->createShape(geometry, material, false);
+	pxShape = g_pxPhysics->createShape(geometry, material, false); // \todo Sharing of PxShape instances isn't automatic?
 	if (!pxShape)
 	{
 		return false;
 	}
+	pxShape->userData = const_cast<PhysicsGeometry*>(m_geometry);
 
 	// some geometry types require a local pose to be set at the shape level
 	switch (geometry.getType())

@@ -15,6 +15,7 @@ namespace frm {
 class PhysicsMaterial: public Resource<PhysicsMaterial>
 {
 	friend class Physics;
+	friend class PhysicsComponent;
 
 public:
 
@@ -40,7 +41,7 @@ public:
 	float                   getDynamicFriction() const  { return m_dynamicFriction; }
 	float                   getRestitution() const      { return m_restitution; }
 
-//private:
+private:
 
 	PathStr m_path            = "";      // Empty if not from a file.
 	float   m_staticFriction  = 0.5f;    // Friction coefficient for stationary objects, in [0,1].
