@@ -306,7 +306,7 @@ void AppSample3d::DrawFrustum(const Frustum& _frustum)
 AppSample3d::AppSample3d(const char* _title)
 	: AppSample(_title)
 {
-	Properties::PushGroup("AppSample3d");
+	Properties::PushGroup("#AppSample3d");
 		//                  name                 default              min     max     storage
 		Properties::Add    ("m_showHelpers",     m_showHelpers,                       &m_showHelpers);
 		Properties::Add    ("m_showWorldEditor", m_showWorldEditor,                   &m_showWorldEditor);
@@ -316,7 +316,7 @@ AppSample3d::AppSample3d(const char* _title)
 
 AppSample3d::~AppSample3d()
 {
-	Properties::InvalidateGroup("AppSample3d");
+	Properties::InvalidateGroup("#AppSample3d");
 }
 
 void AppSample3d::setIm3dDepthTexture(Texture* _tx)

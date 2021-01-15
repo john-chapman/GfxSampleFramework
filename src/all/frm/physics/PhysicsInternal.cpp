@@ -5,6 +5,7 @@
 #include <frm/core/MeshData.h>
 #include <frm/core/Pool.h>
 #include <frm/core/Profiler.h>
+#include <frm/core/Properties.h>
 
 #pragma comment(lib, "PhysX_64")
 #pragma comment(lib, "PhysXCommon_64")
@@ -95,13 +96,14 @@ namespace {
 		physx::PxPairFlags& pairFlags, const void* constantBlock, physx::PxU32 constantBlockSize
 		)
 	{
-		// let triggers through
+		// Pass triggers through.
 		if (physx::PxFilterObjectIsTrigger(attributes0) || physx::PxFilterObjectIsTrigger(attributes1))
 		{
 			pairFlags = physx::PxPairFlag::eTRIGGER_DEFAULT;
 			return physx::PxFilterFlag::eDEFAULT;
 		}
-		// generate contacts for all that were not filtered above
+
+		// Generate contacts for all that were not filtered above.
 		pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
 
 		// trigger the contact callback for pairs (A,B) where 
@@ -129,7 +131,13 @@ Pool<PxComponentImpl>          g_pxComponentPool(128);
 
 bool PxInit(const PxSettings& _settings)
 {
-	// \todo config
+	Properties::PushGroup("#Physics");
+	Properties::PushGroup("#PhysX");
+			
+	Properties::Add("cpuThreadCount", 0,                                    0,  32                                     );
+	Properties::Add("broadPhaseType", (int)physx::PxBroadPhaseType::eABP,   0,  (int)physx::PxBroadPhaseType::eLAST - 1);
+	Properties::Add("enableCCD",      true                                                                             );
+
 	physx::PxTolerancesScale toleranceScale;
 	toleranceScale.length = _settings.toleranceLength;
 	toleranceScale.speed  = _settings.toleranceSpeed;
@@ -138,18 +146,32 @@ bool PxInit(const PxSettings& _settings)
 	FRM_ASSERT(g_pxFoundation);
 	g_pxPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *g_pxFoundation, toleranceScale);
 	FRM_ASSERT(g_pxPhysics);
-	g_pxDispatcher = physx::PxDefaultCpuDispatcherCreate(0); // \todo Config worker threads.
+	
+	const int cpuThreadCount = *Properties::Find("cpuThreadCount")->get<int>();
+	g_pxDispatcher = physx::PxDefaultCpuDispatcherCreate(cpuThreadCount);
 	FRM_ASSERT(g_pxDispatcher);
 
 	physx::PxSceneDesc sceneDesc(g_pxPhysics->getTolerancesScale());
 	sceneDesc.gravity = Vec3ToPx(_settings.gravity);
 	sceneDesc.cpuDispatcher = g_pxDispatcher;
 	sceneDesc.filterShader = FilterShader;
-	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD | physx::PxSceneFlag::eDISABLE_CCD_RESWEEP; // \todo Config?
+
+	const bool enableCCD = *Properties::Find("enableCCD")->get<bool>();
+	if (enableCCD)
+	{
+		sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD | physx::PxSceneFlag::eDISABLE_CCD_RESWEEP;
+	}
+
+	static_assert(physx::PxBroadPhaseType::eLAST == 4, "physx::PxBroadPhaseType has changed, existing property values may be invalid");
+	const physx::PxBroadPhaseType::Enum broadPhaseType = (physx::PxBroadPhaseType::Enum)*Properties::Find("broadPhaseType")->get<int>();
+	sceneDesc.broadPhaseType = broadPhaseType;
+
 	g_pxScene = g_pxPhysics->createScene(sceneDesc);
 	FRM_ASSERT(g_pxScene);
 
 	g_pxScene->setSimulationEventCallback(&g_eventCallback);
+
+	Properties::PopGroup(2);
 
 	// \todo Handle errors correctly.
 	return true;

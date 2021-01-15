@@ -362,13 +362,13 @@ Physics* Physics::s_instance;
 
 Physics::Physics()
 {
-	Properties::PushGroup("Physics");
+	Properties::PushGroup("#Physics");
 
-		Properties::Add("m_drawDebug",          m_drawDebug,                                       &m_drawDebug);
-		Properties::Add("m_paused",             m_paused,                                          &m_paused);
-		Properties::Add("m_stepLengthSeconds",  m_stepLengthSeconds,     0.0f,       1.0f,         &m_stepLengthSeconds);
-		Properties::Add("m_gravity",            m_gravity,               0.0f,       20.0f,        &m_gravity);
-		Properties::Add("m_gravityDirection",   m_gravityDirection,      vec3(0.0f), vec3(20.0f),  &m_gravityDirection);
+		Properties::Add("m_drawDebug",          m_drawDebug,                                         &m_drawDebug);
+		Properties::Add("m_paused",             m_paused,                                            &m_paused);
+		Properties::Add("m_stepLengthSeconds",  m_stepLengthSeconds,     0.0f,         1.0f,         &m_stepLengthSeconds);
+		Properties::Add("m_gravity",            m_gravity,               0.0f,         20.0f,        &m_gravity);
+		Properties::Add("m_gravityDirection",   m_gravityDirection,      vec3(-20.0f), vec3(20.0f),  &m_gravityDirection);
 
 	Properties::PopGroup();
 
@@ -377,7 +377,7 @@ Physics::Physics()
 
 Physics::~Physics()
 {
-	Properties::InvalidateGroup("Physics");
+	Properties::InvalidateGroup("#Physics");
 }
 
 void Physics::updateComponentTransforms()

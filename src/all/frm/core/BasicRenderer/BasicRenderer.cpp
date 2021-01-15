@@ -699,7 +699,7 @@ BasicRenderer::BasicRenderer(Flags _flags)
 {
 	flags = _flags;
 
-	Properties::PushGroup("BasicRenderer");
+	Properties::PushGroup("#BasicRenderer");
 
 		Properties::Add("resolution",                settings.resolution,                ivec2(0),   ivec2(8192), &settings.resolution);
 		Properties::Add("motionBlurTargetFps",       settings.motionBlurTargetFps,       0.f,        128.f,       &settings.motionBlurTargetFps);
@@ -777,7 +777,7 @@ BasicRenderer::~BasicRenderer()
 	}
 	ShadowAtlas::Destroy(shadowAtlas);
 
-	Properties::InvalidateGroup("BasicRenderer");
+	Properties::InvalidateGroup("#BasicRenderer");
 }
 
 bool BasicRenderer::editFlag(const char* _name, Flag _flag)

@@ -114,17 +114,17 @@ bool AppSample::init(const frm::ArgList& _args)
  	m_configPath.setf("%s.json", (const char*)m_name);
 	readConfig(m_configPath.c_str());
 
-	Properties::PushGroup("AppSample");
+	Properties::PushGroup("#AppSample");
 
 	ivec2 windowSize     = m_hiddenMode ? ivec2(1) : *Properties::Find("WindowSize")->get<ivec2>();
 	m_window             = Window::Create(windowSize.x, windowSize.y, (const char*)m_name);
 	m_windowSize         = ivec2(m_window->getWidth(), m_window->getHeight());
 		
-	Properties::PushGroup("GlContext");
-	ivec2 glVersion      = *Properties::Find("GlVersion",       "GlContext")->get<ivec2>();
-	bool glCompatibility = *Properties::Find("GlCompatibility", "GlContext")->get<bool>();
-	bool glDebug         = *Properties::Find("GlDebug",         "GlContext")->get<bool>();
-	bool glHDR           = *Properties::Find("HDR",             "GlContext")->get<bool>();
+	Properties::PushGroup("#GlContext");
+	ivec2 glVersion      = *Properties::Find("GlVersion")->get<ivec2>();
+	bool glCompatibility = *Properties::Find("GlCompatibility")->get<bool>();
+	bool glDebug         = *Properties::Find("GlDebug")->get<bool>();
+	bool glHDR           = *Properties::Find("HDR")->get<bool>();
 	Properties::PopGroup();
 
 	GlContext::CreateFlags ctxFlags = 0
@@ -389,7 +389,7 @@ AppSample::AppSample(const char* _name)
 	g_Current = this;
 
 	
-	Properties::PushGroup("AppSample");
+	Properties::PushGroup("#AppSample");
 
 		//              name                     default                     min           max                           storage
 		Properties::Add("Resolution",            ivec2(-1),                  ivec2(1),     ivec2(32768)                                         );
@@ -403,7 +403,7 @@ AppSample::AppSample(const char* _name)
 		Properties::Add("ShowTextureViewer",     m_showTextureViewer,                                                    &m_showTextureViewer   );
 		Properties::Add("ShowShaderViewer",      m_showShaderViewer,                                                     &m_showShaderViewer    );
 
-		Properties::PushGroup("Font");
+		Properties::PushGroup("#Font");
 			//                  name                 default                     min           max                           storage
 			Properties::AddPath("FontPath",          ""                                                                              );
 			Properties::Add    ("FontSize",          13.0f,                      4.0f,         64.0f                                 );
@@ -411,7 +411,7 @@ AppSample::AppSample(const char* _name)
 			Properties::Add    ("FontEnableScaling", true                                                                            );
 		Properties::PopGroup(); // Font
 
-		Properties::PushGroup("GlContext");
+		Properties::PushGroup("#GlContext");
 			//              name                 default                     min           max                           storage
 			Properties::Add("GlVersion",         ivec2(-1, -1),              ivec2(-1),    ivec2(99)                             );
 			Properties::Add("GlCompatibility",   false                                                                           );
@@ -425,34 +425,7 @@ AppSample::AppSample(const char* _name)
 AppSample::~AppSample()
 {
 	//shutdown(); \todo it's not safe to call shutdown() twice
-
-	Properties::PushGroup("AppSample");
-		Properties::InvalidateStorage("Resolution");
-		Properties::InvalidateStorage("WindowSize");
-		Properties::InvalidateStorage("VsyncMode");
-		Properties::InvalidateStorage("ShowMenu");
-		Properties::InvalidateStorage("ShowLog");
-		Properties::InvalidateStorage("ShowLogNotifications");
-		Properties::InvalidateStorage("ShowPropertyEditor");
-		Properties::InvalidateStorage("ShowProfiler");
-		Properties::InvalidateStorage("ShowTextureViewer");
-		Properties::InvalidateStorage("ShowShaderViewer");
-
-		Properties::PushGroup("Font");
-			Properties::InvalidateStorage("FontPath");
-			Properties::InvalidateStorage("FontSize");
-			Properties::InvalidateStorage("FontOversample");
-			Properties::InvalidateStorage("FontEnableScaling");
-		Properties::PopGroup(); // Font
-
-		Properties::PushGroup("GlContext");
-			Properties::InvalidateStorage("GlVersion");
-			Properties::InvalidateStorage("GlCompatibility");
-			Properties::InvalidateStorage("GlDebug");
-			Properties::InvalidateStorage("HDR");
-		Properties::PopGroup(); // GlContext
-
-	Properties::PopGroup(); // AppSample	
+	Properties::InvalidateGroup("#AppSample");
 }
 
 
@@ -843,7 +816,7 @@ void AppSample::ImGui_InitStyle()
 
 bool AppSample::ImGui_InitFont(AppSample* _app)
 {
-	Properties::PushGroup("Font");
+	Properties::PushGroup("#Font");
 
 	ImGuiIO& io = ImGui::GetIO();
 
