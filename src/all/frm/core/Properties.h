@@ -98,6 +98,8 @@ public:
 
 	void               display(const char* _filter = nullptr);
 
+	void               invalidate();
+
 private:
 	static eastl::vector<Properties*> s_groupStack;
 

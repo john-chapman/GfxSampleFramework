@@ -410,11 +410,8 @@ void Properties::InvalidateGroup(const char* _groupName)
 	{
 		group = GetDefault();
 	}
-	
-	for (auto it : group->m_properties)
-	{
-		it.second->setExternalStorage(nullptr);
-	}
+
+	group->invalidate();
 }
 
 Properties* Properties::Create(const char* _groupName)
@@ -645,6 +642,19 @@ void Properties::display(const char* _filter)
 
 	ImGui::PopID();
 	ImGui::PopID();
+}
+
+void Properties::invalidate()
+{
+	for (auto it : m_properties)
+	{
+		it.second->setExternalStorage(nullptr);
+	}
+
+	for (auto it : m_subGroups)
+	{
+		it.second->invalidate();
+	}
 }
 
 // PRIVATE
