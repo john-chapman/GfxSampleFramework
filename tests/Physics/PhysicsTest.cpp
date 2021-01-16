@@ -16,6 +16,11 @@
 #include <frm/physics/PhysicsGeometry.h>
 #include <frm/physics/PhysicsMaterial.h>
 
+#if FRM_MODULE_AUDIO
+	#include <frm/audio/Audio.h>
+	#include <frm/audio/AudioData.h>
+#endif
+
 #include <imgui/imgui.h>
 
 using namespace frm;
@@ -52,7 +57,7 @@ bool PhysicsTest::init(const frm::ArgList& _args)
 
 	m_basicRenderer = BasicRenderer::Create();
 
-	m_defaultMaterial = BasicMaterial::Create("materials/Grid1Light.json");
+	m_defaultMaterial = BasicMaterial::Create("materials/Grid1Light.mat");
 	FRM_ASSERT(m_defaultMaterial->getState() == BasicMaterial::State_Loaded);
 
 	m_meshes[Geometry_Box]                 = Mesh::Create("models/Box_1.obj");
@@ -70,11 +75,24 @@ bool PhysicsTest::init(const frm::ArgList& _args)
 		FRM_ASSERT(CheckResource(m_physicsGeometries[i]));
 	}
 
+	#if FRM_MODULE_AUDIO
+		m_hitSounds[0] = AudioData::Create("audio/hit1_light.wav");
+		m_hitSounds[1] = AudioData::Create("audio/hit1_medium.wav");
+		m_hitSounds[2] = AudioData::Create("audio/hit1_heavy.wav");
+	#endif
+
 	return true;
 }
 
 void PhysicsTest::shutdown()
 {
+	#if FRM_MODULE_AUDIO
+		for (auto& hitSound : m_hitSounds)
+		{
+			AudioData::Release(hitSound);
+		}
+	#endif
+
 	for (Mesh* mesh : m_meshes)
 	{
 		Mesh::Release(mesh);
@@ -97,10 +115,35 @@ bool PhysicsTest::update()
 	{
 		return false;
 	}
-
+		
 	const float dt = (float)getDeltaTime();
 	Camera* drawCamera = World::GetDrawCamera();
 	Camera* cullCamera = World::GetCullCamera();
+
+	#if FRM_MODULE_AUDIO
+	{
+		Audio::SetObserver(drawCamera->m_world);
+		eastl::span<Physics::CollisionEvent> collisionEvents = Physics::GetCollisionEvents();
+		for (Physics::CollisionEvent& collisionEvent : collisionEvents)
+		{
+			AudioSourceId sourceId = AudioSourceId_Invalid;
+			if (collisionEvent.impulse < 1.0f)
+			{
+				sourceId = Audio::Play(m_hitSounds[0], 0.1f, 0.0f, 1);
+			}
+			else if (collisionEvent.impulse < 8.0f)
+			{
+				sourceId = Audio::Play(m_hitSounds[1], 0.1f, 0.0f, 1);
+			}
+			else
+			{			
+				sourceId = Audio::Play(m_hitSounds[2], 0.1f, 0.0f, 1);
+			}
+			Audio::SetSourceWorldPosition(sourceId, collisionEvent.point);
+		}
+	}
+	#endif
+
 
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Spawn Projectile"))
@@ -399,7 +442,15 @@ bool PhysicsTest::update()
 	{
 		m_basicRenderer->edit();
 		ImGui::TreePop();
-	}		
+	}
+
+	#if FRM_MODULE_AUDIO
+		if (ImGui::TreeNode("Audio"))
+		{
+			Audio::Edit();
+			ImGui::TreePop();
+		}
+	#endif
 
 	if (Input::GetKeyboard()->wasPressed(Keyboard::Key_Space))
 	{

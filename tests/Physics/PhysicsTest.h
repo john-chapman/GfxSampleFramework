@@ -37,6 +37,10 @@ protected:
 	frm::BasicRenderer*   m_basicRenderer                     = nullptr;
 	frm::BasicMaterial*   m_defaultMaterial                   = nullptr;
 
+	#if FRM_MODULE_AUDIO
+		frm::AudioData*   m_hitSounds[3]                      = { nullptr };
+	#endif
+
 	void spawnPhysicsObject(Geometry _type, const frm::vec3& _position, const frm::vec3& _linearVelocity);
 
 };
