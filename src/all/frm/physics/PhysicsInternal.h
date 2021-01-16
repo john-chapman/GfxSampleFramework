@@ -32,12 +32,12 @@ extern Pool<PxComponentImpl> g_pxComponentPool;
 
 struct PxSettings
 {
-	float toleranceLength = 1.0f;
-	float toleranceSpeed  = 15.0f;
-	vec3  gravity         = vec3(0.0f, -15.0f, 0.0f);
+	float toleranceLength;
+	float toleranceSpeed;
+	vec3  gravity;
 };
 
-bool PxInit(const PxSettings& _settings);
+bool PxInit(const PxSettings& _settings, eastl::vector<frm::Physics::CollisionEvent>& collisionEvents_);
 void PxShutdown();
 
 bool PxCookConvexMesh(const MeshData* _meshData, physx::PxOutputStream& out_);

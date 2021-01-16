@@ -51,6 +51,8 @@ public:
 
 	static void AddGroundPlane(const PhysicsMaterial* _material = GetDefaultMaterial());
 
+
+ // Ray cast API
 	enum class RayCastFlag: uint8
 	{
 		Position, // Get the position.
@@ -86,6 +88,19 @@ public:
 	// Return true if an intersection was found, in which case out_ contains valid data.
 	static bool RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flags = RayCastFlags());
 
+ // Collision events API
+	// \todo
+	// - Use threshold impact forces to generate on/persists/off events (see physx docs).
+	struct CollisionEvent
+	{
+		PhysicsComponent* components[2] = { nullptr };
+		vec3              point         = vec3(0.0f);
+		vec3              normal        = vec3(0.0f);
+		float             impulse       = 0.0f;
+	};
+
+	static eastl::span<CollisionEvent> GetCollisionEvents() { return eastl::span<CollisionEvent>(s_instance->m_collisionEvents); }
+
 private:
 
 	static Physics* s_instance;
@@ -98,6 +113,8 @@ private:
 
 	float m_gravity           = 15.0f;
 	vec3  m_gravityDirection  = vec3(0.0f, -1.0f, 0.0f);
+
+	eastl::vector<CollisionEvent> m_collisionEvents;
 
 	// \todo better containers for these - fast iteration, insertion/deletion?
 	eastl::vector<PhysicsComponent*> m_static;

@@ -7,6 +7,9 @@
 #include <frm/core/Profiler.h>
 #include <frm/core/Properties.h>
 
+#include <im3d/im3d.h>
+#include <EASTL/vector.h>
+
 #pragma comment(lib, "PhysX_64")
 #pragma comment(lib, "PhysXCommon_64")
 #pragma comment(lib, "PhysXFoundation_64")
@@ -14,6 +17,8 @@
 #pragma comment(lib, "PhysXCooking_64")
 
 namespace {
+
+	eastl::vector<frm::Physics::CollisionEvent>* g_collisionEvents;
 
 	class AllocatorCallback : public physx::PxAllocatorCallback
 	{
@@ -75,9 +80,43 @@ namespace {
 
 		void onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) override
 		{
-			// \todo
-			// Push contact events into a queue (ring buffer?).
-			// Remove duplicates?
+			using namespace physx;
+			using namespace frm;
+
+			for (PxU32 i = 0; i < nbPairs; ++i)
+			{
+				Physics::CollisionEvent collisionEvent;
+				collisionEvent.components[0] = (PhysicsComponent*)pairHeader.actors[0]->userData;
+				collisionEvent.components[1] = (PhysicsComponent*)pairHeader.actors[1]->userData;
+
+				const PxContactPair& cp     = pairs[i];
+				const PxU32 flippedContacts = (cp.flags & PxContactPairFlag::eINTERNAL_CONTACTS_ARE_FLIPPED);
+				const PxU32 hasImpulses     = (cp.flags & PxContactPairFlag::eINTERNAL_HAS_IMPULSES);
+				FRM_ASSERT(hasImpulses != 0);
+				
+				PxU32 nbContacts = 0;				
+				PxContactStreamIterator it(cp.contactPatches, cp.contactPoints, cp.getInternalFaceIndices(), cp.patchCount, cp.contactCount);
+				while(it.hasNextPatch())
+				{
+					it.nextPatch();
+					
+					while(it.hasNextContact())
+					{
+						it.nextContact();
+						
+						PxVec3 point   = it.getContactPoint();
+						PxVec3 normal  = it.getContactNormal();
+						PxReal impulse = cp.contactImpulses[nbContacts];
+
+						collisionEvent.point = PxToVec3(point);
+						collisionEvent.normal = PxToVec3(normal);
+						collisionEvent.impulse = impulse;
+						g_collisionEvents->push_back(collisionEvent);
+											
+						++nbContacts;
+					}
+				}
+			}
 		}
 
 		void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count)
@@ -104,15 +143,11 @@ namespace {
 		}
 
 		// Generate contacts for all that were not filtered above.
-		pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
+		pairFlags |= physx::PxPairFlag::eCONTACT_DEFAULT;
 
-		// trigger the contact callback for pairs (A,B) where 
-		// the filtermask of A contains the ID of B and vice versa.
-		//if((filterData0.word0 & filterData1.word1) && (filterData1.word0 & filterData0.word1))
-		//	pairFlags |= PxPairFlag::eNOTIFY_TOUCH_FOUND;
+		// Generate collision events for all pairs (kinematic-kinematic and kinematic-static collisions are off by default).
 		pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_FOUND;
-		//pairFlags |= physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
-
+		pairFlags |= physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
 		pairFlags |= physx::PxPairFlag::eDETECT_CCD_CONTACT;
 
 		return physx::PxFilterFlag::eDEFAULT;
@@ -129,7 +164,7 @@ physx::PxScene*                g_pxScene             = nullptr;
 physx::PxCooking*              g_pxCooking           = nullptr;
 Pool<PxComponentImpl>          g_pxComponentPool(128);
 
-bool PxInit(const PxSettings& _settings)
+bool PxInit(const PxSettings& _settings, eastl::vector<frm::Physics::CollisionEvent>& collisionEvents_)
 {
 	Properties::PushGroup("#Physics");
 	Properties::PushGroup("#PhysX");
@@ -137,6 +172,8 @@ bool PxInit(const PxSettings& _settings)
 	Properties::Add("cpuThreadCount", 0,                                    0,  32                                     );
 	Properties::Add("broadPhaseType", (int)physx::PxBroadPhaseType::eABP,   0,  (int)physx::PxBroadPhaseType::eLAST - 1);
 	Properties::Add("enableCCD",      true                                                                             );
+
+	g_collisionEvents = &collisionEvents_;
 
 	physx::PxTolerancesScale toleranceScale;
 	toleranceScale.length = _settings.toleranceLength;

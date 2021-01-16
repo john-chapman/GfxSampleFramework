@@ -52,7 +52,7 @@ bool Physics::Init()
 	pxSettings.toleranceLength = 1.0f;
 	pxSettings.toleranceSpeed  = s_instance->m_gravity;
 
-	if (!PxInit(pxSettings))
+	if (!PxInit(pxSettings, s_instance->m_collisionEvents))
 	{
 		return false;
 	}
@@ -85,6 +85,8 @@ void Physics::Update(float _dt)
 			return;
 		}
 	}
+
+	s_instance->m_collisionEvents.clear();
 
 	// Set kinematic transforms.
 	for (PhysicsComponent* component : s_instance->m_kinematic)
@@ -189,6 +191,7 @@ void Physics::Edit()
 		ImGui::Text("Dynamic Bodies:     %u (%u active)", stats.nbDynamicBodies,   stats.nbActiveDynamicBodies);
 		ImGui::Text("Kinematic Bodies:   %u (%u active)", stats.nbKinematicBodies, stats.nbActiveKinematicBodies);
 		ImGui::Text("Active Constraints: %u ",            stats.nbActiveConstraints);
+		ImGui::Text("Collision Events:   %u",             s_instance->m_collisionEvents.size());
 
 		ImGui::Spacing();
 		
@@ -255,6 +258,12 @@ void Physics::DrawDebug()
 		const physx::PxDebugText& text = drawList.getTexts()[i];
 		Im3d::Text(PxToVec3(text.position), text.size, PxToIm3dColor(text.color), Im3d::TextFlags_Default, text.string);
 
+	}
+
+	for (CollisionEvent& collisionEvent : s_instance->m_collisionEvents)
+	{
+		Im3d::DrawPoint(collisionEvent.point, 8.0f, Im3d::Color_Magenta);
+		Im3d::DrawLine(collisionEvent.point, collisionEvent.point + collisionEvent.normal * Max(0.2f, collisionEvent.impulse), 2.0f, Im3d::Color_Red);
 	}
 
 	Im3d::PopDrawState();
