@@ -3,6 +3,7 @@
 #include "AudioData.h"
 
 #include <frm/core/frm.h>
+#include <frm/core/math.h>
 #include <frm/core/config.h>
 
 #include <EASTL/vector.h>
@@ -39,6 +40,9 @@ constexpr AudioSourceId AudioSourceId_Invalid = ~AudioSourceId(0);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Audio
+// \todo
+// - 3d audio sources should be separate, with pan/volume scale computed 
+//   relative to the observer during Update().
 ////////////////////////////////////////////////////////////////////////////////
 class Audio
 {
@@ -52,6 +56,9 @@ public:
 
 	static void          SetSourceVolume(AudioSourceId _id, float _pan);
 	static void          SetSourcePan(AudioSourceId _id, float _pan);
+
+	static void          SetObserver(const mat4& _world);
+	static void          SetSourceWorldPosition(AudioSourceId _id, const vec3& _position);
 
 	static void          Edit();
 
@@ -68,6 +75,8 @@ private:
 
 	AudioSourceId   m_nextSourceId = 0;
 	AudioSourceMap  m_sources;
+
+	mat4            m_observer     = identity;
 
 	static int StreamCallbackOut(const void* _input, void* output_, unsigned long _frameCount, void* _timeInfo, unsigned long _statusFlags, void* _user);
 

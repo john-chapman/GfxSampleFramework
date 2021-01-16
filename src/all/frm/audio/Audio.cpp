@@ -2,6 +2,7 @@
 
 #include <frm/core/log.h>
 #include <frm/core/memory.h>
+#include <frm/core/types.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Time.h>
 
@@ -24,6 +25,7 @@ enum Event
  // source properties
 	Event_SetSourceVolume,
 	Event_SetSourcePan,
+	Event_SetSourceWorldPosition,
 	Event_SetSourceLoopCount,
 
  // callback -> main thread
@@ -42,6 +44,7 @@ static const char* GetEnumStr(Event _event)
 		CASE_ENUM(Event_Stop);
 		CASE_ENUM(Event_SetSourceVolume);
 		CASE_ENUM(Event_SetSourcePan);
+		CASE_ENUM(Event_SetSourceWorldPosition);
 		CASE_ENUM(Event_SetSourceLoopCount);
 		CASE_ENUM(Event_ReleaseAudioData);
 	};
@@ -356,6 +359,19 @@ void Audio::SetSourcePan(AudioSourceId _id, float _pan)
 	FRM_VERIFY(s_callbackEventQueue->write(&e, 1) == 1);
 }
 
+void Audio::SetObserver(const mat4& _world)
+{
+	s_instance->m_observer = _world;
+}
+
+void Audio::SetSourceWorldPosition(AudioSourceId _id, const vec3& _position)
+{
+	FRM_STRICT_ASSERT(_id != AudioSourceId_Invalid);
+	AudioEvent e(Event_SetSourceWorldPosition, _id);
+	e.data<vec3>() = _position;
+	FRM_VERIFY(s_callbackEventQueue->write(&e, 1) == 1);
+}
+
 void Audio::Edit()
 {
 	auto SelectDevice = [&](AudioDevice* _current, int _minInputChannels, int _minOutputChannels) -> AudioDevice*
@@ -482,6 +498,7 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 	for (uint32 i = 0; i < eventCount; ++i)
 	{
 		auto& e = eventQueue[i];
+		FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 		switch (e.type())
 		{
 			default:
@@ -492,7 +509,6 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 			case Event_Play:
 			{
 				FRM_ASSERT(e.data<AudioData*>() != nullptr);
-				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto& source = sourceList[e.sourceId()];
 				source.m_audioData = e.data<AudioData*>();
 				source.m_position = source.m_audioData->getData();
@@ -500,7 +516,6 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 			}
 			case Event_Stop:
 			{
-				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
 				if (it != sourceList.end()) {
 					it->second.m_loopCount = 0;
@@ -511,7 +526,6 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 		 // source properties
 			case Event_SetSourceVolume: 
 			{
-				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
 				if (it != sourceList.end())
 				{
@@ -521,7 +535,6 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 			}
 			case Event_SetSourcePan:
 			{
-				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
 				if (it != sourceList.end())
 				{
@@ -529,9 +542,23 @@ int Audio::StreamCallbackOut(const void* _input, void* output_, unsigned long _f
 				}
 				break;
 			}
+			case Event_SetSourceWorldPosition:
+			{
+				auto it = sourceList.find(e.sourceId());
+				if (it != sourceList.end())
+				{
+					vec3 position = e.data<vec3>();
+					vec3 direction = position - GetTranslation(s_instance->m_observer);
+					float distance = length2(direction);
+					direction /= sqrtf(distance);
+
+					it->second.m_volume = 1.0f / distance;
+					it->second.m_pan = Dot(direction, s_instance->m_observer[0].xyz());
+				}
+				break;
+			}
 			case Event_SetSourceLoopCount:
 			{
-				FRM_ASSERT(e.sourceId() != AudioSourceId_Invalid);
 				auto it = sourceList.find(e.sourceId());
 				if (it != sourceList.end())
 				{
