@@ -3,6 +3,7 @@
 #include <frm/core/Profiler.h>
 #include <frm/core/Serializable.inl>
 
+#include <imgui/imgui.h>
 #include <im3d/im3d.h>
 
 namespace frm {
@@ -126,6 +127,41 @@ void CameraComponent::shutdownImpl()
 bool CameraComponent::editImpl()
 {
 	draw();
+	
+	const bool isDrawCamera = s_drawCamera[0] == this;
+	const bool isCullCamera = s_cullCamera[0] == this;
+
+	ImGui::PushStyleColor(ImGuiCol_Text, isDrawCamera ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
+	if (ImGui::Button(ICON_FA_VIDEO_CAMERA " Set Draw Camera"))
+	{
+		if (isDrawCamera && s_drawCamera[1])
+		{
+			SetDrawCamera(s_drawCamera[1]);
+		}
+		else
+		{		
+			SetDrawCamera(this);
+		}
+	}
+	ImGui::PopStyleColor();
+
+	ImGui::SameLine();
+	ImGui::PushStyleColor(ImGuiCol_Text, isCullCamera ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
+	if (ImGui::Button(ICON_FA_CUBES " Set Cull Camera"))
+	{
+		if (isCullCamera && s_cullCamera[1])
+		{
+			SetCullCamera(s_cullCamera[1]);
+		}
+		else
+		{		
+			SetCullCamera(this);
+		}
+	}
+	ImGui::PopStyleColor();
+
+	ImGui::Spacing();
+
 	return m_camera.edit();
 }
 
