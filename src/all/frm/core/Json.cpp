@@ -762,7 +762,7 @@ bool SerializerJson::beginObject(const char* _name)
 			}
 		}
 		if (m_json->getType() != Json::ValueType_Object) {
-			setError("Error serializing object: '%s' not an object", m_json->getName());
+			//setError("Error serializing object: '%s' not an object", m_json->getName());
 			return false;
 		}
 
@@ -797,7 +797,7 @@ bool SerializerJson::beginArray(uint& _length_, const char* _name)
 			}
 		}
 		if (m_json->getType() != Json::ValueType_Array) {
-			setError("Error serializing array: '%s' not an array", m_json->getName());
+			//setError("Error serializing array: '%s' not an array", m_json->getName());
 			return false;
 		}
 
