@@ -70,4 +70,9 @@ FRM_FORCE_LINK(XFormComponent);
 FRM_FORCE_LINK(XFormSpin);
 FRM_FORCE_LINK(XFormPositionTarget);
 
+#if FRM_MODULE_PHYSICS
+	FRM_FORCE_LINK(PhysicsComponent);
+	FRM_FORCE_LINK(CharacterControllerComponent);
+#endif
+
 } // namespace frm

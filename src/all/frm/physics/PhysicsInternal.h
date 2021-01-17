@@ -13,6 +13,7 @@
 #include <PxPhysicsAPI.h>
 #include <PxFiltering.h>
 #include <cooking/PxCooking.h>
+#include <characterkinematic/PxControllerManager.h>
 
 namespace frm {
 

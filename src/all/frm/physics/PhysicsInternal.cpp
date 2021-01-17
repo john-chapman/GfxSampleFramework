@@ -14,6 +14,7 @@
 #pragma comment(lib, "PhysXCommon_64")
 #pragma comment(lib, "PhysXFoundation_64")
 #pragma comment(lib, "PhysXExtensions_static_64")
+#pragma comment(lib, "PhysXCharacterKinematic_static_64")
 #pragma comment(lib, "PhysXCooking_64")
 
 namespace {
@@ -205,8 +206,9 @@ bool PxInit(const PxSettings& _settings, eastl::vector<frm::Physics::CollisionEv
 
 	g_pxScene = g_pxPhysics->createScene(sceneDesc);
 	FRM_ASSERT(g_pxScene);
-
 	g_pxScene->setSimulationEventCallback(&g_eventCallback);
+
+	g_pxControllerManager = PxCreateControllerManager(*g_pxScene);
 
 	Properties::PopGroup(2);
 
@@ -222,6 +224,7 @@ void PxShutdown()
 		g_pxCooking = nullptr;
 	}
 
+	g_pxControllerManager->release();
 	g_pxControllerManager = nullptr;
 	g_pxScene->release();
 	g_pxScene = nullptr;
