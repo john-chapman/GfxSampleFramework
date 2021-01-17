@@ -56,13 +56,13 @@ void World::Destroy(World*& _world_)
 Camera* World::GetDrawCamera()
 {
 	CameraComponent* drawCameraComponent = CameraComponent::GetDrawCamera();
-	return drawCameraComponent ? &drawCameraComponent->getCamera() : nullptr;
+	return drawCameraComponent ? &drawCameraComponent->getCamera() : World::GetCurrent()->getDefaultCamera();
 }
 
 Camera* World::GetCullCamera()
 {
 	CameraComponent* cullCameraComponent = CameraComponent::GetCullCamera();
-	return cullCameraComponent ? &cullCameraComponent->getCamera() : nullptr;
+	return cullCameraComponent ? &cullCameraComponent->getCamera() : World::GetCurrent()->getDefaultCamera();
 }
 
 bool World::serialize(Serializer& _serializer_)
@@ -153,7 +153,12 @@ bool World::postInit()
 {
 	FRM_ASSERT(m_state == State::Init);
 	m_state = World::State::PostInit;
-	return m_rootScene->postInit();
+	if (!m_rootScene->postInit())
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void World::shutdown()
@@ -239,6 +244,47 @@ void World::removeSceneInstance(Scene* _scene)
 	}
 }
 
+Camera* World::getDefaultCamera()
+{
+	CameraComponent* drawCamera = nullptr;
+	CameraComponent* cullCamera = nullptr;
+
+	m_rootScene->traverse([&drawCamera, &cullCamera](SceneNode* _node) -> bool
+		{
+			if (!_node->getFlag(SceneNode::Flag::Active))
+			{
+				return false;
+			}
+
+			CameraComponent* cameraComponent = (CameraComponent*)_node->findComponent(StringHash("CameraComponent"));
+			if (cameraComponent)
+			{
+				drawCamera = cullCamera	= cameraComponent;
+				return false;
+			}
+
+			return true;
+		});
+
+	if (!drawCamera)
+	{
+		SceneNode* cameraNode = m_rootScene->createTransientNode("#DefaultCamera");
+
+		cullCamera = drawCamera = (CameraComponent*)Component::Create(StringHash("CameraComponent"));
+		Camera& camera = drawCamera->getCamera();
+		camera.setPerspective(Radians(45.f), 16.f / 9.f, 0.1f, 1000.0f, Camera::ProjFlag_Infinite);
+		
+		FreeLookComponent* freeLookComponent = (FreeLookComponent*)Component::Create(StringHash("FreeLookComponent"));
+		freeLookComponent->lookAt(vec3(0.f, 10.f, 64.f), vec3(0.f, 0.f, 0.f));
+		
+		cameraNode->addComponent(drawCamera);
+		cameraNode->addComponent(freeLookComponent);
+
+		FRM_VERIFY(cameraNode->init() && cameraNode->postInit());
+	}
+
+	return &drawCamera->getCamera();
+}
 
 /*******************************************************************************
 
@@ -883,19 +929,6 @@ void Scene::setPath(const char* _path)
 Scene* Scene::CreateDefault(World* _world)
 {
 	Scene* scene = FRM_NEW(Scene(_world));
-
-	SceneNode* cameraNode = scene->createNode(2u, "#Camera1");
-
-	CameraComponent* cameraComponent = (CameraComponent*)Component::Create(StringHash("CameraComponent"), 1u);
-	Camera& camera = cameraComponent->getCamera();
-	camera.setPerspective(Radians(45.f), 16.f / 9.f, 0.1f, 1000.0f, Camera::ProjFlag_Infinite);
-	
-	FreeLookComponent* freeLookComponent = (FreeLookComponent*)Component::Create(StringHash("FreeLookComponent"), 2u);
-	freeLookComponent->lookAt(vec3(0.f, 10.f, 64.f), vec3(0.f, 0.f, 0.f));
-	
-	cameraNode->addComponent(cameraComponent);
-	cameraNode->addComponent(freeLookComponent);
-
 	return scene;
 }
 

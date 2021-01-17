@@ -97,6 +97,8 @@ private:
 	void addSceneInstance(Scene* _scene);
 	void removeSceneInstance(Scene* _scene);
 
+	Camera* getDefaultCamera();
+
 	friend class Scene;
 	friend class WorldEditor;
 };
