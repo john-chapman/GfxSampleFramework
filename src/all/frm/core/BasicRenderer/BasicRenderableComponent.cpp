@@ -131,7 +131,7 @@ bool BasicRenderableComponent::initImpl()
 			m_materialPaths.push_back("");
 			m_materials.push_back(nullptr);
 		}
-		m_materialPaths[0] = "materials/BasicMaterial.json";
+		m_materialPaths[0] = "materials/BasicMaterial.mat";
 	}
 	for (size_t i = 0; i < m_materialPaths.size(); ++i)
 	{
@@ -187,6 +187,7 @@ bool BasicRenderableComponent::editImpl()
 
 	if (Mesh::Select(m_mesh, "Mesh", { "*.gltf", "*.obj", "*.md5mesh" }))
 	{
+		m_meshPath = m_mesh->getPath();
 		if (ret && m_materialPaths.size() != m_mesh->getSubmeshCount())
 		{
 			m_materialPaths.resize(m_mesh->getSubmeshCount());
