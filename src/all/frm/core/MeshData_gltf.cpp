@@ -70,7 +70,33 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 		return false;
 	}
 
-	auto GetTransform = [](const tinygltf::Node* node)
+	auto GetMatrixd = [](const double* m) -> mat4
+		{
+			mat4 ret;
+			for (int i = 0; i < 4; ++i)
+			{
+				for (int j = 0; j < 4; ++j)
+				{
+					ret[i][j] = (float)m[i * 4 + j];
+				}
+			}
+			return ret;
+		};
+
+	auto GetMatrixf = [](const float* m) -> mat4
+		{
+			mat4 ret;
+			for (int i = 0; i < 4; ++i)
+			{
+				for (int j = 0; j < 4; ++j)
+				{
+					ret[i][j] = m[i * 4 + j];
+				}
+			}
+			return ret;
+		};
+
+	auto GetTransform = [GetMatrixd](const tinygltf::Node* node) -> mat4
 	{
 		if (node->matrix.empty())
 		{
@@ -98,25 +124,16 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 			return TransformationMatrix(translation, rotation, scale);
 		}
 		else
-		{
+		{		
 			FRM_ASSERT(node->matrix.size() == 16);
-
-			mat4 ret;
-			for (int i = 0; i < 4; ++i)
-			{
-				for (int j = 0; j < 4; ++j)
-				{
-					ret[i][j] = (float)node->matrix[i * 4 + j];
-				}
-			}
-		
-			return ret;
+			return GetMatrixd(node->matrix.data());
 		}
 	};
 
 	// We discard the actual submesh hierarchy here and generate a single submesh per material ID.
 	eastl::vector<MeshBuilder> meshBuilderPerMaterial;
 	meshBuilderPerMaterial.resize(Max((size_t)1, gltf.materials.size()));
+	Skeleton* inverseBindPose = nullptr; // Skeletons are also merged.
 
 	bool generateNormals = false;
 	bool generateTangents = false;
@@ -128,33 +145,48 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 		{
 			continue;
 		}
+			
+		// We traverse the scene's node list *and* recursively traverse each node's subtree. This may cause nodes to be visited multiple times if the scene node hierarchy isn't well formed.
+		eastl::vector<int> visitedNodes;
 
 		for (auto nodeIndex : scene.nodes)
 		{
-			std::vector<tinygltf::Node*> nodeStack;
+			std::vector<int> nodeStack;
 			std::vector<mat4> transformStack;
-			nodeStack.push_back(&gltf.nodes[nodeIndex]);
-			transformStack.push_back(GetTransform(nodeStack.back()));
+			nodeStack.push_back(nodeIndex);
+			transformStack.push_back(GetTransform(&gltf.nodes[nodeStack.back()]));
 			
 			while (!nodeStack.empty())
 			{
-				auto node = nodeStack.back();
+				int thisNodeIndex = nodeStack.back();
+				const auto& node = gltf.nodes[thisNodeIndex];
 				nodeStack.pop_back();
 				auto transform = transformStack.back();
 				transformStack.pop_back();
-				for (auto childIndex : node->children)
+
+				if (eastl::find(visitedNodes.begin(), visitedNodes.end(), thisNodeIndex) != visitedNodes.end())
 				{
-					nodeStack.push_back(&gltf.nodes[childIndex]);
-					mat4 childTransform = GetTransform(nodeStack.back());
+					FRM_LOG_ERR("Warning: Node hiearchy is not well-formed");
+					continue;
+				}
+				else
+				{
+					visitedNodes.push_back(thisNodeIndex);
+				}
+
+				for (auto childIndex : node.children)
+				{
+					nodeStack.push_back(childIndex);
+					mat4 childTransform = GetTransform(&gltf.nodes[nodeStack.back()]);
 					transformStack.push_back(transform * childTransform);
 				}
 
-				if (node->mesh == -1)
+				if (node.mesh == -1)
 				{
 					continue;
 				}
 
-				auto& mesh = gltf.meshes[node->mesh];
+				auto& mesh = gltf.meshes[node.mesh];
 				for (auto& meshPrimitive : mesh.primitives)
 				{
 					if (meshPrimitive.mode != TINYGLTF_MODE_TRIANGLES) // only triangles are supported
@@ -163,7 +195,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 					}
 				
 					MeshBuilder& meshBuilder = meshBuilderPerMaterial[Max(0, meshPrimitive.material)];
-					uint32 vertexOffset = meshBuilder.getVertexCount();
+					const uint32 vertexOffset = meshBuilder.getVertexCount();
 
 					tinygltf::Accessor positionsAccessor;
 					if (meshPrimitive.attributes.find("POSITION") != meshPrimitive.attributes.end())
@@ -194,12 +226,11 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						const auto& bufferView = gltf.bufferViews[positionsAccessor.bufferView];
 						const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + positionsAccessor.byteOffset;
 						const size_t stride = positionsAccessor.ByteStride(bufferView);
-						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
+						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex, buffer += stride)
 						{
 							MeshBuilder::Vertex vertex;
 							vertex.m_position = TransformPosition(transform, *((vec3*)buffer));
 							meshBuilder.addVertex(vertex);
-							buffer += stride;
 						}
 					}
 
@@ -212,7 +243,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						for (uint32 triangleIndex = 0; triangleIndex < triangleCount; ++triangleIndex)
 						{
 							MeshBuilder::Triangle triangle;
-							for (uint32 vertexIndex = 0; vertexIndex < 3; ++vertexIndex)
+							for (uint32 vertexIndex = 0; vertexIndex < 3; ++vertexIndex, buffer += stride)
 							{
 								switch (indicesAccessor.componentType)
 								{
@@ -226,7 +257,6 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 										break;
 								};
 								triangle[vertexIndex] += vertexOffset;
-								buffer += stride;
 							}
 							meshBuilder.addTriangle(triangle);
 						}
@@ -243,11 +273,10 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						const auto& bufferView = gltf.bufferViews[normalsAccessor.bufferView];
 						const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + normalsAccessor.byteOffset;
 						const size_t stride = normalsAccessor.ByteStride(bufferView);
-						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
+						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex, buffer += stride)
 						{
 							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
 							vertex.m_normal = TransformDirection(transform, Normalize(*((vec3*)buffer)));
-							buffer += stride;
 						}
 					}
 					else
@@ -266,12 +295,11 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						const auto& bufferView = gltf.bufferViews[tangentsAccessor.bufferView];
 						const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + tangentsAccessor.byteOffset;
 						const size_t stride = tangentsAccessor.ByteStride(bufferView);
-						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
+						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex, buffer += stride)
 						{
 							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
 							vertex.m_tangent = *((vec4*)buffer);
 							vertex.m_tangent = vec4(TransformDirection(transform, Normalize(vertex.m_tangent.xyz())), vertex.m_tangent.w);
-							buffer += stride;
 						}
 					}
 					else
@@ -290,14 +318,57 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						const auto& bufferView = gltf.bufferViews[texcoordsAccessor.bufferView];
 						const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + texcoordsAccessor.byteOffset;
 						const size_t stride = texcoordsAccessor.ByteStride(bufferView);
-						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
+						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex, buffer += stride)
 						{
 							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
 							vertex.m_texcoord = *((vec2*)buffer);
-							buffer += stride;
 						}
 					}
 
+				}
+
+				if (node.skin != -1)
+				{
+					if (!inverseBindPose)
+					{
+						inverseBindPose = FRM_NEW(Skeleton);
+					}
+
+					auto& skin = gltf.skins[node.skin];
+
+					eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1); // Map node indices -> bone indices.
+					for (int jointIndex : skin.joints)
+					{
+						const auto& joint = gltf.nodes[jointIndex];
+						int boneIndex = inverseBindPose->addBone(joint.name.c_str(), -1);
+						boneIndexMap[jointIndex] = boneIndex;
+					}
+
+					for (int jointIndex : skin.joints)
+					{
+						const auto& joint = gltf.nodes[jointIndex];
+						int parentIndex = boneIndexMap[jointIndex];
+						for (int childIndex : joint.children)
+						{
+							int boneIndex = boneIndexMap[childIndex];
+							inverseBindPose->getBone(boneIndex).m_parentIndex = parentIndex;
+						}
+					}
+
+					tinygltf::Accessor bindPoseAccessor = gltf.accessors[skin.inverseBindMatrices];
+					FRM_ASSERT(bindPoseAccessor.count == skin.joints.size());
+					FRM_ASSERT(bindPoseAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+					FRM_ASSERT(bindPoseAccessor.type == TINYGLTF_TYPE_MAT4);					
+					const auto& bufferView = gltf.bufferViews[bindPoseAccessor.bufferView];
+					const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + bindPoseAccessor.byteOffset;
+					const size_t stride = bindPoseAccessor.ByteStride(bufferView);
+					for (int boneIndex = 0; boneIndex < (int)bindPoseAccessor.count; ++boneIndex, buffer += stride)
+					{
+						const mat4 transform = GetMatrixf((const float*)buffer);
+						inverseBindPose->getBone(boneIndex).m_position = GetTranslation(transform);
+						inverseBindPose->getBone(boneIndex).m_orientation = RotationQuaternion(GetRotation(transform));
+						inverseBindPose->getBone(boneIndex).m_scale = GetScale(transform);
+					}
 				}
 			}
 		}
@@ -327,6 +398,9 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 
 	MeshData retMesh(meshDesc, finalMeshBuilder);
 	swap(mesh_, retMesh);
+
+	inverseBindPose->resolve();
+	mesh_.m_bindPose = inverseBindPose;
 
 	return true;
 }
