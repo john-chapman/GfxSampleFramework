@@ -680,12 +680,7 @@ void Scene::shutdown()
 	FRM_ASSERT(m_state == World::State::PostInit);
 	m_state = World::State::Shutdown;
 
-	for (auto& it : m_localNodeMap)
-	{
-		it.second->shutdown();
-		destroyNode(it.second);
-	}
-	
+	destroyNode(m_root.referent); // Will cause all nodes to be recursively destroyed during flushPendingDeletes().
 	flushPendingDeletes();
 	m_localNodeMap.clear();
 	m_globalNodeMap.clear();
@@ -997,39 +992,53 @@ void Scene::flushPendingDeletes()
 	bool requireGlobalNodeMapReset = false;	
 	while (!m_pendingDeletes.empty())
 	{
-		SceneNode* node = m_pendingDeletes.back();
-		m_pendingDeletes.pop_back();
-	
-		FRM_ASSERT(node);
-		FRM_ASSERT(node->m_parentScene == this);
+		// Calling shutdown() on a node below may append to m_pendingDeletes, hence process the list iteratively.
+		eastl::vector<SceneNode*> pendingDeletes;
+		eastl::swap(m_pendingDeletes, pendingDeletes);
 
-		if (node->getState() != World::State::Shutdown)
+		while (!pendingDeletes.empty())
 		{
-			node->shutdown(); // \todo This may append nodes to m_pendingDelets, is this safe?
-		}
+			SceneNode* node = pendingDeletes.back();
+			pendingDeletes.pop_back();
+		
+			FRM_ASSERT(node);
+			FRM_ASSERT(node->m_parentScene == this);
 
-		if (node->getFlag(SceneNode::Flag::Transient))
-		{
-			// Transient nodes can simply be deleted.
-			FRM_ASSERT(node->getID() == 0u);
-			m_nodePool.free(node);	
-		}
-		else
-		{
-			// Removal from the parent is automatic for transient nodes (happens during shutdown). Permanent nodes must do this manually.
-			if (node->m_parent.isResolved())
+			if (node->getState() != World::State::Shutdown)
 			{
-				node->m_parent->removeChild(node);
+				node->shutdown();
 			}
 
-			// Permanent nodes must be removed from the local/global node maps.
-			SceneID id = node->getID();
-			FRM_ASSERT(id != 0u);
-			auto it = m_localNodeMap.find(id);
-			FRM_ASSERT(it != m_localNodeMap.end());
-			m_localNodeMap.erase(it);
-			m_nodePool.free(node);
-			requireGlobalNodeMapReset = true;
+			// \todo Handle this outside the call to flushPendingDeletes() to manage different behaviors e.g. reparent.
+			for (LocalNodeReference& child : node->m_children)
+			{
+				child->m_parent = LocalNodeReference();
+				destroyNode(child.referent);
+			}
+
+			if (node->getFlag(SceneNode::Flag::Transient))
+			{
+				// Transient nodes can simply be deleted.
+				FRM_ASSERT(node->getID() == 0u);
+				m_nodePool.free(node);	
+			}
+			else
+			{
+				// Removal from the parent is automatic for transient nodes (happens during shutdown). Permanent nodes must do this manually.
+				if (node->m_parent.isResolved())
+				{
+					node->m_parent->removeChild(node);
+				}
+
+				// Permanent nodes must be removed from the local/global node maps.
+				SceneID id = node->getID();
+				FRM_ASSERT(id != 0u);
+				auto it = m_localNodeMap.find(id);
+				FRM_ASSERT(it != m_localNodeMap.end());
+				m_localNodeMap.erase(it);
+				m_nodePool.free(node);
+				requireGlobalNodeMapReset = true;
+			}
 		}
 	}
 	

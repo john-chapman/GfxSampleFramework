@@ -2,7 +2,6 @@
 	- Resolving hierarchical transforms may need to happen pre- and post- physics, as kinematic animation and physics simluation may modify the parent world transform.
 		- Potentially fix this by doing an explicit resolve on nodes whose world space transforms have been modified?
 	- Allow init()/postInit() to be called multiple times on nodes/components? Use case is re-initialization when editing. Otherwise need to rely on calling shutdown() first which has some resource lifetime issues.
-	- Bug whereby deleting a parent node does not correctly delete child nodes/components.
 	- Child scene implementation.
 	- Store timestamps to avoid re-loading child scenes during serialization.
 	- Allocate scenes from a pool?
