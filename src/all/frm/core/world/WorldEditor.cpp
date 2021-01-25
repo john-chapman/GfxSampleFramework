@@ -740,6 +740,11 @@ bool WorldEditor::hierarchyView(SceneNode* _rootNode_)
 			nodeLabel.append(" " ICON_FA_CARET_LEFT);
 		}
 
+		if (m_show3DNodeLabels)
+		{
+			Im3d::Text(node->getPosition(), 1.0f, Im3d::Color_White, Im3d::TextFlags_Default, node->getName());
+		}
+
 		const bool isActive = node->getFlag(SceneNode::Flag::Active);
 	
 		// Disable the default open on single-click behavior and pass in Selected flag according to our selection state.
@@ -1470,7 +1475,12 @@ SceneNode* WorldEditor::duplicateNode(const SceneNode* _node)
 	newNode->m_id = newNodeID;
 	newNode->m_name = newNodeName;
 	
-	newNode->m_children.clear(); // Any duplicated child references are invalid, remove them.
+	newNode->m_children.clear();
+	for (const LocalNodeReference& child : _node->m_children)
+	{
+		SceneNode* newChild = duplicateNode(child.referent);
+		newNode->addChild(newChild);
+	}
 
 	Scene* parentScene = newNode->m_parentScene;
 	for (LocalComponentReference& component : newNode->m_components)
@@ -1517,7 +1527,7 @@ bool WorldEditor::createComponent(SceneNode* _node)
 
 	Scene* scene = _node->getParentScene();
 	FRM_STRICT_ASSERT(scene);
-
+	
 	for (int i = 0; i < Component::GetClassRefCount(); ++i)
 	{
 		const Component::ClassRef* cref = Component::GetClassRef(i);
