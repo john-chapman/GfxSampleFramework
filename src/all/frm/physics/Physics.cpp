@@ -174,6 +174,8 @@ void Physics::Edit()
 			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
 			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_LIN_VELOCITY,  0.25f);
 			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_ANG_VELOCITY,  0.25f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES,  0.25f);
+			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
 		}
 		else
 		{

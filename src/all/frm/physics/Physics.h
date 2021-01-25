@@ -175,6 +175,8 @@ public:
 	const PhysicsGeometry* getGeometry() const  { return m_geometry; }
 	const PhysicsMaterial* getMaterial() const  { return m_material; }
 
+	void*        getImpl() { return m_impl; }
+
 	// Reset to the initial state, zero velocities.
 	virtual void reset();
 
@@ -186,6 +188,7 @@ public:
 
 	// \hack Re-initialize (e.g. after edit).
 	bool         reinit();
+
 
 protected:
 

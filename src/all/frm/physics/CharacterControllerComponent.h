@@ -1,5 +1,9 @@
 #pragma once
 
+#if !FRM_MODULE_PHYSICS
+	#error FRM_MODULE_PHYSICS was not enabled
+#endif
+
 #include <frm/core/world/components/Component.h>
 
 namespace frm {

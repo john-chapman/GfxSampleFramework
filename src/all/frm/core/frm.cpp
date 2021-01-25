@@ -72,6 +72,7 @@ FRM_FORCE_LINK(XFormPositionTarget);
 
 #if FRM_MODULE_PHYSICS
 	FRM_FORCE_LINK(PhysicsComponent);
+	FRM_FORCE_LINK(PhysicsConstraint);
 	FRM_FORCE_LINK(CharacterControllerComponent);
 #endif
 
