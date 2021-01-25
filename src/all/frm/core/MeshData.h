@@ -2,7 +2,6 @@
 
 #include <frm/core/frm.h>
 #include <frm/core/geom.h>
-#include <frm/core/SkeletonAnimation.h>
 #include <frm/core/String.h>
 
 #include <EASTL/vector.h>
@@ -247,25 +246,26 @@ public:
 	void setIndexData(frm::DataType _srcType, const void* _src);
 
 	uint64          getHash() const;
-	const char*     getPath() const               { return (const char*)m_path; }
-	const MeshDesc& getDesc() const               { return m_desc; }
-	uint            getVertexCount() const        { return m_submeshes[0].m_vertexCount; }
-	const void*     getVertexData() const         { return m_vertexData; }
-	uint            getIndexCount() const         { return m_submeshes[0].m_indexCount; }
-	const void*     getIndexData() const          { return m_indexData; }
-	frm::DataType   getIndexDataType() const      { return m_indexDataType; }
+	const char*     getPath() const                               { return (const char*)m_path; }
+	const MeshDesc& getDesc() const                               { return m_desc; }
+	uint            getVertexCount() const                        { return m_submeshes[0].m_vertexCount; }
+	const void*     getVertexData() const                         { return m_vertexData; }
+	uint            getIndexCount() const                         { return m_submeshes[0].m_indexCount; }
+	const void*     getIndexData() const                          { return m_indexData; }
+	frm::DataType   getIndexDataType() const                      { return m_indexDataType; }
 
-	const Skeleton* getBindPose() const                { return m_bindPose; }
-	void            setBindPose(const Skeleton& _skel);
+	const mat4*     getBindPose() const                           { return m_bindPose.data(); }
+	uint            getBindPoseSize() const                       { return m_bindPose.size(); }
+	void            setBindPose(const mat4* _pose, uint _size);
 
 protected:
-	frm::String<32> m_path            = ""; // empty if not from a file
-	Skeleton*       m_bindPose        = nullptr;
-	MeshDesc        m_desc;
-	char*           m_vertexData      = nullptr;
-	char*           m_indexData       = nullptr;
-	frm::DataType   m_indexDataType   = frm::DataType_Invalid;
 
+	frm::String<32>        m_path            = ""; // empty if not from a file
+	MeshDesc               m_desc;
+	char*                  m_vertexData      = nullptr;
+	char*                  m_indexData       = nullptr;
+	frm::DataType          m_indexDataType   = frm::DataType_Invalid;
+	eastl::vector<mat4>    m_bindPose;
 	eastl::vector<Submesh> m_submeshes;
 
 	// \todo 

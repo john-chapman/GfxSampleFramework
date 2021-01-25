@@ -18,6 +18,15 @@ using namespace frm;
 
 // PUBLIC
 
+Skeleton::Skeleton()
+{
+	// Bone is cast to a float* during sampling, check alignments/offsets:
+	FRM_STATIC_ASSERT(alignof(Bone) >= alignof(float));
+	FRM_STATIC_ASSERT(offsetof(Bone, m_position) == 0);
+	FRM_STATIC_ASSERT(offsetof(Bone, m_orientation) == 3 * sizeof(float));
+	FRM_STATIC_ASSERT(offsetof(Bone, m_scale) == 7 * sizeof(float));
+}
+
 int Skeleton::addBone(const char* _name, int _parentIndex)
 {
 	FRM_ASSERT(_parentIndex < getBoneCount());
@@ -33,15 +42,17 @@ const mat4* Skeleton::resolve()
 {
 	FRM_ASSERT(m_pose.size() == m_bones.size());
 
-	for (int i = 0, n = getBoneCount(); i < n; ++i) {
+	for (int i = 0, n = getBoneCount(); i < n; ++i)
+	{
 		const Bone& bone = m_bones[i];
 
 		mat4 m = TransformationMatrix(bone.m_position, bone.m_orientation, bone.m_scale);
 
-		if (bone.m_parentIndex >= 0) {
+		if (bone.m_parentIndex >= 0)
+		{
 			FRM_ASSERT(bone.m_parentIndex <= i); // parent must come before children
 
-		 // \todo cheaper to apply the parent position/orientation/scale separately then build the matrix?
+			// \todo Cheaper to apply the parent position/orientation/scale separately then build the matrix?
 			m = m_pose[bone.m_parentIndex] * m;
 		}
 
@@ -58,9 +69,11 @@ void Skeleton::draw() const
 	Im3d::SetColor(Im3d::Color_White);
 	Im3d::SetAlpha(0.2f);
 	Im3d::BeginLines();
-		for (int i = 0, n = (int)m_bones.size(); i < n; ++i) {
+		for (int i = 0, n = (int)m_bones.size(); i < n; ++i)
+		{
 			const Bone& bone = m_bones[i];
-			if (bone.m_parentIndex >= 0) {
+			if (bone.m_parentIndex >= 0)
+			{
 				Im3d::Vertex(GetTranslation(m_pose[i]), 2.0f);
 				Im3d::Vertex(GetTranslation(m_pose[bone.m_parentIndex]), 12.0f);
 			}
@@ -68,7 +81,8 @@ void Skeleton::draw() const
 	Im3d::End();
 
 	Im3d::SetAlpha(1.0f);
-	for (auto& m : m_pose) {
+	for (auto& m : m_pose)
+	{
 		Im3d::PushMatrix();
 		Im3d::MulMatrix(m);
 			float s = Im3d::GetContext().pixelsToWorldSize(GetTranslation(m), 16.0f);
@@ -81,14 +95,6 @@ void Skeleton::draw() const
 	Im3d::PopDrawState();
 }
 
-Skeleton::Skeleton()
-{
- // Bone is cast to a float* during sampling, check alignments/offsets:
-	FRM_STATIC_ASSERT(alignof(Bone) >= alignof(float));
-	FRM_STATIC_ASSERT(offsetof(Bone, m_position) == 0);
-	FRM_STATIC_ASSERT(offsetof(Bone, m_orientation) == 3 * sizeof(float));
-	FRM_STATIC_ASSERT(offsetof(Bone, m_scale) == 7 * sizeof(float));
-}
 
 /******************************************************************************
 
@@ -101,16 +107,23 @@ Skeleton::Skeleton()
 void SkeletonAnimationTrack::sample(float _t, float* out_, int* _hint_)
 {
 	int i;
-	if (_hint_ == nullptr) { 
-	 // no hint, use binary search
+	if (_hint_ == nullptr)
+	{ 
+		// No hint, use binary search.
 		i = findFrame(_t);
-	} else { 
-	 // hint, use linear search
+	}
+	else
+	{ 
+		// Hint, use linear search.
 		i = *_hint_;
-		if_unlikely (_t < m_frames[i]) {
+		if_unlikely (_t < m_frames[i])
+		{
 			i = findFrame(_t);
-		} else {
-			while (_t > m_frames[i + 1]) {
+		}
+		else
+		{
+			while (_t > m_frames[i + 1])
+			{
 				i = (i + 1) % (int)m_frames.size();
 			}
 			*_hint_ = i;
@@ -124,19 +137,25 @@ void SkeletonAnimationTrack::sample(float _t, float* out_, int* _hint_)
 	const float* a = &m_data[i * m_boneDataSize];
 	const float* b = &m_data[(i + 1) * m_boneDataSize];
 #if 0
- // straight lerp
-	for (int j = 0; j < m_boneDataSize; ++j) {
+	// Straight lerp.
+	for (int j = 0; j < m_boneDataSize; ++j)
+	{
 		out_[j] = lerp(a[j], b[j], t);
 	}
 #else
- // assume 4 float data is a quaternion, do slerp
-	if (m_boneDataSize == 3) {
+	if (m_boneDataSize == 3)
+	{
 		*((vec3*)out_) = lerp(*((vec3*)a), *((vec3*)b), t);
-	} else if (m_boneDataSize == 4) {
+	}
+	else if (m_boneDataSize == 4) // Assume 4 float data is a quaternion, do slerp.
+	{
 		//*((quat*)out_) = slerp(*((quat*)a), *((quat*)b), t);
 		*((quat*)out_) = linalg::qslerp(*((quat*)a), *((quat*)b), t);
-	} else {
-		for (int j = 0; j < m_boneDataSize; ++j) {
+	}
+	else
+	{
+		for (int j = 0; j < m_boneDataSize; ++j)
+		{
 			out_[j] = lerp(a[j], b[j], t);
 		}
 	}
@@ -147,11 +166,13 @@ void SkeletonAnimationTrack::sample(float _t, float* out_, int* _hint_)
 void SkeletonAnimationTrack::addFrames(int _count, const float* _normalizedTimes, const float* _data)
 {
 	FRM_ASSERT(m_frames.empty() || m_frames.back() < *_normalizedTimes);
-	for (int i = 0; i < _count; ++i) {
+	for (int i = 0; i < _count; ++i)
+	{
 		FRM_ASSERT(*_normalizedTimes >= 0.0f && *_normalizedTimes <= 1.0f); // times must be normalized by the track duration
 		
 		m_frames.push_back(*(_normalizedTimes++));
-		for (int j = 0; j < m_boneDataSize; ++j) {
+		for (int j = 0; j < m_boneDataSize; ++j)
+		{
 			m_data.push_back(*(_data++));
 		}
 	}
@@ -164,10 +185,13 @@ SkeletonAnimationTrack::SkeletonAnimationTrack(int _boneIndex, int _boneDataOffs
 	, m_boneDataOffset(_boneDataOffset)
 	, m_boneDataSize(_boneDataSize)
 {
-	if (_frameCount > 0 && _normalizedTimes != nullptr) {
+	if (_frameCount > 0 && _normalizedTimes != nullptr)
+	{
 		m_frames.assign(_normalizedTimes, _normalizedTimes + _frameCount);
 	}
-	if (_frameCount > 0 && _data) {
+	
+	if (_frameCount > 0 && _data)
+	{
 		m_data.assign(_data, _data + _frameCount * _boneDataSize);
 	}
 }
@@ -176,11 +200,15 @@ SkeletonAnimationTrack::SkeletonAnimationTrack(int _boneIndex, int _boneDataOffs
 int SkeletonAnimationTrack::findFrame(float _t)
 {
 	int lo = 0, hi = (int)m_frames.size() - 1;
-	while (hi - lo > 1) {
+	while (hi - lo > 1)
+	{
 		int mid = (hi + lo) / 2;		
-		if (_t > m_frames[mid]) {
+		if (_t > m_frames[mid])
+		{
 			lo = mid;
-		} else {
+		}
+		else
+		{
 			hi = mid;
 		}
 	}
@@ -199,14 +227,18 @@ SkeletonAnimation* SkeletonAnimation::Create(const char* _path)
 {
 	Id id = GetHashId(_path);
 	SkeletonAnimation* ret = Find(id);
-	if (!ret) {
+	if (!ret)
+	{
 		ret = new SkeletonAnimation(id, _path);
 		ret->m_path.set(_path);
 	}
+	
 	Use(ret);
-	if (ret->getState() != State_Loaded) {
+	if (!CheckResource(ret))
+	{
 		FRM_LOG_ERR("Error loading SkeletonAnimation '%s'", _path);
 	}
+
 	return ret;
 }
 void SkeletonAnimation::Destroy(SkeletonAnimation*& _inst_)
@@ -216,33 +248,41 @@ void SkeletonAnimation::Destroy(SkeletonAnimation*& _inst_)
 
 bool SkeletonAnimation::reload()
 {
-	if (m_path.isEmpty()) {
+	if (m_path.isEmpty())
+	{
 		return true;
 	}
 
 	FRM_AUTOTIMER("SkeletonAnimation::load(%s)", (const char*)m_path);
 
 	File f;
-	if (!FileSystem::Read(f, (const char*)m_path)) {
+	if (!FileSystem::Read(f, (const char*)m_path))
+	{
 		return false;
 	}
 
-	if (FileSystem::CompareExtension("md5anim", (const char*)m_path)) {
+	if (FileSystem::CompareExtension("md5anim", (const char*)m_path))
+	{
 		return ReadMd5(*this, f.getData(), f.getDataSize());
-	} else {
+	}
+	else
+	{
 		FRM_ASSERT(false); // unsupported format
 	}
+
 	return false;
 }
 
 
 void SkeletonAnimation::sample(float _t, Skeleton& _out_, int _hints_[])
 {
-	for (auto& track : m_tracks) {
+	for (auto& track : m_tracks)
+	{
 		float* out = (float*)&_out_.getBone(track.getBoneIndex());
 		out += track.getBoneDataOffset();
 		track.sample(_t, out, _hints_);
-		if (_hints_) {
+		if (_hints_)
+		{
 			++_hints_;
 		}
 	}
@@ -285,8 +325,10 @@ SkeletonAnimation::~SkeletonAnimation()
 
 SkeletonAnimationTrack* SkeletonAnimation::findTrack(int _boneIndex, int _boneDataOffset, int _boneDataSize)
 {
-	for (auto& track : m_tracks) {
-		if (track.m_boneIndex == _boneIndex && track.m_boneDataOffset == _boneDataOffset && track.m_boneDataSize == _boneDataSize) {
+	for (auto& track : m_tracks)
+	{
+		if (track.m_boneIndex == _boneIndex && track.m_boneDataOffset == _boneDataOffset && track.m_boneDataSize == _boneDataSize)
+		{
 			return &track;
 		}
 	}

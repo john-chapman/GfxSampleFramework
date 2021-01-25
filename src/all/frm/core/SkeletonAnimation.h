@@ -21,19 +21,21 @@ public:
 	
 	struct Bone
 	{
-		vec3   m_position;
-		quat   m_orientation; // unit length
-		vec3   m_scale;
-		int    m_parentIndex; // -1 for a root bone
+		vec3   m_position     = vec3(0.0f);
+		quat   m_orientation  = quat(0.0f, 0.0f, 0.0f, 1.0f);
+		vec3   m_scale        = vec3(1.0f);
+		int    m_parentIndex  = -1; // -1 = root bone
 	};
 
+	             Skeleton();
+
 	// Return the index of the new bone.
-	int addBone(const char* _name, int _parentIndex = -1);
+	int          addBone(const char* _name, int _parentIndex = -1);
 
 	// Resolve bone hierarchy into final pose. 
-	const mat4* resolve();
+	const mat4*  resolve();
 
-	void draw() const;
+	void         draw() const;
 
 	const mat4*  getPose() const                         { return m_pose.data(); }
 	      mat4*  getPose()                               { return m_pose.data(); }
@@ -43,8 +45,6 @@ public:
 	      Bone&  getBone(int _index)                     { FRM_ASSERT(_index < getBoneCount()); return m_bones[_index];     }
 	      BoneId getBoneId(int _index) const             { FRM_ASSERT(_index < getBoneCount()); return m_boneIds[_index];   }
 	const char*  getBoneName(int _index) const           { FRM_ASSERT(_index < getBoneCount()); return (const char*)m_boneNames[_index]; }
-
-	Skeleton();
 
 private:
 	eastl::vector<mat4>     m_pose; // resolved model space pose
@@ -72,12 +72,12 @@ public:
 
 	void addFrames(int _count, const float* _normalizedTimes, const float* _data);
 	
-	int getBoneIndex() const       { return m_boneIndex; }
-	int getBoneDataOffset() const  { return m_boneDataOffset; }
-	int getBoneDataSize() const    { return m_boneDataSize; }
+	int  getBoneIndex() const       { return m_boneIndex; }
+	int  getBoneDataOffset() const  { return m_boneDataOffset; }
+	int  getBoneDataSize() const    { return m_boneDataSize; }
 	
-
 private:
+
 	int m_boneIndex;
 	int m_boneDataOffset;  // result offset in Skeleton::Bone
 	int m_boneDataSize;    // number of floats per frame

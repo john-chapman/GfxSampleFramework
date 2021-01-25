@@ -1,5 +1,6 @@
 #include "MeshData.h"
 
+#include <frm/core/SkeletonAnimation.h>
 #include <frm/core/TextParser.h>
 
 #include <md5mesh.h>
@@ -137,7 +138,7 @@ bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 		tmpMesh.updateBounds();
 
 		MeshData retMesh(meshDesc, tmpMesh);
-		retMesh.setBindPose(tmpSkeleton);
+		retMesh.setBindPose(tmpSkeleton.getPose(), tmpSkeleton.getBoneCount());
 		swap(mesh_, retMesh);
 	}
 

@@ -641,6 +641,15 @@ void MeshData::setIndexData(DataType _srcType, const void* _src)
 	}
 }
 
+void MeshData::setBindPose(const mat4* _pose, uint _size)
+{
+	m_bindPose.clear();
+	for (size_t i = 0; i < _size; ++i)
+	{
+		m_bindPose.push_back(_pose[i]);
+	}
+}
+
 void MeshData::beginSubmesh(uint _materialId)
 {
 	Submesh submesh;
@@ -692,33 +701,19 @@ uint64 MeshData::getHash() const
 	else
 	{
 		uint64 ret = m_desc.getHash();
+
 		if (m_vertexData)
 		{
 			ret = Hash<uint64>(m_vertexData, m_desc.getVertexSize() * getVertexCount(), ret);
 		}
+
 		if (m_indexData)
 		{
 			ret = Hash<uint64>(m_indexData, DataTypeSizeBytes(m_indexDataType) * getIndexCount(), ret);
 		}
-		if (m_bindPose)
-		{
-			for (int i = 0; i < m_bindPose->getBoneCount(); ++i)
-			{
-				const Skeleton::Bone& bone = m_bindPose->getBone(i);
-				ret = HashString<uint64>(m_bindPose->getBoneName(i), ret);
-			}
-		}
+
 		return ret;
 	}
-}
-
-void MeshData::setBindPose(const Skeleton& _skel)
-{
-	if (!m_bindPose)
-	{
-		m_bindPose = FRM_NEW(Skeleton);
-	}
-	*m_bindPose = _skel;
 }
 
 // PRIVATE
@@ -800,10 +795,6 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 
 MeshData::~MeshData()
 {
-	if (m_bindPose)
-	{
-		FRM_DELETE(m_bindPose);
-	}
 	FRM_FREE(m_vertexData);
 	FRM_FREE(m_indexData);
 }
