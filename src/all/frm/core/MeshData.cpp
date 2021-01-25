@@ -200,7 +200,14 @@ MeshData* MeshData::Create(const char* _path, const MeshDesc& _desc)
 	ret->m_desc = _desc;
 	ret->m_path.set(_path);
 
-	if (FileSystem::CompareExtension("obj", _path))
+	if (FileSystem::CompareExtension("gltf", _path))
+	{
+		if (!ReadGltf(*ret, f.getData(), f.getDataSize()))
+		{
+			goto MeshData_Create_error;
+		}
+	}
+	else if (FileSystem::CompareExtension("obj", _path))
 	{
 		if (!ReadObj(*ret, f.getData(), f.getDataSize()))
 		{
@@ -210,13 +217,6 @@ MeshData* MeshData::Create(const char* _path, const MeshDesc& _desc)
 	else if (FileSystem::CompareExtension("md5mesh", _path))
 	{
 		if (!ReadMd5(*ret, f.getData(), f.getDataSize()))
-		{
-			goto MeshData_Create_error;
-		}
-	}
-	else if (FileSystem::CompareExtension("gltf", _path))
-	{
-		if (!ReadGltf(*ret, f.getData(), f.getDataSize()))
 		{
 			goto MeshData_Create_error;
 		}
@@ -758,6 +758,10 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 		if (tangentsAttr)
 		{
 			DataTypeConvert(DataType_Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), FRM_MIN(4, (int)tangentsAttr->getCount()));
+		}
+		if (colorsAttr)
+		{
+			DataTypeConvert(DataType_Float32, colorsAttr->getDataType(), &src.m_color, dst + colorsAttr->getOffset(), FRM_MIN(4, (int)colorsAttr->getCount()));
 		}
 		if (boneWeightsAttr)
 		{

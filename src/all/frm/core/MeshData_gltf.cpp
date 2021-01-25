@@ -137,7 +137,8 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 
 	bool generateNormals = false;
 	bool generateTangents = false;
-	bool hasBoneWeigths = false; // \todo
+	bool hasBoneIndices = false;
+	bool hasBoneWeights = false;
 
 	for (auto& scene : gltf.scenes)
 	{
@@ -166,7 +167,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 
 				if (eastl::find(visitedNodes.begin(), visitedNodes.end(), thisNodeIndex) != visitedNodes.end())
 				{
-					FRM_LOG_ERR("Warning: Node hiearchy is not well-formed");
+					FRM_LOG_ERR("Warning: Node hierarchy is not well-formed");
 					continue;
 				}
 				else
@@ -189,42 +190,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 				eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1); // Map node indices -> bone indices.
 				if (node.skin != -1)
 				{
-					auto& skin = gltf.skins[node.skin];
-
-					// Don't need to read the skeleton hierarchy here, gltf stores the inverse bind pose directly.
-					/*for (int jointIndex : skin.joints)
-					{
-						const auto& joint = gltf.nodes[jointIndex];
-						int boneIndex = bindPose->addBone(joint.name.c_str(), -1);
-						Skeleton::Bone& bone = bindPose->getBone(boneIndex);
-						boneIndexMap[jointIndex] = boneIndex;
-
-						if (!joint.translation.empty())
-						{
-							bone.m_position = vec3(joint.translation[0], joint.translation[1], joint.translation[2]);
-						}
-
-						if (!joint.scale.empty())
-						{
-							bone.m_scale = vec3(joint.scale[0], joint.scale[1], joint.scale[2]);
-						}
-
-						if (!joint.rotation.empty())
-						{
-							bone.m_orientation = quat(joint.rotation[0], joint.rotation[1], joint.rotation[2], joint.rotation[3]);
-						}
-					}
-
-					for (int jointIndex : skin.joints)
-					{
-						const auto& joint = gltf.nodes[jointIndex];
-						int parentIndex = boneIndexMap[jointIndex];
-						for (int childIndex : joint.children)
-						{
-							int boneIndex = boneIndexMap[childIndex];
-							bindPose->getBone(boneIndex).m_parentIndex = parentIndex;
-						}
-					}*/
+					const auto& skin = gltf.skins[node.skin];
 
 					tinygltf::Accessor bindPoseAccessor = gltf.accessors[skin.inverseBindMatrices];
 					FRM_ASSERT(bindPoseAccessor.count == skin.joints.size());
@@ -379,6 +345,8 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 
 					if (meshPrimitive.attributes.find("JOINTS_0") != meshPrimitive.attributes.end())
 					{
+						hasBoneIndices = true;
+
 						tinygltf::Accessor boneIndicesAccessor = gltf.accessors[meshPrimitive.attributes["JOINTS_0"]];
 						FRM_ASSERT(boneIndicesAccessor.count == positionsAccessor.count);
 						FRM_ASSERT(boneIndicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
@@ -400,6 +368,8 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 
 					if (meshPrimitive.attributes.find("WEIGHTS_0") != meshPrimitive.attributes.end())
 					{
+						hasBoneWeights = true;
+
 						tinygltf::Accessor boneWeightsAccessor = gltf.accessors[meshPrimitive.attributes["WEIGHTS_0"]];
 						FRM_ASSERT(boneWeightsAccessor.count == positionsAccessor.count);
 						FRM_ASSERT(boneWeightsAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
@@ -427,19 +397,34 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 		finalMeshBuilder.endSubmesh();
 	}
 
-	const MeshDesc& meshDesc = mesh_.getDesc();
+	MeshDesc meshDesc = mesh_.getDesc();
 
 	if (meshDesc.findVertexAttr(VertexAttr::Semantic_Normals) && generateNormals)
 	{
 		FRM_AUTOTIMER("Generate normals");
 		finalMeshBuilder.generateNormals();
 	}
-	
+
 	if (meshDesc.findVertexAttr(VertexAttr::Semantic_Tangents) && generateTangents)
 	{
 		FRM_AUTOTIMER("Generate tangents");
 		finalMeshBuilder.generateTangents();
 	}
+
+	/*if (!meshDesc.findVertexAttr(VertexAttr::Semantic_BoneWeights) && hasBoneWeights)
+	{
+		meshDesc.addVertexAttr(VertexAttr::Semantic_BoneWeights, DataType_Float, 4);
+	}
+
+	if (!meshDesc.findVertexAttr(VertexAttr::Semantic_BoneIndices) && hasBoneIndices)
+	{
+		DataType indexType = DataType_Uint16;
+		if (bindPose.size() < 256)
+		{
+			indexType = DataType_Uint8;
+		}
+		meshDesc.addVertexAttr(VertexAttr::Semantic_BoneIndices, indexType, 4);
+	}*/
 
 	MeshData retMesh(meshDesc, finalMeshBuilder);
 	swap(mesh_, retMesh);
