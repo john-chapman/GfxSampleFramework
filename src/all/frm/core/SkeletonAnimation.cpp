@@ -253,7 +253,7 @@ bool SkeletonAnimation::reload()
 		return true;
 	}
 
-	FRM_AUTOTIMER("SkeletonAnimation::load(%s)", (const char*)m_path);
+	FRM_AUTOTIMER("SkeletonAnimation::load(%s)",  m_path.c_str());
 
 	File f;
 	if (!FileSystem::Read(f, (const char*)m_path))
@@ -261,7 +261,11 @@ bool SkeletonAnimation::reload()
 		return false;
 	}
 
-	if (FileSystem::CompareExtension("md5anim", (const char*)m_path))
+	if (FileSystem::CompareExtension("gltf", m_path.c_str()))
+	{
+		return ReadGltf(*this, f.getData(), f.getDataSize());
+	}
+	else if (FileSystem::CompareExtension("md5anim", m_path.c_str()))
 	{
 		return ReadMd5(*this, f.getData(), f.getDataSize());
 	}
