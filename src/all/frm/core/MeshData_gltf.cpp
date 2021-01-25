@@ -130,10 +130,10 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 		}
 	};
 
-	// We discard the actual submesh hierarchy here and generate a single submesh per material ID.
+	// We discard the actual submesh hierarchy here and generate a single submesh per material ID. Skeletons ("skins" in gltf terms) are also merged.
 	eastl::vector<MeshBuilder> meshBuilderPerMaterial;
 	meshBuilderPerMaterial.resize(Max((size_t)1, gltf.materials.size()));
-	Skeleton* inverseBindPose = nullptr; // Skeletons are also merged.
+	eastl::vector<mat4> bindPose;
 
 	bool generateNormals = false;
 	bool generateTangents = false;
@@ -184,6 +184,61 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 				if (node.mesh == -1)
 				{
 					continue;
+				}
+
+				eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1); // Map node indices -> bone indices.
+				if (node.skin != -1)
+				{
+					auto& skin = gltf.skins[node.skin];
+
+					// Don't need to read the skeleton hierarchy here, gltf stores the inverse bind pose directly.
+					/*for (int jointIndex : skin.joints)
+					{
+						const auto& joint = gltf.nodes[jointIndex];
+						int boneIndex = bindPose->addBone(joint.name.c_str(), -1);
+						Skeleton::Bone& bone = bindPose->getBone(boneIndex);
+						boneIndexMap[jointIndex] = boneIndex;
+
+						if (!joint.translation.empty())
+						{
+							bone.m_position = vec3(joint.translation[0], joint.translation[1], joint.translation[2]);
+						}
+
+						if (!joint.scale.empty())
+						{
+							bone.m_scale = vec3(joint.scale[0], joint.scale[1], joint.scale[2]);
+						}
+
+						if (!joint.rotation.empty())
+						{
+							bone.m_orientation = quat(joint.rotation[0], joint.rotation[1], joint.rotation[2], joint.rotation[3]);
+						}
+					}
+
+					for (int jointIndex : skin.joints)
+					{
+						const auto& joint = gltf.nodes[jointIndex];
+						int parentIndex = boneIndexMap[jointIndex];
+						for (int childIndex : joint.children)
+						{
+							int boneIndex = boneIndexMap[childIndex];
+							bindPose->getBone(boneIndex).m_parentIndex = parentIndex;
+						}
+					}*/
+
+					tinygltf::Accessor bindPoseAccessor = gltf.accessors[skin.inverseBindMatrices];
+					FRM_ASSERT(bindPoseAccessor.count == skin.joints.size());
+					FRM_ASSERT(bindPoseAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+					FRM_ASSERT(bindPoseAccessor.type == TINYGLTF_TYPE_MAT4);					
+					const auto& bufferView = gltf.bufferViews[bindPoseAccessor.bufferView];
+					const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + bindPoseAccessor.byteOffset;
+					const size_t stride = bindPoseAccessor.ByteStride(bufferView);
+					for (int boneIndex = 0; boneIndex < (int)bindPoseAccessor.count; ++boneIndex, buffer += stride)
+					{
+						const mat4 transform = GetMatrixf((const float*)buffer);
+						boneIndexMap[skin.joints[boneIndex]] = (int)bindPose.size();
+						bindPose.push_back(transform);
+					}
 				}
 
 				auto& mesh = gltf.meshes[node.mesh];
@@ -262,10 +317,9 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						}
 					}
 
-					tinygltf::Accessor normalsAccessor;
 					if (meshPrimitive.attributes.find("NORMAL") != meshPrimitive.attributes.end())
 					{
-						normalsAccessor = gltf.accessors[meshPrimitive.attributes["NORMAL"]];
+						tinygltf::Accessor normalsAccessor = gltf.accessors[meshPrimitive.attributes["NORMAL"]];
 						FRM_ASSERT(normalsAccessor.count == positionsAccessor.count);
 						FRM_ASSERT(normalsAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 						FRM_ASSERT(normalsAccessor.type == TINYGLTF_TYPE_VEC3);
@@ -284,10 +338,9 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						generateNormals = generateTangents = true;
 					}
 
-					tinygltf::Accessor tangentsAccessor;
 					if (meshPrimitive.attributes.find("TANGENT") != meshPrimitive.attributes.end())
 					{
-						tangentsAccessor = gltf.accessors[meshPrimitive.attributes["TANGENT"]];
+						tinygltf::Accessor tangentsAccessor = gltf.accessors[meshPrimitive.attributes["TANGENT"]];
 						FRM_ASSERT(tangentsAccessor.count == positionsAccessor.count);
 						FRM_ASSERT(tangentsAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 						FRM_ASSERT(tangentsAccessor.type == TINYGLTF_TYPE_VEC4);
@@ -307,10 +360,9 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						generateTangents = true;
 					}
 
-					tinygltf::Accessor texcoordsAccessor;
 					if (meshPrimitive.attributes.find("TEXCOORD_0") != meshPrimitive.attributes.end())
 					{
-						texcoordsAccessor = gltf.accessors[meshPrimitive.attributes["TEXCOORD_0"]];
+						tinygltf::Accessor texcoordsAccessor = gltf.accessors[meshPrimitive.attributes["TEXCOORD_0"]];
 						FRM_ASSERT(texcoordsAccessor.count == positionsAccessor.count);
 						FRM_ASSERT(texcoordsAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 						FRM_ASSERT(texcoordsAccessor.type == TINYGLTF_TYPE_VEC2);
@@ -325,49 +377,42 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						}
 					}
 
-				}
-
-				if (node.skin != -1)
-				{
-					if (!inverseBindPose)
+					if (meshPrimitive.attributes.find("JOINTS_0") != meshPrimitive.attributes.end())
 					{
-						inverseBindPose = FRM_NEW(Skeleton);
-					}
+						tinygltf::Accessor boneIndicesAccessor = gltf.accessors[meshPrimitive.attributes["JOINTS_0"]];
+						FRM_ASSERT(boneIndicesAccessor.count == positionsAccessor.count);
+						FRM_ASSERT(boneIndicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+						FRM_ASSERT(boneIndicesAccessor.type == TINYGLTF_TYPE_VEC4);
 
-					auto& skin = gltf.skins[node.skin];
-
-					eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1); // Map node indices -> bone indices.
-					for (int jointIndex : skin.joints)
-					{
-						const auto& joint = gltf.nodes[jointIndex];
-						int boneIndex = inverseBindPose->addBone(joint.name.c_str(), -1);
-						boneIndexMap[jointIndex] = boneIndex;
-					}
-
-					for (int jointIndex : skin.joints)
-					{
-						const auto& joint = gltf.nodes[jointIndex];
-						int parentIndex = boneIndexMap[jointIndex];
-						for (int childIndex : joint.children)
+						const auto& bufferView = gltf.bufferViews[boneIndicesAccessor.bufferView];
+						const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + boneIndicesAccessor.byteOffset;
+						const size_t stride = boneIndicesAccessor.ByteStride(bufferView);
+						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex, buffer += stride)
 						{
-							int boneIndex = boneIndexMap[childIndex];
-							inverseBindPose->getBone(boneIndex).m_parentIndex = parentIndex;
+							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
+							for (int i = 0; i < 4; ++i)
+							{
+								const uint16 boneIndex = ((uint16*)buffer)[i];
+								vertex.m_boneIndices[i] = (uint32)boneIndexMap[boneIndex];
+							}
 						}
-					}
+					}					
 
-					tinygltf::Accessor bindPoseAccessor = gltf.accessors[skin.inverseBindMatrices];
-					FRM_ASSERT(bindPoseAccessor.count == skin.joints.size());
-					FRM_ASSERT(bindPoseAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
-					FRM_ASSERT(bindPoseAccessor.type == TINYGLTF_TYPE_MAT4);					
-					const auto& bufferView = gltf.bufferViews[bindPoseAccessor.bufferView];
-					const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + bindPoseAccessor.byteOffset;
-					const size_t stride = bindPoseAccessor.ByteStride(bufferView);
-					for (int boneIndex = 0; boneIndex < (int)bindPoseAccessor.count; ++boneIndex, buffer += stride)
+					if (meshPrimitive.attributes.find("WEIGHTS_0") != meshPrimitive.attributes.end())
 					{
-						const mat4 transform = GetMatrixf((const float*)buffer);
-						inverseBindPose->getBone(boneIndex).m_position = GetTranslation(transform);
-						inverseBindPose->getBone(boneIndex).m_orientation = RotationQuaternion(GetRotation(transform));
-						inverseBindPose->getBone(boneIndex).m_scale = GetScale(transform);
+						tinygltf::Accessor boneWeightsAccessor = gltf.accessors[meshPrimitive.attributes["WEIGHTS_0"]];
+						FRM_ASSERT(boneWeightsAccessor.count == positionsAccessor.count);
+						FRM_ASSERT(boneWeightsAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+						FRM_ASSERT(boneWeightsAccessor.type == TINYGLTF_TYPE_VEC4);
+
+						const auto& bufferView = gltf.bufferViews[boneWeightsAccessor.bufferView];
+						const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + boneWeightsAccessor.byteOffset;
+						const size_t stride = boneWeightsAccessor.ByteStride(bufferView);
+						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex, buffer += stride)
+						{
+							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
+							vertex.m_boneWeights = *((vec4*)buffer);
+						}
 					}
 				}
 			}
@@ -399,8 +444,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 	MeshData retMesh(meshDesc, finalMeshBuilder);
 	swap(mesh_, retMesh);
 
-	inverseBindPose->resolve();
-	mesh_.m_bindPose = inverseBindPose;
+	mesh_.setBindPose(bindPose.data(), bindPose.size());
 
 	return true;
 }
