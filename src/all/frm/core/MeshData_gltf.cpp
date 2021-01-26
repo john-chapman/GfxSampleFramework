@@ -130,6 +130,17 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 		}
 	};
 
+	// Shouldn't be required; the gltf exporter should correctly handle this.
+	auto SwapYZ = [](const mat4& m) -> mat4
+		{
+			mat4 ret;
+			ret.x = m.x;
+			ret.y = m.z;
+			ret.z = m.y;
+			ret.w = m.w;
+			return ret;
+		};
+
 	// We discard the actual submesh hierarchy here and generate a single submesh per material ID. Skeletons ("skins" in gltf terms) are also merged.
 	eastl::vector<MeshBuilder> meshBuilderPerMaterial;
 	meshBuilderPerMaterial.resize(Max((size_t)1, gltf.materials.size()));
@@ -349,7 +360,6 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 
 						tinygltf::Accessor boneIndicesAccessor = gltf.accessors[meshPrimitive.attributes["JOINTS_0"]];
 						FRM_ASSERT(boneIndicesAccessor.count == positionsAccessor.count);
-						FRM_ASSERT(boneIndicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
 						FRM_ASSERT(boneIndicesAccessor.type == TINYGLTF_TYPE_VEC4);
 
 						const auto& bufferView = gltf.bufferViews[boneIndicesAccessor.bufferView];
@@ -360,8 +370,16 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
 							for (int i = 0; i < 4; ++i)
 							{
-								const uint16 boneIndex = ((uint16*)buffer)[i];
-								vertex.m_boneIndices[i] = (uint32)boneIndexMap[boneIndex];
+								uint16 boneIndex = 0;
+								if (boneIndicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+								{
+									boneIndex = ((uint16*)buffer)[i];
+								}
+								else if (boneIndicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+								{
+									boneIndex = ((uint8*)buffer)[i];
+								}
+								vertex.m_boneIndices[i] = (uint32)boneIndex; // Don't need to remap; these indices are relative to the joints list on the node's skin.
 							}
 						}
 					}					
@@ -411,7 +429,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 		finalMeshBuilder.generateTangents();
 	}
 
-	/*if (!meshDesc.findVertexAttr(VertexAttr::Semantic_BoneWeights) && hasBoneWeights)
+	if (!meshDesc.findVertexAttr(VertexAttr::Semantic_BoneWeights) && hasBoneWeights)
 	{
 		meshDesc.addVertexAttr(VertexAttr::Semantic_BoneWeights, DataType_Float, 4);
 	}
@@ -424,7 +442,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 			indexType = DataType_Uint8;
 		}
 		meshDesc.addVertexAttr(VertexAttr::Semantic_BoneIndices, indexType, 4);
-	}*/
+	}
 
 	MeshData retMesh(meshDesc, finalMeshBuilder);
 	swap(mesh_, retMesh);
