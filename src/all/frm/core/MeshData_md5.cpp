@@ -52,8 +52,8 @@ bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 		int i = tmpSkeleton.addBone((const char*)src.m_name, src.m_parentIndex);
 		Skeleton::Bone& bone = tmpSkeleton.getBone(i);
 		bone.m_scale = vec3(1.0f);
-		bone.m_position = src.m_position;
-		bone.m_orientation = src.m_orientation;
+		bone.m_translation = src.m_position;
+		bone.m_rotation = src.m_orientation;
 		bone.m_parentIndex = -1;// src.m_parentIndex; // set -1 to prevent resolve applying parent transforms
 	}
 	tmpSkeleton.resolve();

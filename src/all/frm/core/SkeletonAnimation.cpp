@@ -22,8 +22,8 @@ Skeleton::Skeleton()
 {
 	// Bone is cast to a float* during sampling, check alignments/offsets:
 	FRM_STATIC_ASSERT(alignof(Bone) >= alignof(float));
-	FRM_STATIC_ASSERT(offsetof(Bone, m_position) == 0);
-	FRM_STATIC_ASSERT(offsetof(Bone, m_orientation) == 3 * sizeof(float));
+	FRM_STATIC_ASSERT(offsetof(Bone, m_translation) == 0);
+	FRM_STATIC_ASSERT(offsetof(Bone, m_rotation) == 3 * sizeof(float));
 	FRM_STATIC_ASSERT(offsetof(Bone, m_scale) == 7 * sizeof(float));
 }
 
@@ -46,7 +46,7 @@ const mat4* Skeleton::resolve()
 	{
 		const Bone& bone = m_bones[i];
 
-		mat4 m = TransformationMatrix(bone.m_position, bone.m_orientation, bone.m_scale);
+		mat4 m = TransformationMatrix(bone.m_translation, bone.m_rotation, bone.m_scale);
 
 		if (bone.m_parentIndex >= 0)
 		{
@@ -292,23 +292,23 @@ void SkeletonAnimation::sample(float _t, Skeleton& _out_, int _hints_[])
 	}
 }
 
-SkeletonAnimationTrack* SkeletonAnimation::addPositionTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
+SkeletonAnimationTrack* SkeletonAnimation::addTranslationTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
 {
-	int offset = offsetof(Skeleton::Bone, m_position) / sizeof(float);
+	const int offset = offsetof(Skeleton::Bone, m_translation) / sizeof(float);
 	FRM_ASSERT(findTrack(_boneIndex, offset, 3) == nullptr); // track already exists
 	m_tracks.push_back(SkeletonAnimationTrack(_boneIndex, offset, 3, _frameCount, _normalizedTimes, _data));
 	return &m_tracks.back();
 }
-SkeletonAnimationTrack* SkeletonAnimation::addOrientationTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
+SkeletonAnimationTrack* SkeletonAnimation::addRotationTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
 {
-	int offset = offsetof(Skeleton::Bone, m_orientation) / sizeof(float);
+	const int offset = offsetof(Skeleton::Bone, m_rotation) / sizeof(float);
 	FRM_ASSERT(findTrack(_boneIndex, offset, 4) == nullptr); // track already exists
 	m_tracks.push_back(SkeletonAnimationTrack(_boneIndex, offset, 4, _frameCount, _normalizedTimes, _data));
 	return &m_tracks.back();
 }
 SkeletonAnimationTrack* SkeletonAnimation::addScaleTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
 {
-	int offset = offsetof(Skeleton::Bone, m_scale) / sizeof(float);
+	const int offset = offsetof(Skeleton::Bone, m_scale) / sizeof(float);
 	FRM_ASSERT(findTrack(_boneIndex, offset, 3) == nullptr); // track already exists
 	m_tracks.push_back(SkeletonAnimationTrack(_boneIndex, offset, 3, _frameCount, _normalizedTimes, _data));
 	return &m_tracks.back();

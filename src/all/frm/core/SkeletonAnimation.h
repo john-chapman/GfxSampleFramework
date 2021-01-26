@@ -22,8 +22,8 @@ public:
 	
 	struct Bone
 	{
-		vec3 m_position     = vec3(0.0f);
-		quat m_orientation  = quat(0.0f, 0.0f, 0.0f, 1.0f);
+		vec3 m_translation  = vec3(0.0f);
+		quat m_rotation     = quat(0.0f, 0.0f, 0.0f, 1.0f);
 		vec3 m_scale        = vec3(1.0f);
 		int  m_parentIndex  = -1; // -1 = root bone
 	};
@@ -108,14 +108,13 @@ public:
 	void sample(float _t, Skeleton& out_, int _hints_[] = nullptr);
 
 	// \note add* functions invalidate ptrs previously returned.
-	SkeletonAnimationTrack* addPositionTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
-	SkeletonAnimationTrack* addOrientationTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
+	SkeletonAnimationTrack* addTranslationTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
+	SkeletonAnimationTrack* addRotationTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
 	SkeletonAnimationTrack* addScaleTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
 
-	int getTrackCount() const             { return (int)m_tracks.size(); }
-	const Skeleton& getBaseFrame() const  { return m_baseFrame; }
-
-	const char* getPath() const { return m_path.c_str(); }
+	int                     getTrackCount() const { return (int)m_tracks.size(); }
+	const Skeleton&         getBaseFrame() const  { return m_baseFrame; }
+	const char*             getPath() const       { return m_path.c_str(); }
 
 protected:
 

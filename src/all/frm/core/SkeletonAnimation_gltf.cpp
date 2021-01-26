@@ -1,9 +1,7 @@
 /* \todo
-	- Share gltf code with MeshData_gltf + helper class for iterating over an accessor.
 	- Load + store 'base' skeleton with the mesh. This provides an authoritative skeleton for procedural animation, physics setup, etc.
 	- Map animation tracks to bone IDs rather than bone indices. This allows animations to be shared between skeletons (e.g. for LODing).
 		- E.g. animation track references bone HEAD, anim controller then maps HEAD -> bone index on the target skeleton.
-	- Optimize for non-sparse buffer views (can just memcpy or use DataConvert).
 */
 
 #include "SkeletonAnimation.h"
@@ -13,129 +11,19 @@
 #include <frm/core/FileSystem.h>
 #include <frm/core/Time.h>
 
-#define TINYGLTF_NO_EXTERNAL_IMAGE
-#define TINYGLTF_NO_STB_IMAGE
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-//#define TINYGLTF_NO_FS
-#include <tiny_gltf.h>
+#include <gltf.h>
 #include <string>
 
-using namespace frm;
-
-static bool FileExistsFunction(const std::string &abs_filename, void*)
-{
-	return FileSystem::Exists(abs_filename.c_str());
-}
-
-static std::string ExpandFilePathFunction(const std::string& path, void* anim)
-{
-	// assume any internal URIs are relative to the source .gltf file
-	PathStr animPath = FileSystem::GetPath(((SkeletonAnimation*)anim)->getPath());
-	animPath.appendf("/%s", path.c_str());
-	return animPath.c_str();
-}
-
-static bool ReadWholeFileFunction(std::vector<unsigned char>* out, std::string* err, const std::string& filepath, void*)
-{
-	File f;
-	if (!FileSystem::ReadIfExists(f, filepath.c_str()))
-	{
-		return false;
-	}
-
-	const unsigned char* data = (unsigned char*)f.getData();
-	const size_t dataSize = (size_t)f.getDataSize() - 1;
-	out->assign(data, data + dataSize);
-
-	err->assign("");
-	return true;
-}
-
-static bool WriteWholeFileFunction(std::string* err, const std::string& filepath, const std::vector<unsigned char>& contents, void*)
-{
-	FRM_ASSERT(false);
-	return false;
-}
+namespace frm {
 
 bool SkeletonAnimation::ReadGltf(SkeletonAnimation& anim_, const char* _srcData, uint _srcDataSize)
 {
-	tinygltf::FsCallbacks callbacks;
-	callbacks.FileExists = &FileExistsFunction;
-	callbacks.ExpandFilePath = &ExpandFilePathFunction;
-	callbacks.ReadWholeFile = &ReadWholeFileFunction;
-	callbacks.WriteWholeFile = &WriteWholeFileFunction;
-	callbacks.user_data = &anim_;
-	tinygltf::TinyGLTF loader;
-	loader.SetFsCallbacks(callbacks);
-
-	std::string err;
-	std::string warn;
 	tinygltf::Model gltf;
-	if (!loader.LoadASCIIFromString(&gltf, &err, &warn, _srcData, (unsigned int)_srcDataSize, ""))
+	const PathStr rootPath = FileSystem::GetPath(anim_.getPath());
+	if (!tinygltf::Load(_srcData, _srcDataSize, rootPath.c_str(), gltf))
 	{
-		FRM_LOG_ERR(err.c_str());
 		return false;
 	}
-
-	auto GetMatrixd = [](const double* m) -> mat4
-		{
-			mat4 ret;
-			for (int i = 0; i < 4; ++i)
-			{
-				for (int j = 0; j < 4; ++j)
-				{
-					ret[i][j] = (float)m[i * 4 + j];
-				}
-			}
-			return ret;
-		};
-
-	auto GetMatrixf = [](const float* m) -> mat4
-		{
-			mat4 ret;
-			for (int i = 0; i < 4; ++i)
-			{
-				for (int j = 0; j < 4; ++j)
-				{
-					ret[i][j] = m[i * 4 + j];
-				}
-			}
-			return ret;
-		};
-
-	auto GetTransform = [GetMatrixd](const tinygltf::Node* node) -> mat4
-	{
-		if (node->matrix.empty())
-		{
-			vec3 translation = vec3(0.0f);
-			if (!node->translation.empty())
-			{
-				FRM_ASSERT(node->translation.size() == 3);
-				translation = vec3(node->translation[0], node->translation[1], node->translation[2]);
-			}
-
-			quat rotation = quat(0.0f, 0.0f, 0.0f, 1.0f);
-			if (!node->rotation.empty())
-			{
-				FRM_ASSERT(node->rotation.size() == 4);
-				rotation = quat(node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3]);
-			}
-
-			vec3 scale = vec3(1.0f);
-			if (!node->scale.empty())
-			{
-				FRM_ASSERT(node->scale.size() == 3);
-				scale = vec3(node->scale[0], node->scale[1], node->scale[2]);
-			}
-
-			return TransformationMatrix(translation, rotation, scale);
-		}
-		else
-		{		
-			FRM_ASSERT(node->matrix.size() == 16);
-			return GetMatrixd(node->matrix.data());
-		}
-	};
 
 	Skeleton baseFrame;
 	//eastl::vector<SkeletonAnimationTrack> animTracks;
@@ -197,7 +85,7 @@ bool SkeletonAnimation::ReadGltf(SkeletonAnimation& anim_, const char* _srcData,
 
 						if (!joint.translation.empty())
 						{
-							bone.m_position = vec3(joint.translation[0], joint.translation[1], joint.translation[2]);
+							bone.m_translation = vec3(joint.translation[0], joint.translation[1], joint.translation[2]);
 						}
 
 						if (!joint.scale.empty())
@@ -207,7 +95,7 @@ bool SkeletonAnimation::ReadGltf(SkeletonAnimation& anim_, const char* _srcData,
 
 						if (!joint.rotation.empty())
 						{
-							bone.m_orientation = quat(joint.rotation[0], joint.rotation[1], joint.rotation[2], joint.rotation[3]);
+							bone.m_rotation = quat(joint.rotation[0], joint.rotation[1], joint.rotation[2], joint.rotation[3]);
 						}
 					}
 
@@ -242,78 +130,35 @@ bool SkeletonAnimation::ReadGltf(SkeletonAnimation& anim_, const char* _srcData,
 
 			const tinygltf::AnimationSampler animSampler = animation.samplers[channel.sampler];
 
-			eastl::vector<float> frameTimes;
+			tinygltf::AutoAccessor frameTimesAccessor(gltf.accessors[animSampler.input], gltf);
+			eastl::vector<float> frameTimes(frameTimesAccessor.getCount());
+			frameTimesAccessor.copyBytes(frameTimes.data());
+
+			float timeMin = FLT_MAX;
+			float timeMax = -FLT_MAX;
+			for (float time : frameTimes)
 			{
-				const tinygltf::Accessor inAccessor = gltf.accessors[animSampler.input];
-				FRM_ASSERT(inAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
-				FRM_ASSERT(inAccessor.type == TINYGLTF_TYPE_SCALAR);
-
-				const auto& bufferView = gltf.bufferViews[inAccessor.bufferView];
-				const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + inAccessor.byteOffset;
-				const size_t stride = inAccessor.ByteStride(bufferView);
-
-				float timeMin = FLT_MAX;
-				float timeMax = -FLT_MAX;
-				frameTimes.reserve(inAccessor.count);
-				for (size_t frameIndex = 0; frameIndex < inAccessor.count; ++frameIndex, buffer += stride)
-				{
-					const float time = *((float*)buffer);
-					timeMin = Min(time, timeMin);
-					timeMax = Max(time, timeMax);
-					frameTimes.push_back(time);
-				}
-
-				for (float& time : frameTimes)
-				{
-					time = (time - timeMin) / (timeMax - timeMin);
-				}
+				timeMin = Min(time, timeMin);
+				timeMax = Max(time, timeMax);
+			}
+			for (float& time : frameTimes)
+			{
+				time = (time - timeMin) / (timeMax - timeMin);
 			}
 
-			eastl::vector<float> frameData;
-			{
-				const tinygltf::Accessor outAccessor = gltf.accessors[animSampler.output];
-				FRM_ASSERT(outAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
-				int count = 0;
-				switch (outAccessor.type)
-				{
-					default:
-					case TINYGLTF_TYPE_SCALAR:
-						count = 1;
-						break;
-					case TINYGLTF_TYPE_VEC2:
-						count = 2;
-						break;
-					case TINYGLTF_TYPE_VEC3:
-						count = 3;
-						break;
-					case TINYGLTF_TYPE_VEC4:
-						count = 4;
-						break;
-				};
-				FRM_ASSERT(count != 0);
-
-				// \todo Optimize for non-sparse buffer views (can just memcpy or use DataConvert).
-				const auto& bufferView = gltf.bufferViews[outAccessor.bufferView];
-				const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + outAccessor.byteOffset;
-				const size_t stride = outAccessor.ByteStride(bufferView);
-				for (size_t frameIndex = 0; frameIndex < outAccessor.count; ++frameIndex, buffer += stride)
-				{
-					for (int i = 0; i < count; ++i)
-					{
-						frameData.push_back(((float*)buffer)[i]);
-					}
-				}
-			}
+			tinygltf::AutoAccessor frameDataAccessor(gltf.accessors[animSampler.output], gltf);
+			eastl::vector<float> frameData(frameDataAccessor.getSizeBytes() / sizeof(float));
+			frameDataAccessor.copyBytes(frameData.data());
 
 			const int frameCount = (int)frameTimes.size();
 			if (channel.target_path == "translation")
 			{
-				anim_.addPositionTrack(targetBoneIndex, frameCount, frameTimes.data(), frameData.data());
+				anim_.addTranslationTrack(targetBoneIndex, frameCount, frameTimes.data(), frameData.data());
 			}
 			else if (channel.target_path == "rotation")
 			{
-				anim_.addOrientationTrack(targetBoneIndex, frameCount, frameTimes.data(), frameData.data());
+				anim_.addRotationTrack(targetBoneIndex, frameCount, frameTimes.data(), frameData.data());
 			}
 			else if (channel.target_path == "scale")
 			{
@@ -324,3 +169,5 @@ bool SkeletonAnimation::ReadGltf(SkeletonAnimation& anim_, const char* _srcData,
 
 	return true;
 }
+
+} // namespace frm
