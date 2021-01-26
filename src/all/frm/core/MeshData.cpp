@@ -731,6 +731,8 @@ MeshData::MeshData(const MeshDesc& _desc)
 MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	: m_desc(_desc)
 {
+	FRM_AUTOTIMER("MeshData: Construct from MeshBuilder");
+
 	const VertexAttr* positionsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Positions);
 	const VertexAttr* texcoordsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Texcoords);
 	const VertexAttr* normalsAttr     = m_desc.findVertexAttr(VertexAttr::Semantic_Normals);

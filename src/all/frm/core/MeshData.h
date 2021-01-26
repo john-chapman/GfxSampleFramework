@@ -292,6 +292,9 @@ protected:
 // MeshBuilder
 // Mesh construction/manipulation tools.
 // Unlike Mesh, the submesh 0 has no special meaning. 
+//
+// \todo
+// - Detect where tangents cannot be generated if no UVs present.
 ////////////////////////////////////////////////////////////////////////////////
 class MeshBuilder
 {
