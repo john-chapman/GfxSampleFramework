@@ -10,9 +10,12 @@
 #include <frm/core/math.h>
 #include <frm/core/types.h>
 
+#include <EASTL/vector.h>
+
 namespace tinygltf {
 
 bool Load(const char* _srcData, size_t _srcDataSize, const char* _pathRoot, tinygltf::Model& out_);
+bool LoadSkeleton(const Model& _model, const Skin& _skin, eastl::vector<int>& _boneIndexMap_, frm::Skeleton& _skeleton_);
 
 template <typename T>
 inline frm::mat4 GetMatrix(const T* m)
@@ -128,7 +131,7 @@ struct AutoAccessor
 
 	bool next()
 	{
-		if (m_buffer >= m_bufferEnd)
+		if ((m_buffer + m_byteStride) >= m_bufferEnd)
 		{
 			return false;
 		}
