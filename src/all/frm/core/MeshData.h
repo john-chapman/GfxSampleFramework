@@ -246,7 +246,7 @@ public:
 	void setIndexData(frm::DataType _srcType, const void* _src);
 
 	uint64          getHash() const;
-	const char*     getPath() const                               { return (const char*)m_path; }
+	const char*     getPath() const                               { return m_path.c_str(); }
 	const MeshDesc& getDesc() const                               { return m_desc; }
 	uint            getVertexCount() const                        { return m_submeshes[0].m_vertexCount; }
 	const void*     getVertexData() const                         { return m_vertexData; }
@@ -254,9 +254,10 @@ public:
 	const void*     getIndexData() const                          { return m_indexData; }
 	frm::DataType   getIndexDataType() const                      { return m_indexDataType; }
 
-	const mat4*     getBindPose() const                           { return m_bindPose.data(); }
-	uint            getBindPoseSize() const                       { return m_bindPose.size(); }
-	void            setBindPose(const mat4* _pose, uint _size);
+	const Skeleton* getSkeleton() const                           { return m_skeleton; }
+	void            setSkeleton(const Skeleton& _skeleton);
+	const mat4*     getBindPose() const;
+	int             getBindPoseSize() const;
 
 protected:
 
@@ -265,7 +266,7 @@ protected:
 	char*                  m_vertexData      = nullptr;
 	char*                  m_indexData       = nullptr;
 	frm::DataType          m_indexDataType   = frm::DataType_Invalid;
-	eastl::vector<mat4>    m_bindPose;
+	Skeleton*              m_skeleton        = nullptr; // Also contains bind pose.
 	eastl::vector<Submesh> m_submeshes;
 
 	// \todo 

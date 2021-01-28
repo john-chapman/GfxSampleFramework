@@ -40,11 +40,12 @@ public:
 
 	const mat4*  getPose() const                         { return m_pose.data(); }
 	      mat4*  getPose()                               { return m_pose.data(); }
+		  void   setPose(const mat4* _pose)              { memcpy(m_pose.data(), _pose, m_pose.size() * sizeof(mat4)); }
 	      int    getBoneCount() const                    { return (int)m_bones.size();          }
 	      int    getBoneIndex(const Bone& _bone) const   { return (int)(&_bone - &m_bones[0]);  }
-	const Bone&  getBone(int _index) const               { return m_bones[_index];     }
-	      Bone&  getBone(int _index)                     { return m_bones[_index];     }
-	      BoneId getBoneId(int _index) const             { return m_boneIds[_index];   }
+	const Bone&  getBone(int _index) const               { return m_bones[_index]; }
+	      Bone&  getBone(int _index)                     { return m_bones[_index]; }
+	      BoneId getBoneId(int _index) const             { return m_boneIds[_index]; }
 	const char*  getBoneName(int _index) const           { return (const char*)m_boneNames[_index]; }
 
 private:

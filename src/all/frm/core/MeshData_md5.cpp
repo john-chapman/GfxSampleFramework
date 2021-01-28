@@ -138,7 +138,7 @@ bool MeshData::ReadMd5(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
 		tmpMesh.updateBounds();
 
 		MeshData retMesh(meshDesc, tmpMesh);
-		retMesh.setBindPose(tmpSkeleton.getPose(), tmpSkeleton.getBoneCount());
+		retMesh.setSkeleton(tmpSkeleton);
 		swap(mesh_, retMesh);
 	}
 

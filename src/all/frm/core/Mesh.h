@@ -46,16 +46,17 @@ public:
 	const AlignedBox& getBoundingBox(int _submesh = 0) const      { return m_submeshes[_submesh].m_boundingBox;    }
 	const Sphere&     getBoundingSphere(int _submesh = 0) const   { return m_submeshes[_submesh].m_boundingSphere; }
 
-	const mat4*       getBindPose() const                         { return m_bindPose.data(); }
-	uint              getBindPoseSize() const                     { return m_bindPose.size(); }
-	void              setBindPose(const mat4* _pose, uint _size);
+	const Skeleton* getSkeleton() const                           { return m_skeleton; }
+	void            setSkeleton(const Skeleton& _skeleton);
+	const mat4*     getBindPose() const;
+	int             getBindPoseSize() const;
 
 private:
 	frm::String<32> m_path; // empty if not from a file
 
 	MeshDesc m_desc;
 	eastl::vector<MeshData::Submesh> m_submeshes;
-	eastl::vector<mat4> m_bindPose;
+	Skeleton* m_skeleton = nullptr;
 
 	GLuint m_vertexArray;   // vertex array state (only bind this when drawing)
 	GLuint m_vertexBuffer;

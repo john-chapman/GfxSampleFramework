@@ -4,6 +4,7 @@
 #include <frm/core/hash.h>
 #include <frm/core/memory.h>
 #include <frm/core/FileSystem.h>
+#include <frm/core/SkeletonAnimation.h>
 #include <frm/core/TextParser.h>
 #include <frm/core/Time.h>
 
@@ -560,7 +561,7 @@ void MeshData::Destroy(MeshData*& _meshData_)
 void frm::swap(MeshData& _a, MeshData& _b)
 {
 	frm::swap(_a.m_path,           _b.m_path);
-	std::swap(_a.m_bindPose,       _b.m_bindPose);
+	std::swap(_a.m_skeleton,       _b.m_skeleton);
 	std::swap(_a.m_desc,           _b.m_desc);
 	std::swap(_a.m_vertexData,     _b.m_vertexData);
 	std::swap(_a.m_indexData,      _b.m_indexData);
@@ -641,13 +642,24 @@ void MeshData::setIndexData(DataType _srcType, const void* _src)
 	}
 }
 
-void MeshData::setBindPose(const mat4* _pose, uint _size)
+void MeshData::setSkeleton(const Skeleton& _skeleton)
 {
-	m_bindPose.clear();
-	for (size_t i = 0; i < _size; ++i)
+	if (!m_skeleton)
 	{
-		m_bindPose.push_back(_pose[i]);
+		m_skeleton = FRM_NEW(Skeleton);
 	}
+
+	*m_skeleton = _skeleton;
+}
+
+const mat4* MeshData::getBindPose() const
+{
+	return m_skeleton ? m_skeleton->getPose() : nullptr;
+}
+
+int MeshData::getBindPoseSize() const
+{
+	return m_skeleton ? m_skeleton->getBoneCount() : 0;
 }
 
 void MeshData::beginSubmesh(uint _materialId)
@@ -801,6 +813,7 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 
 MeshData::~MeshData()
 {
+	FRM_DELETE(m_skeleton);
 	FRM_FREE(m_vertexData);
 	FRM_FREE(m_indexData);
 }

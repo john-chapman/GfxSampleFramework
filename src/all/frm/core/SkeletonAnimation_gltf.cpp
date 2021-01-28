@@ -1,9 +1,3 @@
-/* \todo
-	- Load + store 'base' skeleton with the mesh. This provides an authoritative skeleton for procedural animation, physics setup, etc.
-	- Map animation tracks to bone IDs rather than bone indices. This allows animations to be shared between skeletons (e.g. for LODing).
-		- E.g. animation track references bone HEAD, anim controller then maps HEAD -> bone index on the target skeleton.
-*/
-
 #include "SkeletonAnimation.h"
 
 #include <frm/core/log.h>
@@ -25,9 +19,8 @@ bool SkeletonAnimation::ReadGltf(SkeletonAnimation& anim_, const char* _srcData,
 		return false;
 	}
 
-	Skeleton baseFrame;
-	//eastl::vector<SkeletonAnimationTrack> animTracks;
-	eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1); // Map node indices -> bone indices.
+	Skeleton skeleton;
+	eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1);
 
 	for (auto& scene : gltf.scenes)
 	{
@@ -73,48 +66,14 @@ bool SkeletonAnimation::ReadGltf(SkeletonAnimation& anim_, const char* _srcData,
 
 				if (node.skin != -1)
 				{
+					FRM_VERIFY(tinygltf::LoadSkeleton(gltf, gltf.skins[node.skin], boneIndexMap, skeleton));
 					const auto& skin = gltf.skins[node.skin];
-
-					for (int jointIndex : skin.joints)
-					{
-						const auto& joint = gltf.nodes[jointIndex];
-						int boneIndex = baseFrame.addBone(joint.name.c_str(), -1);
-						Skeleton::Bone& bone = baseFrame.getBone(boneIndex);
-						FRM_ASSERT(boneIndexMap[jointIndex] == -1);
-						boneIndexMap[jointIndex] = boneIndex;
-
-						if (!joint.translation.empty())
-						{
-							bone.m_translation = vec3(joint.translation[0], joint.translation[1], joint.translation[2]);
-						}
-
-						if (!joint.scale.empty())
-						{
-							bone.m_scale = vec3(joint.scale[0], joint.scale[1], joint.scale[2]);
-						}
-
-						if (!joint.rotation.empty())
-						{
-							bone.m_rotation = quat(joint.rotation[0], joint.rotation[1], joint.rotation[2], joint.rotation[3]);
-						}
-					}
-
-					for (int jointIndex : skin.joints)
-					{
-						const auto& joint = gltf.nodes[jointIndex];
-						int parentIndex = boneIndexMap[jointIndex];
-						for (int childIndex : joint.children)
-						{
-							int boneIndex = boneIndexMap[childIndex];
-							baseFrame.getBone(boneIndex).m_parentIndex = parentIndex;
-						}
-					}
 				}
 			}
 		}
 	}
 // \todo Don't modify anim_ until loading is complete, as per mesh loaders.
-	anim_.m_baseFrame = baseFrame;
+	anim_.m_baseFrame = skeleton;
 	anim_.m_baseFrame.resolve();
 
 	anim_.m_tracks.clear();

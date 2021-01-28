@@ -3,6 +3,7 @@
 #include <frm/core/log.h>
 #include <frm/core/File.h>
 #include <frm/core/FileSystem.h>
+#include <frm/core/SkeletonAnimation.h>
 #include <frm/core/Time.h>
 
 #include <gltf.h>
@@ -22,6 +23,8 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 	// We discard the actual submesh hierarchy here and generate a single submesh per material ID. Skeletons ("skins" in gltf terms) are also merged.
 	eastl::vector<MeshBuilder> meshBuilderPerMaterial;
 	meshBuilderPerMaterial.resize(Max((size_t)1, gltf.materials.size()));
+	Skeleton skeleton;
+	eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1);
 	eastl::vector<mat4> bindPose;
 
 	bool generateNormals = false;
@@ -76,24 +79,17 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 					continue;
 				}
 
-				eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1); // Map node indices -> bone indices.
 				if (node.skin != -1)
 				{
-					const auto& skin = gltf.skins[node.skin];
+					const tinygltf::Skin& skin = gltf.skins[node.skin];
+					FRM_VERIFY(tinygltf::LoadSkeleton(gltf, skin, boneIndexMap, skeleton));
 
-					tinygltf::Accessor bindPoseAccessor = gltf.accessors[skin.inverseBindMatrices];
-					FRM_ASSERT(bindPoseAccessor.count == skin.joints.size());
-					FRM_ASSERT(bindPoseAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
-					FRM_ASSERT(bindPoseAccessor.type == TINYGLTF_TYPE_MAT4);					
-					const auto& bufferView = gltf.bufferViews[bindPoseAccessor.bufferView];
-					const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + bindPoseAccessor.byteOffset;
-					const size_t stride = bindPoseAccessor.ByteStride(bufferView);
-					for (int boneIndex = 0; boneIndex < (int)bindPoseAccessor.count; ++boneIndex, buffer += stride)
+					tinygltf::AutoAccessor bindPoseAccessor(gltf.accessors[skin.inverseBindMatrices], gltf);
+					do
 					{
-						const mat4 transform = tinygltf::GetMatrix((const float*)buffer);
-						boneIndexMap[skin.joints[boneIndex]] = (int)bindPose.size();
-						bindPose.push_back(transform);
-					}
+						bindPose.push_back(bindPoseAccessor.get<mat4>());
+					} while (bindPoseAccessor.next());
+					FRM_ASSERT(bindPose.size() == skeleton.getBoneCount());
 				}
 
 				auto& mesh = gltf.meshes[node.mesh];
@@ -179,7 +175,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						{							
 							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
 							vertex.m_normal = TransformDirection(transform, Normalize(accessor.get<vec3>()));
-							FRM_VERIFY(accessor.next());
+							accessor.next();
 						}
 					}
 					else
@@ -195,7 +191,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
 							vec4 t = accessor.get<vec4>();
 							vertex.m_tangent = vec4(TransformDirection(transform, Normalize(vertex.m_tangent.xyz())), vertex.m_tangent.w);
-							FRM_VERIFY(accessor.next());
+							accessor.next();
 						}
 					}
 					else
@@ -210,10 +206,11 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						{							
 							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
 							vertex.m_texcoord = accessor.get<vec2>();
-							FRM_VERIFY(accessor.next());
+							accessor.next();
 						}
 					}
 
+					// Note that we don't require the bone index map here, indices are already relative to the skin joints list.
 					if (meshPrimitive.attributes.find("JOINTS_0") != meshPrimitive.attributes.end())
 					{
 						hasBoneIndices = true;
@@ -223,7 +220,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						{							
 							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
 							vertex.m_boneIndices = accessor.get<uvec4>();
-							FRM_VERIFY(accessor.next());
+							accessor.next();
 						}
 					}					
 
@@ -236,7 +233,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 						{							
 							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
 							vertex.m_boneWeights = boneWeightsAccessor.get<vec4>();
-							FRM_VERIFY(boneWeightsAccessor.next());
+							boneWeightsAccessor.next();
 						}
 					}
 				}
@@ -281,10 +278,12 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 		meshDesc.addVertexAttr(VertexAttr::Semantic_BoneIndices, indexType, 4);
 	}
 
+
 	MeshData retMesh(meshDesc, finalMeshBuilder);
 	swap(mesh_, retMesh);
 
-	mesh_.setBindPose(bindPose.data(), bindPose.size());
+	skeleton.setPose(bindPose.data());
+	mesh_.setSkeleton(skeleton);
 
 	return true;
 }
