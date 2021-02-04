@@ -5,16 +5,11 @@ bin/*
 
 # Visual Studio
 build/vs*/*
-build/vs*/*.user
-!build/vs*/*.sln
-!build/vs*/*.vcxproj
-!build/vs*/*.filters
-!build/vs*/*.props
-!build/vs*/*.config.lua
 
 # User configs, log files
 *.ini
 *.log
+*.json
 
 # Cached data
 *.physx

@@ -2,7 +2,7 @@ dofile "GfxSampleFramework_premake.lua"
 
 local FRM_ROOT = "../"
 
-workspace "GfxSampleFramework"
+workspace "_GfxSampleFramework"
 	location(_ACTION)
 	platforms { "Win64" }
 	filter { "platforms:Win64" }

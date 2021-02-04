@@ -279,6 +279,10 @@ function GfxSampleFramework_Project(_root, _libDir, _binDir, _config)
 		targetdir(_libDir)
 		GfxSampleFramework_ProjectCommon()
 
+		if _ACTION == nil then
+			return
+		end
+
 		local configFile = io.open(tostring(_ACTION) .. "/GfxSampleFramework.config.lua", "w")
 			configFile:write("return {\n")
 			for k, v in pairs(_config) do
