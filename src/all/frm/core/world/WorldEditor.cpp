@@ -1455,7 +1455,7 @@ bool WorldEditor::createNode()
 	return ret;
 }
 
-SceneNode* WorldEditor::duplicateNode(const SceneNode* _node)
+SceneNode* WorldEditor::duplicateNode(const SceneNode* _node, SceneNode* _parent_)
 {
 	Json json;
 	SerializerJson serializerWrite(json, SerializerJson::Mode_Write);
@@ -1464,9 +1464,11 @@ SceneNode* WorldEditor::duplicateNode(const SceneNode* _node)
 		return nullptr;
 	}
 
+	_parent_ = _parent_ ? _parent_ : _node->m_parent.referent;
+
 	const SceneID newNodeID = m_nextNodeID++;
 	const String<24> newNodeName = _node->getName(); // \todo auto name
-	SceneNode* newNode = _node->m_parentScene->createNode(newNodeID, newNodeName.c_str(), _node->m_parent.referent);
+	SceneNode* newNode = _node->m_parentScene->createNode(newNodeID, newNodeName.c_str(), _parent_);
 	
 	SerializerJson serializerRead(json, SerializerJson::Mode_Read);
 	bool ret = newNode->serialize(serializerRead);
@@ -1478,8 +1480,7 @@ SceneNode* WorldEditor::duplicateNode(const SceneNode* _node)
 	newNode->m_children.clear();
 	for (const LocalNodeReference& child : _node->m_children)
 	{
-		SceneNode* newChild = duplicateNode(child.referent);
-		newNode->addChild(newChild);
+		SceneNode* newChild = duplicateNode(child.referent, newNode);
 	}
 
 	Scene* parentScene = newNode->m_parentScene;

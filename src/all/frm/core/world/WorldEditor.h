@@ -129,7 +129,7 @@ private:
 
 	void beginCreateNode();
 	bool createNode();
-	SceneNode* duplicateNode(const SceneNode* _node);
+	SceneNode* duplicateNode(const SceneNode* _node, SceneNode* _parent_ = nullptr);
 
 	void beginCreateComponent();
 	bool createComponent(SceneNode* _node_);
