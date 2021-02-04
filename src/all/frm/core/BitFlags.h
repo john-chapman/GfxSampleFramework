@@ -111,7 +111,7 @@ private:
 namespace internal {
 
 template <typename tType>
-constexpr tType _BitFlagsDefault(std::initializer_list<tType> list)
+constexpr tType _BitFlagsDefault(std::initializer_list<tType> list = {})
 {
 	tType ret = (tType)0;
 	if (list.size() > 0)
@@ -125,6 +125,7 @@ constexpr tType _BitFlagsDefault(std::initializer_list<tType> list)
 }
 #define BIT_FLAGS_DEFAULT(...) frm::internal::_BitFlagsDefault({ __VA_ARGS__ })
 #define BIT_FLAGS_COUNT_DEFAULT(...) _Count, _Default = frm::internal::_BitFlagsDefault({ __VA_ARGS__ })
+#define BIT_FLAGS_COUNT_DEFAULT_ZERO(...) _Count, _Default = 0 // \todo This is a bit ugly, possible to make it work as just BIT_FLAGS_COUNT_DEFAULT()?
 
 } // namespace internal
 
