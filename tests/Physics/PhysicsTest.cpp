@@ -13,6 +13,7 @@
 #include <frm/core/world/World.h>
 
 #include <frm/physics/Physics.h>
+#include <frm/physics/PhysicsConstraint.h>
 #include <frm/physics/PhysicsGeometry.h>
 #include <frm/physics/PhysicsMaterial.h>
 
@@ -346,7 +347,7 @@ bool PhysicsTest::update()
 			}
 		}
 
-		/*static bool isJointTest = false;
+		static bool isJointTest = false;
 		static PhysicsComponent* jointTestComponent[2] = { nullptr };
 		static mat4 sceneNodeFrame = identity;
 		static PhysicsConstraint* joint = nullptr;
@@ -376,9 +377,9 @@ bool PhysicsTest::update()
 
 					if (jointTestComponent[1])
 					{
-						Node* sceneNode = jointTestComponent[1]->getNode();
+						SceneNode* sceneNode = jointTestComponent[1]->getParentNode();
 						sceneNodeFrame = LookAt(raycastOut.position, raycastOut.position + raycastOut.normal);
-						mat4 sceneNodeFrameLocal = AffineInverse(sceneNode->getWorldMatrix()) * sceneNodeFrame; // to node local space
+						mat4 sceneNodeFrameLocal = AffineInverse(sceneNode->getWorld()) * sceneNodeFrame; // to node local space
 						joint->setComponentFrame(1, sceneNodeFrameLocal);
 					}
 				}
@@ -386,6 +387,7 @@ bool PhysicsTest::update()
 				if (ImGui::IsKeyPressed(Keyboard::Key_Escape))
 				{
 					isJointTest = false;
+					joint->shutdown();
 					PhysicsConstraint::Destroy(joint);
 				}
 			}
@@ -397,14 +399,14 @@ bool PhysicsTest::update()
 					jointTestComponent[1] = nullptr;
 					if (jointTestComponent[0])
 					{
-						Node* sceneNode = jointTestComponent[0]->getNode();
+						SceneNode* sceneNode = jointTestComponent[0]->getParentNode();
 						if (sceneNode)
 						{
 							sceneNodeFrame = LookAt(raycastOut.position, raycastOut.position + raycastOut.normal);
 	
 							mat4 cursorFrame = identity;
 							vec3 intersection;
-							if (GetRayCameraPlaneIntersection(cursorRay, sceneNode->getWorldPosition(), intersection))
+							if (GetRayCameraPlaneIntersection(cursorRay, sceneNode->getPosition(), intersection))
 							{
 								mat4 cursorFrame = LookAt(intersection, drawCamera->getPosition());
 							}
@@ -415,8 +417,9 @@ bool PhysicsTest::update()
 							distanceConstraint.spring.stiffness = 100.0f;
 							distanceConstraint.spring.damping   = 0.9f;
 						
-							mat4 sceneNodeFrameLocal = AffineInverse(sceneNode->getWorldMatrix()) * sceneNodeFrame; // to node local space
+							mat4 sceneNodeFrameLocal = AffineInverse(sceneNode->getWorld()) * sceneNodeFrame; // to node local space
 							joint = PhysicsConstraint::CreateDistance(jointTestComponent[0], sceneNodeFrameLocal, nullptr, cursorFrame, distanceConstraint);
+							sceneNode->addComponent(joint);
 						}
 					}
 				}
@@ -432,7 +435,7 @@ bool PhysicsTest::update()
 					ImGui::TreePop();
 				}
 			}
-		}*/
+		}
 
 		ImGui::TreePop();
 	}

@@ -265,7 +265,7 @@ void Physics::DrawDebug()
 	for (CollisionEvent& collisionEvent : s_instance->m_collisionEvents)
 	{
 		Im3d::DrawPoint(collisionEvent.point, 8.0f, Im3d::Color_Magenta);
-		Im3d::DrawLine(collisionEvent.point, collisionEvent.point + collisionEvent.normal * Max(0.2f, collisionEvent.impulse), 2.0f, Im3d::Color_Red);
+		Im3d::DrawLine(collisionEvent.point, collisionEvent.point + collisionEvent.normal * Max(0.2f, collisionEvent.impulse), 4.0f, Im3d::Color_Red);
 	}
 
 	Im3d::PopDrawState();

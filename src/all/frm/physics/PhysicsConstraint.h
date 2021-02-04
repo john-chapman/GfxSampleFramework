@@ -5,6 +5,7 @@
 #endif
 
 #include <frm/core/frm.h>
+#include <frm/core/BitFlags.h>
 #include <frm/core/world/World.h>
 #include <frm/core/world/components/Component.h>
 
@@ -14,12 +15,26 @@ namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // PhysicsConstraint
+//
+// \todo
+// - OnBreak callback (or event model, like for collisions?)
+// - Edit frames with raycasts.
+// - Drive forces.
 ////////////////////////////////////////////////////////////////////////////////
 FRM_COMPONENT_DECLARE(PhysicsConstraint)
 {
 	friend class Physics;
 
 public:
+
+	enum class Flag: uint8
+	{
+		CollisionsEnabled,
+		StartBroken,
+
+		BIT_FLAGS_COUNT_DEFAULT_ZERO()
+	};
+	using Flags = BitFlags<Flag>;
 
 	enum Type_
 	{
@@ -39,7 +54,7 @@ public:
 		float damping;   // 0 = undamped, <1 = under-damped (will oscillate), 1 = critically damped (slows to equilibrium), >1 = over-damped
 	};
 
-	// Eliptical cone limit, aligned on +Z.
+	// Eliptical cone limit, aligned on +X.
 	struct LimitCone
 	{
 		float angleX; // in radians
@@ -61,7 +76,7 @@ public:
 		LimitSpring spring;
 	};
 
-	// Constrain the component's motion to rotation around the frame's z axis.
+	// Constrain the component's motion to rotation around the frame's x axis.
 	struct Revolute
 	{
 		float minAngle;
@@ -92,12 +107,22 @@ public:
 
 	static void Destroy(PhysicsConstraint*& _inst_);
 
-	
-	PhysicsConstraint() = default;
-	~PhysicsConstraint() = default;
 
-	void setComponent(int _i, PhysicsComponent* _component);
-	void setComponentFrame(int _i, const mat4& _frame);
+	       PhysicsConstraint() = default;
+	       ~PhysicsConstraint() = default;
+
+	void   setFlags(Flags _flags);
+	void   setFlag(Flag _flag, bool _value);
+	Flags  getFlags() const                   { return m_flags; }
+	bool   getFlag(Flag _flag) const          { return m_flags.get(_flag); }
+
+	bool   isBroken() const;
+	void   setBroken(bool _broken);
+
+	void   setNode(int _i, SceneNode* _node);
+
+	void   setComponent(int _i, PhysicsComponent* _component);
+	void   setComponentFrame(int _i, const mat4& _frame);
 
 private:
 
@@ -108,15 +133,15 @@ private:
 		Revolute revolute;
 	};
 		
+	Type                 m_type               = Type_Invalid;
+	Flags                m_flags;
 	GlobalNodeReference  m_nodes[2];
-	PhysicsComponent*    m_components[2]      = { nullptr };
-	mat4                 m_componentFrames[2] = { identity };
-	float                m_breakForce         = FLT_MAX;
-	float                m_breakTorque        = FLT_MAX;    
+	PhysicsComponent*    m_components[2]      = { nullptr, nullptr };
+	mat4                 m_componentFrames[2] = { identity, identity };
+	float                m_breakForce         = 0.0f;
+	float                m_breakTorque        = 0.0f;    
 	ConstraintData       m_constraintData;
-
-	Type  m_type = Type_Invalid;
-	void* m_impl = nullptr;
+	void*                m_impl               = nullptr;
 
 	static void OnNodeShutdown(SceneNode* _node, void* _component);
 
@@ -129,8 +154,10 @@ private:
 	bool editImpl() override;
 	bool serializeImpl(Serializer& _serializer_) override;
 
-	void setImplData();
+	void setImplData(Type _newType);
 	void wakeComponents();
+
+	void draw();
 };
 
 } // namespace frm
