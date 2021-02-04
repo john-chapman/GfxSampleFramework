@@ -527,7 +527,7 @@ bool Scene::serialize(Serializer& _serializer_)
 				_serializer_.endObject();
 			}
 		}
-
+		
 		_serializer_.endArray();
 	}
 
@@ -644,6 +644,8 @@ bool Scene::init()
 	m_state = World::State::Init;
 
 	bool ret = true;
+	
+	initGlobalNodeMap();
 
 	for (auto& it : m_localNodeMap)
 	{
@@ -919,6 +921,37 @@ void Scene::setPath(const char* _path)
 	m_world->addSceneInstance(this);
 }
 
+GlobalNodeReference Scene::findGlobal(const SceneNode* _node) const
+{
+	if (_node->m_parentScene == this)
+	{
+		return GlobalNodeReference(0u, _node->m_id, const_cast<SceneNode*>(_node));
+	}
+
+	for (auto& it : m_globalNodeMap)
+	{
+		if (it.second == _node)
+		{
+			return GlobalNodeReference(it.first, it.second);
+		}
+	}
+
+	return GlobalNodeReference();
+}
+
+LocalNodeReference Scene::findLocal(const SceneNode* _node) const
+{
+	for (auto& it : m_localNodeMap)
+	{
+		if (it.second == _node)
+		{
+			return LocalNodeReference(it.first, it.second);
+		}
+	}
+
+	return LocalNodeReference();
+}
+
 // PRIVATE
 
 Scene* Scene::CreateDefault(World* _world)
@@ -957,7 +990,7 @@ void Scene::removeComponent(Component* _component)
 	m_componentMap.erase(it);
 }
 
-void Scene::resetGlobalNodeMap()
+void Scene::initGlobalNodeMap()
 {
 	m_globalNodeMap.clear();
 
@@ -980,6 +1013,11 @@ void Scene::resetGlobalNodeMap()
 			m_globalNodeMap[globalID] = sceneIt.second;
 		}
 	}
+}
+
+void Scene::resetGlobalNodeMap()
+{
+	initGlobalNodeMap();
 
 	if (m_parentNode)
 	{
@@ -1048,32 +1086,6 @@ void Scene::flushPendingDeletes()
 	}
 }
 
-GlobalNodeReference Scene::findGlobal(const SceneNode* _node) const
-{
-	for (auto& it : m_globalNodeMap)
-	{
-		if (it.second == _node)
-		{
-			return GlobalNodeReference(it.first, it.second);
-		}
-	}
-
-	return GlobalNodeReference();
-}
-
-LocalNodeReference Scene::findLocal(const SceneNode* _node) const
-{
-	for (auto& it : m_localNodeMap)
-	{
-		if (it.second == _node)
-		{
-			return LocalNodeReference(it.first, it.second);
-		}
-	}
-
-	return LocalNodeReference();
-}
-
 
 /*******************************************************************************
 
@@ -1122,7 +1134,8 @@ bool SceneNode::serialize(Serializer& _serializer_)
 			}
 
 			_serializer_.endArray();
-		}		
+		}
+		m_children.shrink_to_fit();
 
 		_serializer_.endObject();
 	}
@@ -1144,6 +1157,7 @@ bool SceneNode::serialize(Serializer& _serializer_)
 
 			m_components[i].serialize(_serializer_);
 		}
+		m_components.shrink_to_fit();
 
 		_serializer_.endArray();
 	}

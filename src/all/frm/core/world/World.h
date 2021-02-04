@@ -157,7 +157,7 @@ using LocalComponentReference = LocalReference<Component>;
 //
 // A scene stores references to *all* nodes in the subtree below it; each scene 
 // will therefore have a different global ID for a particular node further down
-// the hierarchy. See GlobalReference. 
+// the hierarchy.
 ////////////////////////////////////////////////////////////////////////////////
 struct SceneGlobalID
 {
@@ -356,6 +356,9 @@ public:
 	const PathStr& getPath() const                 { return m_path; }
 	SceneNode*     getRootNode() const             { return m_root.referent; }
 
+	GlobalNodeReference findGlobal(const SceneNode* _node) const;
+	LocalNodeReference  findLocal(const SceneNode* _node) const;
+
 private:
 
 	using NodePool            = Pool<SceneNode>;
@@ -383,12 +386,10 @@ private:
 	void addComponent(Component* _component);
 	void removeComponent(Component* _component);
 
+	void initGlobalNodeMap();
 	void resetGlobalNodeMap();
 
 	void flushPendingDeletes();
-
-	GlobalNodeReference findGlobal(const SceneNode* _node) const;
-	LocalNodeReference  findLocal(const SceneNode* _node) const;
 
 	friend class SceneNode;
 	friend class World;
