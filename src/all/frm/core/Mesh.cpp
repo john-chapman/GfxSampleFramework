@@ -162,21 +162,32 @@ void Mesh::setIndexData(DataType _dataType, const void* _data, uint _indexCount,
 	glAssert(glBindVertexArray(prevVao));
 }
 
-void Mesh::setBindPose(const Skeleton& _skel)
+void Mesh::setSkeleton(const Skeleton& _skeleton)
 {
-	if (!m_bindPose)
+	if (!m_skeleton)
 	{
-		m_bindPose = FRM_NEW(Skeleton);
+		m_skeleton = FRM_NEW(Skeleton);
 	}
-	*m_bindPose = _skel;
+
+	*m_skeleton = _skeleton;
 }
+
+const mat4* Mesh::getBindPose() const
+{
+	return m_skeleton ? m_skeleton->getPose() : nullptr;
+}
+
+int Mesh::getBindPoseSize() const
+{
+	return m_skeleton ? m_skeleton->getBoneCount() : 0;
+}
+
 
 // PRIVATE
 
 Mesh::Mesh(uint64 _id, const char* _name)
 	: Resource(_id, _name)
 	, m_desc(MeshDesc::Primitive_Count)
-	, m_bindPose(nullptr)
 	, m_vertexArray(0)
 	, m_vertexBuffer(0)
 	, m_indexBuffer(0)
@@ -209,10 +220,10 @@ void Mesh::unload()
 		glAssert(glDeleteBuffers(1, &m_indexBuffer));
 		m_indexBuffer = 0;
 	}
-	if (m_bindPose)
+	if (m_skeleton)
 	{
-		FRM_DELETE(m_bindPose);
-		m_bindPose = nullptr;
+		FRM_DELETE(m_skeleton);
+		m_skeleton = nullptr;
 	}
 	m_submeshes.clear();
 	setState(State_Unloaded);
@@ -234,10 +245,13 @@ void Mesh::load(const MeshData& _data)
 	{
 		setIndexData((DataType)_data.m_indexDataType, _data.m_indexData, _data.getIndexCount(), GL_STATIC_DRAW);
 	}
-	if (_data.m_bindPose)
+	if (_data.m_skeleton)
 	{
-		m_bindPose = FRM_NEW(Skeleton);
-		*m_bindPose = *_data.m_bindPose;
+		if (!m_skeleton)
+		{
+			m_skeleton = FRM_NEW(Skeleton);
+		}
+		*m_skeleton = *_data.m_skeleton;
 	}
 
 	setState(State_Loaded);

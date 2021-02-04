@@ -66,8 +66,8 @@ bool SkeletonAnimation::ReadMd5(SkeletonAnimation& anim_, const char* _srcData, 
 		int i = baseFrame.addBone((const char*)src.m_name, src.m_parentIndex);
 		Skeleton::Bone& bone = baseFrame.getBone(i);
 		bone.m_scale = vec3(1.0f);
-		bone.m_position = src.m_position;
-		bone.m_orientation = src.m_orientation;
+		bone.m_translation = src.m_position;
+		bone.m_rotation = src.m_orientation;
 		bone.m_parentIndex = src.m_parentIndex == i ? -1 : src.m_parentIndex; // if the bone's parent is itself, make it a root
 	}
 	anim_.m_baseFrame = baseFrame;
@@ -92,7 +92,7 @@ bool SkeletonAnimation::ReadMd5(SkeletonAnimation& anim_, const char* _srcData, 
 		for (int j = 0; j < numFrames; ++j) {
 			int cmp = 0; // increment per used component
 
-			vec3 pos = bone.m_position; // base position
+			vec3 pos = bone.m_translation; // base position
 			if (joint.m_flags & md5::Position_X) {
 				pos.x = frames[j * numAnimatedComponents + joint.m_startIndex + cmp++];
 			}
@@ -104,7 +104,7 @@ bool SkeletonAnimation::ReadMd5(SkeletonAnimation& anim_, const char* _srcData, 
 			}
 			positions.push_back(pos);
 
-			quat ori = bone.m_orientation; // base orientation
+			quat ori = bone.m_rotation; // base orientation
 			ori.w = 0.0f; // reconstruct w below
 
 			if (joint.m_flags & md5::Orientation_X) {
@@ -122,10 +122,10 @@ bool SkeletonAnimation::ReadMd5(SkeletonAnimation& anim_, const char* _srcData, 
 		}
 
 		if (joint.m_flags & md5::Position_Mask) {
-			anim_.addPositionTrack(i, numFrames, normalizedTimes.data(), (float*)positions.data());
+			anim_.addTranslationTrack(i, numFrames, normalizedTimes.data(), (float*)positions.data());
 		}
 		if (joint.m_flags & md5::Orientation_Mask) {
-			anim_.addOrientationTrack(i, numFrames, normalizedTimes.data(), (float*)orientations.data());
+			anim_.addRotationTrack(i, numFrames, normalizedTimes.data(), (float*)orientations.data());
 		}
 	}
 

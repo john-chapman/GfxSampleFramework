@@ -2,7 +2,6 @@
 
 #include <frm/core/frm.h>
 #include <frm/core/geom.h>
-#include <frm/core/SkeletonAnimation.h>
 #include <frm/core/String.h>
 
 #include <EASTL/vector.h>
@@ -247,25 +246,27 @@ public:
 	void setIndexData(frm::DataType _srcType, const void* _src);
 
 	uint64          getHash() const;
-	const char*     getPath() const               { return (const char*)m_path; }
-	const MeshDesc& getDesc() const               { return m_desc; }
-	uint            getVertexCount() const        { return m_submeshes[0].m_vertexCount; }
-	const void*     getVertexData() const         { return m_vertexData; }
-	uint            getIndexCount() const         { return m_submeshes[0].m_indexCount; }
-	const void*     getIndexData() const          { return m_indexData; }
-	frm::DataType   getIndexDataType() const      { return m_indexDataType; }
+	const char*     getPath() const                               { return m_path.c_str(); }
+	const MeshDesc& getDesc() const                               { return m_desc; }
+	uint            getVertexCount() const                        { return m_submeshes[0].m_vertexCount; }
+	const void*     getVertexData() const                         { return m_vertexData; }
+	uint            getIndexCount() const                         { return m_submeshes[0].m_indexCount; }
+	const void*     getIndexData() const                          { return m_indexData; }
+	frm::DataType   getIndexDataType() const                      { return m_indexDataType; }
 
-	const Skeleton* getBindPose() const                { return m_bindPose; }
-	void            setBindPose(const Skeleton& _skel);
+	const Skeleton* getSkeleton() const                           { return m_skeleton; }
+	void            setSkeleton(const Skeleton& _skeleton);
+	const mat4*     getBindPose() const;
+	int             getBindPoseSize() const;
 
 protected:
-	frm::String<32> m_path            = ""; // empty if not from a file
-	Skeleton*       m_bindPose        = nullptr;
-	MeshDesc        m_desc;
-	char*           m_vertexData      = nullptr;
-	char*           m_indexData       = nullptr;
-	frm::DataType   m_indexDataType   = frm::DataType_Invalid;
 
+	frm::String<32>        m_path            = ""; // empty if not from a file
+	MeshDesc               m_desc;
+	char*                  m_vertexData      = nullptr;
+	char*                  m_indexData       = nullptr;
+	frm::DataType          m_indexDataType   = frm::DataType_Invalid;
+	Skeleton*              m_skeleton        = nullptr; // Also contains bind pose.
 	eastl::vector<Submesh> m_submeshes;
 
 	// \todo 
@@ -292,6 +293,9 @@ protected:
 // MeshBuilder
 // Mesh construction/manipulation tools.
 // Unlike Mesh, the submesh 0 has no special meaning. 
+//
+// \todo
+// - Detect where tangents cannot be generated if no UVs present.
 ////////////////////////////////////////////////////////////////////////////////
 class MeshBuilder
 {

@@ -4,6 +4,7 @@
 #include <frm/core/hash.h>
 #include <frm/core/memory.h>
 #include <frm/core/FileSystem.h>
+#include <frm/core/SkeletonAnimation.h>
 #include <frm/core/TextParser.h>
 #include <frm/core/Time.h>
 
@@ -200,7 +201,14 @@ MeshData* MeshData::Create(const char* _path, const MeshDesc& _desc)
 	ret->m_desc = _desc;
 	ret->m_path.set(_path);
 
-	if (FileSystem::CompareExtension("obj", _path))
+	if (FileSystem::CompareExtension("gltf", _path))
+	{
+		if (!ReadGltf(*ret, f.getData(), f.getDataSize()))
+		{
+			goto MeshData_Create_error;
+		}
+	}
+	else if (FileSystem::CompareExtension("obj", _path))
 	{
 		if (!ReadObj(*ret, f.getData(), f.getDataSize()))
 		{
@@ -210,13 +218,6 @@ MeshData* MeshData::Create(const char* _path, const MeshDesc& _desc)
 	else if (FileSystem::CompareExtension("md5mesh", _path))
 	{
 		if (!ReadMd5(*ret, f.getData(), f.getDataSize()))
-		{
-			goto MeshData_Create_error;
-		}
-	}
-	else if (FileSystem::CompareExtension("gltf", _path))
-	{
-		if (!ReadGltf(*ret, f.getData(), f.getDataSize()))
 		{
 			goto MeshData_Create_error;
 		}
@@ -560,7 +561,7 @@ void MeshData::Destroy(MeshData*& _meshData_)
 void frm::swap(MeshData& _a, MeshData& _b)
 {
 	frm::swap(_a.m_path,           _b.m_path);
-	std::swap(_a.m_bindPose,       _b.m_bindPose);
+	std::swap(_a.m_skeleton,       _b.m_skeleton);
 	std::swap(_a.m_desc,           _b.m_desc);
 	std::swap(_a.m_vertexData,     _b.m_vertexData);
 	std::swap(_a.m_indexData,      _b.m_indexData);
@@ -641,6 +642,26 @@ void MeshData::setIndexData(DataType _srcType, const void* _src)
 	}
 }
 
+void MeshData::setSkeleton(const Skeleton& _skeleton)
+{
+	if (!m_skeleton)
+	{
+		m_skeleton = FRM_NEW(Skeleton);
+	}
+
+	*m_skeleton = _skeleton;
+}
+
+const mat4* MeshData::getBindPose() const
+{
+	return m_skeleton ? m_skeleton->getPose() : nullptr;
+}
+
+int MeshData::getBindPoseSize() const
+{
+	return m_skeleton ? m_skeleton->getBoneCount() : 0;
+}
+
 void MeshData::beginSubmesh(uint _materialId)
 {
 	Submesh submesh;
@@ -692,33 +713,19 @@ uint64 MeshData::getHash() const
 	else
 	{
 		uint64 ret = m_desc.getHash();
+
 		if (m_vertexData)
 		{
 			ret = Hash<uint64>(m_vertexData, m_desc.getVertexSize() * getVertexCount(), ret);
 		}
+
 		if (m_indexData)
 		{
 			ret = Hash<uint64>(m_indexData, DataTypeSizeBytes(m_indexDataType) * getIndexCount(), ret);
 		}
-		if (m_bindPose)
-		{
-			for (int i = 0; i < m_bindPose->getBoneCount(); ++i)
-			{
-				const Skeleton::Bone& bone = m_bindPose->getBone(i);
-				ret = HashString<uint64>(m_bindPose->getBoneName(i), ret);
-			}
-		}
+
 		return ret;
 	}
-}
-
-void MeshData::setBindPose(const Skeleton& _skel)
-{
-	if (!m_bindPose)
-	{
-		m_bindPose = FRM_NEW(Skeleton);
-	}
-	*m_bindPose = _skel;
 }
 
 // PRIVATE
@@ -736,6 +743,8 @@ MeshData::MeshData(const MeshDesc& _desc)
 MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 	: m_desc(_desc)
 {
+	FRM_AUTOTIMER("MeshData: Construct from MeshBuilder");
+
 	const VertexAttr* positionsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Positions);
 	const VertexAttr* texcoordsAttr   = m_desc.findVertexAttr(VertexAttr::Semantic_Texcoords);
 	const VertexAttr* normalsAttr     = m_desc.findVertexAttr(VertexAttr::Semantic_Normals);
@@ -763,6 +772,10 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 		if (tangentsAttr)
 		{
 			DataTypeConvert(DataType_Float32, tangentsAttr->getDataType(), &src.m_tangent, dst + tangentsAttr->getOffset(), FRM_MIN(4, (int)tangentsAttr->getCount()));
+		}
+		if (colorsAttr)
+		{
+			DataTypeConvert(DataType_Float32, colorsAttr->getDataType(), &src.m_color, dst + colorsAttr->getOffset(), FRM_MIN(4, (int)colorsAttr->getCount()));
 		}
 		if (boneWeightsAttr)
 		{
@@ -800,10 +813,7 @@ MeshData::MeshData(const MeshDesc& _desc, const MeshBuilder& _meshBuilder)
 
 MeshData::~MeshData()
 {
-	if (m_bindPose)
-	{
-		FRM_DELETE(m_bindPose);
-	}
+	FRM_DELETE(m_skeleton);
 	FRM_FREE(m_vertexData);
 	FRM_FREE(m_indexData);
 }

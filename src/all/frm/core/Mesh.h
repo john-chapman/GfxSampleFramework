@@ -7,7 +7,6 @@
 #include <frm/core/String.h>
 #include <frm/core/SkeletonAnimation.h>
 
-
 #include <EASTL/vector.h>
 
 namespace frm {
@@ -33,29 +32,31 @@ public:
 	void setVertexData(const void* _data, uint _vertexCount, GLenum _usage = GL_STREAM_DRAW);
 	void setIndexData(frm::DataType _dataType, const void* _data, uint _indexCount, GLenum _usage = GL_STREAM_DRAW);
 
-	uint getVertexCount() const                          { return getSubmesh(0).m_vertexCount; }
-	uint getIndexCount() const                           { return getSubmesh(0).m_indexCount;  }
-	int  getSubmeshCount() const                         { return (int)m_submeshes.size();     }
-	const MeshData::Submesh& getSubmesh(int _id) const   { FRM_ASSERT(_id < getSubmeshCount()); return m_submeshes[_id]; };
+	uint getVertexCount() const                                   { return getSubmesh(0).m_vertexCount; }
+	uint getIndexCount() const                                    { return getSubmesh(0).m_indexCount;  }
+	int  getSubmeshCount() const                                  { return (int)m_submeshes.size();     }
+	const MeshData::Submesh& getSubmesh(int _id) const            { FRM_ASSERT(_id < getSubmeshCount()); return m_submeshes[_id]; };
 
-	GLuint getVertexArrayHandle() const                  { return m_vertexArray;   }
-	GLuint getVertexBufferHandle() const                 { return m_vertexBuffer;  }
-	GLuint getIndexBufferHandle() const                  { return m_indexBuffer;   }
-	GLenum getIndexDataType() const                      { return m_indexDataType; }
-	GLenum getPrimitive() const                          { return m_primitive;     }
+	GLuint getVertexArrayHandle() const                           { return m_vertexArray;   }
+	GLuint getVertexBufferHandle() const                          { return m_vertexBuffer;  }
+	GLuint getIndexBufferHandle() const                           { return m_indexBuffer;   }
+	GLenum getIndexDataType() const                               { return m_indexDataType; }
+	GLenum getPrimitive() const                                   { return m_primitive;     }
 
-	const AlignedBox& getBoundingBox(int _submesh = 0) const     { return m_submeshes[_submesh].m_boundingBox;    }
-	const Sphere&     getBoundingSphere(int _submesh = 0) const  { return m_submeshes[_submesh].m_boundingSphere; }
+	const AlignedBox& getBoundingBox(int _submesh = 0) const      { return m_submeshes[_submesh].m_boundingBox;    }
+	const Sphere&     getBoundingSphere(int _submesh = 0) const   { return m_submeshes[_submesh].m_boundingSphere; }
 
-	const Skeleton*   getBindPose() const                { return m_bindPose; }
-	void              setBindPose(const Skeleton& _skel);
+	const Skeleton* getSkeleton() const                           { return m_skeleton; }
+	void            setSkeleton(const Skeleton& _skeleton);
+	const mat4*     getBindPose() const;
+	int             getBindPoseSize() const;
 
 private:
 	frm::String<32> m_path; // empty if not from a file
 
 	MeshDesc m_desc;
 	eastl::vector<MeshData::Submesh> m_submeshes;
-	Skeleton* m_bindPose; // joint hierarchy + inverse bind pose matrices
+	Skeleton* m_skeleton = nullptr;
 
 	GLuint m_vertexArray;   // vertex array state (only bind this when drawing)
 	GLuint m_vertexBuffer;

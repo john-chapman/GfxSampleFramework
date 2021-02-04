@@ -16,48 +16,49 @@ namespace frm {
 class Skeleton
 {
 public:
-	typedef frm::String<16> BoneName;
-	typedef uint32          BoneId;  // hash of the bone name
+
+	using BoneName = String<16>;
+	using BoneId   = uint32;
 	
 	struct Bone
 	{
-		vec3   m_position;
-		quat   m_orientation; // unit length
-		vec3   m_scale;
-		int    m_parentIndex; // -1 for a root bone
+		vec3 m_translation  = vec3(0.0f);
+		quat m_rotation     = quat(0.0f, 0.0f, 0.0f, 1.0f);
+		vec3 m_scale        = vec3(1.0f);
+		int  m_parentIndex  = -1; // -1 = root bone
 	};
 
+	             Skeleton();
+
 	// Return the index of the new bone.
-	int addBone(const char* _name, int _parentIndex = -1);
+	int          addBone(const char* _name, int _parentIndex = -1);
 
 	// Resolve bone hierarchy into final pose. 
-	const mat4* resolve();
+	const mat4*  resolve();
 
-	void draw() const;
+	void         draw() const;
 
 	const mat4*  getPose() const                         { return m_pose.data(); }
 	      mat4*  getPose()                               { return m_pose.data(); }
+		  void   setPose(const mat4* _pose)              { memcpy(m_pose.data(), _pose, m_pose.size() * sizeof(mat4)); }
 	      int    getBoneCount() const                    { return (int)m_bones.size();          }
 	      int    getBoneIndex(const Bone& _bone) const   { return (int)(&_bone - &m_bones[0]);  }
-	const Bone&  getBone(int _index) const               { FRM_ASSERT(_index < getBoneCount()); return m_bones[_index];     }
-	      Bone&  getBone(int _index)                     { FRM_ASSERT(_index < getBoneCount()); return m_bones[_index];     }
-	      BoneId getBoneId(int _index) const             { FRM_ASSERT(_index < getBoneCount()); return m_boneIds[_index];   }
-	const char*  getBoneName(int _index) const           { FRM_ASSERT(_index < getBoneCount()); return (const char*)m_boneNames[_index]; }
-
-	Skeleton();
+	const Bone&  getBone(int _index) const               { return m_bones[_index]; }
+	      Bone&  getBone(int _index)                     { return m_bones[_index]; }
+	      BoneId getBoneId(int _index) const             { return m_boneIds[_index]; }
+	const char*  getBoneName(int _index) const           { return (const char*)m_boneNames[_index]; }
 
 private:
-	eastl::vector<mat4>     m_pose; // resolved model space pose
 
+	eastl::vector<mat4>     m_pose;
 	eastl::vector<Bone>     m_bones;
-	eastl::vector<BoneId>   m_boneIds;   // hash of bone name
+	eastl::vector<BoneId>   m_boneIds;
 	eastl::vector<BoneName> m_boneNames;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // SkeletonAnimationTrack
-// Ordered list of frame data and normalized frame times. 
-// \todo Make internal to SkeletonAnimation?
+// Ordered list of frame data and normalized frame times.
 ///////////////////////////////////////////////////////////////////////////////
 class SkeletonAnimationTrack
 {
@@ -72,12 +73,12 @@ public:
 
 	void addFrames(int _count, const float* _normalizedTimes, const float* _data);
 	
-	int getBoneIndex() const       { return m_boneIndex; }
-	int getBoneDataOffset() const  { return m_boneDataOffset; }
-	int getBoneDataSize() const    { return m_boneDataSize; }
+	int  getBoneIndex() const       { return m_boneIndex; }
+	int  getBoneDataOffset() const  { return m_boneDataOffset; }
+	int  getBoneDataSize() const    { return m_boneDataSize; }
 	
-
 private:
+
 	int m_boneIndex;
 	int m_boneDataOffset;  // result offset in Skeleton::Bone
 	int m_boneDataSize;    // number of floats per frame
@@ -98,28 +99,31 @@ private:
 class SkeletonAnimation: public Resource<SkeletonAnimation>
 {
 public:
+
 	static SkeletonAnimation* Create(const char* _path);
 	static void Destroy(SkeletonAnimation*& _inst_);
 
 	bool load()   { return reload(); }
 	bool reload();
 
-
 	void sample(float _t, Skeleton& out_, int _hints_[] = nullptr);
 
 	// \note add* functions invalidate ptrs previously returned.
-	SkeletonAnimationTrack* addPositionTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
-	SkeletonAnimationTrack* addOrientationTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
+	SkeletonAnimationTrack* addTranslationTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
+	SkeletonAnimationTrack* addRotationTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
 	SkeletonAnimationTrack* addScaleTrack(int _boneIndex, int _frameCount = 0, float* _normalizedTimes = nullptr, float* _data = nullptr);
 
-	int getTrackCount() const             { return (int)m_tracks.size(); }
-	const Skeleton& getBaseFrame() const  { return m_baseFrame; }
+	int                     getTrackCount() const { return (int)m_tracks.size(); }
+	const Skeleton&         getBaseFrame() const  { return m_baseFrame; }
+	const char*             getPath() const       { return m_path.c_str(); }
 
 protected:
+
 	SkeletonAnimation(uint64 _id, const char* _name);
 	~SkeletonAnimation();
 
 private:
+
 	frm::String<32> m_path; // empty if not from a file
 	eastl::vector<SkeletonAnimationTrack> m_tracks;
 	Skeleton m_baseFrame;
@@ -127,6 +131,7 @@ private:
 	SkeletonAnimationTrack* findTrack(int _boneIndex, int _boneDataOffset, int _boneDataSize);
 
 	static bool ReadMd5(SkeletonAnimation& anim_, const char* _srcData, uint _srcDataSize);
+	static bool ReadGltf(SkeletonAnimation& anim_, const char* _srcData, uint _srcDataSize);
 
 }; // class SkeletonAnimation
 

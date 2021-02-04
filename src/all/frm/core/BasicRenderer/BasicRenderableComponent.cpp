@@ -56,13 +56,13 @@ void BasicRenderableComponent::setPose(const Skeleton& _skeleton)
 	if (m_mesh)
 	{
 		//FRM_ASSERT(m_mesh->getBindPose() && m_mesh->getBindPose()->getBoneCount() == boneCount);
-		if (m_mesh->getBindPose()->getBoneCount() != boneCount)
+		if (m_mesh->getBindPoseSize() != boneCount)
 		{
 			return;
 		}
 
 	// \todo apply the bind pose during Skeleton::resolve()?
-		const mat4* bindPose = m_mesh->getBindPose()->getPose();
+		const mat4* bindPose = m_mesh->getBindPose();
 
 		swap(m_pose, m_prevPose);
 		m_pose.clear();
