@@ -603,12 +603,13 @@ void AppSample::drawNotifications()
 
 *******************************************************************************/
 
-static Shader*     s_shImGui;
-static Mesh*       s_msImGui;
-static Texture*    s_txImGui;
-static TextureView s_txViewImGui; // default texture view for the ImGui texture
-static Shader*     s_shTextureView[frm::internal::kTextureTargetCount]; // shader per texture type
-static Texture*    s_txRadar;
+static Shader*       s_shImGui;
+static Mesh*         s_msImGui;
+static Texture*      s_txImGui;
+static TextureView   s_txViewImGui; // default texture view for the ImGui texture
+static Shader*       s_shTextureView[frm::internal::kTextureTargetCount]; // shader per texture type
+static Texture*      s_txRadar;
+static ImGuiContext* s_imguiContext;
 
 static void* ImGui_Malloc(size_t _size, void*)
 {
@@ -649,9 +650,9 @@ bool AppSample::initRenderdoc()
 
 bool AppSample::ImGui_Init(AppSample* _app)
 {
-	ImGuiContext* imgui = ImGui::CreateContext();
-	ImGui::SetCurrentContext(imgui);
 	ImGui::SetAllocatorFunctions(&ImGui_Malloc, &ImGui_Free);
+	s_imguiContext = ImGui::CreateContext();
+	ImGui::PushContext(s_imguiContext);
 	
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
@@ -875,7 +876,8 @@ void AppSample::ImGui_Shutdown(AppSample* _app)
 	Texture::Release(s_txRadar);
 	Texture::Release(s_txImGui);
 	
-	ImGui::DestroyContext(ImGui::GetCurrentContext());
+	ImGui::PopContext();
+	ImGui::DestroyContext(s_imguiContext);
 }
 
 void AppSample::ImGui_Update(AppSample* _app)

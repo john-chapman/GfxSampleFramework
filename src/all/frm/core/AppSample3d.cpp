@@ -461,8 +461,8 @@ bool AppSample3d::Im3d_Init(AppSample3d* _app)
 	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles]->getState() == Mesh::State_Loaded;
 
 	// Init separate ImGui context for Im3d text rendering.
-	s_im3dTextRenderContext = ImGui::CreateContext(ImGui::GetIO().Fonts); // Share main context font atlas.
 	ImGuiContext* prevImGuiContext = ImGui::GetCurrentContext();
+	s_im3dTextRenderContext = ImGui::CreateContext(ImGui::GetIO().Fonts); // Share main context font atlas.
 	ImGui::SetCurrentContext(s_im3dTextRenderContext); // \todo Could avoid this by including imgui_internal.h directly.
 	ImGuiIO& io = ImGui::GetIO();
 	io.IniFilename = nullptr;
@@ -584,8 +584,7 @@ void AppSample3d::drawIm3d(
 		return;
 	}
 
-	ImGuiContext* prevImGuiContext = ImGui::GetCurrentContext();
-	ImGui::SetCurrentContext(s_im3dTextRenderContext);
+	ImGui::PushContext(s_im3dTextRenderContext);
 
 	Window* window = getWindow();
 	ImGuiIO& io = ImGui::GetIO();
@@ -690,7 +689,7 @@ void AppSample3d::drawIm3d(
 		ImGui_RenderDrawLists(ImGui::GetDrawData());
 	}
 
-	ImGui::SetCurrentContext(prevImGuiContext);
+	ImGui::PopContext();
 }
 
 void AppSample3d::drawIm3d(Camera* _camera, Framebuffer* _framebuffer, Viewport _viewport, Texture* _depthTexture)

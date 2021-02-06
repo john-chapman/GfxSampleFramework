@@ -128,6 +128,8 @@ namespace ImGui
 #define IM_COL32_YELLOW   IM_COL32(255, 255, 0,   255)
 #define IM_COL32_CYAN     IM_COL32(0,   255, 255, 255)
 
+struct ImGuiContext;
+
 namespace ImGui
 {
 	void Value(const char* prefix, const frm::vec2& v);
@@ -144,4 +146,7 @@ namespace ImGui
 	void EndInvisible();
 
 	bool ButtonColored(const char* label, const frm::vec4& color, const frm::vec2& size = frm::vec2(0, 0));
+
+	void PushContext(ImGuiContext* ctx);
+	void PopContext(int count = 1);
 }

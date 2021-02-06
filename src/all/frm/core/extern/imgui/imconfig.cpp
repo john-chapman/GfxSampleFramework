@@ -1,5 +1,7 @@
 #include "imgui.h"
 
+#include <EASTL/vector.h>
+
 void ImGui::Value(const char* prefix, const frm::vec2& v)
 {
 	Text("%s: %+0.5f, %+0.5f", prefix, v.x, v.y);
@@ -109,4 +111,25 @@ bool ImGui::ButtonColored(const char* label, const frm::vec4& color, const frm::
 	bool ret = ImGui::Button(label, size);
 	ImGui::PopStyleColor(3);
 	return ret;
+}
+
+static eastl::vector<ImGuiContext*> s_ctxStack;
+
+void ImGui::PushContext(ImGuiContext* ctx)
+{
+	s_ctxStack.push_back(ctx);
+	ImGui::SetCurrentContext(ctx);
+}
+
+void ImGui::PopContext(int count)
+{
+	for (; count > 0; --count)
+	{
+		s_ctxStack.pop_back();
+	}
+
+	if (!s_ctxStack.empty())
+	{
+		ImGui::SetCurrentContext(s_ctxStack.back());
+	}
 }
