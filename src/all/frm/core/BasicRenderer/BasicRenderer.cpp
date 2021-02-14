@@ -63,6 +63,7 @@ void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamer
 	updatePostProcessData(_dt, postProcessData.frameIndex + 1);
 	
 	GlContext* ctx = GlContext::GetCurrent();
+	const Framebuffer* fbRestore = ctx->getFramebuffer();
 	{	PROFILER_MARKER("Shadow Maps");
 
 		glAssert(glColorMask(false, false, false, false));
@@ -116,6 +117,8 @@ void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamer
 
 		glAssert(glColorMask(true, true, true, true));
 	}
+
+	ctx->setFramebufferAndViewport(fbRestore);
 }
 
 void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
@@ -123,6 +126,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	PROFILER_MARKER("BasicRenderer::draw");
 
 	GlContext* ctx = GlContext::GetCurrent();
+	const Framebuffer* fbRestore = ctx->getFramebuffer();
 	#if FRM_MODULE_VR
 		VRContext* vrCtx = VRContext::GetCurrent();
 	#endif
@@ -516,6 +520,8 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	{
 		ctx->blitFramebuffer(fbFinal, nullptr, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	}
+
+	ctx->setFramebufferAndViewport(fbRestore);
 }
 
 bool BasicRenderer::edit()
