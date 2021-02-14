@@ -36,6 +36,8 @@ public:
 	bool isUp(int _button) const                { return !isDown(_button); }
 	// # of button presses between the previous two calls to pollState().
 	char getPressCount(int _button) const       { return getButtonState(_button) & 0x7f; }
+	// Whether any button was pressed between the previous two calls to pollState();
+	bool anyPressed() const                     { return m_anyPressed; }
 
 	// Raw button state. High order bit contains the button state, low bits contain the press count.
 	char getButtonState(int _button) const      { FRM_ASSERT(_button < m_buttonCount); return m_buttonStates ? m_buttonStates[_button] : 0; }
@@ -51,6 +53,7 @@ protected:
 
 	char*     m_buttonStates;     // Current button states.
 	int       m_buttonCount;      // Size of button state buffer.
+	bool      m_anyPressed;
 
 	float*    m_axisStates;       // Current axis states.
 	int       m_axisCount;        // Size of axis state buffer.

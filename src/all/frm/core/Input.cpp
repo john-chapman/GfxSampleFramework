@@ -45,6 +45,7 @@ void Device::pollBegin()
 	{
 		m_buttonStates[i] &= 0x80;
 	}
+	m_anyPressed = false;
  // zero axis states
  // \note do this per-device (some devices don't update the axes continuously)
 	//memset(m_axisStates, 0, m_axisCount * sizeof(float));
@@ -63,12 +64,14 @@ void Device::setIncButton(int _button, bool _isDown)
 	}
 	state = (_isDown ? 0x80 : 0x00) | (state & 0x7f);
 	m_buttonStates[_button] = state;
+	m_anyPressed |= _isDown;
 }
 
 void Device::reset()
 {
 	memset(m_buttonStates, 0, m_buttonCount * sizeof(char));
 	memset(m_axisStates, 0, m_axisCount * sizeof(float));
+	m_anyPressed = false;
 }
 
 void Device::setButtonCount(int _count)
