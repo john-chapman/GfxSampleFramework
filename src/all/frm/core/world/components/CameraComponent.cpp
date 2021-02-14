@@ -39,7 +39,6 @@ void CameraComponent::Update(Component** _from, Component** _to, float _dt, Worl
 		
 		component->m_camera.m_world = component->getParentNode()->getWorld();
 		component->m_camera.update();
-		component->draw();
 	}
 }
 
