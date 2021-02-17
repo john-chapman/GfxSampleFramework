@@ -1,7 +1,6 @@
 #include <frm/core/compress.h>
 
-#define MINIZ_IMPL
-#include <miniz.h>
+#include <miniz/miniz.h>
 
 using namespace frm;
 

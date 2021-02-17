@@ -575,7 +575,7 @@ static void SwapByteOrder(char* _d_, unsigned _dsize)
 
 #define TINYEXR_IMPLEMENTATION
 #define TINYEXR_USE_MINIZ 0
-#include <miniz.h>
+#include <miniz/miniz.h>
 #include <tinyexr.h>
 
 bool Image::ReadDefault(Image& img_, const char* _data, uint _dataSize)
