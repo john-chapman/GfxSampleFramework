@@ -192,7 +192,7 @@
 				"m_castShadows": false,
 				"m_colorAlpha": [1.0, 1.0, 1.0, 1.0],
 				"m_meshPath": "common/models/Plane_100.obj",
-				"m_materialPaths": ["common/materials/Grid2Dark.json"]
+				"m_materialPaths": ["common/materials/Grid2Dark.mat"]
 			}, {
 				"ID": "0006",
 				"_class": "BasicRenderableComponent",
@@ -200,7 +200,7 @@
 				"m_castShadows": true,
 				"m_colorAlpha": [0.35587191581726076, 1.0, 0.0, 1.0],
 				"m_meshPath": "models/Box_1.obj",
-				"m_materialPaths": ["common/materials/Grid0Dark.json"]
+				"m_materialPaths": ["common/materials/Grid0Dark.mat"]
 			}, {
 				"ID": "0007",
 				"_class": "BasicRenderableComponent",
@@ -208,7 +208,7 @@
 				"m_castShadows": true,
 				"m_colorAlpha": [1.0, 0.19217079877853394, 0.0, 1.0],
 				"m_meshPath": "models/Box_1.obj",
-				"m_materialPaths": ["common/materials/Grid0Dark.json"]
+				"m_materialPaths": ["common/materials/Grid0Dark.mat"]
 			}, {
 				"ID": "0008",
 				"_class": "BasicRenderableComponent",
@@ -216,7 +216,7 @@
 				"m_castShadows": true,
 				"m_colorAlpha": [0.12099599838256836, 0.0, 1.0, 1.0],
 				"m_meshPath": "models/Box_1.obj",
-				"m_materialPaths": ["common/materials/Grid0Dark.json"]
+				"m_materialPaths": ["common/materials/Grid0Dark.mat"]
 			}, {
 				"ID": "0009",
 				"_class": "XFormComponent",
@@ -264,7 +264,7 @@
 				"m_castShadows": true,
 				"m_colorAlpha": [0.46975088119506838, 0.0, 0.2708173990249634, 1.0],
 				"m_meshPath": "common/models/Torus_1.obj",
-				"m_materialPaths": ["common/materials/Grid0Light.json"]
+				"m_materialPaths": ["common/materials/Grid0Light.mat"]
 			}, {
 				"ID": "000D",
 				"_class": "XFormComponent",
