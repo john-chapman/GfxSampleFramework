@@ -96,16 +96,17 @@ bool AppSample3d::update()
 	Im3d_Update(this);
 
 	{	PROFILER_MARKER_CPU("#World update");
+		World* world = World::GetCurrent();
 		Component::ClearActiveComponents();
-		m_world->update(dt, World::UpdatePhase::GatherActive);
-		m_world->update(dt, World::UpdatePhase::Hierarchy);
-		m_world->update(dt, World::UpdatePhase::PrePhysics);
+		world->update(dt, World::UpdatePhase::GatherActive);
+		world->update(dt, World::UpdatePhase::Hierarchy);
+		world->update(dt, World::UpdatePhase::PrePhysics);
 		#if FRM_MODULE_PHYSICS
 			Physics::Update(dt);
 		#endif
-		m_world->update(dt, World::UpdatePhase::Physics);
-		m_world->update(dt, World::UpdatePhase::PostPhysics);
-		m_world->update(dt, World::UpdatePhase::PreRender);
+		world->update(dt, World::UpdatePhase::Physics);
+		world->update(dt, World::UpdatePhase::PostPhysics);
+		world->update(dt, World::UpdatePhase::PreRender);
 	}
 
 	// Update draw camera aspect ratio to match window.
@@ -367,7 +368,7 @@ void AppSample3d::createDebugCullCamera()
 		destroyDebugCullCamera();
 	}
 
-	Scene* rootScene = m_world->getRootScene();
+	Scene* rootScene = World::GetCurrent()->getRootScene();
 	
 	m_restoreCullCamera = CameraComponent::GetCullCamera();
 	if (!m_restoreCullCamera)
@@ -397,7 +398,7 @@ void AppSample3d::destroyDebugCullCamera()
 	{
 		return;
 	}
-	Scene* rootScene = m_world->getRootScene();
+	Scene* rootScene = World::GetCurrent()->getRootScene();
 	rootScene->destroyNode(cullCameraComponent->getParentNode());
 
 	CameraComponent::SetCullCamera(m_restoreCullCamera);
