@@ -61,7 +61,8 @@ public:
 
 	// Get/set the current active world.
 	static World*  GetCurrent()                 { return s_current; }
-	static void    SetCurrent(World* _world)    { s_current = _world; }
+	static void    SetCurrent(World* _world)    { s_current = _world; } // \todo Need to unset/set active camera? Possibly need activation events?
+
 
 	// Get the current draw camera (see CameraComponent).
 	static Camera* GetDrawCamera();
