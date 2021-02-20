@@ -56,13 +56,53 @@ void World::Destroy(World*& _world_)
 Camera* World::GetDrawCamera()
 {
 	CameraComponent* drawCameraComponent = CameraComponent::GetDrawCamera();
-	return drawCameraComponent ? &drawCameraComponent->getCamera() : World::GetCurrent()->getDefaultCamera();
+	return drawCameraComponent ? &drawCameraComponent->getCamera() : World::GetCurrent()->findOrCreateDefaultCamera();
 }
 
 Camera* World::GetCullCamera()
 {
 	CameraComponent* cullCameraComponent = CameraComponent::GetCullCamera();
-	return cullCameraComponent ? &cullCameraComponent->getCamera() : World::GetCurrent()->getDefaultCamera();
+	return cullCameraComponent ? &cullCameraComponent->getCamera() : World::GetCurrent()->findOrCreateDefaultCamera();
+}
+
+void World::update(float _dt, UpdatePhase _phase)
+{
+	// \hack \todo Profiler markers don't support dynamic strings.
+	static const char* kUpdatePhaseMarkerStr[(int)World::UpdatePhase::_Count] =
+	{
+		"#World::update(GatherActive)",
+		"#World::update(PrePhysics)",
+		"#World::update(Hierarchy)",
+		"#World::update(Physics)",
+		"#World::update(PostPhysics)",
+		"#World::update(PreRender)"
+	};
+
+	if (_phase == UpdatePhase::All)
+	{
+		for (int i = 0; i < (int)UpdatePhase::_Count; ++i)
+		{
+			PROFILER_MARKER_CPU(kUpdatePhaseMarkerStr[i]);
+
+			_phase = (UpdatePhase)i;
+
+			if_likely (m_rootScene)
+			{
+				m_rootScene->update(_dt, _phase);
+			}
+			Component::Update(_dt, _phase);
+		}
+	}
+	else
+	{
+		PROFILER_MARKER_CPU(kUpdatePhaseMarkerStr[(int)_phase]);
+
+		if_likely (m_rootScene)
+		{
+			m_rootScene->update(_dt, _phase);
+		}
+		Component::Update(_dt, _phase);
+	}
 }
 
 bool World::serialize(Serializer& _serializer_)
@@ -88,6 +128,14 @@ bool World::serialize(Serializer& _serializer_)
 				ret = false;
 			}
 
+			if (!m_rootScene)
+			{
+				m_rootScene = FRM_NEW(Scene(this));
+			}
+			else
+			{
+				removeSceneInstance(m_rootScene); // Need to remove before changing the path below.
+			}
 			m_rootScene->m_path = rootScenePath;
 			
 			SerializerJson rootSerializer(rootJson, _serializer_.getMode());
@@ -146,13 +194,22 @@ bool World::init()
 		m_rootScene = Scene::CreateDefault(this);
 	}
 
-	return m_rootScene->init();
+	if (!m_rootScene->init())
+	{
+		return false;
+	}
+	
+	// Resolve the hierarchy once so that world transforms are set during postInit().
+	update(0.f, UpdatePhase::Hierarchy);
+
+	return true;
 }
 
 bool World::postInit()
 {
 	FRM_ASSERT(m_state == State::Init);
 	m_state = World::State::PostInit;
+
 	if (!m_rootScene->postInit())
 	{
 		return false;
@@ -173,33 +230,6 @@ void World::shutdown()
 	FRM_ASSERT(m_sceneInstances.empty());
 }
 
-void World::update(float _dt, UpdatePhase _phase)
-{
-
-	if (_phase == UpdatePhase::All)
-	{
-		for (int i = 0; i < (int)UpdatePhase::_Count; ++i)
-		{
-			_phase = (UpdatePhase)i;
-
-			// PROFILER_MARKER_CPU("Phase##"); // \todo
-			if_likely (m_rootScene)
-			{
-				m_rootScene->update(_dt, _phase);
-			}
-			Component::Update(_dt, _phase);
-		}
-	}
-	else
-	{
-		// PROFILER_MARKER_CPU("Phase##"); // \todo
-		if_likely (m_rootScene)
-		{
-			m_rootScene->update(_dt, _phase);
-		}
-		Component::Update(_dt, _phase);
-	}
-}
 
 // PRIVATE
 
@@ -236,15 +266,18 @@ void World::removeSceneInstance(Scene* _scene)
 	const StringHash pathHash = StringHash(_scene->getPath().c_str());
 	SceneList& instanceList = m_sceneInstances[pathHash];
 	auto it = eastl::find(instanceList.begin(), instanceList.end(), _scene);
-	FRM_ASSERT_MSG(it != instanceList.end(), "Scene instance 0x%X ('%s') not found", _scene, _scene->getPath().c_str());
-	instanceList.erase_unsorted(it);
-	if (instanceList.empty())
+	//FRM_ASSERT_MSG(it != instanceList.end(), "Scene instance 0x%X ('%s') not found", _scene, _scene->getPath().c_str());
+	if (it != instanceList.end()) // \todo \editoronly 
 	{
-		m_sceneInstances.erase(pathHash);
+		instanceList.erase_unsorted(it);
+		if (instanceList.empty())
+		{
+			m_sceneInstances.erase(pathHash);
+		}
 	}
 }
 
-Camera* World::getDefaultCamera()
+Camera* World::findOrCreateDefaultCamera()
 {
 	CameraComponent* drawCamera = nullptr;
 	CameraComponent* cullCamera = nullptr;
@@ -368,26 +401,17 @@ bool LocalReference<tReferent>::serialize(Serializer& _serializer_, const char* 
 
 	return true;
 }
+template struct LocalReference<SceneNode>;
+template struct LocalReference<Component>;
 
 /*******************************************************************************
 
-                               GlobalReference
+                                GlobalReference
 
 *******************************************************************************/
 
-GlobalNodeReference::GlobalNodeReference(SceneGlobalID _id, SceneNode* _node)
-	: id(_id)
-	, node(_node)
-{
-}
-
-GlobalNodeReference::GlobalNodeReference(SceneID _sceneID, SceneID _localID, SceneNode* _node)
-{
-	id = { _sceneID, _localID };
-	node = _node;
-}
-
-bool GlobalNodeReference::serialize(Serializer& _serializer_, const char* _name)
+template <typename tReferent>
+bool GlobalReference<tReferent>::serialize(Serializer& _serializer_, const char* _name)
 {
 	SceneID::String sceneStr;
 	SceneID::String localStr;
@@ -416,7 +440,7 @@ bool GlobalNodeReference::serialize(Serializer& _serializer_, const char* _name)
 
 		if (_serializer_.getMode() == Serializer::Mode_Write)
 		{
-			String<24> name = node ? node->getName() : "--";
+			String<24> name = referent ? referent->getName() : "--";
 			_serializer_.value(name);
 		}
 
@@ -424,7 +448,7 @@ bool GlobalNodeReference::serialize(Serializer& _serializer_, const char* _name)
 	}
 	else
 	{
-		_serializer_.setError("Error serializing GlobalNodeReference (%s).", _name ? _name : "--");
+		_serializer_.setError("Error serializing GlobalReference (%s).", _name ? _name : "--");
 		return false;
 	}
 		
@@ -436,6 +460,8 @@ bool GlobalNodeReference::serialize(Serializer& _serializer_, const char* _name)
 
 	return true;
 }
+template struct GlobalReference<SceneNode>;
+template struct GlobalReference<Component>;
 
 /*******************************************************************************
 
@@ -532,7 +558,7 @@ bool Scene::serialize(Serializer& _serializer_)
 	}
 
 	// Components.
-	uint componentCount = m_componentMap.size();
+	uint componentCount = m_localComponentMap.size();
 	if (_serializer_.beginArray(componentCount, "Components"))
 	{
 		if (_serializer_.getMode() == Serializer::Mode_Read)
@@ -549,7 +575,7 @@ bool Scene::serialize(Serializer& _serializer_)
 					FRM_VERIFY(Serialize(_serializer_, className, "_class")); // \todo error
 					StringHash classNameHash(className.c_str());
 
-					Component*& component = m_componentMap[localID];
+					Component*& component = m_localComponentMap[localID];
 					if (component && component->getClassRef()->getNameHash() != classNameHash)
 					{
 						// \todo \editoronly This can happen in the editor when loading a world.
@@ -582,7 +608,7 @@ bool Scene::serialize(Serializer& _serializer_)
 			}
 
 			// Reconcile the component map (remove any components that weren't serialized above).
-			for (auto it = m_componentMap.begin(); it != m_componentMap.end();)
+			for (auto it = m_localComponentMap.begin(); it != m_localComponentMap.end();)
 			{
 				auto found = eastl::find(validComponents.begin(), validComponents.end(), it->first);
 				if (found == validComponents.end())
@@ -598,7 +624,7 @@ bool Scene::serialize(Serializer& _serializer_)
 						}
 						Component::Destroy(component);
 					}
-					it = m_componentMap.erase(it);
+					it = m_localComponentMap.erase(it);
 				}
 				else
 				{
@@ -608,7 +634,7 @@ bool Scene::serialize(Serializer& _serializer_)
 		}
 		else
 		{
-			for (auto& it : m_componentMap)
+			for (auto& it : m_localComponentMap)
 			{
 				Component* component = it.second;
 				FRM_VERIFY(_serializer_.beginObject());
@@ -631,7 +657,7 @@ bool Scene::serialize(Serializer& _serializer_)
 
 		if (m_parentNode)
 		{
-			m_parentNode->m_parentScene->resetGlobalNodeMap();
+			m_parentNode->m_parentScene->resetGlobalReferenceMap();
 		}
 	}
 
@@ -645,7 +671,6 @@ bool Scene::init()
 
 	bool ret = true;
 	
-	initGlobalNodeMap();
 
 	for (auto& it : m_localNodeMap)
 	{
@@ -653,6 +678,10 @@ bool Scene::init()
 		/*ret &= */node->init(); // \todo Allow nodes to fail to initialize?
 	}
 
+	initGlobalReferenceMap();
+
+	// Can't call resolveReference here as the explicit template instantiation is below.
+	//FRM_VERIFY(resolveReference(m_root));
 	m_root.referent = findNode(m_root.id);
 	FRM_ASSERT(m_root.isResolved());
 
@@ -687,15 +716,16 @@ void Scene::shutdown()
 	m_localNodeMap.clear();
 	m_globalNodeMap.clear();
 
-	for (auto& it : m_componentMap)
+	for (auto& it : m_localComponentMap)
 	{
 		Component::Destroy(it.second);
 	}
-	m_componentMap.clear();
+	m_localComponentMap.clear();
+	m_globalComponentMap.clear();
 
 	if (m_parentNode)
 	{
-		m_parentNode->m_parentScene->resetGlobalNodeMap();
+		m_parentNode->m_parentScene->resetGlobalReferenceMap();
 	}
 
 	m_world->removeSceneInstance(this);
@@ -710,14 +740,18 @@ void Scene::update(float _dt, World::UpdatePhase _phase)
 		return;
 	}
 
-	if (_phase == World::UpdatePhase::GatherActive)
+	switch (_phase)
 	{
-		flushPendingDeletes();
-	}
+		default:
+			break;
+		case World::UpdatePhase::GatherActive:
+			flushPendingDeletes();
+			break;
+	};
 
 	traverse([_dt, _phase](SceneNode* _node) -> bool
 		{
-			if (!_node->getFlag(SceneNode::Flag::Active))
+			if (!_node->isActive())
 			{
 				return false;
 			}					
@@ -741,7 +775,7 @@ SceneNode* Scene::createNode(SceneID _id, const char* _name, SceneNode* _parent)
 	if (m_parentNode)
 	{
 		// \todo could implement a more efficient solution which recursively adds a single node
-		m_parentNode->m_parentScene->resetGlobalNodeMap();
+		m_parentNode->m_parentScene->resetGlobalReferenceMap();
 	}
 
 	return ret;
@@ -778,7 +812,7 @@ void Scene::traverse(const eastl::function<bool(SceneNode*)>& _onVisit, SceneNod
 
 		if (_onVisit(node))
 		{
-			for (LocalReference<SceneNode>& nodeReference : node->m_children)
+			for (LocalNodeReference& nodeReference : node->m_children)
 			{
 				FRM_STRICT_ASSERT(nodeReference.isResolved());
 				tstack.push_back(nodeReference.referent);
@@ -793,7 +827,7 @@ void Scene::traverse(const eastl::function<bool(SceneNode*)>& _onVisit, SceneNod
 }
 
 template <>
-bool Scene::resolveReference(LocalReference<SceneNode>& _ref_)
+bool Scene::resolveReference(LocalNodeReference& _ref_)
 {
 	if (_ref_.id == 0u)
 	{
@@ -811,7 +845,7 @@ bool Scene::resolveReference(LocalReference<SceneNode>& _ref_)
 }
 
 template <>
-bool Scene::resolveReference(LocalReference<Component>& _ref_)
+bool Scene::resolveReference(LocalComponentReference& _ref_)
 {
 	if (_ref_.id == 0u)
 	{
@@ -837,13 +871,33 @@ bool Scene::resolveReference(GlobalNodeReference& _ref_)
 		return true;
 	}
 
-	_ref_.node = findNode(_ref_.id.local, _ref_.id.scene);
-	if (!_ref_.node)
+	_ref_.referent = findNode(_ref_.id.local, _ref_.id.scene);
+	if (!_ref_.referent)
 	{
 		return false;
 	}
 
-	FRM_ASSERT(_ref_.node->getID() == _ref_.id.local);
+	FRM_ASSERT(_ref_.referent->getID() == _ref_.id.local);
+
+	return true;
+}
+
+template <>
+bool Scene::resolveReference(GlobalComponentReference& _ref_)
+{
+	if (_ref_.id.local == 0u)
+	{
+		FRM_ASSERT_MSG(_ref_.isResolved(), "Unresolved global reference to transient component.");
+		return true;
+	}
+
+	_ref_.referent = findComponent(_ref_.id.local, _ref_.id.scene);
+	if (!_ref_.referent)
+	{
+		return false;
+	}
+
+	FRM_ASSERT(_ref_.referent->getID() == _ref_.id.local);
 
 	return true;
 }
@@ -857,8 +911,6 @@ SceneNode* Scene::findNode(SceneID _localID, SceneID _sceneID) const
 		{
 			return it->second;
 		}
-
-		return nullptr;
 	}
 	else
 	{
@@ -867,17 +919,28 @@ SceneNode* Scene::findNode(SceneID _localID, SceneID _sceneID) const
 		{
 			return it->second;
 		}
-
-		return nullptr;
 	}
+	
+	return nullptr;
 }
 
-Component* Scene::findComponent(SceneID _localID) const
+Component* Scene::findComponent(SceneID _localID, SceneID _sceneID) const
 {
-	auto it = m_componentMap.find(_localID);
-	if (it != m_componentMap.end())
+	if (_sceneID == 0u)
 	{
-		return it->second;
+		auto it = m_localComponentMap.find(_localID);
+		if (it != m_localComponentMap.end())
+		{
+			return it->second;
+		}
+	}
+	else
+	{
+		auto it = m_globalComponentMap.find(SceneGlobalID({ _sceneID, _localID }));
+		if (it != m_globalComponentMap.end())
+		{
+			return it->second;
+		}
 	}
 
 	return nullptr;
@@ -900,7 +963,7 @@ SceneID Scene::findUniqueComponentID() const
 {
 	SceneID ret;
 
-	for (auto& it : m_componentMap)
+	for (auto& it : m_localComponentMap)
 	{
 		ret = Max(ret.value, it.first.value);
 	}
@@ -921,6 +984,7 @@ void Scene::setPath(const char* _path)
 	m_world->addSceneInstance(this);
 }
 
+template <>
 GlobalNodeReference Scene::findGlobal(const SceneNode* _node) const
 {
 	if (_node->m_parentScene == this)
@@ -939,18 +1003,6 @@ GlobalNodeReference Scene::findGlobal(const SceneNode* _node) const
 	return GlobalNodeReference();
 }
 
-LocalNodeReference Scene::findLocal(const SceneNode* _node) const
-{
-	for (auto& it : m_localNodeMap)
-	{
-		if (it.second == _node)
-		{
-			return LocalNodeReference(it.first, it.second);
-		}
-	}
-
-	return LocalNodeReference();
-}
 
 // PRIVATE
 
@@ -960,8 +1012,9 @@ Scene* Scene::CreateDefault(World* _world)
 	return scene;
 }
 
-Scene::Scene(World* _world)
+Scene::Scene(World* _world, SceneNode* _parentNode)
 	: m_world(_world)
+	, m_parentNode(_parentNode)
 	, m_nodePool(128)
 {
 	m_root.id = 1u;
@@ -976,8 +1029,13 @@ Scene::~Scene()
 void Scene::addComponent(Component* _component)
 {
 	SceneID id = _component->getID();
-	FRM_ASSERT_MSG(m_componentMap.find(id) == m_componentMap.end(), "Component [%s] (%s) already exists", id.toString().c_str(), _component->getName());
-	m_componentMap[id] = _component;
+	FRM_ASSERT_MSG(m_localComponentMap.find(id) == m_localComponentMap.end(), "Component [%s] (%s) already exists", id.toString().c_str(), _component->getName());
+	m_localComponentMap[id] = _component;
+
+	if (m_parentNode)
+	{
+		m_parentNode->m_parentScene->resetGlobalReferenceMap();
+	}
 }
 
 void Scene::removeComponent(Component* _component)
@@ -985,49 +1043,78 @@ void Scene::removeComponent(Component* _component)
 	SceneID id = _component->getID();
 	FRM_ASSERT(id != 0u);
 	
-	auto it = m_componentMap.find(id);
-	FRM_ASSERT(it != m_componentMap.end()); // not found
-	m_componentMap.erase(it);
+	auto it = m_localComponentMap.find(id);
+	FRM_ASSERT(it != m_localComponentMap.end()); // not found
+	m_localComponentMap.erase(it);
+
+	if (m_parentNode)
+	{
+		m_parentNode->m_parentScene->resetGlobalReferenceMap();
+	}
 }
 
-void Scene::initGlobalNodeMap()
+void Scene::initGlobalReferenceMap()
 {
-	m_globalNodeMap.clear();
+	PROFILER_MARKER_CPU("Scene::initGlobalReferenceMap");
 
+	m_globalNodeMap.clear();
+	m_globalComponentMap.clear();
+
+	// For each local node with a child scene.
 	for (auto& childIt : m_localNodeMap)
 	{
 		if (!childIt.second->m_childScene)
 		{
 			continue;
 		}
+
+		const SceneID sceneID = childIt.first;
 		
+		// Append child scene's local nodes/components.
 		for (auto sceneIt : childIt.second->m_childScene->m_localNodeMap)
 		{
-			SceneGlobalID globalID = { childIt.first, sceneIt.first };
+			SceneGlobalID globalID = { sceneID, sceneIt.first };
 			m_globalNodeMap[globalID] = sceneIt.second;
 		}
+		for (auto sceneIt : childIt.second->m_childScene->m_localComponentMap)
+		{		
+			SceneGlobalID globalID = { sceneID, sceneIt.first };
+			m_globalComponentMap[globalID] = sceneIt.second;
+		}
 
+		// Append child scene's global node/component maps.
 		for (auto sceneIt : childIt.second->m_childScene->m_globalNodeMap)
 		{
-			SceneGlobalID globalID = { SceneID(sceneIt.first.scene, childIt.first), sceneIt.first.local };
+			const SceneID hashedSceneID = SceneID(sceneIt.first.scene, sceneID);
+			SceneGlobalID globalID = { hashedSceneID, sceneIt.first.local };
 			m_globalNodeMap[globalID] = sceneIt.second;
+		}
+		for (auto sceneIt : childIt.second->m_childScene->m_globalComponentMap)
+		{
+			const SceneID hashedSceneID = SceneID(sceneIt.first.scene, sceneID);
+			SceneGlobalID globalID = { hashedSceneID, sceneIt.first.local };
+			m_globalComponentMap[globalID] = sceneIt.second;
 		}
 	}
 }
 
-void Scene::resetGlobalNodeMap()
+void Scene::resetGlobalReferenceMap()
 {
-	initGlobalNodeMap();
+	PROFILER_MARKER_CPU("Scene::resetGlobalReferenceMap");
+
+	initGlobalReferenceMap();
 
 	if (m_parentNode)
 	{
-		m_parentNode->m_parentScene->resetGlobalNodeMap();
+		m_parentNode->m_parentScene->resetGlobalReferenceMap();
 	}
 }
 
 void Scene::flushPendingDeletes()
 {
-	bool requireGlobalNodeMapReset = false;	
+	PROFILER_MARKER_CPU("Scene::flushPendingDeletes");
+
+	bool requireGlobalReferenceMapReset = false;	
 	while (!m_pendingDeletes.empty())
 	{
 		// Calling shutdown() on a node below may append to m_pendingDeletes, hence process the list iteratively.
@@ -1054,7 +1141,7 @@ void Scene::flushPendingDeletes()
 				destroyNode(child.referent);
 			}
 
-			if (node->getFlag(SceneNode::Flag::Transient))
+			if (node->isTransient())
 			{
 				// Transient nodes can simply be deleted.
 				FRM_ASSERT(node->getID() == 0u);
@@ -1075,14 +1162,14 @@ void Scene::flushPendingDeletes()
 				FRM_ASSERT(it != m_localNodeMap.end());
 				m_localNodeMap.erase(it);
 				m_nodePool.free(node);
-				requireGlobalNodeMapReset = true;
+				requireGlobalReferenceMapReset = true;
 			}
 		}
 	}
 	
-	if (requireGlobalNodeMapReset)
+	if (requireGlobalReferenceMapReset)
 	{
-		resetGlobalNodeMap();
+		resetGlobalReferenceMap();
 	}
 }
 
@@ -1097,6 +1184,45 @@ FRM_SERIALIZABLE_DEFINE(SceneNode, 0);
 
 // PUBLIC
 
+void SceneNode::update(float _dt, World::UpdatePhase _phase)
+{
+	PROFILER_MARKER_CPU("SceneNode::update");
+
+	switch (_phase)
+	{
+		default:
+			break;
+		case World::UpdatePhase::GatherActive:
+		{
+			m_local = m_initial;
+
+			FRM_ASSERT(m_flags.get(Flag::Active)); // Should skip inactive nodes during scene traversal.
+			for (LocalComponentReference& component : m_components)
+			{
+				component->setActive();
+			}
+			break;
+		}
+		case World::UpdatePhase::Hierarchy:
+		{
+			if (m_parent.isResolved())
+			{
+				m_world = m_parent->m_world * m_local;
+			}
+			else if (m_parentScene->m_parentNode)
+			{
+				m_world = m_parentScene->m_parentNode->m_world * m_local;
+			}
+			else
+			{
+				m_world = m_local;
+			}
+
+			break;
+		}
+	};
+}
+
 bool SceneNode::serialize(Serializer& _serializer_)
 {
 	bool ret = SerializeAndValidateClass(_serializer_);
@@ -1105,11 +1231,11 @@ bool SceneNode::serialize(Serializer& _serializer_)
 		return false;
 	}
 
-	static const char* kFlagNames[] = { "Active", "Transient" };
+	static const char* kFlagNames[] = { "Active", "Static", "Transient" };
 	ret &= m_id.serialize(_serializer_);
 	ret &= Serialize(_serializer_, m_name, "Name");
 	ret &= Serialize(_serializer_, m_flags, kFlagNames, "Flags");
-	ret &= Serialize(_serializer_, m_local, "Local");
+	ret &= Serialize(_serializer_, m_initial, "Transform");
 
 	if (_serializer_.beginObject("Hierarchy"))
 	{
@@ -1125,7 +1251,7 @@ bool SceneNode::serialize(Serializer& _serializer_)
 
 			for (uint i = 0; i < childCount; ++i)
 			{
-				if (_serializer_.getMode() == Serializer::Mode_Write && m_children[i]->getFlag(SceneNode::Flag::Transient))
+				if (_serializer_.getMode() == Serializer::Mode_Write && m_children[i]->isTransient())
 				{
 					continue;
 				}
@@ -1162,7 +1288,34 @@ bool SceneNode::serialize(Serializer& _serializer_)
 		_serializer_.endArray();
 	}
 
-	// \todo child scene
+	if (_serializer_.getMode() == Serializer::Mode_Read)
+	{
+		PathStr childScenePath;
+		if (Serialize(_serializer_, childScenePath, "ChildScene"))
+		{
+			Json json;
+			if (Json::Read(json, childScenePath.c_str()))
+			{
+				if (!m_childScene)
+				{
+					m_childScene = FRM_NEW(Scene(m_parentScene->m_world, this)); // \todo create/destroy methods on Scene?
+				}
+				m_childScene->m_path = childScenePath;
+
+				SerializerJson childSceneSerializer(json, _serializer_.getMode());
+				if (!m_childScene->serialize(childSceneSerializer))
+				{
+					_serializer_.setError(childSceneSerializer.getError());
+					ret = false;
+				}
+			}
+		}
+	}
+	else if (_serializer_.getMode() == Serializer::Mode_Write && m_childScene)
+	{
+		PathStr childScenePath = m_childScene->getPath();
+		ret &= Serialize(_serializer_, childScenePath, "ChildScene");
+	}
 
 	return ret;
 }
@@ -1191,6 +1344,7 @@ bool SceneNode::init()
 	}
 
 	// Resolve component references, init components and remove invalid references.
+	bool staticState = true;
 	for (auto it = m_components.begin(); it != m_components.end();)
 	{
 		LocalComponentReference& component = *it;
@@ -1198,6 +1352,7 @@ bool SceneNode::init()
 		if (m_parentScene->resolveReference(component))
 		{
 			component->setParentNode(this);
+			staticState &= component->isStatic();
 			ret &= component->init();
 			++it;
 		}
@@ -1206,6 +1361,7 @@ bool SceneNode::init()
 			it = m_components.erase(it);
 		}
 	}
+	m_flags.set(Flag::Static, staticState);
 
 	dispatchCallbacks(Event::OnInit);
 	
@@ -1250,7 +1406,7 @@ void SceneNode::shutdown()
 	// At this point, any transient children should be destroyed.
 	for (LocalNodeReference& child : m_children)
 	{
-		if (child->getFlag(Flag::Transient))
+		if (child->isTransient())
 		{
 			FRM_ASSERT(child->getID() == 0u);
 			m_parentScene->destroyNode(child.referent);
@@ -1261,7 +1417,8 @@ void SceneNode::shutdown()
 	if (m_childScene)
 	{
 		m_childScene->shutdown();
-		FRM_DELETE(m_childScene); FRM_ASSERT(false); // \todo Create/Destroy members on Scene?
+		FRM_DELETE(m_childScene); // \todo Create/Destroy members on Scene?
+		m_childScene = nullptr;
 	}
 
 	for (LocalComponentReference& component : m_components)
@@ -1280,46 +1437,10 @@ void SceneNode::shutdown()
 		callbackList.clear();
 	}
 
-	if (m_parent.isResolved() && getFlag(Flag::Transient))
+	if (m_parent.isResolved() && isTransient())
 	{
 		m_parent->removeChild(this);
 	}
-}
-
-void SceneNode::update(float _dt, World::UpdatePhase _phase)
-{
-	PROFILER_MARKER_CPU("SceneNode::update");
-
-	switch (_phase)
-	{
-		default:
-			break;
-		case World::UpdatePhase::GatherActive:
-		{
-			FRM_ASSERT(m_flags.get(Flag::Active)); // Should skip inactive nodes during scene traversal.
-			for (LocalComponentReference& component : m_components)
-			{
-				component->setActive(true);
-			}
-			break;
-		}
-		case World::UpdatePhase::Hierarchy:
-		{
-			if (m_parent.isResolved())
-			{
-				m_world = m_parent->m_world * m_local;
-			}
-			else if (m_parentScene->m_parentNode)
-			{
-				m_world = m_parentScene->m_parentNode->m_world * m_local;
-			}
-			else
-			{
-				m_world = m_local;
-			}
-			break;
-		}
-	};
 }
 
 void SceneNode::addComponent(Component* _component)
@@ -1328,7 +1449,8 @@ void SceneNode::addComponent(Component* _component)
 	FRM_ASSERT(_component->getParentNode() == nullptr);
 
 	_component->setParentNode(this);
-	m_components.push_back(LocalReference<Component>(_component));
+	m_components.push_back(LocalComponentReference(_component));
+	updateStaticState();
 
 	if (_component->getID() != 0u)
 	{
@@ -1345,10 +1467,11 @@ void SceneNode::addComponent(Component* _component)
 
 void SceneNode::removeComponent(Component* _component)
 {
-	auto it = eastl::find(m_components.begin(), m_components.end(), LocalReference<Component>(_component));
+	auto it = eastl::find(m_components.begin(), m_components.end(), LocalComponentReference(_component));
 	FRM_ASSERT(it != m_components.end());
 	FRM_ASSERT(_component->getParentNode() == this);
 	m_components.erase(it);
+	updateStaticState();
 	if (it->id != 0u)
 	{
 		m_parentScene->removeComponent(_component); // remove non-transient components from scene
@@ -1412,7 +1535,7 @@ void SceneNode::setParent(SceneNode* _parent_)
 
 	//FRM_ASSERT(_parent_->getState() == World::State::PostInit); // \todo necessary for the parent to be init?
 	FRM_ASSERT_MSG(_parent_->m_parentScene == m_parentScene, "Parent node must be in the same scene as children");
-	FRM_ASSERT_MSG(_parent_->getFlag(Flag::Transient) == getFlag(Flag::Transient) || !_parent_->getFlag(Flag::Transient), "Non-transient nodes may not have a transient parent");
+	FRM_ASSERT_MSG(_parent_->isTransient() == isTransient() || !_parent_->isTransient(), "Non-transient nodes may not have a transient parent");
 
 	if (m_parent.isResolved())
 	{
@@ -1433,17 +1556,32 @@ void SceneNode::addChild(SceneNode* _child_)
 	_child_->setParent(this);
 }
 
+void SceneNode::setChildScene(Scene* _scene_)
+{
+	if (m_childScene)
+	{
+		if (m_childScene->m_state != World::State::Shutdown)
+		{
+			m_childScene->shutdown();
+		}
+
+		FRM_DELETE(m_childScene);
+	}
+
+	m_childScene = _scene_;
+	if (m_state == World::State::PostInit && m_childScene->m_state != World::State::PostInit)
+	{
+		m_childScene->init();
+		m_childScene->postInit();
+	}
+	m_childScene->m_parentNode = this;
+	m_parentScene->resetGlobalReferenceMap();
+}
+
 void SceneNode::setFlag(Flag _flag, bool _value)
 {	
 	m_flags.set(_flag, _value);
 	// \todo dispatch callbacks?
-}
-
-void SceneNode::removeChild(SceneNode* _child_)
-{
-	FRM_ASSERT(_child_->m_parent.referent == this);
-	m_children.erase_unsorted(findChild(_child_));
-	_child_->m_parent = LocalNodeReference();
 }
 
 
@@ -1482,6 +1620,23 @@ void SceneNode::dispatchCallbacks(Event _event)
 	{
 		callback(this);
 	}
+}
+
+void SceneNode::updateStaticState()
+{
+	bool staticState = true;
+	for (LocalComponentReference& component : m_components)
+	{
+		staticState &= component->isStatic();
+	}
+	setFlag(Flag::Static, staticState);
+}
+
+void SceneNode::removeChild(SceneNode* _child_)
+{
+	FRM_ASSERT(_child_->m_parent == this);
+	m_children.erase_unsorted(findChild(_child_));
+	_child_->m_parent = LocalNodeReference();
 }
 
 SceneNode::ChildList::iterator SceneNode::findChild(const SceneNode* _child)

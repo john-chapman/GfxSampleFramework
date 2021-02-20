@@ -54,7 +54,8 @@ static const frm::vec3 kDuplicateButtonColor       = frm::vec3(0.188f, 0.568f, 0
 static const frm::vec3 kDestroyButtonColor         = frm::vec3(0.792f, 0.184f, 0.184f);
 static const frm::vec3 kCreateComponentButtonColor = frm::vec3(0.701f, 0.419f, 0.058f);
 static const frm::vec3 kNodeSelectButtonColor      = frm::vec3(0.000f, 0.341f, 0.800f);
-static const frm::vec3 kTextLinkColor              = frm::vec3(0.5f,   0.7f,   1.0f);
+static const frm::vec3 kSceneSelectButtonColor     = frm::vec3(0.000f, 0.800f, 0.341f);
+static const frm::vec3 kTextLinkColor              = frm::vec3(0.500f, 0.700f, 1.000f);
 
 static inline bool TextLink(const char* _text)
 {
@@ -370,7 +371,7 @@ bool WorldEditor::dispatchActions()
 		case ActionType::LoadScene:
 		{
 			Scene* scene = (Scene*)action.context;
-			ret |= saveScene(scene);
+			ret |= loadScene(scene);
 			popAction();
 
 			break;
@@ -653,7 +654,7 @@ bool WorldEditor::sceneMenu()
 {
 	bool ret = false;
 	
-	if (ImGui::BeginMenu("Scene", /*m_currentScene != nullptr*/false)) // \todo disabled, need child scene implementation
+	if (ImGui::BeginMenu("Scene", m_currentScene != nullptr))
 	{
 		if (ImGui::MenuItem("Save"))
 		{
@@ -662,9 +663,10 @@ bool WorldEditor::sceneMenu()
 
 		if (ImGui::MenuItem("Save As.."))
 		{
-			FRM_ASSERT(false); // - update the world scene instance map (remove this scene instance, re-insert with new path - DON'T change other instance paths, you're basically just dup'ing the scene.
-			if (SelectRelativePath(m_currentScene->m_path, "scene"))
+			PathStr newScenePath = m_currentScene->m_path;
+			if (SelectRelativePath(newScenePath, "scene"))
 			{
+				setScenePath(m_currentScene, newScenePath);
 				pushAction(ActionType::SaveScene, m_currentScene);
 			}	
 		}
@@ -822,7 +824,7 @@ bool WorldEditor::hierarchyView(SceneNode* _rootNode_)
 				case ActionType::SelectNodeLocal:
 				{
 					const Scene* scene = (Scene*)action.context;
-					LocalNodeReference localReference = scene->findLocal(node);
+					LocalNodeReference localReference(node);// = scene->findLocal(node);
 					if (localReference.isValid())
 					{
 						*(LocalNodeReference*)action.result = localReference;
@@ -832,7 +834,7 @@ bool WorldEditor::hierarchyView(SceneNode* _rootNode_)
 				}
 				case ActionType::SelectNodeParent:
 				{
-					LocalNodeReference localReference = ((SceneNode*)m_actionStack.back().context)->getParentScene()->findLocal(node);
+					LocalNodeReference localReference(node);// = ((SceneNode*)m_actionStack.back().context)->getParentScene()->findLocal(node);
 					if (localReference.isValid())
 					{
 						action.result = node;
@@ -863,6 +865,11 @@ bool WorldEditor::editorView()
 	if (m_currentScene)
 	{
 		ImGui::Text(ICON_FA_SITEMAP " Scene");
+		if (!m_currentScene->m_path.isEmpty())
+		{
+			ImGui::SameLine();
+			ImGui::Text(" -- '%s'", m_currentScene->m_path.c_str());
+		}
 		ImGui::Separator();
 		ret |= editScene(m_currentScene);
 	}
@@ -894,7 +901,7 @@ bool WorldEditor::editorView()
 				{
 					//FRM_ASSERT(scene->m_nodePool.getUsedCount() == scene->m_localNodeMap.size());
 					nodeCount += scene->m_localNodeMap.size();
-					componentCount += scene->m_componentMap.size();				
+					componentCount += scene->m_localComponentMap.size();				
 				}
 			}
 			ImGui::Text("# scenes     : %u", sceneCount);
@@ -913,8 +920,9 @@ bool WorldEditor::editorView()
 				auto nodeLabel = GetNodeLabel(m_currentNode, true);
 				ImGui::Text(nodeLabel.c_str());
 
-				ImGui::Text("Flags: %s %s", 
+				ImGui::Text("Flags: %s %s %s", 
 					m_currentNode->getFlag(SceneNode::Flag::Active)    ? "ACTIVE"    : "",
+					m_currentNode->getFlag(SceneNode::Flag::Static)    ? "STATIC"    : "",
 					m_currentNode->getFlag(SceneNode::Flag::Transient) ? "TRANSIENT" : ""
 					);
 				const World::State nodeState = m_currentNode->getState();
@@ -923,6 +931,58 @@ bool WorldEditor::editorView()
 
 				ImGui::TreePop();
 			}
+		}
+
+		if (m_currentScene)
+		{
+			ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+			ImGui::Separator();
+			if (ImGui::TreeNode("Current Scene"))
+			{
+				ImGui::Text("Path: '%s'", m_currentScene->getPath().c_str());
+
+				SceneNode* parentNode = m_currentScene->getParentNode();
+				if (parentNode)
+				{
+					auto nodeLabel = GetNodeLabel(parentNode, true);
+					ImGui::Text("Parent node: %s", nodeLabel.c_str());
+				}
+
+				const World::State nodeState = m_currentScene->getState();
+				ImGui::Text("State: %s", (nodeState == World::State::Init) ? "INIT" : (nodeState == World::State::PostInit ? "POST INIT" : (nodeState == World::State::Shutdown ? "SHUTDOWN" : "UNKNOWN")));
+				ImGui::Spacing();
+
+				//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+				if (ImGui::TreeNode("Global Node Map"))
+				{
+					for (auto it : m_currentScene->m_globalNodeMap)
+					{
+						const SceneGlobalID globalID = it.first;
+						const SceneNode* node = it.second;
+						
+						ImGui::Text("%-24s [%s, %s]", node->getName(), globalID.scene.toString().c_str(), globalID.local.toString().c_str());
+					}
+
+					ImGui::TreePop();
+				}
+
+				//ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+				if (ImGui::TreeNode("Global Component Map"))
+				{
+					for (auto it : m_currentScene->m_globalComponentMap)
+					{
+						const SceneGlobalID globalID = it.first;
+						const Component* node = it.second;
+						
+						ImGui::Text("%-24s [%s, %s]", node->getName(), globalID.scene.toString().c_str(), globalID.local.toString().c_str());
+					}
+
+					ImGui::TreePop();
+				}
+
+				ImGui::TreePop();
+			}
+
 		}
 		
 
@@ -988,23 +1048,7 @@ bool WorldEditor::editWorld(World* _world_)
 bool WorldEditor::editScene(Scene* _scene_)
 {
 	bool ret = false;
-
-	// Path
-	{
-		if (ImGui::Button(ICON_FA_FOLDER " Path"))
-		{
-			PathStr path = _scene_->m_path;
-			if (SelectRelativePath(path, "scene"))
-			{
-				FRM_ASSERT(false);
-				setScenePath(_scene_, path);
-				saveScene(_scene_);
-			}
-		}
-		ImGui::SameLine();
-		ImGui::Text("%s", _scene_->m_path.isEmpty() ? "--" : _scene_->m_path.c_str());
-	}
-
+	
 	// Create/destroy node
 	{
 		//if (ImGui::Button(ICON_FA_PLUS " Create Node"))
@@ -1099,18 +1143,18 @@ bool WorldEditor::editNode(SceneNode* _node_)
 		{
 			parentWorld = _node_->m_parentScene->m_parentNode->m_world * parentWorld;
 		}		
-		mat4 childWorld  = parentWorld * _node_->m_local;
+		mat4 childWorld  = parentWorld * _node_->m_initial;
 		if (Im3d::Gizmo("GizmoNodeLocal", (float*)&childWorld))
 		{
-			_node_->m_local = inverse(parentWorld) * childWorld;
+			_node_->m_initial = inverse(parentWorld) * childWorld;
 			ret = true;
 		}
 
 		// \todo delta mode - input a delta rather than modifying the values directly
-		vec3 position = GetTranslation(_node_->m_local);
-		vec3 rotation = ToEulerXYZ(GetRotation(_node_->m_local));
+		vec3 position = GetTranslation(_node_->m_initial);
+		vec3 rotation = ToEulerXYZ(GetRotation(_node_->m_initial));
 		     rotation = vec3(Degrees(rotation.x), Degrees(rotation.y), Degrees(rotation.z));
-		vec3 scale    = GetScale(_node_->m_local);
+		vec3 scale    = GetScale(_node_->m_initial);
 
 		// \todo reset buttons per position/rotation/scale
 
@@ -1118,14 +1162,14 @@ bool WorldEditor::editNode(SceneNode* _node_)
 		{
 			if (ImGui::SmallButton(ICON_FA_DOT_CIRCLE_O "##ResetPosition"))
 			{				
-				SetTranslation(_node_->m_local, vec3(0.0f));
+				SetTranslation(_node_->m_initial, vec3(0.0f));
 				ret = true;
 			}
 			ImGui::SameLine();
 
 			if (ImGui::DragFloat3("Position", &position.x))
 			{
-				SetTranslation(_node_->m_local, position);
+				SetTranslation(_node_->m_initial, position);
 				ret = true;
 			}
 		}
@@ -1134,14 +1178,14 @@ bool WorldEditor::editNode(SceneNode* _node_)
 		{
 			if (ImGui::SmallButton(ICON_FA_DOT_CIRCLE_O "##ResetRotation"))
 			{				
-				SetRotation(_node_->m_local, identity);
+				SetRotation(_node_->m_initial, identity);
 				ret = true;
 			}
 			ImGui::SameLine();
 
 			if (ImGui::DragFloat3("Rotation", &rotation.x, 1.0f, -180.0f, 180.0f))
 			{
-				SetRotation(_node_->m_local, FromEulerXYZ(vec3(Radians(rotation.x), Radians(rotation.y), Radians(rotation.z))));
+				SetRotation(_node_->m_initial, FromEulerXYZ(vec3(Radians(rotation.x), Radians(rotation.y), Radians(rotation.z))));
 				ret = true;
 			}
 		}
@@ -1150,14 +1194,14 @@ bool WorldEditor::editNode(SceneNode* _node_)
 		{
 			if (ImGui::SmallButton(ICON_FA_DOT_CIRCLE_O "##ResetScale"))
 			{				
-				SetScale(_node_->m_local, vec3(1.0f));
+				SetScale(_node_->m_initial, vec3(1.0f));
 				ret = true;
 			}
 			ImGui::SameLine();
 
 			if (ImGui::DragFloat3("Scale", &scale.x, 1.0f, 1e-4f))
 			{
-				SetScale(_node_->m_local, scale);
+				SetScale(_node_->m_initial, scale);
 				ret = true;
 			}
 		}
@@ -1209,9 +1253,9 @@ bool WorldEditor::editNode(SceneNode* _node_)
 
 		// Child scene
 
-		/*if (filterPassHierarchy || filter.PassFilter("Child Scene"))
+		if (filterPassHierarchy || filter.PassFilter("Child Scene"))
 		{
-			if (ImGui::Button(ICON_FA_FOLDER " Child Scene"))
+			if (PrettyButton(ICON_FA_FOLDER " Child Scene", kSceneSelectButtonColor))
 			{
 				PathStr path;
 				if (SelectRelativePath(path, "scene"))
@@ -1226,8 +1270,6 @@ bool WorldEditor::editNode(SceneNode* _node_)
 						if (scene->serialize(serializer))
 						{
 							_node_->setChildScene(scene);
-							scene->init();
-							scene->postInit();
 							ret = true;
 						}
 						else
@@ -1256,7 +1298,7 @@ bool WorldEditor::editNode(SceneNode* _node_)
 			{
 				ImGui::Text("--");
 			}
-		}*/
+		}
 	}
 
 	// Components
@@ -1337,7 +1379,7 @@ GlobalNodeReference WorldEditor::selectNodeGlobal(const GlobalNodeReference& _cu
 		SceneNode* node = it.second;
 		ImGui::PushID(node);
 
-		if (node != _current.node && filter.PassFilter(node->m_name.begin(), node->m_name.end()))
+		if (node != _current.referent && filter.PassFilter(node->m_name.begin(), node->m_name.end()))
 		{
 			if (ImGui::Selectable(GetNodeLabel(node, m_showNodeIDs).c_str()))
 			{
@@ -1354,7 +1396,7 @@ GlobalNodeReference WorldEditor::selectNodeGlobal(const GlobalNodeReference& _cu
 		SceneNode* node = it.second;
 		ImGui::PushID(node);
 		
-		if (node != _current.node && filter.PassFilter(node->m_name.begin(), node->m_name.end()))
+		if (node != _current.referent && filter.PassFilter(node->m_name.begin(), node->m_name.end()))
 		{
 			if (ImGui::Selectable(GetNodeLabel(node, m_showNodeIDs).c_str()))
 			{

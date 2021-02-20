@@ -31,6 +31,7 @@ private:
 	void update(float _dt);
 	bool editImpl() override;
 	bool serializeImpl(Serializer& _serializer_) override;
+	bool isStatic() override { return false; }
 };
 
 } // namespace frm

@@ -99,8 +99,8 @@ bool AppSample3d::update()
 		World* world = World::GetCurrent();
 		Component::ClearActiveComponents();
 		world->update(dt, World::UpdatePhase::GatherActive);
-		world->update(dt, World::UpdatePhase::Hierarchy);
 		world->update(dt, World::UpdatePhase::PrePhysics);
+		world->update(dt, World::UpdatePhase::Hierarchy);
 		#if FRM_MODULE_PHYSICS
 			Physics::Update(dt);
 		#endif

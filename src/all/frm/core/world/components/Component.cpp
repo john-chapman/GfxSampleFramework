@@ -111,27 +111,17 @@ bool Component::serialize(Serializer& _serializer_)
 	return ret;
 }
 
-void Component::setActive(bool _active)
+// PRIVATE
+
+void Component::setActive()
 {
 	const ClassRef* cref = getClassRef();
 	const StringHash classNameHash = cref->getNameHash();
 
-	if (_active)
-	{
-		s_activeComponents[classNameHash].push_back(this);
-	}
-	else
-	{
-		ComponentList& activeComponents = s_activeComponents[classNameHash];
-		auto it = eastl::find(activeComponents.begin(), activeComponents.end(), this);
-		if (it != activeComponents.end())
-		{
-			activeComponents.erase_unsorted(it);
-		}
-	}
+	ComponentList& activeComponents = s_activeComponents[classNameHash];
+	FRM_STRICT_ASSERT(eastl::find(activeComponents.begin(), activeComponents.end(), this) == activeComponents.end()); // Double activation during an update?
+	activeComponents.push_back(this);
 }
-
-// PRIVATE
 
 eastl::map<StringHash, Component::ComponentList> Component::s_activeComponents;
 eastl::map<StringHash, Component::UpdateFunc*>*  Component::s_updateFuncs;

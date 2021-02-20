@@ -91,6 +91,7 @@ private:
 	void shutdownImpl() override;
 	bool editImpl() override;
 	bool serializeImpl(Serializer& _serializer_) override;
+	bool isStatic() override { return false; }
 
 	void moveXForm(int _from, int _to);
 };

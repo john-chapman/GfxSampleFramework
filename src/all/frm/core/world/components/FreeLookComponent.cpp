@@ -39,7 +39,7 @@ void FreeLookComponent::lookAt(const vec3& _from, const vec3& _to, const vec3& _
 
 void FreeLookComponent::update(float _dt)
 {
-	const mat4& localMatrix = getParentNode()->getLocal();
+	const mat4& worldMatrix = getParentNode()->getWorld();
 
 	const Gamepad*  gamePad = Input::GetGamepad();
 	const Keyboard* keyboard = Input::GetKeyboard();
@@ -55,41 +55,41 @@ void FreeLookComponent::update(float _dt)
 		float x = gamePad->getAxisState(Gamepad::Axis_LeftStickX);
 		float y = gamePad->getAxisState(Gamepad::Axis_LeftStickY);
 		float z = gamePad->isDown(Gamepad::Button_Right1) ? 1.0f : (gamePad->isDown(Gamepad::Button_Left1) ? -1.0f : 0.0f);
-		dir += localMatrix[0].xyz() * x;
-		dir += localMatrix[2].xyz() * y;
-		dir += localMatrix[1].xyz() * z;
+		dir += worldMatrix[0].xyz() * x;
+		dir += worldMatrix[2].xyz() * y;
+		dir += worldMatrix[1].xyz() * z;
 		isAccel = abs(x + y + z) > 0.0f;
 	}
 	if (keyboard)
 	{
 		if (keyboard->isDown(Keyboard::Key_W))
 		{
-			dir -= localMatrix[2].xyz();
+			dir -= worldMatrix[2].xyz();
 			isAccel = true;
 		}
 		if (keyboard->isDown(Keyboard::Key_A))
 		{
-			dir -= localMatrix[0].xyz();
+			dir -= worldMatrix[0].xyz();
 			isAccel = true;
 		}
 		if (keyboard->isDown(Keyboard::Key_S))
 		{
-			dir += localMatrix[2].xyz();
+			dir += worldMatrix[2].xyz();
 			isAccel = true;
 		}
 		if (keyboard->isDown(Keyboard::Key_D))
 		{
-			dir += localMatrix[0].xyz();
+			dir += worldMatrix[0].xyz();
 			isAccel = true;
 		}
 		if (keyboard->isDown(Keyboard::Key_Q))
 		{
-			dir -= localMatrix[1].xyz();
+			dir -= worldMatrix[1].xyz();
 			isAccel = true;
 		}
 		if (keyboard->isDown(Keyboard::Key_E))
 		{
-			dir += localMatrix[1].xyz();
+			dir += worldMatrix[1].xyz();
 			isAccel = true;
 		}
 	}
@@ -130,9 +130,9 @@ void FreeLookComponent::update(float _dt)
 		m_pitchYawRoll.x -= mouse->getAxisState(Mouse::Axis_Y) * m_rotationInputMul;
 		m_pitchYawRoll.y -= mouse->getAxisState(Mouse::Axis_X) * m_rotationInputMul;
 	}
-	quat qpitch     = RotationQuaternion(localMatrix[0].xyz(),   m_pitchYawRoll.x * _dt);
+	quat qpitch     = RotationQuaternion(worldMatrix[0].xyz(),   m_pitchYawRoll.x * _dt);
 	quat qyaw       = RotationQuaternion(vec3(0.0f, 1.0f, 0.0f), m_pitchYawRoll.y * _dt);
-	quat qroll      = RotationQuaternion(localMatrix[2].xyz(),   m_pitchYawRoll.z * _dt);
+	quat qroll      = RotationQuaternion(worldMatrix[2].xyz(),   m_pitchYawRoll.z * _dt);
 	m_orientation   = qmul(qmul(qmul(qyaw, qpitch), qroll), m_orientation);
 	m_pitchYawRoll *= powf(m_rotationDamping, _dt);
 

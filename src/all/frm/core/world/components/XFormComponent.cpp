@@ -417,7 +417,7 @@ public:
 		m_rotation += m_rate * _dt;
 		m_rotation = Fract(m_rotation / kTwoPi) * kTwoPi;
 
-		_node_->setWorld(_node_->getWorld() * RotationMatrix(m_axis, m_rotation));
+		_node_->setLocal(_node_->getLocal() * RotationMatrix(m_axis, m_rotation));
 	}
 
 	bool edit() override
@@ -497,9 +497,9 @@ public:
 		}
 		m_position = smooth(m_start, m_end, m_time / m_duration);
 
-		mat4 world = _node_->getWorld();
-		SetTranslation(world, m_position);
-		_node_->setWorld(world);
+		mat4 local = _node_->getLocal();
+		SetTranslation(local, m_position);
+		_node_->setLocal(local);
 	}
 
 	bool edit() override

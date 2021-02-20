@@ -34,9 +34,9 @@ void LookAtComponent::Update(Component** _from, Component** _to, float _dt, Worl
 		SceneNode* node = component->m_parentNode;
 		const vec3 origin = GetTranslation(node->getWorld());
 		
-		mat4 m = AlignY(Normalize(target - origin), vec3(0,0,1));
+		mat4 m = AlignZ(Normalize(origin - target), vec3(0, 1, 0));
 		SetTranslation(m, origin);
-		component->m_parentNode->setWorld(m);
+		component->m_parentNode->setLocal(m);
 	}
 }
 
@@ -62,8 +62,8 @@ void LookAtComponent::OnNodeShutdown(SceneNode* _node, void* _component)
 	FRM_STRICT_ASSERT(_component);
 
 	GlobalNodeReference& nodeRef = ((LookAtComponent*)_component)->m_targetNode;
-	FRM_ASSERT(nodeRef.node == _node);
-	nodeRef.node->unregisterCallback(SceneNode::Event::OnShutdown, &OnNodeShutdown, _component);
+	FRM_ASSERT(nodeRef.referent == _node);
+	nodeRef.referent->unregisterCallback(SceneNode::Event::OnShutdown, &OnNodeShutdown, _component);
 	nodeRef = GlobalNodeReference();
 }
 

@@ -76,9 +76,6 @@ public:
 	SceneNode*   getParentNode() const                        { return m_parentNode; }
 	void         setParentNode(SceneNode* _node)              { m_parentNode = _node; }
 
-	// Add this component instance to the per-class active list.
-	void         setActive(bool _active);
-
 	const char*  getName() const                              { return getClassRef()->getName(); }
 	SceneID      getID() const                                { return m_id; }
 	World::State getState() const                             { return m_state; }
@@ -95,6 +92,12 @@ protected:
 	virtual void shutdownImpl()                               {}
 	virtual bool editImpl()                                   { return false; }
 	virtual bool serializeImpl(Serializer& _serializer_)      { return true; }
+
+	// Return whether the component modifies the parent node's transform.
+	virtual bool isStatic() = 0;
+
+	// Called by SceneNode::update() during GatherActive.
+	void         setActive();
 
 private:
 
