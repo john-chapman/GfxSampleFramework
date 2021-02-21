@@ -16,7 +16,7 @@ void LookAtComponent::Update(Component** _from, Component** _to, float _dt, Worl
 {
 	PROFILER_MARKER_CPU("LookAtComponent::Update");
 
-	if (_phase != World::UpdatePhase::PrePhysics)
+	if (_phase != World::UpdatePhase::PostPhysics)
 	{
 		return;
 	}
@@ -36,7 +36,7 @@ void LookAtComponent::Update(Component** _from, Component** _to, float _dt, Worl
 		
 		mat4 m = AlignZ(Normalize(origin - target), vec3(0, 1, 0));
 		SetTranslation(m, origin);
-		component->m_parentNode->setLocal(m);
+		component->m_parentNode->setWorld(m);
 	}
 }
 

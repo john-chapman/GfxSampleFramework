@@ -1,4 +1,5 @@
 /*	\todo
+	- Split up the code to make it more manageable and to fix some declaration order issues with explicit template instantiations.
 	- Allow init()/postInit() to be called multiple times on nodes/components? Use case is re-initialization when editing. Otherwise need to rely on calling shutdown() first which has some resource lifetime issues.
 	- Allocate scenes from a pool?
 	- See \todo \editoronly in the code some operations require special handling in editor (like re-serialization, which doesn't happen at runtim).
@@ -18,91 +19,6 @@
 #include <EASTL/map.h>
 
 namespace frm { 
-
-////////////////////////////////////////////////////////////////////////////////
-// World
-// Context for a hierarchy of scenes. Contains a registry of scene instances.
-////////////////////////////////////////////////////////////////////////////////
-class World: public Serializable<World>
-{
-public:
-
-	enum class UpdatePhase
-	{
-		GatherActive, // Flag active components for update.
-		PrePhysics,   // Update pre-physics (e.g. animation).
-		Hierarchy,    // Update transform hierarchy.
-		Physics,      // Update physics (i.e. can run concurrently with physics).
-		PostPhysics,  // Update post-physics (e.g. IK).
-		PreRender,    // Last phase before the renderer, world transforms are finalized.
-
-		_Count,
-		All
-	};
-
-	enum class State
-	{
-		Init,
-		PostInit,
-		Shutdown,
-
-		_Count
-	};
-
-	// Create a new world. If _path, load from a .world file, else initialize default scene (simple camera).
-	static World*     Create(const char* _path = nullptr);
-	// Destroy a world instance. Call shutdown() first.
-	static void       Destroy(World*& _world_);
-
-	// Get/set the current active world.
-	static World*     GetCurrent()                 { return s_current; }
-	static void       SetCurrent(World* _world)    { s_current = _world; } // \todo Need to unset/set active camera? Possibly need activation events?
-
-	// Get the current draw camera (see CameraComponent).
-	static Camera*    GetDrawCamera();
-	// Get the current cull camera (see CameraComponent).
-	static Camera*    GetCullCamera();
-
-	// Update the root scene for the specified phase.
-	void              update(float _dt, UpdatePhase _phase = UpdatePhase::All);
-	
-	// Serialize world. Note that m_rootScene is serialized inline if it has no path.
-	bool              serialize(Serializer& _serializer_);
-
-	// Standard lifetime methods.
-	bool              init();
-	bool              postInit();
-	void              shutdown();
-
-
-	const PathStr&    getPath() const             { return m_path; }
-	State             getState() const            { return m_state; }
-	Scene*            getRootScene()              { return m_rootScene; }
-
-private:
-
-	using SceneList = eastl::fixed_vector<Scene*, 8>;
-	using SceneInstanceMap = eastl::map<StringHash, SceneList>;
-
-	static World*     s_current;
-	PathStr           m_path              = "";
-	State             m_state             = State::Shutdown;
-	Scene*            m_rootScene         = nullptr;
-	SceneInstanceMap  m_sceneInstances;
-
-	                  World();
-	                  ~World();
-
-	// Add/remove a scene instance to/from the scene instance map.
-	void              addSceneInstance(Scene* _scene);
-	void              removeSceneInstance(Scene* _scene);
-
-	// Called by GetDrawCamera()/GetCullCamera(). Search the scene hierarchy for an active CameraComponent instance, else create a transient node with a default camera.
-	Camera*           findOrCreateDefaultCamera();
-
-	friend class Scene;
-	friend class WorldEditor;
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 // SceneID
@@ -200,6 +116,99 @@ struct GlobalReference
 };
 using GlobalNodeReference = GlobalReference<SceneNode>;
 using GlobalComponentReference = GlobalReference<Component>;
+
+////////////////////////////////////////////////////////////////////////////////
+// World
+// Context for a hierarchy of scenes. Contains a registry of scene instances.
+////////////////////////////////////////////////////////////////////////////////
+class World: public Serializable<World>
+{
+public:
+
+	enum class UpdatePhase
+	{
+		GatherActive, // Flag active components for update.
+		PrePhysics,   // Update pre-physics (e.g. animation).
+		Hierarchy,    // Update transform hierarchy.
+		Physics,      // Update physics (i.e. can run concurrently with physics).
+		PostPhysics,  // Update post-physics (e.g. IK).
+		PreRender,    // Last phase before the renderer, world transforms are finalized.
+
+		_Count,
+		All
+	};
+
+	enum class State
+	{
+		Init,
+		PostInit,
+		Shutdown,
+
+		_Count
+	};
+
+	// Create a new world. If _path, load from a .world file, else initialize default scene (simple camera).
+	static World*     Create(const char* _path = nullptr);
+	// Destroy a world instance. Call shutdown() first.
+	static void       Destroy(World*& _world_);
+
+	// Get/set the current active world.
+	static World*     GetCurrent()                 { return s_current; }
+	static void       SetCurrent(World* _world)    { s_current = _world; } // \todo Need to unset/set active camera? Possibly need activation events?
+
+	// Get the current draw/cull camera. This is a wrapper for Get*CameraComponent()->getCamera().
+	static Camera*          GetDrawCamera();
+	static Camera*          GetCullCamera();
+
+	// Get/set the current draw/cull camera component.
+	static CameraComponent* GetDrawCameraComponent();
+	static void             SetDrawCameraComponent(CameraComponent* _cameraComponent);
+	static CameraComponent* GetCullCameraComponent();
+	static void             SetCullCameraComponent(CameraComponent* _cameraComponent);
+
+	// Update the root scene for the specified phase.
+	void              update(float _dt, UpdatePhase _phase = UpdatePhase::All);
+	
+	// Serialize world. Note that m_rootScene is serialized inline if it has no path.
+	bool              serialize(Serializer& _serializer_);
+
+	// Standard lifetime methods.
+	bool              init();
+	bool              postInit();
+	void              shutdown();
+
+
+	const PathStr&    getPath() const             { return m_path; }
+	State             getState() const            { return m_state; }
+	Scene*            getRootScene()              { return m_rootScene; }
+
+private:
+
+	using SceneList = eastl::fixed_vector<Scene*, 8>;
+	using SceneInstanceMap = eastl::map<StringHash, SceneList>;
+
+	static World*     s_current;
+	PathStr           m_path              = "";
+	State             m_state             = State::Shutdown;
+	Scene*            m_rootScene         = nullptr;
+	SceneInstanceMap  m_sceneInstances;
+
+	GlobalComponentReference m_drawCamera;
+	GlobalComponentReference m_cullCamera;
+
+	                  World();
+	                  ~World();
+
+	// Add/remove a scene instance to/from the scene instance map.
+	void              addSceneInstance(Scene* _scene);
+	void              removeSceneInstance(Scene* _scene);
+
+	// Called by GetDrawCamera()/GetCullCamera(). Search the scene hierarchy for an active CameraComponent instance, else create a transient node with a default camera.
+	CameraComponent*  findOrCreateDefaultCamera();
+
+	friend class Scene;
+	friend class WorldEditor;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // SceneNode

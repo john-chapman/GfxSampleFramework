@@ -14,10 +14,14 @@ namespace frm {
 // WorldEditor
 //
 // \todo
+// - Improved hierarchy view:
+//    - Use new tables API.
+//    - Color coding for child scenes.
+//    - Show/hide child scenes in the hierarchy.
 // - Push/Pop ID based on _scene_/_node_ args to edit() is currently disabled as
 //   it provides better UX (tree nodes stay open when switching selections).
 // - Manage gizmos more coherently - avoid having multiple gizmos at once?
-// - Store m_currentNode as a ring buffer, implement back/forward navigation?
+// - Store m_currentNode as a ring buffer, implement back/forward navigation.
 // - Color coding for hierarchy/component/basic editor headings.
 // - Layers:
 //    - Requires editor-specific data per world (see below)
@@ -110,6 +114,7 @@ private:
 	bool saveScene(Scene* _scene_);
 	void setScenePath(Scene* _scene_, const PathStr& _path);
 	void setSceneModified(Scene* _scene, bool _modified);
+	bool isSceneModified(Scene* _scene);
 
 	bool worldMenu();
 	bool sceneMenu();

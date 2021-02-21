@@ -13,314 +13,6 @@ namespace frm {
 
 /*******************************************************************************
 
-                                 World
-
-*******************************************************************************/
-
-FRM_SERIALIZABLE_DEFINE(World, 0);
-
-// PUBLIC
-
-World* World::Create(const char* _path)
-{
-	World* world = FRM_NEW(World);
-	
-	if (_path && *_path)
-	{
-		Json json;
-		if (!Json::Read(json, _path))
-		{
-			return world;
-		}
-
-		world->m_path = _path;
-
-		SerializerJson serializer(json, SerializerJson::Mode_Read);
-		world->serialize(serializer);
-		if (serializer.getError())
-		{		
-			FRM_LOG_ERR("Error serializing world: %s", serializer.getError());
-		}
-	}
-	
-	return world;
-}
-
-void World::Destroy(World*& _world_)
-{
-	FRM_ASSERT(_world_->m_state == State::Shutdown);
-	FRM_DELETE(_world_);
-	_world_ = nullptr;
-}
-
-Camera* World::GetDrawCamera()
-{
-	CameraComponent* drawCameraComponent = CameraComponent::GetDrawCamera();
-	return drawCameraComponent ? &drawCameraComponent->getCamera() : World::GetCurrent()->findOrCreateDefaultCamera();
-}
-
-Camera* World::GetCullCamera()
-{
-	CameraComponent* cullCameraComponent = CameraComponent::GetCullCamera();
-	return cullCameraComponent ? &cullCameraComponent->getCamera() : World::GetCurrent()->findOrCreateDefaultCamera();
-}
-
-void World::update(float _dt, UpdatePhase _phase)
-{
-	// \hack \todo Profiler markers don't support dynamic strings.
-	static const char* kUpdatePhaseMarkerStr[(int)World::UpdatePhase::_Count] =
-	{
-		"#World::update(GatherActive)",
-		"#World::update(PrePhysics)",
-		"#World::update(Hierarchy)",
-		"#World::update(Physics)",
-		"#World::update(PostPhysics)",
-		"#World::update(PreRender)"
-	};
-
-	if (_phase == UpdatePhase::All)
-	{
-		for (int i = 0; i < (int)UpdatePhase::_Count; ++i)
-		{
-			PROFILER_MARKER_CPU(kUpdatePhaseMarkerStr[i]);
-
-			_phase = (UpdatePhase)i;
-
-			if_likely (m_rootScene)
-			{
-				m_rootScene->update(_dt, _phase);
-			}
-			Component::Update(_dt, _phase);
-		}
-	}
-	else
-	{
-		PROFILER_MARKER_CPU(kUpdatePhaseMarkerStr[(int)_phase]);
-
-		if_likely (m_rootScene)
-		{
-			m_rootScene->update(_dt, _phase);
-		}
-		Component::Update(_dt, _phase);
-	}
-}
-
-bool World::serialize(Serializer& _serializer_)
-{
-	Component::ClearActiveComponents(); // Active component ptrs are cached, need to clear these before we realloc.
-
-	bool ret = SerializeAndValidateClass(_serializer_);
-	if (!ret)
-	{
-		return false;
-	}
-
-	PathStr rootScenePath = m_rootScene ? m_rootScene->getPath() : "";
-	
-	if (_serializer_.getMode() == Serializer::Mode_Read)
-	{
-		if (Serialize(_serializer_, rootScenePath, "RootScenePath"))
-		{
-			Json rootJson;
-			if (!Json::Read(rootJson, rootScenePath.c_str()))
-			{
-				_serializer_.setError("Failed to load root scene '%s'", rootScenePath.c_str());
-				ret = false;
-			}
-
-			if (!m_rootScene)
-			{
-				m_rootScene = FRM_NEW(Scene(this));
-			}
-			else
-			{
-				removeSceneInstance(m_rootScene); // Need to remove before changing the path below.
-			}
-			m_rootScene->m_path = rootScenePath;
-			
-			SerializerJson rootSerializer(rootJson, _serializer_.getMode());
-			if (!m_rootScene->serialize(rootSerializer))
-			{
-				_serializer_.setError(rootSerializer.getError());
-				ret = false;
-			}
-		}
-		else
-		{
-			if (_serializer_.beginObject("RootScene"))
-			{
-				if (!m_rootScene)
-				{
-					m_rootScene = FRM_NEW(Scene(this));
-				}
-
-				ret &= m_rootScene->serialize(_serializer_);
-				_serializer_.endObject();
-			}			
-		}
-	}
-	else
-	{
-		if (m_rootScene && rootScenePath.isEmpty())
-		{
-			// Root scene has no path, serialize directly with the world.
-			if (_serializer_.beginObject("RootScene"))
-			{
-				ret &= m_rootScene->serialize(_serializer_);
-				_serializer_.endObject();
-			}			
-		}
-		else
-		{
-			ret &= Serialize(_serializer_, rootScenePath, "RootScenePath");
-		}
-	}
-
-	if (!ret)
-	{
-		return false;
-	}
-	
-	return ret;
-}
-
-bool World::init()
-{
-	FRM_ASSERT(m_state == State::Shutdown);
-	m_state = World::State::Init;
-
-	if (!m_rootScene)
-	{
-		m_rootScene = Scene::CreateDefault(this);
-	}
-
-	if (!m_rootScene->init())
-	{
-		return false;
-	}
-	
-	// Resolve the hierarchy once so that world transforms are set during postInit().
-	update(0.f, UpdatePhase::Hierarchy);
-
-	return true;
-}
-
-bool World::postInit()
-{
-	FRM_ASSERT(m_state == State::Init);
-	m_state = World::State::PostInit;
-
-	if (!m_rootScene->postInit())
-	{
-		return false;
-	}
-
-	return true;
-}
-
-void World::shutdown()
-{
-	FRM_ASSERT(m_state == State::PostInit);
-	m_state = World::State::Shutdown;
-
-	m_rootScene->shutdown();
-	FRM_DELETE(m_rootScene);
-	m_rootScene = nullptr;
-
-	FRM_ASSERT(m_sceneInstances.empty());
-}
-
-
-// PRIVATE
-
-World* World::s_current = nullptr;
-
-World::World()
-{
-	if (s_current == nullptr)
-	{
-		s_current = this;
-	}
-}
-
-World::~World()
-{
-	FRM_ASSERT(m_state == State::Shutdown);
-
-	if (s_current == this)
-	{
-		s_current = nullptr;
-	}
-}
-
-void World::addSceneInstance(Scene* _scene)
-{
-	const StringHash pathHash = StringHash(_scene->getPath().c_str());
-	SceneList& instanceList = m_sceneInstances[pathHash];
-	FRM_ASSERT_MSG(eastl::find(instanceList.begin(), instanceList.end(), _scene) == instanceList.end(), "Scene instance 0x%X ('%s') was already added to the world", _scene, _scene->getPath().c_str());
-	instanceList.push_back(_scene);
-}
-
-void World::removeSceneInstance(Scene* _scene)
-{
-	const StringHash pathHash = StringHash(_scene->getPath().c_str());
-	SceneList& instanceList = m_sceneInstances[pathHash];
-	auto it = eastl::find(instanceList.begin(), instanceList.end(), _scene);
-	//FRM_ASSERT_MSG(it != instanceList.end(), "Scene instance 0x%X ('%s') not found", _scene, _scene->getPath().c_str());
-	if (it != instanceList.end()) // \todo \editoronly 
-	{
-		instanceList.erase_unsorted(it);
-		if (instanceList.empty())
-		{
-			m_sceneInstances.erase(pathHash);
-		}
-	}
-}
-
-Camera* World::findOrCreateDefaultCamera()
-{
-	CameraComponent* drawCamera = nullptr;
-	CameraComponent* cullCamera = nullptr;
-
-	m_rootScene->traverse([&drawCamera, &cullCamera](SceneNode* _node) -> bool
-		{
-			if (!_node->getFlag(SceneNode::Flag::Active))
-			{
-				return false;
-			}
-
-			CameraComponent* cameraComponent = (CameraComponent*)_node->findComponent(StringHash("CameraComponent"));
-			if (cameraComponent)
-			{
-				drawCamera = cullCamera	= cameraComponent;
-				return false;
-			}
-
-			return true;
-		});
-
-	if (!drawCamera)
-	{
-		SceneNode* cameraNode = m_rootScene->createTransientNode("#DefaultCamera");
-
-		cullCamera = drawCamera = (CameraComponent*)Component::Create(StringHash("CameraComponent"));
-		Camera& camera = drawCamera->getCamera();
-		camera.setPerspective(Radians(45.f), 16.f / 9.f, 0.1f, 1000.0f, Camera::ProjFlag_Infinite);
-		
-		FreeLookComponent* freeLookComponent = (FreeLookComponent*)Component::Create(StringHash("FreeLookComponent"));
-		freeLookComponent->lookAt(vec3(0.f, 10.f, 64.f), vec3(0.f, 0.f, 0.f));
-		
-		cameraNode->addComponent(drawCamera);
-		cameraNode->addComponent(freeLookComponent);
-
-		FRM_VERIFY(cameraNode->init() && cameraNode->postInit());
-	}
-
-	return &drawCamera->getCamera();
-}
-
-/*******************************************************************************
-
                                  SceneID
 
 *******************************************************************************/
@@ -462,6 +154,332 @@ bool GlobalReference<tReferent>::serialize(Serializer& _serializer_, const char*
 }
 template struct GlobalReference<SceneNode>;
 template struct GlobalReference<Component>;
+
+/*******************************************************************************
+
+                                 World
+
+*******************************************************************************/
+
+FRM_SERIALIZABLE_DEFINE(World, 0);
+
+// PUBLIC
+
+World* World::Create(const char* _path)
+{
+	World* world = FRM_NEW(World);
+	
+	if (_path && *_path)
+	{
+		Json json;
+		if (!Json::Read(json, _path))
+		{
+			return world;
+		}
+
+		world->m_path = _path;
+
+		SerializerJson serializer(json, SerializerJson::Mode_Read);
+		world->serialize(serializer);
+		if (serializer.getError())
+		{		
+			FRM_LOG_ERR("Error serializing world: %s", serializer.getError());
+		}
+	}
+	
+	return world;
+}
+
+void World::Destroy(World*& _world_)
+{
+	FRM_ASSERT(_world_->m_state == State::Shutdown);
+	FRM_DELETE(_world_);
+	_world_ = nullptr;
+}
+
+Camera* World::GetDrawCamera()
+{
+	return &GetDrawCameraComponent()->getCamera();
+}
+
+Camera* World::GetCullCamera()
+{
+	return &GetCullCameraComponent()->getCamera();
+}
+
+CameraComponent* World::GetDrawCameraComponent()
+{
+	World* world = GetCurrent();
+	CameraComponent* cameraComponent = (CameraComponent*)world->m_drawCamera.referent;
+	return cameraComponent ? cameraComponent : world->findOrCreateDefaultCamera();
+}
+
+CameraComponent* World::GetCullCameraComponent()
+{
+	World* world = GetCurrent();
+	CameraComponent* cameraComponent = (CameraComponent*)world->m_cullCamera.referent;
+	return cameraComponent ? cameraComponent : world->findOrCreateDefaultCamera();
+}
+
+void World::update(float _dt, UpdatePhase _phase)
+{
+	// \hack \todo Profiler markers don't support dynamic strings.
+	static const char* kUpdatePhaseMarkerStr[(int)World::UpdatePhase::_Count] =
+	{
+		"#World::update(GatherActive)",
+		"#World::update(PrePhysics)",
+		"#World::update(Hierarchy)",
+		"#World::update(Physics)",
+		"#World::update(PostPhysics)",
+		"#World::update(PreRender)"
+	};
+
+	if (_phase == UpdatePhase::All)
+	{
+		for (int i = 0; i < (int)UpdatePhase::_Count; ++i)
+		{
+			PROFILER_MARKER_CPU(kUpdatePhaseMarkerStr[i]);
+
+			_phase = (UpdatePhase)i;
+
+			if_likely (m_rootScene)
+			{
+				m_rootScene->update(_dt, _phase);
+			}
+			Component::Update(_dt, _phase);
+		}
+	}
+	else
+	{
+		PROFILER_MARKER_CPU(kUpdatePhaseMarkerStr[(int)_phase]);
+
+		if_likely (m_rootScene)
+		{
+			m_rootScene->update(_dt, _phase);
+		}
+		Component::Update(_dt, _phase);
+	}
+}
+
+bool World::serialize(Serializer& _serializer_)
+{
+	Component::ClearActiveComponents(); // Active component ptrs are cached, need to clear these before we realloc.
+
+	bool ret = SerializeAndValidateClass(_serializer_);
+	if (!ret)
+	{
+		return false;
+	}
+
+	PathStr rootScenePath = m_rootScene ? m_rootScene->getPath() : "";
+	
+	if (_serializer_.getMode() == Serializer::Mode_Read)
+	{
+		if (Serialize(_serializer_, rootScenePath, "RootScenePath"))
+		{
+			Json rootJson;
+			if (!Json::Read(rootJson, rootScenePath.c_str()))
+			{
+				_serializer_.setError("Failed to load root scene '%s'", rootScenePath.c_str());
+				ret = false;
+			}
+
+			if (!m_rootScene)
+			{
+				m_rootScene = FRM_NEW(Scene(this));
+			}
+			else
+			{
+				removeSceneInstance(m_rootScene); // Need to remove before changing the path below.
+			}
+			m_rootScene->m_path = rootScenePath;
+			
+			SerializerJson rootSerializer(rootJson, _serializer_.getMode());
+			if (!m_rootScene->serialize(rootSerializer))
+			{
+				_serializer_.setError(rootSerializer.getError());
+				ret = false;
+			}
+		}
+		else
+		{
+			if (_serializer_.beginObject("RootScene"))
+			{
+				if (!m_rootScene)
+				{
+					m_rootScene = FRM_NEW(Scene(this));
+				}
+
+				ret &= m_rootScene->serialize(_serializer_);
+				_serializer_.endObject();
+			}			
+		}
+	}
+	else
+	{
+		if (m_rootScene && rootScenePath.isEmpty())
+		{
+			// Root scene has no path, serialize directly with the world.
+			if (_serializer_.beginObject("RootScene"))
+			{
+				ret &= m_rootScene->serialize(_serializer_);
+				_serializer_.endObject();
+			}			
+		}
+		else
+		{
+			ret &= Serialize(_serializer_, rootScenePath, "RootScenePath");
+		}
+	}
+
+	ret &= m_drawCamera.serialize(_serializer_, "Draw Camera");
+	ret &= m_cullCamera.serialize(_serializer_, "Cull Camera");
+
+	return ret;
+}
+
+bool World::init()
+{
+	FRM_ASSERT(m_state == State::Shutdown);
+	m_state = World::State::Init;
+
+	if (!m_rootScene)
+	{
+		m_rootScene = Scene::CreateDefault(this);
+	}
+
+	if (!m_rootScene->init())
+	{
+		return false;
+	}
+
+	// \hack \todo Explicit template instantiations are below this point in the file - split up the code.
+	//m_rootScene->resolveReference(m_drawCamera[0]);
+	//m_rootScene->resolveReference(m_cullCamera[0]);
+	m_drawCamera.referent = m_rootScene->findComponent(m_drawCamera.id.local, m_drawCamera.id.scene);
+	m_cullCamera.referent = m_rootScene->findComponent(m_cullCamera.id.local, m_cullCamera.id.scene);
+	
+	// Resolve the hierarchy once so that world transforms are set during postInit().
+	update(0.f, UpdatePhase::Hierarchy);
+
+	return true;
+}
+
+bool World::postInit()
+{
+	FRM_ASSERT(m_state == State::Init);
+	m_state = World::State::PostInit;
+
+	if (!m_rootScene->postInit())
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void World::shutdown()
+{
+	FRM_ASSERT(m_state == State::PostInit);
+	m_state = World::State::Shutdown;
+
+	m_rootScene->shutdown();
+	FRM_DELETE(m_rootScene);
+	m_rootScene = nullptr;
+
+	FRM_ASSERT(m_sceneInstances.empty());
+}
+
+
+// PRIVATE
+
+World* World::s_current = nullptr;
+
+World::World()
+{
+	if (s_current == nullptr)
+	{
+		s_current = this;
+	}
+}
+
+World::~World()
+{
+	FRM_ASSERT(m_state == State::Shutdown);
+
+	if (s_current == this)
+	{
+		s_current = nullptr;
+	}
+}
+
+void World::addSceneInstance(Scene* _scene)
+{
+	const StringHash pathHash = StringHash(_scene->getPath().c_str());
+	SceneList& instanceList = m_sceneInstances[pathHash];
+	FRM_ASSERT_MSG(eastl::find(instanceList.begin(), instanceList.end(), _scene) == instanceList.end(), "Scene instance 0x%X ('%s') was already added to the world", _scene, _scene->getPath().c_str());
+	instanceList.push_back(_scene);
+}
+
+void World::removeSceneInstance(Scene* _scene)
+{
+	const StringHash pathHash = StringHash(_scene->getPath().c_str());
+	SceneList& instanceList = m_sceneInstances[pathHash];
+	auto it = eastl::find(instanceList.begin(), instanceList.end(), _scene);
+	//FRM_ASSERT_MSG(it != instanceList.end(), "Scene instance 0x%X ('%s') not found", _scene, _scene->getPath().c_str());
+	if (it != instanceList.end()) // \todo \editoronly 
+	{
+		instanceList.erase_unsorted(it);
+		if (instanceList.empty())
+		{
+			m_sceneInstances.erase(pathHash);
+		}
+	}
+}
+
+CameraComponent* World::findOrCreateDefaultCamera()
+{
+	CameraComponent* ret = nullptr;
+
+	m_rootScene->traverse([&ret](SceneNode* _node) -> bool
+		{
+			if (!_node->getFlag(SceneNode::Flag::Active))
+			{
+				return false;
+			}
+
+			CameraComponent* cameraComponent = (CameraComponent*)_node->findComponent(StringHash("CameraComponent"));
+			if (cameraComponent)
+			{
+				ret	= cameraComponent;
+				return false; // End traversal.
+			}
+
+			return true;
+		});
+
+	if (!ret)
+	{
+		SceneNode* cameraNode = m_rootScene->createTransientNode("#DefaultCamera");
+
+		ret = (CameraComponent*)Component::Create(StringHash("CameraComponent"));
+		Camera& camera = ret->getCamera();
+		camera.setPerspective(Radians(45.f), 16.f / 9.f, 0.1f, 1000.0f, Camera::ProjFlag_Infinite);
+		
+		FreeLookComponent* freeLookComponent = (FreeLookComponent*)Component::Create(StringHash("FreeLookComponent"));
+		freeLookComponent->lookAt(vec3(0.f, 10.f, 64.f), vec3(0.f, 0.f, 0.f));
+		
+		cameraNode->addComponent(ret);
+		cameraNode->addComponent(freeLookComponent);
+
+		FRM_VERIFY(cameraNode->init() && cameraNode->postInit());
+
+		SetDrawCameraComponent(ret);
+		SetCullCameraComponent(ret);
+	}
+
+	return ret;
+}
 
 /*******************************************************************************
 
@@ -1003,6 +1021,26 @@ GlobalNodeReference Scene::findGlobal(const SceneNode* _node) const
 	return GlobalNodeReference();
 }
 
+template <>
+GlobalComponentReference Scene::findGlobal(const Component* _component) const
+{
+	const SceneNode* node = _component->m_parentNode;
+
+	if (node->m_parentScene == this)
+	{
+		return GlobalComponentReference(0u, _component->m_id, const_cast<Component*>(_component));
+	}
+
+	for (auto& it : m_globalComponentMap)
+	{
+		if (it.second == _component)
+		{
+			return GlobalComponentReference(it.first, it.second);
+		}
+	}
+
+	return GlobalComponentReference();
+}
 
 // PRIVATE
 
@@ -1642,6 +1680,38 @@ void SceneNode::removeChild(SceneNode* _child_)
 SceneNode::ChildList::iterator SceneNode::findChild(const SceneNode* _child)
 {
 	return eastl::find(m_children.begin(), m_children.end(), LocalNodeReference((SceneNode*)_child));
+}
+
+
+// \todo These definitions are here because they need to call templated findGlobal(), need to split code up.
+void World::SetDrawCameraComponent(CameraComponent* _cameraComponent)
+{
+	World* world = GetCurrent();
+	Scene* rootScene = world->getRootScene();
+	GlobalComponentReference ref = rootScene->findGlobal((Component*)_cameraComponent);
+	if (ref.isValid() && ref.isResolved())
+	{
+		world->m_drawCamera = ref;
+	}
+	else
+	{
+		FRM_LOG_ERR("World::SetDrawCamera: %s camera component reference.", ref.isValid() ? "Unresolved" : "Invalid");
+	}
+}
+
+void World::SetCullCameraComponent(CameraComponent* _cameraComponent)
+{
+	World* world = GetCurrent();
+	Scene* rootScene = world->getRootScene();
+	GlobalComponentReference ref = rootScene->findGlobal((Component*)_cameraComponent);
+	if (ref.isValid() && ref.isResolved())
+	{
+		world->m_cullCamera = ref;
+	}
+	else
+	{
+		FRM_LOG_ERR("World::SetCullCamera: %s camera component reference.", ref.isValid() ? "Unresolved" : "Invalid");
+	}
 }
 
 } // namespace frm

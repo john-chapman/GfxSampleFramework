@@ -2,27 +2,20 @@
 
 #include <frm/core/Profiler.h>
 #include <frm/core/Serializable.inl>
+#include <frm/core/World/World.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
 
 namespace frm {
 
+// Store the previous draw/cull cameras for toggling. Note that this should technically be per world.
+static CameraComponent* s_prevDrawCameraComponent = nullptr;
+static CameraComponent* s_prevCullCameraComponent = nullptr;
+
 FRM_COMPONENT_DEFINE(CameraComponent, 0);
 
 // PUBLIC
-
-void CameraComponent::SetDrawCamera(CameraComponent* _cameraComponent)
-{
-	s_drawCamera[1] = s_drawCamera[0];
-	s_drawCamera[0] = _cameraComponent;
-}
-
-void CameraComponent::SetCullCamera(CameraComponent* _cameraComponent)
-{
-	s_cullCamera[1] = s_cullCamera[0];
-	s_cullCamera[0] = _cameraComponent;
-}
 
 void CameraComponent::Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase)
 {
@@ -49,9 +42,6 @@ void CameraComponent::lookAt(const vec3& _from, const vec3& _to, const vec3& _up
 }
 
 // PRIVATE
-
-CameraComponent* CameraComponent::s_drawCamera[2] = { nullptr };
-CameraComponent* CameraComponent::s_cullCamera[2] = { nullptr };
 
 void CameraComponent::draw() const
 {
@@ -95,66 +85,48 @@ void CameraComponent::draw() const
 
 bool CameraComponent::initImpl()
 {
-	if (!s_drawCamera[0])
-	{
-		s_drawCamera[0] = this;
-	}
-	
-	if (!s_cullCamera[0])
-	{
-		s_cullCamera[0] = this;
-	}
-
 	m_camera.updateGpuBuffer(); // \hack force allocation of GPU buffer.
-
 	return true;
 }
 
 void CameraComponent::shutdownImpl()
 {
-	for (CameraComponent*& camera : s_drawCamera)
-	{
-		camera = (camera == this) ? nullptr : camera;
-	}
-	
-	for (CameraComponent*& camera : s_cullCamera)
-	{
-		camera = (camera == this) ? nullptr : camera;
-	}
 }
 
 bool CameraComponent::editImpl()
 {
-	draw();
-	
-	const bool isDrawCamera = s_drawCamera[0] == this;
-	const bool isCullCamera = s_cullCamera[0] == this;
+	draw();	
 
+	const bool isDrawCamera = World::GetDrawCameraComponent() == this;
 	ImGui::PushStyleColor(ImGuiCol_Text, isDrawCamera ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 	if (ImGui::Button(ICON_FA_VIDEO_CAMERA " Set Draw Camera"))
 	{
-		if (isDrawCamera && s_drawCamera[1])
+		if (isDrawCamera && s_prevDrawCameraComponent)
 		{
-			SetDrawCamera(s_drawCamera[1]);
+			World::SetDrawCameraComponent(s_prevDrawCameraComponent);
 		}
 		else
 		{		
-			SetDrawCamera(this);
+			s_prevDrawCameraComponent = World::GetDrawCameraComponent();
+			World::SetDrawCameraComponent(this);
 		}
 	}
 	ImGui::PopStyleColor();
 
 	ImGui::SameLine();
+
+	const bool isCullCamera = World::GetCullCameraComponent() == this;
 	ImGui::PushStyleColor(ImGuiCol_Text, isCullCamera ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 	if (ImGui::Button(ICON_FA_CUBES " Set Cull Camera"))
 	{
-		if (isCullCamera && s_cullCamera[1])
+		if (isCullCamera && s_prevCullCameraComponent)
 		{
-			SetCullCamera(s_cullCamera[1]);
+			World::SetCullCameraComponent(s_prevCullCameraComponent);
 		}
 		else
 		{		
-			SetCullCamera(this);
+			s_prevCullCameraComponent = World::GetCullCameraComponent();
+			World::SetCullCameraComponent(this);
 		}
 	}
 	ImGui::PopStyleColor();

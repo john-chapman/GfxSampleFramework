@@ -11,14 +11,6 @@ FRM_COMPONENT_DECLARE(CameraComponent)
 {
 public: 	
 
-	// Get/set the current draw camera.
-	static CameraComponent* GetDrawCamera()                                     { return s_drawCamera[0]; }
-	static void             SetDrawCamera(CameraComponent* _cameraComponent);
-
-	// Get/set the current cull camera.
-	static CameraComponent* GetCullCamera()                                     { return s_cullCamera[0]; }
-	static void             SetCullCamera(CameraComponent* _cameraComponent);
-
 	// Update active components.
 	static void             Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
 
@@ -28,9 +20,6 @@ public:
 	Camera&                 getCamera()                                         { return m_camera; }
 
 private:
-
-	static CameraComponent* s_drawCamera[2]; // 0 = current, 1 = previous
-	static CameraComponent* s_cullCamera[2]; // 0 = current, 1 = previous
 
 	Camera m_camera;
 

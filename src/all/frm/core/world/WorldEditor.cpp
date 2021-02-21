@@ -54,7 +54,7 @@ static const frm::vec3 kDuplicateButtonColor       = frm::vec3(0.188f, 0.568f, 0
 static const frm::vec3 kDestroyButtonColor         = frm::vec3(0.792f, 0.184f, 0.184f);
 static const frm::vec3 kCreateComponentButtonColor = frm::vec3(0.701f, 0.419f, 0.058f);
 static const frm::vec3 kNodeSelectButtonColor      = frm::vec3(0.000f, 0.341f, 0.800f);
-static const frm::vec3 kSceneSelectButtonColor     = frm::vec3(0.000f, 0.800f, 0.341f);
+static const frm::vec3 kSceneSelectButtonColor     = frm::vec3(0.000f, 0.341f, 0.800f);
 static const frm::vec3 kTextLinkColor              = frm::vec3(0.500f, 0.700f, 1.000f);
 
 static inline bool TextLink(const char* _text)
@@ -319,8 +319,8 @@ bool WorldEditor::dispatchActions()
 			else
 			{
 				World* world = (World*)action.context;
-				ret |= loadWorld(world);
 				popAction();
+				ret |= loadWorld(world);
 			}
 
 			break;
@@ -338,8 +338,8 @@ bool WorldEditor::dispatchActions()
 				}
 			}
 
-			ret |= saveWorld(world);
 			popAction();
+			ret |= saveWorld(world);
 
 			break;
 		}
@@ -371,8 +371,8 @@ bool WorldEditor::dispatchActions()
 		case ActionType::LoadScene:
 		{
 			Scene* scene = (Scene*)action.context;
-			ret |= loadScene(scene);
 			popAction();
+			ret |= loadScene(scene);
 
 			break;
 		}
@@ -391,8 +391,8 @@ bool WorldEditor::dispatchActions()
 				setScenePath(scene, path);	
 			}
 
-			ret |= saveScene(scene);
 			popAction();
+			ret |= saveScene(scene);
 
 			break;
 		}
@@ -492,12 +492,13 @@ bool WorldEditor::saveWorld(World* _world_)
 		return false;
 	}
 
-	if (_world_->m_rootScene->getPath().isEmpty())
-	{
-		setSceneModified(_world_->m_rootScene, false); // root scene was serialized inline
-	}
-
 	setWorldModified(_world_, false);
+
+	// If the root scene was modified, save it automatically.
+	if (isSceneModified(_world_->m_rootScene))
+	{
+		pushAction(ActionType::SaveScene, _world_->m_rootScene);
+	}
 
 	return true;
 }
@@ -611,6 +612,18 @@ void WorldEditor::setSceneModified(Scene* _scene, bool _modified)
 			m_modifiedScenes.erase(it);
 		}
 	}
+}
+
+bool WorldEditor::isSceneModified(Scene* _scene)
+{
+	if (isSceneInline(_scene))
+	{
+		return false;
+	}
+
+	const StringHash pathHash = StringHash(_scene->getPath().c_str());
+	auto it = m_modifiedScenes.find(pathHash);
+	return it != m_modifiedScenes.end();
 }
 
 bool WorldEditor::worldMenu()
@@ -1255,7 +1268,7 @@ bool WorldEditor::editNode(SceneNode* _node_)
 
 		if (filterPassHierarchy || filter.PassFilter("Child Scene"))
 		{
-			if (PrettyButton(ICON_FA_FOLDER " Child Scene", kSceneSelectButtonColor))
+			if (PrettyButton(ICON_FA_SITEMAP " Child Scene", kSceneSelectButtonColor))
 			{
 				PathStr path;
 				if (SelectRelativePath(path, "scene"))
