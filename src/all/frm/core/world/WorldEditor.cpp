@@ -25,7 +25,7 @@ static inline frm::String<48> GetNodeLabel(const frm::SceneNode* _node, bool _sh
 		}
 		else
 		{
-			return frm::String<48>("%-24s [%04X]", _node->getName(), _node->getID());
+			return frm::String<48>("%-24s [%s]", _node->getName(), _node->getID().toString().c_str());
 		}
 	}
 	else
@@ -719,154 +719,191 @@ bool WorldEditor::viewMenu()
 bool WorldEditor::hierarchyView(SceneNode* _rootNode_)
 {
 	// \todo
-	// - Tables API for better columnation?
-	// - Alternate row background for better readability, highlight background row.
-	// - Color coding for node state (i.e. gray for inactive).
-	// - Drag + drop to reparent.
+	// - Navigation buttons at top (back, forward, to parent).
 	// - Show components.
+	// - Drag + drop to reparent.		
 
 	bool ret = false;
 
-	eastl::fixed_vector<SceneNode*, 64> tstack;
-	tstack.push_back(_rootNode_);
-	while (!tstack.empty())
-	{
-		SceneNode* node = tstack.back();
-		tstack.pop_back();
-
-		// nullptr used as a sentinel to mark the end of a group of children
-		if (!node)
-		{
-			ImGui::TreePop();
-			continue;
-		}
-
-		bool isTransient = node->getFlag(SceneNode::Flag::Transient);
-		if (!m_showTransientNodes && isTransient)
-		{
-			continue;
-		}
-
-		ImGui::PushID(node);
-
-		auto nodeLabel = GetNodeLabel(node, m_showNodeIDs);
-		if (node == m_currentNode)
-		{
-			nodeLabel.append(" " ICON_FA_CARET_LEFT);
-		}
-
-		if (m_show3DNodeLabels)
-		{
-			Im3d::Text(node->getPosition(), 1.0f, Im3d::Color_White, Im3d::TextFlags_Default, node->getName());
-		}
-
-		const bool isActive = node->getFlag(SceneNode::Flag::Active);
+	ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0f); 
 	
-		// Disable the default open on single-click behavior and pass in Selected flag according to our selection state.
-		ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ((node == m_currentNode) ? ImGuiTreeNodeFlags_Selected : 0);
-		bool selectNode = false;
-		bool hoverNode = false;
+	constexpr ImGuiTableFlags tableFlags = 0
+		| ImGuiTableFlags_ScrollY
+		| ImGuiTableFlags_BordersV 
+		| ImGuiTableFlags_BordersOuterH 
+		| ImGuiTableFlags_NoBordersInBody
+		| ImGuiTableFlags_RowBg 
+		;
+	if (ImGui::BeginTable("hieararchyView", 3, tableFlags))
+	{
+		constexpr ImGuiTableColumnFlags columnFlags = 0
+			| ImGuiTableColumnFlags_NoReorder
+			| ImGuiTableColumnFlags_NoHide
+			| ImGuiTableColumnFlags_NoSort
+			| ImGuiTableColumnFlags_NoResize
+			;
 
-		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once); 
+		ImGui::TableSetupColumn("Node",   columnFlags | ImGuiTableColumnFlags_WidthStretch);
+		ImGui::TableSetupColumn("NodeID", columnFlags | ImGuiTableColumnFlags_WidthFixed, 100.0f);
+		ImGui::TableSetupColumn("Active", columnFlags | ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 1.1f);
 
-		if (node->m_children.empty() && !node->m_childScene)
+		eastl::fixed_vector<SceneNode*, 64> tstack;
+		tstack.push_back(_rootNode_);
+		while (!tstack.empty())
 		{
-			nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-			ImGui::TreeNodeEx(node, nodeFlags, nodeLabel.c_str());
-			selectNode = ImGui::IsItemClicked() && !isTransient;
-			hoverNode = ImGui::IsItemHovered();
+			SceneNode* node = tstack.back();
+			tstack.pop_back();
 
-			ImGui::SameLine(ImGui::GetWindowWidth() - 48.0f);
-			if (ImGui::SmallButton(isActive ? ICON_FA_EYE : ICON_FA_EYE_SLASH))
+			// nullptr used as a sentinel to mark the end of a group of children.
+			if (!node)
 			{
-				node->setFlag(SceneNode::Flag::Active, !isActive);
+				ImGui::TreePop();
+				continue;
 			}
-		}
-		else
-		{
-			bool nodeOpen = ImGui::TreeNodeEx(node, nodeFlags, nodeLabel.c_str());
-			selectNode = ImGui::IsItemClicked() && !isTransient;
-			hoverNode = ImGui::IsItemHovered();
 
-			ImGui::SameLine(ImGui::GetWindowWidth() - 48.0f);
-			if (ImGui::SmallButton(isActive ? ICON_FA_EYE : ICON_FA_EYE_SLASH))
+			const bool isActive       = node->isActive();
+			const bool isTransient    = node->isTransient();
+			const bool isStatic       = node->isStatic();
+			const bool isCurrentScene = m_currentScene == node->getParentScene();
+
+			if (!m_showTransientNodes && isTransient)
 			{
-				node->setFlag(SceneNode::Flag::Active, !isActive);
+				continue;
 			}
 
-			if (nodeOpen)
-			{			
-				tstack.push_back(nullptr); // force call to TreePop() later
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			// \todo Could clip here however we need to know how many items would otherwise actually be drawn for the scrolling to work.
+			//if (ImGui::GetCursorPosY() > ImGui::GetWindowContentRegionMax().y)
+			//{
+			//	continue;
+			//}
 
-				//for (LocalNodeReference& child : node->m_children)
-				for (int i = (int)node->m_children.size() - 1; i >= 0; --i) // tstack is FILO so reverse iterator makes a more intuitive list
-				{
-					tstack.push_back(node->m_children[i].referent);
-				}
+			ImGui::PushID(node);		
 
-				if (node->m_childScene)
-				{
-					tstack.push_back(node->m_childScene->m_root.referent);
-				}
-			}
-		}
-
-
-		if (selectNode)
-		{
-			Action& action = m_actionStack.back();
-			switch (action.type)
+			auto nodeLabel = GetNodeLabel(node, false);
+			if (m_show3DNodeLabels)
 			{
-				default:
-				{
-					m_currentNode = node;
-					m_currentScene = node->m_parentScene;
-					break;
-				}
-				case ActionType::SelectNodeGlobal:
-				{
-					const Scene* scene = (Scene*)action.context;
-					GlobalNodeReference globalReference = scene->findGlobal(node);
-					if (globalReference.isValid())
+				Im3d::Text(node->getPosition(), 1.0f, Im3d::Color_White, Im3d::TextFlags_Default, node->getName());
+			}
+
+			// \todo Color-code scenes.
+			if (isCurrentScene)
+			{
+				float alpha = node == m_currentNode ? 0.8f : 0.3f;
+				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.7f, alpha)));
+			}
+
+			// Disable the default open on single-click behavior.
+			ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
+			bool selectNode = false;
+			bool hoverNode = false;
+
+			ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once); 
+			if (node->m_children.empty() && !node->m_childScene)
+			{
+				treeNodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+				ImGui::TreeNodeEx(node, treeNodeFlags, nodeLabel.c_str());
+				selectNode = ImGui::IsItemClicked() && !isTransient;
+				hoverNode = ImGui::IsItemHovered();
+			}
+			else
+			{
+				bool nodeOpen = ImGui::TreeNodeEx(node, treeNodeFlags, nodeLabel.c_str());
+				selectNode = ImGui::IsItemClicked() && !isTransient;
+				hoverNode = ImGui::IsItemHovered();
+				
+				if (nodeOpen)
+				{			
+					tstack.push_back(nullptr); // force call to TreePop() later
+			
+					//for (LocalNodeReference& child : node->m_children)
+					for (int i = (int)node->m_children.size() - 1; i >= 0; --i) // tstack is FILO so reverse iterator makes a more intuitive list
 					{
-						*(GlobalNodeReference*)action.result = globalReference;
-						popAction();
+						tstack.push_back(node->m_children[i].referent);
 					}
-					break;
-				}
-				case ActionType::SelectNodeLocal:
-				{
-					const Scene* scene = (Scene*)action.context;
-					LocalNodeReference localReference(node);// = scene->findLocal(node);
-					if (localReference.isValid())
+			
+					if (node->m_childScene)
 					{
-						*(LocalNodeReference*)action.result = localReference;
-						popAction();
+						tstack.push_back(node->m_childScene->m_root.referent);
 					}
-					break;
 				}
-				case ActionType::SelectNodeParent:
+			}
+			
+			ImGui::TableNextColumn();
+			if (m_showNodeIDs)
+			{
+				ImGui::Text("[%s]", node->getID().toString().c_str());
+			}
+			
+			ImGui::SameLine();
+			ImGui::Text(node == m_currentNode ? ICON_FA_CARET_LEFT : " ");
+
+			ImGui::TableNextColumn();
+			if (ImGui::SmallButton(node->isActive() ? ICON_FA_EYE : ICON_FA_EYE_SLASH))
+			{
+				node->setFlag(SceneNode::Flag::Active, !node->isActive());
+			}
+
+			if (selectNode)
+			{
+				Action& action = m_actionStack.back();
+				switch (action.type)
 				{
-					LocalNodeReference localReference(node);// = ((SceneNode*)m_actionStack.back().context)->getParentScene()->findLocal(node);
-					if (localReference.isValid())
+					default:
 					{
-						action.result = node;
-						popAction();
+						m_currentNode = node;
+						m_currentScene = node->m_parentScene;
+						break;
 					}
-					break;
-				}
-			};
+					case ActionType::SelectNodeGlobal:
+					{
+						const Scene* scene = (Scene*)action.context;
+						GlobalNodeReference globalReference = scene->findGlobal(node);
+						if (globalReference.isValid())
+						{
+							*(GlobalNodeReference*)action.result = globalReference;
+							popAction();
+						}
+						break;
+					}
+					case ActionType::SelectNodeLocal:
+					{
+						const Scene* scene = (Scene*)action.context;
+						LocalNodeReference localReference(node);// = scene->findLocal(node);
+						if (localReference.isValid())
+						{
+							*(LocalNodeReference*)action.result = localReference;
+							popAction();
+						}
+						break;
+					}
+					case ActionType::SelectNodeParent:
+					{
+						LocalNodeReference localReference(node);// = ((SceneNode*)m_actionStack.back().context)->getParentScene()->findLocal(node);
+						if (localReference.isValid())
+						{
+							action.result = node;
+							popAction();
+						}
+						break;
+					}
+				};
+			}
+
+			if (hoverNode)
+			{
+				Im3d::Text(node->getPosition(), 1.0f, Im3d::Color_Gold, 0, node->getName());
+				m_hoveredNode = node;
+			}
+
+			ImGui::PopID();
 		}
 
-		if (hoverNode)
-		{
-			Im3d::Text(node->getPosition(), 1.0f, Im3d::Color_Gold, 0, node->getName());
-			m_hoveredNode = node;
-		}
-
-		ImGui::PopID();
-
+		ImGui::EndTable();
 	}
+
+	ImGui::PopStyleVar(1);
 
 	return ret;
 }
