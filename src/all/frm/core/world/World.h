@@ -79,7 +79,8 @@ struct LocalReference
 	                 LocalReference(SceneID _id, tReferent* _referent) { FRM_ASSERT(!referent || referent->getID() == _id); referent = _referent; id = _id; }
 	                 LocalReference(tReferent* _referent)              { FRM_ASSERT(_referent); id = _referent->getID(); referent = _referent; }
 
-	bool             isValid() const                                   { return id != 0u; }
+	bool             isValid() const                                   { return id != 0u || referent != nullptr; }
+	bool             isTransient() const                               { return id == 0u && referent != nullptr; }
 	bool             isResolved() const                                { return referent != nullptr; }
 	tReferent*       operator->()                                      { FRM_ASSERT(referent); return referent; }
 	const tReferent* operator->() const                                { FRM_ASSERT(referent); return referent; }
@@ -105,7 +106,8 @@ struct GlobalReference
 	                 GlobalReference(SceneGlobalID _id, tReferent* _referent = nullptr)                  { FRM_ASSERT(!referent || referent->getID() == _id.local); referent = _referent; id = _id; }
 	                 GlobalReference(SceneID _sceneID, SceneID _localID, tReferent* _referent = nullptr) { FRM_ASSERT(!referent || referent->getID() == _localID); referent = _referent; id = { _sceneID, _localID }; }
 
-	bool             isValid() const                                                                     { return id.local != 0u; }
+	bool             isValid() const                                                                     { return id.local != 0u || referent != nullptr; }
+	bool             isTransient() const                                                                 { return id.local == 0u && referent != nullptr; }
 	bool             isResolved() const                                                                  { return referent != nullptr; }
 	tReferent*       operator->()                                                                        { FRM_ASSERT(referent); return referent; }
 	const tReferent* operator->() const                                                                  { FRM_ASSERT(referent); return referent; }
@@ -148,63 +150,67 @@ public:
 	};
 
 	// Create a new world. If _path, load from a .world file, else initialize default scene (simple camera).
-	static World*     Create(const char* _path = nullptr);
+	static World*            Create(const char* _path = nullptr);
 	// Destroy a world instance. Call shutdown() first.
-	static void       Destroy(World*& _world_);
+	static void              Destroy(World*& _world_);
 
 	// Get/set the current active world.
-	static World*     GetCurrent()                 { return s_current; }
-	static void       SetCurrent(World* _world)    { s_current = _world; } // \todo Need to unset/set active camera? Possibly need activation events?
+	static World*            GetCurrent()                 { return s_current; }
+	static void              SetCurrent(World* _world)    { s_current = _world; } // \todo Need to unset/set active camera? Possibly need activation events?
 
-	// Get the current draw/cull camera. This is a wrapper for Get*CameraComponent()->getCamera().
-	static Camera*          GetDrawCamera();
-	static Camera*          GetCullCamera();
-
-	// Get/set the current draw/cull camera component.
-	static CameraComponent* GetDrawCameraComponent();
-	static void             SetDrawCameraComponent(CameraComponent* _cameraComponent);
-	static CameraComponent* GetCullCameraComponent();
-	static void             SetCullCameraComponent(CameraComponent* _cameraComponent);
-
+	// Get the current draw/cull camera. These are convenience wrappers equivalent to World::GetCurrent()->get{Draw,Cull}CameraComponent()->getCamera().
+	static Camera*           GetDrawCamera();
+	static Camera*           GetCullCamera();
+	
 	// Update the root scene for the specified phase.
-	void              update(float _dt, UpdatePhase _phase = UpdatePhase::All);
+	void                     update(float _dt, UpdatePhase _phase = UpdatePhase::All);
 	
 	// Serialize world. Note that m_rootScene is serialized inline if it has no path.
-	bool              serialize(Serializer& _serializer_);
+	bool                     serialize(Serializer& _serializer_);
 
 	// Standard lifetime methods.
-	bool              init();
-	bool              postInit();
-	void              shutdown();
+	bool                     init();
+	bool                     postInit();
+	void                     shutdown();
 
+	// Get/set the current draw/cull camera component. Getters will create a transient node with a camera component + free look controller if none exists.
+	CameraComponent*         getDrawCameraComponent();
+	void                     setDrawCameraComponent(CameraComponent* _cameraComponent);
+	CameraComponent*         getCullCameraComponent();
+	void                     setCullCameraComponent(CameraComponent* _cameraComponent);
 
-	const PathStr&    getPath() const             { return m_path; }
-	State             getState() const            { return m_state; }
-	Scene*            getRootScene()              { return m_rootScene; }
+	// Get/set the current 'input consumer' (e.g. player controller).
+	Component*               getInputConsumer() const;
+	void                     setInputConsumer(Component* _component);
+
+	const PathStr&           getPath() const             { return m_path; }
+	State                    getState() const            { return m_state; }
+	Scene*                   getRootScene()              { return m_rootScene; }
 
 private:
 
 	using SceneList = eastl::fixed_vector<Scene*, 8>;
 	using SceneInstanceMap = eastl::map<StringHash, SceneList>;
 
-	static World*     s_current;
-	PathStr           m_path              = "";
-	State             m_state             = State::Shutdown;
-	Scene*            m_rootScene         = nullptr;
-	SceneInstanceMap  m_sceneInstances;
+	static World*            s_current;
+	PathStr                  m_path              = "";
+	State                    m_state             = State::Shutdown;
+	Scene*                   m_rootScene         = nullptr;
+	SceneInstanceMap         m_sceneInstances;
 
 	GlobalComponentReference m_drawCamera;
 	GlobalComponentReference m_cullCamera;
+	GlobalComponentReference m_inputConsumer;
 
-	                  World();
-	                  ~World();
+	                         World();
+	                         ~World();
 
 	// Add/remove a scene instance to/from the scene instance map.
-	void              addSceneInstance(Scene* _scene);
-	void              removeSceneInstance(Scene* _scene);
+	void                     addSceneInstance(Scene* _scene);
+	void                     removeSceneInstance(Scene* _scene);
 
 	// Called by GetDrawCamera()/GetCullCamera(). Search the scene hierarchy for an active CameraComponent instance, else create a transient node with a default camera.
-	CameraComponent*  findOrCreateDefaultCamera();
+	CameraComponent*         findOrCreateDefaultCamera();
 
 	friend class Scene;
 	friend class WorldEditor;
@@ -297,6 +303,7 @@ public:
 	vec3                      getForward() const                  { return m_world[2].xyz(); }
 	Scene*                    getParentScene() const              { return m_parentScene; }
 	Scene*                    getChildScene() const               { return m_childScene; }
+	World*                    getParentWorld() const; // \todo Decl order issue, need to reorder code...
 
 private:
 
@@ -352,6 +359,10 @@ private:
 // Nodes may contain a child scene instance; nodes in a child scene are 
 // referencable via the global node map. Note that parent -> child relationships 
 // between nodes may *not* cross a scene boundary.
+//
+// \todo
+// - More efficient updates to global node map (insert/remove a single object
+//   rather than rebuilding the whole thing).
 ////////////////////////////////////////////////////////////////////////////////
 class Scene: public Serializable<Scene>
 {
@@ -392,7 +403,7 @@ public:
 	// Find a node given the local/global ID. Return nullptr if not found.
 	SceneNode*                 findNode(SceneID _localID, SceneID _sceneID = SceneID()) const;
 
-	// Find a node given the local ID. Return nullptr if not found.
+	// Find a component given the local/global ID. Return nullptr if not found.
 	Component*                 findComponent(SceneID _localID, SceneID _sceneID = SceneID()) const;
 
 	// Find a unique node ID (max of all current IDs + 1).
@@ -405,6 +416,7 @@ public:
 	const PathStr&             getPath() const                 { return m_path; }
 	SceneNode*                 getRootNode() const             { return m_root.referent; }
 	SceneNode*                 getParentNode() const           { return m_parentNode; }
+	World*                     getParentWorld() const          { return m_world; }
 	World::State               getState() const                { return m_state; }
 
 	// Find a global reference relative to this scene given _referent.
@@ -443,7 +455,7 @@ private:
 	// Init the global node/component reference maps.
 	void                       initGlobalReferenceMap();
 
-	// Recursively init node/component global reference maps up the scene hierarchy.
+	// Recursively re-init node/component global reference maps up the scene hierarchy.
 	void                       resetGlobalReferenceMap();
 
 	// Shutdown/delete any pending nodes.
@@ -453,5 +465,7 @@ private:
 	friend class World;
 	friend class WorldEditor;
 };
+
+inline World* SceneNode::getParentWorld() const { return m_parentScene->getParentWorld(); }
 
 } // namespace frm

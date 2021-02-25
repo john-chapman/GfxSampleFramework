@@ -43,9 +43,18 @@ void FreeLookComponent::update(float _dt)
 
 	const Gamepad*  gamePad = Input::GetGamepad();
 	const Keyboard* keyboard = Input::GetKeyboard();
+	const Mouse* mouse = Input::GetMouse();
 	if (keyboard && keyboard->isDown(Keyboard::Key_LCtrl)) // disable keyboard input on lctrl
 	{
 		keyboard = nullptr;
+	}
+
+	const bool isInputConsumer = m_parentNode->getParentWorld()->getInputConsumer() == this;
+	if (!isInputConsumer)
+	{
+		gamePad = nullptr;
+		keyboard = nullptr;
+		mouse = nullptr;
 	}
 
 	bool isAccel = false;
@@ -118,14 +127,12 @@ void FreeLookComponent::update(float _dt)
 	}		
 	m_position += m_velocity * _dt;
 
-
-	Mouse* mouse = Input::GetMouse();
 	if (gamePad)
 	{
 		m_pitchYawRoll.x -= gamePad->getAxisState(Gamepad::Axis_RightStickY) * 16.0f * _dt;//* m_rotationInputMul * 6.0f; // \todo setter for this?
 		m_pitchYawRoll.y -= gamePad->getAxisState(Gamepad::Axis_RightStickX) * 16.0f * _dt;//* m_rotationInputMul * 6.0f;
 	}
-	if (mouse->isDown(Mouse::Button_Right))
+	if (mouse && mouse->isDown(Mouse::Button_Right))
 	{
 		m_pitchYawRoll.x -= mouse->getAxisState(Mouse::Axis_Y) * m_rotationInputMul;
 		m_pitchYawRoll.y -= mouse->getAxisState(Mouse::Axis_X) * m_rotationInputMul;
@@ -139,9 +146,38 @@ void FreeLookComponent::update(float _dt)
 	getParentNode()->setLocal(TransformationMatrix(m_position, m_orientation));
 }
 
+bool FreeLookComponent::postInitImpl()
+{
+	World* parentWorld = m_parentNode->getParentWorld();
+
+	if (!parentWorld->getInputConsumer())
+	{
+		parentWorld->setInputConsumer(this);
+	}
+
+	return true;
+}
+
 bool FreeLookComponent::editImpl()
 {
-	return false;
+	bool ret = false;
+
+	World* parentWorld = m_parentNode->getParentWorld();
+
+	const bool isInputConsumer = parentWorld->getInputConsumer() == this;
+	ImGui::PushStyleColor(ImGuiCol_Text, isInputConsumer ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
+	if (ImGui::Button(ICON_FA_GAMEPAD " Set Input Consumer"))
+	{
+		parentWorld->setInputConsumer(this);
+	}
+	ImGui::PopStyleColor();
+
+	ImGui::Spacing();
+
+	ret |= ImGui::DragFloat("Max Speed", &m_maxSpeed, 1.0f, 0.0f);
+	ret |= ImGui::DragFloat("Speed Multiplier", &m_maxSpeedMul, 1.0f, 0.0f);
+
+	return ret;
 }
 
 bool FreeLookComponent::serializeImpl(Serializer& _serializer_) 

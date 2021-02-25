@@ -29,6 +29,7 @@ private:
 	vec3  m_position       = vec3(0.0f);
 
 	void update(float _dt);
+	bool postInitImpl() override;
 	bool editImpl() override;
 	bool serializeImpl(Serializer& _serializer_) override;
 	bool isStatic() override { return false; }

@@ -43,11 +43,22 @@ void OrbitLookComponent::update(float _dt)
 		}
 	};
 
+	const World* parentWorld = m_parentNode->getParentWorld();
+	const bool isInputConsumer = parentWorld->getInputConsumer() == this;
+
 	const mat4& localMatrix = getParentNode()->getLocal();
 
 	const Keyboard* keyboard = Input::GetKeyboard();
 	const Mouse*    mouse    = Input::GetMouse();
 	const Gamepad*  gamepad  = Input::GetGamepad();
+
+	if (!isInputConsumer)
+	{
+		keyboard = nullptr;
+		mouse = nullptr;
+		gamepad = nullptr;
+	}
+
 	if (keyboard && keyboard->isDown(Keyboard::Key_LCtrl)) // Disable keyboard input on lctrl.
 	{
 		keyboard = nullptr;
@@ -116,9 +127,33 @@ void OrbitLookComponent::update(float _dt)
 	getParentNode()->setLocal(m);
 }
 
+bool OrbitLookComponent::postInitImpl()
+{
+	World* parentWorld = m_parentNode->getParentWorld();
+
+	if (!parentWorld->getInputConsumer())
+	{
+		parentWorld->setInputConsumer(this);
+	}
+
+	return true;
+}
+
 bool OrbitLookComponent::editImpl()
 {
 	bool ret = false;
+
+	World* parentWorld = m_parentNode->getParentWorld();
+
+	const bool isInputConsumer = parentWorld->getInputConsumer() == this;
+	ImGui::PushStyleColor(ImGuiCol_Text, isInputConsumer ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
+	if (ImGui::Button(ICON_FA_GAMEPAD " Set Input Consumer"))
+	{
+		parentWorld->setInputConsumer(this);
+	}
+	ImGui::PopStyleColor();
+
+	ImGui::Spacing();
 
 	ret |= ImGui::DragFloat("Radius",    &m_radius,    1.0f, 1e-2f, 1000.0f);
 	ret |= ImGui::DragFloat("Azimuth",   &m_azimuth,   1.0f, 0.0f,  360.0f);

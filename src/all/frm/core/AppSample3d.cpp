@@ -368,9 +368,10 @@ void AppSample3d::createDebugCullCamera()
 		destroyDebugCullCamera();
 	}
 
-	Scene* rootScene = World::GetCurrent()->getRootScene();
+	World* world = World::GetCurrent();
+	Scene* rootScene = world->getRootScene();
 	
-	m_restoreCullCamera = World::GetCullCameraComponent();
+	m_restoreCullCamera = world->getCullCameraComponent();
 	if (!m_restoreCullCamera)
 	{
 		return;
@@ -381,7 +382,7 @@ void AppSample3d::createDebugCullCamera()
 	cullCameraComponent->getCamera().copyFrom(m_restoreCullCamera->getCamera());
 	cullCameraNode->addComponent(cullCameraComponent);	
 	cullCameraNode->setLocal(m_restoreCullCamera->getCamera().m_world);
-	World::SetCullCameraComponent(cullCameraComponent);
+	world->setCullCameraComponent(cullCameraComponent);
 
 	FRM_VERIFY(cullCameraNode->init() && cullCameraNode->postInit());
 }
@@ -393,7 +394,9 @@ void AppSample3d::destroyDebugCullCamera()
 		return;
 	}
 	
-	CameraComponent* cullCameraComponent = World::GetCullCameraComponent();
+	World* world = World::GetCurrent();
+
+	CameraComponent* cullCameraComponent = world->getCullCameraComponent();
 	if (!cullCameraComponent)
 	{
 		return;
@@ -401,7 +404,7 @@ void AppSample3d::destroyDebugCullCamera()
 	Scene* rootScene = World::GetCurrent()->getRootScene();
 	rootScene->destroyNode(cullCameraComponent->getParentNode());
 
-	World::SetCullCameraComponent(m_restoreCullCamera);
+	world->setCullCameraComponent(m_restoreCullCamera);
 	m_restoreCullCamera = nullptr;
 }
 

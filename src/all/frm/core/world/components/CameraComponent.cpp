@@ -97,39 +97,42 @@ bool CameraComponent::editImpl()
 {
 	draw();	
 
-	const bool isDrawCamera = World::GetDrawCameraComponent() == this;
+	World* parentWorld = m_parentNode->getParentWorld();
+	const bool isDrawCamera = parentWorld->getDrawCameraComponent() == this;
 	ImGui::PushStyleColor(ImGuiCol_Text, isDrawCamera ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 	if (ImGui::Button(ICON_FA_VIDEO_CAMERA " Set Draw Camera"))
 	{
 		if (isDrawCamera && s_prevDrawCameraComponent)
 		{
-			World::SetDrawCameraComponent(s_prevDrawCameraComponent);
+			parentWorld->setDrawCameraComponent(s_prevDrawCameraComponent);
 		}
 		else
 		{		
-			s_prevDrawCameraComponent = World::GetDrawCameraComponent();
-			World::SetDrawCameraComponent(this);
+			s_prevDrawCameraComponent = parentWorld->getDrawCameraComponent();
+			parentWorld->setDrawCameraComponent(this);
 		}
 	}
 	ImGui::PopStyleColor();
 
 	ImGui::SameLine();
 
-	const bool isCullCamera = World::GetCullCameraComponent() == this;
+	const bool isCullCamera = parentWorld->getCullCameraComponent() == this;
 	ImGui::PushStyleColor(ImGuiCol_Text, isCullCamera ? (ImVec4)ImColor(0xff3380ff) : ImGui::GetStyle().Colors[ImGuiCol_Text]);
 	if (ImGui::Button(ICON_FA_CUBES " Set Cull Camera"))
 	{
 		if (isCullCamera && s_prevCullCameraComponent)
 		{
-			World::SetCullCameraComponent(s_prevCullCameraComponent);
+			parentWorld->setCullCameraComponent(s_prevCullCameraComponent);
 		}
 		else
 		{		
-			s_prevCullCameraComponent = World::GetCullCameraComponent();
-			World::SetCullCameraComponent(this);
+			s_prevCullCameraComponent = parentWorld->getCullCameraComponent();
+			parentWorld->setCullCameraComponent(this);
 		}
 	}
 	ImGui::PopStyleColor();
+
+	ImGui::SameLine();
 
 	ImGui::Spacing();
 

@@ -32,6 +32,7 @@ private:
 	float m_rotationDamping    = 2e-3f;                         // Adhoc rotation damping factor.
 
 	void update(float _dt);
+	bool postInitImpl() override;
 	bool editImpl() override;
 	bool serializeImpl(Serializer& _serializer_) override;
 	bool isStatic() override { return false; }

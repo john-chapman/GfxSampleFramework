@@ -199,26 +199,12 @@ void World::Destroy(World*& _world_)
 
 Camera* World::GetDrawCamera()
 {
-	return &GetDrawCameraComponent()->getCamera();
+	return &s_current->getDrawCameraComponent()->getCamera();
 }
 
 Camera* World::GetCullCamera()
 {
-	return &GetCullCameraComponent()->getCamera();
-}
-
-CameraComponent* World::GetDrawCameraComponent()
-{
-	World* world = GetCurrent();
-	CameraComponent* cameraComponent = (CameraComponent*)world->m_drawCamera.referent;
-	return cameraComponent ? cameraComponent : world->findOrCreateDefaultCamera();
-}
-
-CameraComponent* World::GetCullCameraComponent()
-{
-	World* world = GetCurrent();
-	CameraComponent* cameraComponent = (CameraComponent*)world->m_cullCamera.referent;
-	return cameraComponent ? cameraComponent : world->findOrCreateDefaultCamera();
+	return &s_current->getCullCameraComponent()->getCamera();
 }
 
 void World::update(float _dt, UpdatePhase _phase)
@@ -332,8 +318,9 @@ bool World::serialize(Serializer& _serializer_)
 		}
 	}
 
-	ret &= m_drawCamera.serialize(_serializer_, "Draw Camera");
-	ret &= m_cullCamera.serialize(_serializer_, "Cull Camera");
+	ret &= m_drawCamera.serialize(_serializer_, "DrawCamera");
+	ret &= m_cullCamera.serialize(_serializer_, "CullCamera");
+	ret &= m_inputConsumer.serialize(_serializer_, "InputConsumer");
 
 	return ret;
 }
@@ -358,6 +345,7 @@ bool World::init()
 	//m_rootScene->resolveReference(m_cullCamera[0]);
 	m_drawCamera.referent = m_rootScene->findComponent(m_drawCamera.id.local, m_drawCamera.id.scene);
 	m_cullCamera.referent = m_rootScene->findComponent(m_cullCamera.id.local, m_cullCamera.id.scene);
+	m_inputConsumer.referent = m_rootScene->findComponent(m_inputConsumer.id.local, m_inputConsumer.id.scene);
 	
 	// Resolve the hierarchy once so that world transforms are set during postInit().
 	update(0.f, UpdatePhase::Hierarchy);
@@ -388,6 +376,23 @@ void World::shutdown()
 	m_rootScene = nullptr;
 
 	FRM_ASSERT(m_sceneInstances.empty());
+}
+
+CameraComponent* World::getDrawCameraComponent()
+{
+	CameraComponent* cameraComponent = (CameraComponent*)m_drawCamera.referent;
+	return cameraComponent ? cameraComponent : findOrCreateDefaultCamera();
+}
+
+CameraComponent* World::getCullCameraComponent()
+{
+	CameraComponent* cameraComponent = (CameraComponent*)m_cullCamera.referent;
+	return cameraComponent ? cameraComponent : findOrCreateDefaultCamera();
+}
+
+Component* World::getInputConsumer() const
+{
+	return m_inputConsumer.referent;
 }
 
 
@@ -439,9 +444,9 @@ void World::removeSceneInstance(Scene* _scene)
 
 CameraComponent* World::findOrCreateDefaultCamera()
 {
-	CameraComponent* ret = nullptr;
+	CameraComponent* cameraComponent = nullptr;
 
-	m_rootScene->traverse([&ret](SceneNode* _node) -> bool
+	m_rootScene->traverse([&cameraComponent](SceneNode* _node) -> bool
 		{
 			if (!_node->getFlag(SceneNode::Flag::Active))
 			{
@@ -451,34 +456,34 @@ CameraComponent* World::findOrCreateDefaultCamera()
 			CameraComponent* cameraComponent = (CameraComponent*)_node->findComponent(StringHash("CameraComponent"));
 			if (cameraComponent)
 			{
-				ret	= cameraComponent;
+				cameraComponent	= cameraComponent;
 				return false; // End traversal.
 			}
 
 			return true;
 		});
 
-	if (!ret)
+	if (!cameraComponent)
 	{
 		SceneNode* cameraNode = m_rootScene->createTransientNode("#DefaultCamera");
 
-		ret = (CameraComponent*)Component::Create(StringHash("CameraComponent"));
-		Camera& camera = ret->getCamera();
+		cameraComponent = (CameraComponent*)Component::Create(StringHash("CameraComponent"));
+		Camera& camera = cameraComponent->getCamera();
 		camera.setPerspective(Radians(45.f), 16.f / 9.f, 0.1f, 1000.0f, Camera::ProjFlag_Infinite);
 		
 		FreeLookComponent* freeLookComponent = (FreeLookComponent*)Component::Create(StringHash("FreeLookComponent"));
 		freeLookComponent->lookAt(vec3(0.f, 10.f, 64.f), vec3(0.f, 0.f, 0.f));
 		
-		cameraNode->addComponent(ret);
+		cameraNode->addComponent(cameraComponent);
 		cameraNode->addComponent(freeLookComponent);
 
 		FRM_VERIFY(cameraNode->init() && cameraNode->postInit());
-
-		SetDrawCameraComponent(ret);
-		SetCullCameraComponent(ret);
 	}
 
-	return ret;
+	setDrawCameraComponent(cameraComponent);
+	setCullCameraComponent(cameraComponent);
+
+	return cameraComponent;
 }
 
 /*******************************************************************************
@@ -731,6 +736,7 @@ void Scene::shutdown()
 
 	destroyNode(m_root.referent); // Will cause all nodes to be recursively destroyed during flushPendingDeletes().
 	flushPendingDeletes();
+	m_root.referent = nullptr;
 	m_localNodeMap.clear();
 	m_globalNodeMap.clear();
 
@@ -1005,6 +1011,11 @@ void Scene::setPath(const char* _path)
 template <>
 GlobalNodeReference Scene::findGlobal(const SceneNode* _node) const
 {
+	if (_node->isTransient())
+	{
+		return GlobalNodeReference(0u, 0u, const_cast<SceneNode*>(_node));
+	}
+
 	if (_node->m_parentScene == this)
 	{
 		return GlobalNodeReference(0u, _node->m_id, const_cast<SceneNode*>(_node));
@@ -1025,6 +1036,11 @@ template <>
 GlobalComponentReference Scene::findGlobal(const Component* _component) const
 {
 	const SceneNode* node = _component->m_parentNode;
+
+	if (_component->isTransient())
+	{
+		return GlobalComponentReference(0u, 0u, const_cast<Component*>(_component));
+	}
 
 	if (node->m_parentScene == this)
 	{
@@ -1062,6 +1078,13 @@ Scene::Scene(World* _world, SceneNode* _parentNode)
 Scene::~Scene()
 {
 	FRM_ASSERT(m_state == World::State::Shutdown);
+
+	if (m_root.isResolved())
+	{
+		// \todo \editoronly If serialization fails we might delete the scene without calling shutdown() first?
+		m_state = World::State::PostInit;
+		shutdown();
+	}
 }
 
 void Scene::addComponent(Component* _component)
@@ -1347,6 +1370,11 @@ bool SceneNode::serialize(Serializer& _serializer_)
 					ret = false;
 				}
 			}
+			else
+			{
+				_serializer_.setError("Failed to read child scene '%s'", childScenePath.c_str());
+				ret = false;
+			}
 		}
 	}
 	else if (_serializer_.getMode() == Serializer::Mode_Write && m_childScene)
@@ -1492,7 +1520,7 @@ void SceneNode::addComponent(Component* _component)
 
 	if (_component->getID() != 0u)
 	{
-		m_parentScene->addComponent(_component); // add non-transient components to scene
+		m_parentScene->addComponent(_component);
 	}
 
 	// If the node is init, need to init the component.
@@ -1684,34 +1712,22 @@ SceneNode::ChildList::iterator SceneNode::findChild(const SceneNode* _child)
 
 
 // \todo These definitions are here because they need to call templated findGlobal(), need to split code up.
-void World::SetDrawCameraComponent(CameraComponent* _cameraComponent)
+void World::setDrawCameraComponent(CameraComponent* _cameraComponent)
 {
-	World* world = GetCurrent();
-	Scene* rootScene = world->getRootScene();
-	GlobalComponentReference ref = rootScene->findGlobal((Component*)_cameraComponent);
-	if (ref.isValid() && ref.isResolved())
-	{
-		world->m_drawCamera = ref;
-	}
-	else
-	{
-		FRM_LOG_ERR("World::SetDrawCamera: %s camera component reference.", ref.isValid() ? "Unresolved" : "Invalid");
-	}
+	m_drawCamera = m_rootScene->findGlobal((Component*)_cameraComponent);
+	FRM_ASSERT(m_drawCamera.isResolved());
 }
 
-void World::SetCullCameraComponent(CameraComponent* _cameraComponent)
+void World::setCullCameraComponent(CameraComponent* _cameraComponent)
 {
-	World* world = GetCurrent();
-	Scene* rootScene = world->getRootScene();
-	GlobalComponentReference ref = rootScene->findGlobal((Component*)_cameraComponent);
-	if (ref.isValid() && ref.isResolved())
-	{
-		world->m_cullCamera = ref;
-	}
-	else
-	{
-		FRM_LOG_ERR("World::SetCullCamera: %s camera component reference.", ref.isValid() ? "Unresolved" : "Invalid");
-	}
+	m_cullCamera = m_rootScene->findGlobal((Component*)_cameraComponent);
+	FRM_ASSERT(m_cullCamera.isResolved());
+}
+
+void World::setInputConsumer(Component* _component)
+{
+	m_inputConsumer = m_rootScene->findGlobal((Component*)_component);
+	FRM_ASSERT(m_inputConsumer.isResolved());
 }
 
 } // namespace frm
