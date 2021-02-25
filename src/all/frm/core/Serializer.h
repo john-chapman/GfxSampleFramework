@@ -164,7 +164,7 @@ bool SerializeEnum(Serializer& _serializer_, tType& _value_, const char* (&_strL
 template <typename tEnumType>
 bool Serialize(Serializer& _serializer_, BitFlags<tEnumType>& _bitFlags_, const char* (&_strList)[BitFlags<tEnumType>::kCount], const char* _name = nullptr)
 {
-	bool ret = false;
+	bool ret = true;
 
 	if (_serializer_.beginObject(_name))
 	{
@@ -173,11 +173,15 @@ bool Serialize(Serializer& _serializer_, BitFlags<tEnumType>& _bitFlags_, const 
 		for (int i = 0; i < BitFlags<tEnumType>::kCount; ++i)
 		{
 			bool flag = _bitFlags_.get((tEnumType)i);
-			ret &= Serialize(_serializer_, flag, _strList[i]);
+			Serialize(_serializer_, flag, _strList[i]); // Allow flags to be optional (don't modify ret).
 			_bitFlags_.set((tEnumType)i, flag);
 		}
 
 		_serializer_.endObject();
+	}
+	else
+	{
+		ret = false;
 	}
 
 	return ret;
