@@ -833,7 +833,8 @@ bool WorldEditor::hierarchyView(SceneNode* _rootNode_)
 			ImGui::TableNextColumn();
 			if (m_showNodeIDs)
 			{
-				ImGui::Text("[%s]", node->getID().toString().c_str());
+				const SceneID nodeID = node->getID();
+				ImGui::Text("[%s]", nodeID == 0 ? "~" : nodeID.toString().c_str());
 			}
 			
 			ImGui::SameLine();
