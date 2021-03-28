@@ -13,6 +13,7 @@ workspace "_GfxSampleFramework"
 	rtti "Off"
 	exceptionhandling "Off"
 	staticruntime "On"
+	flags { "MultiProcessorCompile", "NoMinimalRebuild" }
 	
 	configurations { "Debug", "Release" }
 	filter { "configurations:Debug" }
