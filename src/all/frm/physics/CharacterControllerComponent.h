@@ -31,6 +31,7 @@ private:
 	void shutdownImpl() override;
 	bool editImpl() override;
 	bool serializeImpl(Serializer& _serializer_) override;
+	bool isStatic() override { return true; }
 };
 
 } // namespace frm

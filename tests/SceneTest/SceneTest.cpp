@@ -82,14 +82,14 @@ void SceneTest::draw()
 	m_basicRenderer->nextFrame((float)getDeltaTime(), drawCamera, cullCamera);
 	m_basicRenderer->draw((float)getDeltaTime(), drawCamera, cullCamera);
 
-	Im3d::EndFrame();
+	/*Im3d::EndFrame();
 	drawIm3d(
 		drawCamera,
 		m_basicRenderer->fbFinal,
 		m_basicRenderer->fbFinal->getViewport(),
 		m_basicRenderer->renderTargets[BasicRenderer::Target_GBufferDepthStencil].getTexture(0)
 		);
-	Im3d::NewFrame();
+	Im3d::NewFrame();*/
 
 	ctx->blitFramebuffer(m_basicRenderer->fbFinal, nullptr, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 

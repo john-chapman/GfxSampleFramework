@@ -237,14 +237,14 @@ void PhysicsConstraint::OnNodeShutdown(SceneNode* _node, void* _component)
 	GlobalNodeReference* nodeRef = nullptr;
 	for (int i = 0; i < 2; ++i)
 	{
-		if (constraint->m_nodes[i].node == _node)
+		if (constraint->m_nodes[i].referent == _node)
 		{
 			nodeRef = &constraint->m_nodes[i];
 			break;
 		}
 	}
 	FRM_ASSERT(nodeRef);
-	nodeRef->node = nullptr;
+	nodeRef->referent = nullptr;
 }
 
 bool PhysicsConstraint::editCone(LimitCone& cone)
@@ -343,7 +343,7 @@ void PhysicsConstraint::shutdownImpl()
 		if (m_nodes[i].isResolved())
 		{
 			m_nodes[i]->unregisterCallback(SceneNode::Event::OnShutdown, &OnNodeShutdown, this);
-			m_nodes[i].node = nullptr;
+			m_nodes[i].referent = nullptr;
 		}
 	}
 }
@@ -383,7 +383,7 @@ bool PhysicsConstraint::editImpl()
 		GlobalNodeReference newNodeRef = worldEditor->selectNode(m_nodes[i], m_parentNode->getParentScene());
 		if (newNodeRef != m_nodes[i])
 		{
-			setNode(i, newNodeRef.node);
+			setNode(i, newNodeRef.referent);
 			FRM_ASSERT(m_nodes[i] == newNodeRef);
 			ret = true;
 		}

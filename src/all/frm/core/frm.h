@@ -129,6 +129,7 @@ namespace frm {
 		class FreeLookComponent;
 		class LookAtComponent;
 		class OrbitLookComponent;
+		class TextComponent;
 	class  Curve;
 	class  CurveEditor;
 	class  CurveGradient;
@@ -176,6 +177,7 @@ namespace frm {
 	class  WorldEditor;
 	class  XFormComponent;
 	class  XForm;
+		class XFormPositionTarget;
 		class XFormSpin;
 
 	#if FRM_MODULE_AUDIO
@@ -184,8 +186,10 @@ namespace frm {
 	#endif
 
 	#if FRM_MODULE_PHYSICS
+		class CharacterControllerComponent;
 		class Physics;
 		class PhysicsComponent;
+		class PhysicsConstraint;
 		class PhysicsMaterial;
 		class PhysicsGeometry;
 	#endif
