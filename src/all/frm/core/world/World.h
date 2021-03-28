@@ -1,8 +1,20 @@
 /*	\todo
 	- Split up the code to make it more manageable and to fix some declaration order issues with explicit template instantiations.
-	- Allow init()/postInit() to be called multiple times on nodes/components? Use case is re-initialization when editing. Otherwise need to rely on calling shutdown() first which has some resource lifetime issues.
 	- Allocate scenes from a pool?
 	- See \todo \editoronly in the code some operations require special handling in editor (like re-serialization, which doesn't happen at runtim).
+	- Lifetime issues:
+		- World objects and components have the following flow:
+			- Allocate = reserve memory for the object.
+			- Serialize (construct) = load the object metadata ready for init. Object is now safely referencable (it has a name and ID).
+			- Init = load resources, register with other systems etc.
+			- PostInit = anything further init that might require other objects to be init.
+			- Shutdown = unload resources, return to a valid but shutdown state which can be init again.
+		- Use case is to be able to shutdown() and then subsequently init()/postInit() on the world to restore everything.
+			- This means that component shutdown() can't permanently delete resources, the dtor needs to do it instead (see XFormComponent).
+			- Also, this means that any resources which get loaded during init()/postInit() will be re-loaded.
+		- Solutions:
+			- Better way to enforce resource usage through the API?
+			- Load some resources during the serialize phase, free in the dtor. These will stay resident until the dtor is called.
 */
 #pragma once
 
@@ -146,7 +158,8 @@ public:
 		PostInit,
 		Shutdown,
 
-		_Count
+		_Count,
+		Deleted       // Set during dtor, useful for debugging.
 	};
 
 	// Create a new world. If _path, load from a .world file, else initialize default scene (simple camera).
@@ -247,6 +260,7 @@ public:
 		OnInit,
 		OnPostInit,
 		OnShutdown,
+		OnDestroy,
 		OnEdit,
 
 		_Count

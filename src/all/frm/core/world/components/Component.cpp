@@ -111,6 +111,14 @@ bool Component::serialize(Serializer& _serializer_)
 	return ret;
 }
 
+// PROTECTED
+
+Component::~Component()
+{
+	FRM_ASSERT(m_state == World::State::Shutdown);
+	m_state = World::State::Deleted;
+}
+
 // PRIVATE
 
 void Component::setActive()

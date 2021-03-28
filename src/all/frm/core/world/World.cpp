@@ -257,6 +257,14 @@ bool World::serialize(Serializer& _serializer_)
 		return false;
 	}
 
+	// \todo \editoronly
+	if (m_state != World::State::Shutdown && _serializer_.getMode() == Serializer::Mode_Read)
+	{		
+		m_drawCamera = GlobalComponentReference();
+		m_cullCamera = GlobalComponentReference();
+		m_inputConsumer = GlobalComponentReference();
+	}
+
 	PathStr rootScenePath = m_rootScene ? m_rootScene->getPath() : "";
 	
 	if (_serializer_.getMode() == Serializer::Mode_Read)
@@ -371,9 +379,13 @@ void World::shutdown()
 	FRM_ASSERT(m_state == State::PostInit);
 	m_state = World::State::Shutdown;
 
+	Component::ClearActiveComponents(); // \todo \editoronly This could crash if shutdown() is called mid-frame (although we usually call init()/postInit() in this case).
+
 	m_rootScene->shutdown();
-	FRM_DELETE(m_rootScene);
-	m_rootScene = nullptr;
+
+	//m_drawCamera = GlobalComponentReference();
+	//m_cullCamera = GlobalComponentReference();
+	//m_inputConsumer = GlobalComponentReference();
 
 	FRM_ASSERT(m_sceneInstances.empty());
 }
@@ -411,6 +423,10 @@ World::World()
 World::~World()
 {
 	FRM_ASSERT(m_state == State::Shutdown);
+	m_state = State::Deleted;
+		
+	FRM_DELETE(m_rootScene);
+	m_rootScene = nullptr;
 
 	if (s_current == this)
 	{
@@ -444,9 +460,9 @@ void World::removeSceneInstance(Scene* _scene)
 
 CameraComponent* World::findOrCreateDefaultCamera()
 {
-	CameraComponent* cameraComponent = nullptr;
+	CameraComponent* ret = nullptr;
 
-	m_rootScene->traverse([&cameraComponent](SceneNode* _node) -> bool
+	m_rootScene->traverse([&ret](SceneNode* _node) -> bool
 		{
 			if (!_node->getFlag(SceneNode::Flag::Active))
 			{
@@ -456,34 +472,34 @@ CameraComponent* World::findOrCreateDefaultCamera()
 			CameraComponent* cameraComponent = (CameraComponent*)_node->findComponent(StringHash("CameraComponent"));
 			if (cameraComponent)
 			{
-				cameraComponent	= cameraComponent;
+				ret = cameraComponent;
 				return false; // End traversal.
 			}
 
 			return true;
 		});
 
-	if (!cameraComponent)
+	if (!ret)
 	{
 		SceneNode* cameraNode = m_rootScene->createTransientNode("#DefaultCamera");
 
-		cameraComponent = (CameraComponent*)Component::Create(StringHash("CameraComponent"));
-		Camera& camera = cameraComponent->getCamera();
+		ret = (CameraComponent*)Component::Create(StringHash("CameraComponent"));
+		Camera& camera = ret->getCamera();
 		camera.setPerspective(Radians(45.f), 16.f / 9.f, 0.1f, 1000.0f, Camera::ProjFlag_Infinite);
 		
 		FreeLookComponent* freeLookComponent = (FreeLookComponent*)Component::Create(StringHash("FreeLookComponent"));
 		freeLookComponent->lookAt(vec3(0.f, 10.f, 64.f), vec3(0.f, 0.f, 0.f));
 		
-		cameraNode->addComponent(cameraComponent);
+		cameraNode->addComponent(ret);
 		cameraNode->addComponent(freeLookComponent);
 
 		FRM_VERIFY(cameraNode->init() && cameraNode->postInit());
 	}
 
-	setDrawCameraComponent(cameraComponent);
-	setCullCameraComponent(cameraComponent);
+	setDrawCameraComponent(ret);
+	setCullCameraComponent(ret);
 
-	return cameraComponent;
+	return ret;
 }
 
 /*******************************************************************************
@@ -512,6 +528,7 @@ bool Scene::serialize(Serializer& _serializer_)
 		{
 			it.second->shutdown(); // Will also shutdown components.
 		}
+		flushPendingDeletes();
 	}
 
 	ret &= m_root.serialize(_serializer_, "Root");
@@ -734,23 +751,11 @@ void Scene::shutdown()
 	FRM_ASSERT(m_state == World::State::PostInit);
 	m_state = World::State::Shutdown;
 
-	destroyNode(m_root.referent); // Will cause all nodes to be recursively destroyed during flushPendingDeletes().
+	for (auto& node : m_localNodeMap)
+	{
+		node.second->shutdown();
+	}
 	flushPendingDeletes();
-	m_root.referent = nullptr;
-	m_localNodeMap.clear();
-	m_globalNodeMap.clear();
-
-	for (auto& it : m_localComponentMap)
-	{
-		Component::Destroy(it.second);
-	}
-	m_localComponentMap.clear();
-	m_globalComponentMap.clear();
-
-	if (m_parentNode)
-	{
-		m_parentNode->m_parentScene->resetGlobalReferenceMap();
-	}
 
 	m_world->removeSceneInstance(this);
 }
@@ -1078,12 +1083,23 @@ Scene::Scene(World* _world, SceneNode* _parentNode)
 Scene::~Scene()
 {
 	FRM_ASSERT(m_state == World::State::Shutdown);
+	m_state = World::State::Deleted;
 
-	if (m_root.isResolved())
+	destroyNode(m_root.referent); // Will cause all nodes to be recursively destroyed during flushPendingDeletes().
+	flushPendingDeletes();
+	m_localNodeMap.clear();
+	m_globalNodeMap.clear();
+
+	for (auto& it : m_localComponentMap)
 	{
-		// \todo \editoronly If serialization fails we might delete the scene without calling shutdown() first?
-		m_state = World::State::PostInit;
-		shutdown();
+		Component::Destroy(it.second);
+	}
+	m_localComponentMap.clear();
+	m_globalComponentMap.clear();
+
+	if (m_parentNode)
+	{
+		m_parentNode->m_parentScene->resetGlobalReferenceMap();
 	}
 }
 
@@ -1376,6 +1392,12 @@ bool SceneNode::serialize(Serializer& _serializer_)
 				ret = false;
 			}
 		}
+		else if (m_childScene)
+		{
+			// \hack If we recycled the node allocation we'll need to delete the old child scene.
+			FRM_DELETE(m_childScene);
+			m_childScene = nullptr;
+		}
 	}
 	else if (_serializer_.getMode() == Serializer::Mode_Write && m_childScene)
 	{
@@ -1469,7 +1491,12 @@ void SceneNode::shutdown()
 
 	dispatchCallbacks(Event::OnShutdown);
 
-	// At this point, any transient children should be destroyed.
+	if (m_childScene)
+	{
+		m_childScene->shutdown();
+	}
+
+	// Destroy transient children.
 	for (LocalNodeReference& child : m_children)
 	{
 		if (child->isTransient())
@@ -1477,35 +1504,24 @@ void SceneNode::shutdown()
 			FRM_ASSERT(child->getID() == 0u);
 			m_parentScene->destroyNode(child.referent);
 		}
-		child->m_parent.referent = nullptr;
 	}
-
-	if (m_childScene)
+	
+	// If transient, remove from parent.
+	if (m_parent.isResolved() && isTransient())
 	{
-		m_childScene->shutdown();
-		FRM_DELETE(m_childScene); // \todo Create/Destroy members on Scene?
-		m_childScene = nullptr;
+		m_parent->removeChild(this);
 	}
 
+	// Shutdown components, destroy transient components.
 	for (LocalComponentReference& component : m_components)
 	{
 		component->shutdown();
-		if (component->getID() == 0u)
+		if (component->isTransient())
 		{
 			// Destroy transient components.
 			// \todo Remove reference from the component list.
 			Component::Destroy(component.referent);
 		}
-	}
-
-	for (auto& callbackList : m_callbacks)
-	{
-		callbackList.clear();
-	}
-
-	if (m_parent.isResolved() && isTransient())
-	{
-		m_parent->removeChild(this);
 	}
 }
 
@@ -1677,6 +1693,15 @@ SceneNode::SceneNode(Scene* _parentScene, SceneID _id, const char* _name)
 SceneNode::~SceneNode()
 {
 	FRM_ASSERT_MSG(getState() == World::State::Shutdown, "Node '%s' [%s] was not shutdown before being destroyed", getName(), getID().toString().c_str());
+	m_state = World::State::Deleted;
+
+	dispatchCallbacks(Event::OnDestroy);
+
+	if (m_childScene)
+	{
+		FRM_DELETE(m_childScene); // \todo Create/Destroy members on Scene?
+		m_childScene = nullptr;
+	}
 }
 
 void SceneNode::dispatchCallbacks(Event _event)

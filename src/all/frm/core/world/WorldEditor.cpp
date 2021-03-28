@@ -294,7 +294,12 @@ bool WorldEditor::dispatchActions()
 			else
 			{
 				m_currentWorld->shutdown();
-				m_currentWorld->m_path = "";
+
+				// \hack \todo We don't necessarily own the world instance and so can't delete m_currentWorld - instead we just create a new one.
+				// This will leak memory over time, simplest solution would be to use ref counting.
+				m_currentWorld = FRM_NEW(World);
+				World::SetCurrent(m_currentWorld);
+
 				m_currentWorld->init();
 				m_currentWorld->postInit();
 				m_currentScene = m_currentWorld->m_rootScene;
@@ -936,6 +941,13 @@ bool WorldEditor::editorView()
 	if (ImGui::TreeNodeEx("DEBUG", ImGuiTreeNodeFlags_CollapsingHeader))
 	{
 		ImGui::Checkbox("Show Node Hierarchy", &m_debugShowNodeHierarchy);
+
+		if (ImGui::Button("Reset"))
+		{
+			m_currentWorld->shutdown();
+			FRM_VERIFY(m_currentWorld->init());
+			FRM_VERIFY(m_currentWorld->postInit());
+		}
 
 		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		ImGui::Separator();

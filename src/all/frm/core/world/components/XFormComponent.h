@@ -81,14 +81,13 @@ public:
 	void addXForm(XForm* _xform_);
 	void removeXForm(XForm*& _xform_);
 
+	virtual ~XFormComponent();
+
 private:
 
 	eastl::fixed_vector<XForm*, 1> m_xforms;
 
 	void update(float _dt);
-	bool initImpl() override;
-	bool postInitImpl() override;
-	void shutdownImpl() override;
 	bool editImpl() override;
 	bool serializeImpl(Serializer& _serializer_) override;
 	bool isStatic() override { return false; }

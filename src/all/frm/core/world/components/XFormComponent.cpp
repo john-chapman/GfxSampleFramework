@@ -202,19 +202,7 @@ void XFormComponent::removeXForm(XForm*& _xform_)
 	}
 }
 
-// PRIVATE
-
-bool XFormComponent::initImpl()
-{
-	return true;
-}
-
-bool XFormComponent::postInitImpl()
-{
-	return true;
-}
-
-void XFormComponent::shutdownImpl()
+XFormComponent::~XFormComponent()
 {
 	while (!m_xforms.empty())
 	{
@@ -222,6 +210,8 @@ void XFormComponent::shutdownImpl()
 		m_xforms.pop_back();
 	}
 }
+
+// PRIVATE
 
 bool XFormComponent::editImpl()
 {

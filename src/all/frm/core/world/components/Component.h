@@ -38,7 +38,7 @@ public:
 
 	static Component* Create(const ClassRef& _cref, SceneID _id = 0u);
 	static Component* Create(StringHash _name, SceneID _id = 0u);
-
+		
 	// Update active components for every class.
 	static void  Update(float _dt, World::UpdatePhase _phase);
 
@@ -82,10 +82,12 @@ public:
 
 	bool         isTransient() const                          { return m_id == 0u; }
 
+	virtual      ~Component();
+
 protected:
 
 	SceneNode* m_parentNode = nullptr;
-
+	
 	// Deriving class implementations for init(), postInit(), shutdown().
 	virtual bool initImpl()                                   { return true; }
 	virtual bool postInitImpl()                               { return true; }

@@ -156,11 +156,13 @@ bool BasicRenderableComponent::postInitImpl()
 
 void BasicRenderableComponent::shutdownImpl()
 {
-	for (BasicMaterial* material : m_materials)
+	for (BasicMaterial*& material : m_materials)
 	{
 		BasicMaterial::Release(material);
+		material = nullptr;
 	}
 	Mesh::Release(m_mesh);
+	m_mesh = nullptr;
 
 	m_pose.clear();
 	m_prevPose.clear();
