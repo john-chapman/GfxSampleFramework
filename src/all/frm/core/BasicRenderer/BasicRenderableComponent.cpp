@@ -111,9 +111,20 @@ bool BasicRenderableComponent::initImpl()
 	}
 
 	// Materials.
-	if (m_materials.size() != m_materialPaths.size())
+	//if (m_materialPaths.size() != m_mesh->getSubmeshCount())
 	{
-		m_materials.resize(m_materialPaths.size(), nullptr);
+		m_materialPaths.resize(m_mesh->getSubmeshCount());
+
+		while (m_materials.size() > m_materialPaths.size())
+		{
+			BasicMaterial::Release(m_materials.back());
+			m_materials.pop_back();
+		}
+
+		while (m_materials.size() < m_materialPaths.size())
+		{
+			m_materials.push_back(nullptr);
+		}
 	}
 	bool hasMaterialPaths = false;
 	for (PathStr& materialPath : m_materialPaths)
@@ -186,30 +197,37 @@ bool BasicRenderableComponent::editImpl()
 	ret |= ImGui::Checkbox("Cast Shadows", &m_castShadows);
 
 	ImGui::Spacing();
-
-	if (Mesh::Select(m_mesh, "Mesh", { "*.gltf", "*.obj", "*.md5mesh" }))
+	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
+	if (ImGui::TreeNode("Mesh"))
 	{
-		m_meshPath = m_mesh->getPath();
-		if (ret && m_materialPaths.size() != m_mesh->getSubmeshCount())
+		if (Mesh::Select(m_mesh, "Mesh", { "*.gltf", "*.obj", "*.md5mesh" }))
 		{
-			m_materialPaths.resize(m_mesh->getSubmeshCount());
-
-			while (m_materials.size() > m_materialPaths.size())
+			m_meshPath = m_mesh->getPath();
+			if (ret && m_materialPaths.size() != m_mesh->getSubmeshCount())
 			{
-				BasicMaterial::Release(m_materials.back());
-				m_materials.pop_back();
+				m_materialPaths.resize(m_mesh->getSubmeshCount());
+
+				while (m_materials.size() > m_materialPaths.size())
+				{
+					BasicMaterial::Release(m_materials.back());
+					m_materials.pop_back();
+				}
+
+				while (m_materials.size() < m_materialPaths.size())
+				{
+					m_materials.push_back(nullptr);
+				}
 			}
 
-			while (m_materials.size() < m_materialPaths.size())
-			{
-				m_materials.push_back(nullptr);
-			}
-		}
+			ret = true;
+		}	
+		ImGui::SameLine();
+		ImGui::Text(m_meshPath.c_str());
 
-		ret = true;
-	}	
-	ImGui::SameLine();
-	ImGui::Text(m_meshPath.c_str());
+		ImGui::SliderInt("Submesh Override", &m_subMeshOverride, -1, m_mesh->getSubmeshCount() - 1);
+
+		ImGui::TreePop();
+	}
 
 	ImGui::Spacing();
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
@@ -218,7 +236,7 @@ bool BasicRenderableComponent::editImpl()
 		for (size_t i = 0; i < m_materialPaths.size(); ++i)
 		{
 			ImGui::PushID((int)i);
-			String<16> label(i == 0 ? "Global.." : "Submesh %u..", i - 1);
+			String<16> label(i == 0 ? "Global.." : "Submesh %u..", i); 
 
 			if (BasicMaterial::Select(m_materials[i], label.c_str(), { "*.mat" }))
 			{

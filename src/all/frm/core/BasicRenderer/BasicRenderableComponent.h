@@ -49,12 +49,13 @@ protected:
 	bool         serializeImpl(Serializer& _serializer_) override;
 	bool         isStatic() override { return true; }
 
-	bool                                   m_castShadows = true;
-	vec4                                   m_colorAlpha  = vec4(1.0f);
-	mat4                                   m_world       = identity;
-	mat4                                   m_prevWorld   = identity;
-	Mesh*                                  m_mesh        = nullptr;
-	PathStr                                m_meshPath    = "";
+	bool                                   m_castShadows     = true;
+	vec4                                   m_colorAlpha      = vec4(1.0f);
+	mat4                                   m_world           = identity;
+	mat4                                   m_prevWorld       = identity;
+	Mesh*                                  m_mesh            = nullptr;
+	PathStr                                m_meshPath        = "";
+	int                                    m_subMeshOverride = -1;
 	eastl::fixed_vector<BasicMaterial*, 1> m_materials;      // per submesh
 	eastl::fixed_vector<PathStr, 1>        m_materialPaths;  //     "
 	eastl::fixed_vector<mat4, 1>           m_pose;

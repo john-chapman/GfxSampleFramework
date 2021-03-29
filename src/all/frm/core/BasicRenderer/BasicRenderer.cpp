@@ -1032,8 +1032,18 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 		{
 			const mat4 world = renderable->m_world;
 
-			int submeshCount = Min((int)renderable->m_materials.size(), renderable->m_mesh->getSubmeshCount());
-			for (int submeshIndex = 0; submeshIndex < submeshCount; ++submeshIndex)
+			int submeshIndexMin = 0;
+			int submeshIndexMax = 0;
+			if (renderable->m_subMeshOverride >= 0)
+			{
+				submeshIndexMin = submeshIndexMax = renderable->m_subMeshOverride;
+			}
+			else
+			{
+				submeshIndexMax = Min((int)renderable->m_materials.size(), renderable->m_mesh->getSubmeshCount() - 1);
+			}
+
+			for (int submeshIndex = submeshIndexMin; submeshIndex <= submeshIndexMax; ++submeshIndex)
 			{
 				if (!renderable->m_materials[submeshIndex]) // skip submesh if no material set
 				{
