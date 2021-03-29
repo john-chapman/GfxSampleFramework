@@ -194,7 +194,7 @@ bool Resource<tDerived>::Select(Derived*& _resource_, const char* _buttonLabel, 
 				if (FileSystem::PlatformSelect(newPath, _fileExtensions))
 				{
 					newPath = FileSystem::MakeRelative(newPath.c_str());
-					if (newPath != _resource_->getPath())
+					if (!_resource_ || newPath != _resource_->getPath())
 					{
 						Derived* newResource = Derived::Create(newPath.c_str());
 						if (CheckResource(newResource))

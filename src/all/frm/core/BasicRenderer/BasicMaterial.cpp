@@ -111,9 +111,9 @@ bool BasicMaterial::Edit(BasicMaterial*& _basicMaterial_, bool* _open_)
 {
 	auto SelectMaterialPath = [](PathStr& path_) -> bool
 		{
-			if (FileSystem::PlatformSelect(path_, { "*.mat", "*.json" }))
+			if (FileSystem::PlatformSelect(path_, { "*.mat" }))
 			{
-				//FileSystem::SetExtension(path_, "mat");
+				FileSystem::SetExtension(path_, "mat");
 				path_ = FileSystem::MakeRelative(path_.c_str());
 				return true;
 			}
@@ -378,9 +378,22 @@ bool BasicMaterial::serialize(Serializer& _serializer_)
 	{
 		for (int i = 0; i < Map_Count; ++i)
 		{
-			PathStr mapPath = "";
-			Serialize(_serializer_, mapPath, kMapStr[i]);
-			setMap(i, mapPath.c_str());
+			PathStr mapPath = m_mapPaths[i];
+			if (_serializer_.getMode() == Serializer::Mode_Read)
+			{
+				if (Serialize(_serializer_, mapPath, kMapStr[i]))
+				{
+					setMap(i, mapPath.c_str());
+				}
+				else
+				{
+					setMap(i, kDefaultMaps[i]);
+				}
+			}
+			else if (mapPath != kDefaultMaps[i])
+			{
+				Serialize(_serializer_, mapPath, kMapStr[i]);
+			}
 		}
 		_serializer_.endObject();
 	}

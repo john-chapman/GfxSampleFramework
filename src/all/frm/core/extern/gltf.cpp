@@ -18,7 +18,7 @@ static bool _FileExists(const std::string &abs_filename, void*)
 
 static std::string _ExpandFilePath(const std::string& path, void* userData)
 {
-	PathStr meshPath = ("%s/%s", (const char*)userData, path.c_str());
+	PathStr meshPath("%s/%s", (const char*)userData, path.c_str());
 	return meshPath.c_str();
 }
 
