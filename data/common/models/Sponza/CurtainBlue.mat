@@ -1,0 +1,20 @@
+{
+	"BaseColor": [1.0, 1.0, 1.0],
+	"EmissiveColor": [0.0, 0.0, 0.0],
+	"Alpha": 1.0,
+	"Metallic": 1.0,
+	"Roughness": 1.0,
+	"Reflectance": 1.0,
+	"Height": 1.0,
+	"Flags": {
+		"Flip V": false,
+		"Normal Map BC5": true,
+		"Alpha Test": false,
+		"Alpha Dither": true,
+		"Thin Translucency": true
+	},
+	"Maps": {
+		"BaseColor": "common/models/Sponza/textures/CurtainBlue_basecolor.dds",
+		"Normal": "common/models/Sponza/textures/Curtain_normal.DDS"
+	}
+}

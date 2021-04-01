@@ -1,0 +1,146 @@
+{
+	"_class": "World",
+	"_version": 0,
+	"RootScene": {
+		"_class": "Scene",
+		"_version": 0,
+		"Root": ["0001", "#Root"],
+		"Nodes": [{
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0001",
+				"Name": "#Root",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0000", "--"],
+					"Children": [["0002", "Camera1"], ["0003", "Sky"], ["0004", "Sun"], ["0005", "Sponza"]]
+				},
+				"Components": []
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0002",
+				"Name": "Camera1",
+				"Flags": {
+					"Active": true,
+					"Static": false,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0001", "CameraComponent"], ["0002", "FreeLookComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0003",
+				"Name": "Sky",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0003", "ImageLightComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0004",
+				"Name": "Sun",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [0.9426474571228027, 0.32546523213386538, -0.07401911914348602, 0.0, -0.11045652627944946, 0.09491648524999619, -0.989332914352417, 0.0, -0.3149672746658325, 0.9407665729522705, 0.12542234361171723, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0004", "BasicLightComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0005",
+				"Name": "Sponza",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["0005", "BasicRenderableComponent"]]
+			}],
+		"Components": [{
+				"ID": "0001",
+				"_class": "CameraComponent",
+				"_version": 0,
+				"Up": 0.5773502588272095,
+				"Down": -0.5773502588272095,
+				"Right": 1.078436017036438,
+				"Left": -1.078436017036438,
+				"Near": 0.10000000149011612,
+				"Far": 1000.0,
+				"WorldMatrix": [0.40299904346466067, -6.48200511932373e-7, 0.9152780771255493, 0.0, -0.19970959424972535, 0.9759743809700012, 0.08793330192565918, 0.0, -0.8932244777679443, -0.2182113528251648, 0.39328867197036745, 0.0, -17.557418823242189, 0.7674413919448853, 1.778440237045288, 1.0],
+				"Orthographic": false,
+				"Asymmetrical": false,
+				"Infinite": true,
+				"Reversed": false,
+				"HasGpuBuffer": true
+			}, {
+				"ID": "0002",
+				"_class": "FreeLookComponent",
+				"_version": 0,
+				"m_position": [-17.557418823242189, 0.7674413919448853, 1.778440237045288],
+				"m_orientation": [0.09193353354930878, -0.5430832505226135, 0.059971489012241366, 0.8325162529945374],
+				"m_maxSpeed": 10.0,
+				"m_maxSpeedMul": 5.0,
+				"m_accelTime": 0.10000000149011612,
+				"m_rotationInputMul": 0.10000000149011612,
+				"m_rotationDamping": 0.0020000000949949028
+			}, {
+				"ID": "0003",
+				"_class": "ImageLightComponent",
+				"_version": 0,
+				"m_brightness": 1.0,
+				"m_texturePath": "common/textures/env_sky.exr",
+				"m_isBackground": true
+			}, {
+				"ID": "0004",
+				"_class": "BasicLightComponent",
+				"_version": 0,
+				"m_type": "Direct",
+				"m_colorBrightness": [1.0, 1.0, 1.0, 12.0],
+				"m_radius": 5.0,
+				"m_coneInnerAngle": 0.01745329238474369,
+				"m_coneOuterAngle": 0.3490658402442932,
+				"m_castShadows": true
+			}, {
+				"ID": "0005",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [1.0, 1.0, 1.0, 1.0],
+				"m_meshPath": "common/models/Sponza/Sponza.gltf",
+				"m_materialPaths": ["", "common/models/Sponza/PlantA.mat", "common/models/Sponza/PlantB.mat", "common/models/Sponza/VaseC.mat", "common/models/Sponza/Background.mat", "common/models/Sponza/Bricks.mat", "common/models/Sponza/Arch.mat", "common/models/Sponza/Ceiling.mat", "common/models/Sponza/ColumnA.mat", "common/models/Sponza/Floor.mat", "common/models/Sponza/ColumnC.mat", "common/models/Sponza/Details.mat", "common/models/Sponza/ColumnB.mat", "", "common/models/Sponza/FlagPole.mat", "common/models/Sponza/BannerRed.mat", "common/models/Sponza/BannerGreen.mat", "common/models/Sponza/BannerBlue.mat", "common/models/Sponza/CurtainRed.mat", "common/models/Sponza/CurtainBlue.mat", "common/models/Sponza/CurtainGreen.mat", "common/models/Sponza/Chain.mat", "common/models/Sponza/VaseB.mat", "common/models/Sponza/VaseA.mat", "common/models/Sponza/Lion.mat", "common/models/Sponza/Roof.mat"]
+			}]
+	},
+	"DrawCamera": ["0", "0001", "CameraComponent"],
+	"CullCamera": ["0", "0001", "CameraComponent"],
+	"InputConsumer": ["0", "0002", "FreeLookComponent"]
+}
