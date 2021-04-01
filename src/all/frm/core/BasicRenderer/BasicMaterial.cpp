@@ -63,6 +63,8 @@ static constexpr const char* kDefaultSuffix[] =
 
 static constexpr const char* kFlagStr[] =
 {
+	"Flip V",
+	"Normal Map BC5",
 	"Alpha Test",
 	"Alpha Dither",	
 	"Thin Translucency"
@@ -436,6 +438,18 @@ void BasicMaterial::setMap(Map _map, const char* _path)
 			Texture::Release(m_maps[_map]);
 			m_maps[_map] = tx;
 			m_mapPaths[_map] = _path;
+
+			if (_map == Map_Normal)
+			{
+				if (tx->getFormat() == GL_COMPRESSED_RG_RGTC2)
+				{
+					m_flags = BitfieldSet(m_flags, Flag_NormalMapBC5, true);
+				}
+				else
+				{
+					m_flags = BitfieldSet(m_flags, Flag_NormalMapBC5, false);
+				}
+			}
 		}
 	}
 }

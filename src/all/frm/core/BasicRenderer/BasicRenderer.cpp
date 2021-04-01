@@ -935,7 +935,9 @@ Shader* BasicRenderer::findShader(ShaderMapKey _key)
 	static_assert(GeometryType_Count == FRM_ARRAY_COUNT(kGeometryDefines), "GeometryType_Count != FRM_ARRAY_COUNT(kGeometryDefines)");
 
 	static constexpr const char* kMaterialDefines[] =
-	{
+	{		
+		"Material_FlipV",
+		"Material_NormalMapBC5",
 		"Material_AlphaTest",
 		"Material_AlphaDither",
 		"Material_ThinTranslucency",

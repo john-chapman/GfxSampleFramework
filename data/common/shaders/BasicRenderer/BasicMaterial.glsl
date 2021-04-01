@@ -108,7 +108,9 @@ void main()
 		vInstanceId = gl_InstanceID;
 
 		vUv = aTexcoord.xy;
-		vUv.y = 1.0 - vUv.y; // \todo
+		#ifdef Material_FlipV
+			vUv.y = 1.0 - vUv.y;
+		#endif
 
 		vec3 positionW = aPosition.xyz;
 		vec3 prevPositionW = aPosition.xyz;
@@ -190,10 +192,12 @@ void main()
 #define Map_Translucency  9
 #define Map_Count         10
 uniform sampler2D uMaps[Map_Count];
+
 float Noise_InterleavedGradient(in vec2 _seed)
 {
 	return fract(52.9829189 * fract(dot(_seed, vec2(0.06711056, 0.00583715))));
 }
+
 float BasicMaterial_ApplyAlphaTest()
 {
 	const uint materialIndex = uDrawInstances[vInstanceId].materialIndex;
@@ -229,6 +233,18 @@ float BasicMaterial_ApplyAlphaTest()
 	#endif
 
 	return instanceAlpha;
+}
+
+vec3 BasicMaterial_SampleNormalMap(in vec2 _uv)
+{
+	#ifdef Material_NormalMapBC5
+		vec3 ret;
+		ret.xy = texture(uMaps[Map_Normal], vUv).xy * 2.0 - 1.0;
+		ret.z  = sqrt(1.0 - saturate(length2(ret.xy)));
+		return ret;
+	#else
+		return texture(uMaps[Map_Normal], vUv).xyz * 2.0 - 1.0;
+	#endif
 }
 
 #ifdef Pass_Scene
@@ -337,7 +353,7 @@ void main()
 	{
 		float alpha = BasicMaterial_ApplyAlphaTest();
 
-		vec3 normalT = normalize(texture(uMaps[Map_Normal], vUv).xyz * 2.0 - 1.0);
+		vec3 normalT = normalize(BasicMaterial_SampleNormalMap(vUv));
 		vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
 		GBuffer_WriteNormal(normalV);
 

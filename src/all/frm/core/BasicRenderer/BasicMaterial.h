@@ -33,13 +33,16 @@ public:
 	};
 	typedef int Map;
 
-	enum Flag_
+	enum Flag_ // See BasicRenderer.cpp/findShader()/kMaterialDefines
 	{
+		Flag_FlipV,            // Invert UV.y (account for V-inverted texture loader).
+		Flag_NormalMapBC5,     // Normal map is BC5.
 		Flag_AlphaTest,        // Enable cutout alpha (discard against Map_Alpha).
 		Flag_AlphaDither,      // Enabled dithered alpha (for fade transitions, etc.).
 		Flag_ThinTranslucent,  // Enable thin translucency (backface lighting).
 
-		Flag_Count
+		Flag_Count,
+		Flag_Default = (1 << Flag_FlipV) | (1 << Flag_AlphaDither)
 	};
 	typedef uint64 Flag;
 
@@ -80,7 +83,7 @@ protected:
 	vec3                                  m_baseColor       = vec3(1.0f);
 	vec3                                  m_emissiveColor   = vec3(0.0f);
 	float                                 m_alpha           = 1.0f;
-	uint64                                m_flags           = (1 << Flag_AlphaDither);
+	uint64                                m_flags           = Flag_Default;
 
 	// \todo use textures for everything?
 	float                                 m_metallic        = 1.0f;
