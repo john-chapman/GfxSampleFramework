@@ -126,6 +126,8 @@ public:
 
 	TextureView* getTextureView() const;  // get the internal texture view (owned by the texture viewer)
 
+	uint         estimateMemoryUsage() const;
+
 	friend void swap(Texture& _a, Texture& _b);
 
 protected:

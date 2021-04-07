@@ -438,7 +438,8 @@ void Texture::ShowTextureViewer(bool* _open_)
 
 static bool GlIsTexFormatCompressed(GLenum _format)
 {
-	switch (_format) {
+	switch (_format)
+	{
 		case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
 		case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
 		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
@@ -455,7 +456,8 @@ static bool GlIsTexFormatCompressed(GLenum _format)
 
 static bool GlIsTexFormatDepth(GLenum _format)
 {
-	switch (_format) {
+	switch (_format)
+	{
 		case GL_DEPTH_COMPONENT16:
 		case GL_DEPTH_COMPONENT24:
 		case GL_DEPTH_COMPONENT32:
@@ -465,6 +467,99 @@ static bool GlIsTexFormatDepth(GLenum _format)
 			return true;
 		default:
 			return false;
+	};
+}
+
+static double GlGetBytesPerPixel(GLenum _format)
+{
+	switch (_format)
+	{
+		default:                                     FRM_ASSERT(false); return 0;
+		case GL_DEPTH_COMPONENT:                     return 8;
+		case GL_DEPTH_STENCIL:                       return 8;
+		case GL_RED:                                 return 1;
+		case GL_RG:                                  return 2;
+		case GL_RGB:                                 return 4;
+		case GL_RGBA:                                return 4;
+		case GL_DEPTH_COMPONENT16:                   return 2;
+		case GL_DEPTH_COMPONENT24:                   return 3;
+		case GL_DEPTH_COMPONENT32:                   return 4;
+		case GL_DEPTH_COMPONENT32F:                  return 4;
+		case GL_DEPTH24_STENCIL8:                    return 4;
+		case GL_DEPTH32F_STENCIL8:                   return 5;
+		case GL_R8:                                  return 1;
+		case GL_R8_SNORM:                            return 1;
+		case GL_R16:                                 return 2;
+		case GL_R16_SNORM:                           return 2;
+		case GL_RG8:                                 return 4;
+		case GL_RG8_SNORM:                           return 4;
+		case GL_RG16:                                return 4;
+		case GL_RG16_SNORM:                          return 4;
+		case GL_R3_G3_B2:                            return 1;
+		case GL_RGB4:                                return 2;
+		case GL_RGB5:                                return 2;
+		case GL_RGB8:                                return 4;
+		case GL_RGB8_SNORM:                          return 4;
+		case GL_RGB10:                               return 4;
+		case GL_RGB12:                               return 5;
+		case GL_RGB16_SNORM:                         return 6;
+		case GL_RGBA2:                               return 1;
+		case GL_RGBA4:                               return 2;
+		case GL_RGB5_A1:                             return 2;
+		case GL_RGBA8:                               return 4;
+		case GL_RGBA8_SNORM:                         return 4;
+		case GL_RGB10_A2:                            return 4;
+		case GL_RGB10_A2UI:                          return 4;
+		case GL_RGBA12:                              return 6;
+		case GL_RGBA16:                              return 8;
+		case GL_SRGB8:                               return 4;
+		case GL_SRGB8_ALPHA8:                        return 4;
+		case GL_R16F:                                return 2;
+		case GL_RG16F:                               return 4;
+		case GL_RGB16F:                              return 8;
+		case GL_RGBA16F:                             return 8;
+		case GL_R32F:                                return 4;
+		case GL_RG32F:                               return 8;
+		case GL_RGB32F:                              return 12;
+		case GL_RGBA32F:                             return 16;
+		case GL_R11F_G11F_B10F:                      return 4;
+		case GL_RGB9_E5:                             return 4;
+		case GL_R8I:                                 return 1;
+		case GL_R8UI:                                return 1;
+		case GL_R16I:                                return 2;
+		case GL_R16UI:                               return 2;
+		case GL_R32I:                                return 4;
+		case GL_R32UI:                               return 4;
+		case GL_RG8I:                                return 2;
+		case GL_RG8UI:                               return 2;
+		case GL_RG16I:                               return 4;
+		case GL_RG16UI:                              return 4;
+		case GL_RG32I:                               return 8;
+		case GL_RG32UI:                              return 8;
+		case GL_RGB8I:                               return 4;
+		case GL_RGB8UI:                              return 4;
+		case GL_RGB16I:                              return 8;
+		case GL_RGB16UI:                             return 8;
+		case GL_RGB32I:                              return 12;
+		case GL_RGB32UI:                             return 12;
+		case GL_RGBA8I:                              return 4;
+		case GL_RGBA8UI:                             return 4;
+		case GL_RGBA16I:                             return 8;
+		case GL_RGBA16UI:                            return 8;
+		case GL_RGBA32I:                             return 16;
+		case GL_RGBA32UI:                            return 16;
+		case GL_COMPRESSED_RED_RGTC1:
+		case GL_COMPRESSED_SIGNED_RED_RGTC1:         return 0.5;
+		case GL_COMPRESSED_RG_RGTC2:
+		case GL_COMPRESSED_SIGNED_RG_RGTC2:          return 1;
+		case GL_COMPRESSED_RGBA_BPTC_UNORM:
+		case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:    return 1;
+		case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT:
+		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:  return 1;
+		case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:        
+		case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:       return 0.5;
+		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:       return 1;
+		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:       return 1;
 	};
 }
 
@@ -1200,6 +1295,20 @@ bool Texture::isDepth() const
 TextureView* Texture::getTextureView() const
 {
 	return g_textureViewer.findTextureView((Texture*)this);
+}
+
+uint Texture::estimateMemoryUsage() const
+{
+	const double bytesPerPixel = GlGetBytesPerPixel(m_format);
+
+	uint pixelCount = 0;
+	for (int i = 0; i < m_mipCount; ++i)
+	{
+		pixelCount += (m_width >> i) * (m_height >> i) * (m_depth >> i);
+	}
+	pixelCount *= m_arrayCount;
+
+	return (uint)(pixelCount * bytesPerPixel);
 }
 
 void frm::swap(Texture& _a, Texture& _b)
