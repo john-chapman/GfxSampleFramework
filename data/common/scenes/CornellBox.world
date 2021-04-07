@@ -1,0 +1,338 @@
+{
+	"_class": "World",
+	"_version": 0,
+	"RootScene": {
+		"_class": "Scene",
+		"_version": 0,
+		"Root": ["0001", "#Root"],
+		"Nodes": [{
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0001",
+				"Name": "#Root",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0000", "--"],
+					"Children": [["000D", "Camera1"], ["0008", "Box"], ["000E", "Camera2"]]
+				},
+				"Components": []
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0003",
+				"Name": "Floor",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [2.0, 0.0, 0.0, 0.0, 0.0, 0.20000000298023225, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, -0.20000000298023225, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["000A", "Walls"],
+					"Children": []
+				},
+				"Components": [["0003", "BasicRenderableComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0004",
+				"Name": "WallRed",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [-8.742274815176643e-8, -1.9999994039535523, 0.0, 0.0, 0.20000000298023225, -8.742278012618954e-9, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, -1.100000023841858, 0.9000000357627869, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["000A", "Walls"],
+					"Children": []
+				},
+				"Components": [["0005", "BasicRenderableComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0005",
+				"Name": "WallGreen",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [-8.742274815176643e-8, -1.9999994039535523, 0.0, 0.0, 0.20000000298023225, -8.742278012618954e-9, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 1.100000023841858, 0.9000000357627869, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["000A", "Walls"],
+					"Children": []
+				},
+				"Components": [["0006", "BasicRenderableComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0006",
+				"Name": "Back",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [2.0, 0.0, 0.0, 0.0, 0.0, -8.742278012618954e-9, -0.20000000298023225, 0.0, 0.0, 1.9999995231628419, -8.742275525719379e-8, 0.0, 0.0, 0.9000000357627869, -1.100000023841858, 1.0],
+				"Hierarchy": {
+					"Parent": ["000A", "Walls"],
+					"Children": []
+				},
+				"Components": [["0007", "BasicRenderableComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0007",
+				"Name": "Ceiling",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [2.0, 0.0, 0.0, 0.0, 0.0, 0.20000000298023225, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 2.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["000A", "Walls"],
+					"Children": []
+				},
+				"Components": [["0008", "BasicRenderableComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0008",
+				"Name": "Box",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": [["000A", "Walls"], ["0009", "Light"], ["000B", "Sphere"], ["000C", "Cuboid"]]
+				},
+				"Components": []
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "0009",
+				"Name": "Light",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.8000000715255738, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0008", "Box"],
+					"Children": []
+				},
+				"Components": [["0009", "BasicLightComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "000A",
+				"Name": "Walls",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0008", "Box"],
+					"Children": [["0007", "Ceiling"], ["0006", "Back"], ["0005", "WallGreen"], ["0003", "Floor"], ["0004", "WallRed"]]
+				},
+				"Components": []
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "000B",
+				"Name": "Sphere",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -0.3978029489517212, 0.3921891748905182, -0.32040929794311526, 1.0],
+				"Hierarchy": {
+					"Parent": ["0008", "Box"],
+					"Children": []
+				},
+				"Components": [["000A", "BasicRenderableComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "000C",
+				"Name": "Cuboid",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [-0.2598264217376709, 0.0, -0.42718857526779177, 0.0, 0.0, 1.2000000476837159, 0.0, 0.0, 0.42718857526779177, 0.0, -0.2598264217376709, 0.0, 0.5170168876647949, 0.48816102743148806, -0.17520324885845185, 1.0],
+				"Hierarchy": {
+					"Parent": ["0008", "Box"],
+					"Children": []
+				},
+				"Components": [["000B", "BasicRenderableComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "000D",
+				"Name": "Camera1",
+				"Flags": {
+					"Active": true,
+					"Static": true,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, -0.0, 0.9999994039535523, 0.0, 0.0, -0.0, -0.0, 0.9999994039535523, 0.0, 0.0, 0.800000011920929, 2.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["000C", "CameraComponent"]]
+			}, {
+				"_class": "SceneNode",
+				"_version": 0,
+				"ID": "000E",
+				"Name": "Camera2",
+				"Flags": {
+					"Active": true,
+					"Static": false,
+					"Transient": false
+				},
+				"Transform": [1.0, 0.0, 0.0, 0.0, -0.0, 0.9999994039535523, 0.0, 0.0, -0.0, -0.0, 0.9999994039535523, 0.0, 0.0, 0.800000011920929, 2.0, 1.0],
+				"Hierarchy": {
+					"Parent": ["0001", "#Root"],
+					"Children": []
+				},
+				"Components": [["000D", "CameraComponent"], ["000E", "FreeLookComponent"]]
+			}],
+		"Components": [{
+				"ID": "0003",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [1.0, 0.9999899864196777, 0.9999899864196777, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["materials/BasicMaterial.mat"]
+			}, {
+				"ID": "0004",
+				"_class": "ImageLightComponent",
+				"_version": 0,
+				"m_brightness": 1.0,
+				"m_texturePath": "common/textures/env_darkgray.exr",
+				"m_isBackground": true
+			}, {
+				"ID": "0005",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [1.0, 0.0, 0.0, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["materials/BasicMaterial.mat"]
+			}, {
+				"ID": "0006",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [0.0, 1.0, 0.0, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["materials/BasicMaterial.mat"]
+			}, {
+				"ID": "0007",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [1.0, 0.9999899864196777, 0.9999899864196777, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["materials/BasicMaterial.mat"]
+			}, {
+				"ID": "0008",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [1.0, 0.9999899864196777, 0.9999899864196777, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["materials/BasicMaterial.mat"]
+			}, {
+				"ID": "0009",
+				"_class": "BasicLightComponent",
+				"_version": 0,
+				"m_type": "Point",
+				"m_colorBrightness": [1.0, 1.0, 1.0, 1.0],
+				"m_radius": 5.0,
+				"m_coneInnerAngle": 0.01745329238474369,
+				"m_coneOuterAngle": 0.3490658402442932,
+				"m_castShadows": false
+			}, {
+				"ID": "000A",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [1.0, 1.0, 1.0, 1.0],
+				"m_meshPath": "common/models/Sphere_1.obj",
+				"m_materialPaths": ["materials/BasicMaterial.mat"]
+			}, {
+				"ID": "000B",
+				"_class": "BasicRenderableComponent",
+				"_version": 0,
+				"m_castShadows": true,
+				"m_colorAlpha": [0.0, 0.5836300849914551, 1.0, 1.0],
+				"m_meshPath": "models/Box_1.obj",
+				"m_materialPaths": ["materials/BasicMaterial.mat"]
+			}, {
+				"ID": "000C",
+				"_class": "CameraComponent",
+				"_version": 0,
+				"Up": 0.5171114206314087,
+				"Down": -0.5171114206314087,
+				"Right": 0.9659155607223511,
+				"Left": -0.9659155607223511,
+				"Near": 1.0,
+				"Far": 1000.0,
+				"WorldMatrix": [1.0, 0.0, 0.0, 0.0, 0.0, 0.9999994039535523, 0.0, 0.0, 0.0, 0.0, 0.9999994039535523, 0.0, 0.0, 0.800000011920929, 2.0, 1.0],
+				"Orthographic": false,
+				"Asymmetrical": false,
+				"Infinite": true,
+				"Reversed": false,
+				"HasGpuBuffer": true
+			}, {
+				"ID": "000D",
+				"_class": "CameraComponent",
+				"_version": 0,
+				"Up": 0.5773502588272095,
+				"Down": -0.5773502588272095,
+				"Right": 1.078436017036438,
+				"Left": -1.078436017036438,
+				"Near": 1.0,
+				"Far": 1000.0,
+				"WorldMatrix": [0.9486905336380005, -8.940696716308594e-8, -0.31621354818344118, 0.0, -0.08465907722711563, 0.9634968042373657, -0.25399088859558108, 0.0, 0.3046700358390808, 0.26772844791412356, 0.9140582084655762, 0.0, 0.867425262928009, 1.4329453706741334, 4.014702796936035, 1.0],
+				"Orthographic": false,
+				"Asymmetrical": false,
+				"Infinite": true,
+				"Reversed": false,
+				"HasGpuBuffer": true
+			}, {
+				"ID": "000E",
+				"_class": "FreeLookComponent",
+				"_version": 0,
+				"m_position": [0.867425262928009, 1.4329453706741334, 4.014702796936035],
+				"m_orientation": [-0.1333584040403366, 0.15870609879493714, 0.02163996361196041, 0.9780398607254028],
+				"m_maxSpeed": 10.0,
+				"m_maxSpeedMul": 5.0,
+				"m_accelTime": 0.10000000149011612,
+				"m_rotationInputMul": 0.10000000149011612,
+				"m_rotationDamping": 0.0020000000949949028
+			}]
+	},
+	"DrawCamera": ["0", "000D", "CameraComponent"],
+	"CullCamera": ["0", "000D", "CameraComponent"],
+	"InputConsumer": ["0", "000E", "FreeLookComponent"]
+}
