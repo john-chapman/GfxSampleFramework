@@ -140,6 +140,8 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	const bool  isWireframe         = flags.get(Flag::WireFrame);
 
 	sceneCamera.copyFrom(*_drawCamera); // \todo separate draw/cull cameras
+	const bool sceneReverseProj = sceneCamera.getProjFlag(Camera::ProjFlag_Reversed);
+
 	if (isTAA)
 	{
 		const int kFrameIndex = (int)(ctx->getFrameIndex() & 1);
@@ -192,7 +194,7 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 
 		{	PROFILER_MARKER("Geometry");
 
-			//glAssert(glClearDepth(1.0)); // \todo set the depth clear value based on the camera's projection mode
+			glAssert(glClearDepth(sceneReverseProj ? 0.0f : 1.0f));
 			glAssert(glClearStencil(0));
 
 			#if FRM_MODULE_VR
@@ -212,10 +214,11 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 				}
 
 			glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
-			glAssert(glDepthFunc(GL_LESS));
+			glAssert(glDepthFunc(sceneReverseProj ? GL_GREATER : GL_LESS));
 			glScopedEnable(GL_STENCIL_TEST, GL_TRUE);
 			glAssert(glStencilFunc(GL_ALWAYS, 0xff, 0x01)); // \todo only stencil dynamic objects
 			glAssert(glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE));
+
 
 			for (auto& it : sceneDrawCalls)
 			{
