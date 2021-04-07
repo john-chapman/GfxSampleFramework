@@ -140,7 +140,7 @@ void GlContext::dispatch(GLuint _groupsX, GLuint _groupsY, GLuint _groupsZ)
 	++m_dispatchCount;
 }
 
-void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
+void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ, GLuint _lodIndex)
 {
 	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
 	ivec3 localSize = m_currentShader->getLocalSize();
@@ -150,7 +150,7 @@ void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
 		{
 			case GL_TEXTURE_CUBE_MAP: _groupsZ = 6; break;
 			case GL_TEXTURE_2D_ARRAY: _groupsZ = _tx->getArrayCount(); break;
-			case GL_TEXTURE_3D:       _groupsZ = _tx->getDepth(); break;
+			case GL_TEXTURE_3D:       _groupsZ = FRM_MAX(1, _tx->getDepth() >> _lodIndex); break;
 			default:                  _groupsZ = 1; break;
 		};
 		GLuint sizeZ = (GLuint)localSize.z;
@@ -159,8 +159,8 @@ void GlContext::dispatch(const Texture* _tx, GLuint _groupsZ)
 	GLuint sizeX = (GLuint)localSize.x;
 	GLuint sizeY = (GLuint)localSize.y;
 	dispatch(
-		FRM_MAX((_tx->getWidth() + sizeX - 1) / sizeX, 1u),
-		FRM_MAX((_tx->getHeight() + sizeY - 1) / sizeY, 1u),
+		FRM_MAX((FRM_MAX(1, _tx->getWidth() >> _lodIndex) + sizeX - 1) / sizeX, 1u),
+		FRM_MAX((FRM_MAX(1, _tx->getHeight() >> _lodIndex) + sizeY - 1) / sizeY, 1u),
 		_groupsZ
 		);
 }

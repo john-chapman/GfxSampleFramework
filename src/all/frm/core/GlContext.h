@@ -71,7 +71,7 @@ public:
 	void dispatchIndirect(const Buffer* _buffer, const void* _offset = nullptr);
 	// Dispatch at least 1 thread per pixel (e.g. ceil(texture size/group size) groups). Note that _groupsZ can be overriden e.g. to write to a single level of an 
 	// array or volume texture.
-	void dispatch(const Texture* _tx, GLuint _groupsZ = 0);
+	void dispatch(const Texture* _tx, GLuint _groupsZ = 0, GLuint _lodIndex = 0);
 
 	// Present the next image in the swapchain, increment the frame index, clear draw call counters.
 	void present();
