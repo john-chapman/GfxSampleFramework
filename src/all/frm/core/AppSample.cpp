@@ -5,6 +5,7 @@
 #include <frm/core/memory.h>
 #include <frm/core/ArgList.h>
 #include <frm/core/App.h>
+#include <frm/core/DrawMesh.h>
 #include <frm/core/File.h>
 #include <frm/core/FileSystem.h>
 #include <frm/core/Framebuffer.h>
@@ -12,7 +13,6 @@
 #include <frm/core/Input.h>
 #include <frm/core/Json.h>
 #include <frm/core/Log.h>
-#include <frm/core/Mesh.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
@@ -604,7 +604,7 @@ void AppSample::drawNotifications()
 *******************************************************************************/
 
 static Shader*       s_shImGui;
-static Mesh*         s_msImGui;
+static DrawMesh*     s_msImGui;
 static Texture*      s_txImGui;
 static TextureView   s_txViewImGui; // default texture view for the ImGui texture
 static Shader*       s_shTextureView[frm::internal::kTextureTargetCount]; // shader per texture type
@@ -670,14 +670,15 @@ bool AppSample::ImGui_Init(AppSample* _app)
  // mesh
  	if (s_msImGui) 
 	{
-		Mesh::Release(s_msImGui);
-	}	
-	MeshDesc meshDesc(MeshDesc::Primitive_Triangles);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 2);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, DataType_Float32, 2);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint32,  1);
-	FRM_ASSERT(meshDesc.getVertexSize() == sizeof(ImDrawVert));
-	s_msImGui = Mesh::Create(meshDesc);
+		DrawMesh::Release(s_msImGui);
+	}
+	DrawMesh::VertexLayout vertexLayout({
+		{ Mesh::Semantic_Positions,   DataType_Float32, 2 },
+		{ Mesh::Semantic_MaterialUVs, DataType_Float32, 2 },
+		{ Mesh::Semantic_Colors,      DataType_Uint32,  1 }
+		});
+	FRM_ASSERT(vertexLayout.vertexSizeBytes == sizeof(ImDrawVert));
+	s_msImGui = DrawMesh::CreateUnique(Mesh::Primitive_Triangles, vertexLayout);
 
  // shaders
 	if (s_shImGui) 
@@ -872,7 +873,7 @@ void AppSample::ImGui_Shutdown(AppSample* _app)
 		Shader::Release(s_shTextureView[i]);
 	}
 	Shader::Release(s_shImGui);
-	Mesh::Release(s_msImGui); 
+	DrawMesh::Release(s_msImGui); 
 	Texture::Release(s_txRadar);
 	Texture::Release(s_txImGui);
 	

@@ -6,8 +6,7 @@
 #include <frm/core/Buffer.h>
 #include <frm/core/Camera.h>
 #include <frm/core/Framebuffer.h>
-#include <frm/core/Mesh.h>
-#include <frm/core/MeshData.h>
+#include <frm/core/DrawMesh.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Resource.h>
 #include <frm/core/Shader.h>
@@ -29,32 +28,37 @@ using namespace frm;
 void GlContext::draw(GLsizei _instances)
 {
 	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
-	FRM_ASSERT(m_currentMesh);
+	FRM_ASSERT(m_currentMesh.bindHandle);
+	
+	#if GlContext_VALIDATE_MESH_SHADER_ON_DRAW
+	{
+		// \todo Fully validate the mesh vertex descriptor against the shader.
+		GLint activeAttribCount;
+		glAssert(glGetProgramiv(m_currentShader->getHandle(), GL_ACTIVE_ATTRIBUTES, &activeAttribCount));
+		FRM_ASSERT(m_currentMesh2.mesh->m_vertexData.size() == activeAttribCount);		
+	}
+	#endif
 
-#if GlContext_VALIDATE_MESH_SHADER_ON_DRAW
- // \todo fully validate the mesh vertex descriptor against the shader
-	GLint activeAttribCount;
-	glAssert(glGetProgramiv(m_currentShader->getHandle(), GL_ACTIVE_ATTRIBUTES, &activeAttribCount));
-	FRM_ASSERT(m_currentMesh->m_desc.getVertexComponentCount() == activeAttribCount);
-#endif
-	const MeshData::Submesh& submesh = m_currentMesh->getSubmesh(m_currentSubmesh);
-
-	if (m_currentMesh->getIndexBufferHandle() != 0)
+	const DrawMesh* mesh = m_currentMesh.mesh;
+	const DrawMesh::LOD& lod = mesh->m_lods[m_currentMesh.lodIndex];
+	const DrawMesh::Submesh& submesh = lod.submeshes[m_currentMesh.submeshIndex];
+		
+	if (lod.indexBuffer != 0)
 	{
 		glAssert(glDrawElementsInstanced(
-			m_currentMesh->getPrimitive(), 
-			(GLsizei)submesh.m_indexCount, 
-			m_currentMesh->getIndexDataType(), 
-			(GLvoid*)submesh.m_indexOffset, 
+			mesh->m_primitive,
+			(GLsizei)submesh.indexCount, 
+			mesh->m_indexDataType,
+			(const GLvoid*)submesh.indexOffset,
 			_instances
 			));
 	}
 	else
 	{
 		glAssert(glDrawArraysInstanced(
-			m_currentMesh->getPrimitive(),
-			(GLint)submesh.m_vertexOffset, 
-			(GLsizei)submesh.m_vertexCount, 
+			mesh->m_primitive,
+			0, 
+			(GLsizei)mesh->m_vertexCount, 
 			_instances
 			));
 	}
@@ -65,7 +69,7 @@ void GlContext::draw(GLsizei _instances)
 void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
 {
 	FRM_ASSERT(m_currentShader && (m_currentShader->getState() == Shader::State_Loaded));
-	FRM_ASSERT(m_currentMesh);
+	FRM_ASSERT(m_currentMesh.bindHandle);
 	
 	bindBuffer(_buffer, GL_DRAW_INDIRECT_BUFFER);
 
@@ -75,37 +79,43 @@ void GlContext::drawIndirect(const Buffer* _buffer, const void* _offset)
 	glAssert(glGetProgramiv(m_currentShader->getHandle(), GL_ACTIVE_ATTRIBUTES, &activeAttribCount));
 	FRM_ASSERT(m_currentMesh->m_desc.getVertexComponentCount() == activeAttribCount);
 #endif
+	
+	const DrawMesh* mesh = m_currentMesh.mesh;
+	const DrawMesh::LOD& lod = mesh->m_lods[m_currentMesh.lodIndex];
+	const DrawMesh::Submesh& submesh = lod.submeshes[m_currentMesh.submeshIndex];
 
-	if (m_currentMesh->getIndexBufferHandle() != 0)
+	if (lod.indexBuffer != 0)
 	{
-		glAssert(glDrawElementsIndirect(m_currentMesh->getPrimitive(), m_currentMesh->getIndexDataType(), _offset));
+		glAssert(glDrawElementsIndirect(mesh->m_primitive, mesh->m_indexDataType, _offset));
 	}
 	else
 	{
-		glAssert(glDrawArraysIndirect(m_currentMesh->getPrimitive(), _offset));
+		glAssert(glDrawArraysIndirect(mesh->m_primitive, _offset));
 	}
 
-	++m_drawCount; // count an indirect draw as a single draw call
+	++m_drawCount;
 }
 
 void GlContext::drawNdcQuad(const Camera* _cam)
 {
 	if_unlikely (!m_ndcQuadMesh)
 	{
-		MeshDesc quadDesc;
-		quadDesc.setPrimitive(MeshDesc::Primitive_TriangleStrip);
-		quadDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 2);
-		//quadDesc.addVertexAttr(VertexAttr::Semantic_Texcoords, 2, DataType_Float32);
+		// \todo Removed support for tri strips and so the ndc quad mesh ends up being 6 verts. Replace with screen triangle?
+		m_ndcQuadMesh = DrawMesh::CreateUnique(
+			Mesh::Primitive_Triangles,
+			DrawMesh::VertexLayout({
+				{ Mesh::Semantic_Positions, DataType_Float32, 2 }
+			}));
 		float quadVertexData[] =
 		{ 
-			-1.0f, -1.0f, //0.0f, 0.0f,
-			 1.0f, -1.0f, //1.0f, 0.0f,
-			-1.0f,  1.0f, //0.0f, 1.0f,
-			 1.0f,  1.0f, //1.0f, 1.0f
+			-1.0f, -1.0f,
+			 1.0f, -1.0f,
+			-1.0f,  1.0f,			
+			-1.0f,  1.0f,
+			 1.0f,  1.0f,
+			 1.0f, -1.0f,
 		};
-		MeshData* quadData = MeshData::Create(quadDesc, 4, 0, quadVertexData);
-		m_ndcQuadMesh = Mesh::Create(*quadData);
-		MeshData::Destroy(quadData);
+		m_ndcQuadMesh->setVertexData(quadVertexData, 6, GL_STATIC_DRAW);
 	}
 
 	if (_cam)	
@@ -124,10 +134,10 @@ void GlContext::drawNdcQuad(const Camera* _cam)
 			setUniform("uCameraWorldMatrix", _cam->m_world);
 		}
 	}
-	const Mesh* prevMesh = m_currentMesh;
+	MeshBindData prevMesh = m_currentMesh;
 	setMesh(m_ndcQuadMesh);
 	draw();
-	setMesh(prevMesh);
+	setMesh(prevMesh.mesh, prevMesh.lodIndex, prevMesh.submeshIndex, prevMesh.bindHandleKey);
 }
 
 void GlContext::dispatch(GLuint _groupsX, GLuint _groupsY, GLuint _groupsZ)
@@ -367,24 +377,32 @@ void GlContext::setUniformArray<mat4>(const char* _name, const mat4* _val, GLsiz
 	glAssert(glUniformMatrix4fv(m_currentShader->getUniformLocation(_name), _count, false, (const GLfloat*)_val));
 }
 
-
-void GlContext::setMesh(const Mesh* _mesh, int _submeshId)
+void GlContext::setMesh(const DrawMesh* _mesh, int _lodIndex, int _submeshIndex, uint16 _bindHandleKey)
 {
-	m_currentSubmesh = _submeshId;
-	if (_mesh == m_currentMesh)
+// \todo Copy relevant data into MeshBindData (= better cache).
+	MeshBindData bindData;
+	bindData.mesh          = _mesh;
+	bindData.lodIndex      = _lodIndex;
+	bindData.submeshIndex  = _submeshIndex;
+	bindData.bindHandleKey = _bindHandleKey;
+
+	if (m_currentMesh == bindData)
 	{
 		return;
 	}
-	if (!_mesh || _mesh->getState() != Mesh::State_Loaded)
+	m_currentMesh = bindData;
+
+	if (!_mesh || _mesh->getState() != DrawMesh::State_Loaded)
 	{
 		glAssert(glBindVertexArray(0));
 	}
 	else
 	{
-		FRM_ASSERT(_submeshId < _mesh->getSubmeshCount());
-		glAssert(glBindVertexArray(_mesh->getVertexArrayHandle()));
+		GLuint bindHandle = const_cast<DrawMesh*>(_mesh)->findOrCreateBindHandle(_lodIndex, _bindHandleKey);		
+		glAssert(glBindVertexArray(bindHandle));
+		FRM_ASSERT(bindHandle);
+		m_currentMesh.bindHandle = bindHandle;
 	}
-	m_currentMesh = _mesh;
 }
 
 void GlContext::bindBuffer(const char* _location, const Buffer* _buffer)
@@ -558,7 +576,6 @@ GlContext::GlContext()
 	, m_frameIndex(0)
 	, m_currentFramebuffer(nullptr)
 	, m_currentShader(nullptr)
-	, m_currentMesh(nullptr)
 	, m_ndcQuadMesh(nullptr)
 {
 }
@@ -576,7 +593,7 @@ bool GlContext::init()
 }
 void GlContext::shutdown()
 {
-	Mesh::Release(m_ndcQuadMesh);
+	DrawMesh::Release(m_ndcQuadMesh);
 }
 
 void GlContext::queryLimits()

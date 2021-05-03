@@ -22,13 +22,15 @@ public:
 	
 	struct Bone
 	{
-		vec3 m_translation  = vec3(0.0f);
-		quat m_rotation     = quat(0.0f, 0.0f, 0.0f, 1.0f);
-		vec3 m_scale        = vec3(1.0f);
-		int  m_parentIndex  = -1; // -1 = root bone
+		vec3 translation  = vec3(0.0f);
+		quat rotation     = quat(0.0f, 0.0f, 0.0f, 1.0f);
+		vec3 scale        = vec3(1.0f);
+		int  parentIndex  = -1; // -1 = root bone
 	};
 
 	             Skeleton();
+
+	bool         serialize(Serializer& _serializer_);
 
 	// Return the index of the new bone.
 	int          addBone(const char* _name, int _parentIndex = -1);

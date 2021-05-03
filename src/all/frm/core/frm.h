@@ -1,6 +1,6 @@
 #pragma once
 
-#define FRM_VERSION "0.32"
+#define FRM_VERSION "0.33"
 
 #include <frm/core/config.h>
 
@@ -134,6 +134,7 @@ namespace frm {
 	class  CurveEditor;
 	class  CurveGradient;
 	class  Device;
+	class  DrawMesh;
 	class  Framebuffer;
 	class  Gamepad;
 	class  GlContext;
@@ -142,8 +143,6 @@ namespace frm {
 	class  LuaScript;
 	class  Mesh;
 	class  MeshBuilder;
-	class  MeshData;
-	class  MeshDesc;
 	class  Mouse;
 	class  Property;
 	class  PropertyGroup;

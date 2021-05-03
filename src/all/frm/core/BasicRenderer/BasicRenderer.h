@@ -153,9 +153,19 @@ public:
 		float bloomBrightness           = 0.0f;
 		int   bloomQuality              = 1;
 		float materialTextureAnisotropy = 4.0f;
+		int   lodBias                   = 0;
 	};
 	Settings settings;
 	Flags    flags;
+
+	// https://pdfs.semanticscholar.org/presentation/2b40/34c1638aa8c24324b508d80ad14dab0511e3.pdf
+	struct LODCoefficients
+	{
+		float size           = 0.0f; // Coeffient for projected size metric.
+		float distance       = 0.0f; //      "        distance.
+		float eccentricity   = 0.0f; //      "        eccentricity (in periphery vision).
+		float velocity       = 0.0f; //      "        velocity.
+	};
 
 private:
 
@@ -219,8 +229,10 @@ private:
 	{
 		const Shader*               shaders[Pass_Count] = { nullptr };
 		const BasicMaterial*        material            = nullptr;
-		const Mesh*                 mesh                = nullptr;
+		const DrawMesh*             mesh                = nullptr;
 		uint32                      submeshIndex        = 0;
+		uint32                      lodIndex            = 0;
+		uint16                      bindHandleKey       = 0;
 		Buffer*                     bfInstances         = nullptr;
 		bool                        cullBackFace        = true; // \todo Pipeline state flags.
 		eastl::vector<DrawInstance> instanceData;
@@ -241,7 +253,7 @@ private:
 
 	void updateDrawCalls(Camera* _cullCamera);
 
-	void addDrawCall(const BasicRenderableComponent* _renderable, int _submeshIndex, DrawCallMap& map_);
+	void addDrawCall(const BasicRenderableComponent* _renderable, int _lodIndex, int _submeshIndex, DrawCallMap& map_);
 	void clearDrawCalls(DrawCallMap& map_);
 	void bindAndDraw(const DrawCall& _drawCall);
 

@@ -91,15 +91,17 @@ bool LoadSkeleton(const Model& _model, const Skin& _skin, eastl::vector<int>& _b
 		Skeleton::Bone& bone = _skeleton_.getBone(boneIndex);
 		if (!joint.translation.empty())
 		{
-			bone.m_translation = vec3(joint.translation[0], joint.translation[1], joint.translation[2]);
+			bone.translation = vec3(joint.translation[0], joint.translation[1], joint.translation[2]);
 		}
+
 		if (!joint.rotation.empty())
 		{
-			bone.m_rotation = quat(joint.rotation[0], joint.rotation[1], joint.rotation[2], joint.rotation[3]);
+			bone.rotation = quat(joint.rotation[0], joint.rotation[1], joint.rotation[2], joint.rotation[3]);
 		}
+
 		if (!joint.scale.empty())
 		{
-			bone.m_scale = vec3(joint.scale[0], joint.scale[1], joint.scale[2]);
+			bone.scale = vec3(joint.scale[0], joint.scale[1], joint.scale[2]);
 		}
 	}
 
@@ -112,7 +114,7 @@ bool LoadSkeleton(const Model& _model, const Skin& _skin, eastl::vector<int>& _b
 		{
 			int boneIndex = _boneIndexMap_[childIndex];
 			FRM_ASSERT(parentIndex < boneIndex);
-			_skeleton_.getBone(boneIndex).m_parentIndex = parentIndex;
+			_skeleton_.getBone(boneIndex).parentIndex = parentIndex;
 		}
 	}
 

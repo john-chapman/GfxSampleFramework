@@ -12,7 +12,7 @@
 #include <frm/core/Camera.h>
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
-#include <frm/core/Mesh.h>
+#include <frm/core/DrawMesh.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
@@ -537,6 +537,7 @@ bool BasicRenderer::edit()
 	ret |= ImGui::Checkbox("Pause Update",    &pauseUpdate);
 	ret |= ImGui::Checkbox("Frustum Culling", &settings.enableCulling);
 	ret |= ImGui::Checkbox("Cull by Submesh", &settings.cullBySubmesh);
+	ret |= ImGui::SliderInt("LOD Bias", &settings.lodBias, -4, 4);
 
 	const char* resolutionStr[] = { "Default (Window)", "3840x2160",       "2560x1440",       "1920x1080",       "1280x720",       "640x360"       };
 	const ivec2 resolutionVal[] = { ivec2(-1, -1),      ivec2(3840, 2160), ivec2(2560, 1440), ivec2(1920, 1080), ivec2(1280, 720), ivec2(640, 360) };
@@ -990,7 +991,6 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 	sceneBounds.m_max = shadowSceneBounds.m_max = vec3(-FLT_MAX);
 
 // Phase 1: Cull renderables, gather shadow renderables, generate scene and shadow scene bounds.
-// \todo LOD selection should happen here.
 	{	PROFILER_MARKER_CPU("Phase 1");
 
 		const auto& activeRenderables = BasicRenderableComponent::GetActiveComponents();
@@ -1025,6 +1025,29 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 				continue;
 			}
 
+			LODCoefficients lodCoefficients;
+			lodCoefficients.distance     = Length(GetTranslation(renderable->m_world) - _cullCamera->getPosition());
+			lodCoefficients.size         = lodCoefficients.distance / _cullCamera->m_proj[1][1];
+			lodCoefficients.eccentricity = 0.0f;
+			lodCoefficients.velocity     = Length(GetTranslation(renderable->m_world) - GetTranslation(renderable->m_prevWorld)); // \todo Account for rotation cheaply? Use Length2?
+
+			// \todo These factors should be tuned per mesh.
+			LODCoefficients renderableLODCoefficients;
+			renderableLODCoefficients.distance      = 0.0f; // \todo Size includes distance, is this redundant? 
+			renderableLODCoefficients.size          = 0.2f; // \todo Needs to account for mesh size/object scale?
+			renderableLODCoefficients.eccentricity  = 0.0f;
+			renderableLODCoefficients.velocity      = 5.0f; 
+
+			float flod = 0.0f;
+			flod = Max(flod, lodCoefficients.size         * renderableLODCoefficients.size);
+			flod = Max(flod, lodCoefficients.distance     * renderableLODCoefficients.distance);
+			flod = Max(flod, lodCoefficients.eccentricity * renderableLODCoefficients.eccentricity);
+			flod = Max(flod, lodCoefficients.velocity     * renderableLODCoefficients.velocity);
+
+			int selectedLOD = (int)flod;
+			selectedLOD = renderable->m_lodOverride >= 0 ? renderable->m_lodOverride : selectedLOD;
+			selectedLOD = Clamp(selectedLOD + settings.lodBias, 0, renderable->m_mesh->getLODCount() - 1);
+			renderable->m_selectedLOD = selectedLOD;
 			culledSceneRenderables.push_back(renderable);
 		}
 	}
@@ -1067,8 +1090,8 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 						continue;
 					}
 				}
-
-				addDrawCall(renderable, submeshIndex, sceneDrawCalls);
+				
+				addDrawCall(renderable, renderable->m_selectedLOD, submeshIndex, sceneDrawCalls);
 
 				// If we added submesh index 0, assume we don't need to look at the other submeshes since 0 represents the whole mesh.
 				if (submeshIndex == 0)
@@ -1278,8 +1301,18 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 			{
 				const mat4 world = renderable->m_world;
 
-				int submeshCount = Min((int)renderable->m_materials.size(), renderable->m_mesh->getSubmeshCount());
-				for (int submeshIndex = 0; submeshIndex < submeshCount; ++submeshIndex)
+				int submeshIndexMin = 0;
+				int submeshIndexMax = 0;
+				if (renderable->m_subMeshOverride >= 0)
+				{
+					submeshIndexMin = submeshIndexMax = renderable->m_subMeshOverride;
+				}
+				else
+				{
+					submeshIndexMax = Min((int)renderable->m_materials.size(), renderable->m_mesh->getSubmeshCount() - 1);
+				}
+
+				for (int submeshIndex = submeshIndexMin; submeshIndex <= submeshIndexMax; ++submeshIndex)
 				{
 					if (!renderable->m_materials[submeshIndex]) // skip submesh if no material set
 					{
@@ -1299,7 +1332,7 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 						}
 					}
 
-					addDrawCall(renderable, submeshIndex, drawCallMap);
+					addDrawCall(renderable, renderable->m_selectedLOD, submeshIndex, drawCallMap);
 
 					// If we added submesh index 0, assume we don't need to look at the other submeshes since 0 represents the whole mesh.
 					if (submeshIndex == 0)
@@ -1340,10 +1373,21 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 
 }
 
-void BasicRenderer::addDrawCall(const BasicRenderableComponent* _renderable, int _submeshIndex, DrawCallMap& map_)
+void BasicRenderer::addDrawCall(const BasicRenderableComponent* _renderable, int _lodIndex, int _submeshIndex, DrawCallMap& map_)
 {
 	const BasicMaterial* material = _renderable->m_materials[_submeshIndex];
-	const Mesh* mesh = _renderable->m_mesh;
+	const DrawMesh* mesh = _renderable->m_mesh;
+
+	// \todo This should be per-pass. Note that the order here has no meaning - it resolves to a bitfield.
+	const DrawMesh::VertexSemantic vertexAttributes[] =
+		{
+			Mesh::Semantic_Positions, 
+			Mesh::Semantic_Normals, 
+			Mesh::Semantic_Tangents, 
+			Mesh::Semantic_MaterialUVs,
+			Mesh::Semantic_BoneWeights,
+			Mesh::Semantic_BoneIndices
+		};
 
 	uint64 drawCallKey = 0;
 	drawCallKey = BitfieldInsert(drawCallKey, (uint64)material->getIndex(), 40, 24);
@@ -1354,7 +1398,9 @@ void BasicRenderer::addDrawCall(const BasicRenderableComponent* _renderable, int
 	drawCall.material            = material;
 	drawCall.cullBackFace        = (material->getFlags() & (1 << BasicMaterial::Flag_ThinTranslucent)) == 0;
 	drawCall.mesh                = mesh;
+	drawCall.lodIndex            = _lodIndex;
 	drawCall.submeshIndex        = _submeshIndex;
+	drawCall.bindHandleKey       = mesh->makeBindHandleKey(vertexAttributes, FRM_ARRAY_COUNT(vertexAttributes)); // \todo Store the actual bind handle here?
 
 	DrawInstance& drawInstance   = drawCall.instanceData.push_back();
 	drawInstance.world           = _renderable->m_world;
@@ -1422,7 +1468,7 @@ void BasicRenderer::bindAndDraw(const DrawCall& _drawCall)
 		ctx->bindBuffer(_drawCall.bfSkinning);
 	}
 	_drawCall.material->bind(ssMaterial);
-	ctx->setMesh(_drawCall.mesh, _drawCall.submeshIndex);
+	ctx->setMesh(_drawCall.mesh, _drawCall.lodIndex, _drawCall.submeshIndex, _drawCall.bindHandleKey);
 	ctx->draw((GLsizei)_drawCall.instanceData.size());
 }
 

@@ -70,6 +70,36 @@ template <> float64 DataType_FloatToFloat(float16 _src)
 
 namespace frm {
 
+const char* kDataTypeStr[DataType_Count] = 
+{
+	"Invalid",
+
+ // integer types
+	"Sint8",
+	"Uint8",
+	"Sint16",
+	"Uint16",
+	"Sint32",
+	"Uint32",
+	"Sint64",		
+	"Uint64",
+
+ // normalized integer types
+	"Sint8N",
+	"Uint8N",
+	"Sint16N",
+	"Uint16N",
+	"Sint32N",
+	"Uint32N",
+	"Sint64N",
+	"Uint64N",
+
+ // float types
+	"Float16",
+	"Float32",
+	"Float64",
+};
+
 void DataTypeConvert(DataType _srcType, DataType _dstType, const void* _src, void* dst_, uint _count)
 {
 	if (_srcType == _dstType) {
@@ -121,32 +151,7 @@ void DataTypeConvert(DataType _srcType, DataType _dstType, const void* _src, voi
 
 const char* DataTypeString(DataType _type)
 {
-	#define CASE_ENUM(_enum) \
-		case _enum: return #_enum
-	switch (_type) {
-		CASE_ENUM(DataType_Invalid);
-		CASE_ENUM(DataType_Sint8);
-		CASE_ENUM(DataType_Uint8);
-		CASE_ENUM(DataType_Sint16);
-		CASE_ENUM(DataType_Uint16);
-		CASE_ENUM(DataType_Sint32);
-		CASE_ENUM(DataType_Uint32);
-		CASE_ENUM(DataType_Sint64);		
-		CASE_ENUM(DataType_Uint64);
-		CASE_ENUM(DataType_Sint8N);
-		CASE_ENUM(DataType_Uint8N);
-		CASE_ENUM(DataType_Sint16N);
-		CASE_ENUM(DataType_Uint16N);
-		CASE_ENUM(DataType_Sint32N);
-		CASE_ENUM(DataType_Uint32N);
-		CASE_ENUM(DataType_Sint64N);
-		CASE_ENUM(DataType_Uint64N);
-		CASE_ENUM(DataType_Float16);
-		CASE_ENUM(DataType_Float32);
-		CASE_ENUM(DataType_Float64);	
-		CASE_ENUM(DataType_Count);
-		default: return "Unkown DataType enum";
-	}
+	return kDataTypeStr[(int)_type];
 }
 
 uint32 PackFloat(float _value, int _signBits, int _exponentBits, int _mantissaBits)

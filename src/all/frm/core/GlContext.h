@@ -12,6 +12,10 @@ class  Shader;
 class  Texture;
 class  Window;
 
+namespace refactor {
+	class Mesh;
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 // GlContext
 ////////////////////////////////////////////////////////////////////////////////
@@ -112,8 +116,8 @@ public:
 
  // MESH
 
-	void setMesh(const Mesh* _mesh, int _submeshId = 0);
-	const Mesh* getMesh() { return m_currentMesh; }
+	void setMesh(const DrawMesh* _mesh, int _lodIndex = 0, int _submeshIndex = 0, uint16 _bindHandleKey = ~0);
+	const DrawMesh* getMesh() { return m_currentMesh.mesh; }
 
  // BUFFER
 	
@@ -164,8 +168,23 @@ private:
  	const Framebuffer*    m_currentFramebuffer                                              = nullptr;
 	Viewport              m_viewport                                                        = { 0 };
 	const Shader*         m_currentShader                                                   = nullptr;
-	const Mesh*           m_currentMesh                                                     = nullptr;
 	int                   m_currentSubmesh                                                  = -1;
+
+	struct MeshBindData
+	{
+		const DrawMesh* mesh             = nullptr;
+		int             lodIndex         = -1;
+		int             submeshIndex     = -1;
+		uint16          bindHandleKey    = 0;
+		GLuint          bindHandle       = 0;
+
+		bool operator==(const MeshBindData& _rhs) const
+		{
+			// Note that we don't check the bind handle itself to avoid having to resolve it during setMesh() when checking if the mesh is already bound.
+			return mesh == _rhs.mesh && lodIndex == _rhs.lodIndex && submeshIndex == _rhs.submeshIndex && bindHandleKey == _rhs.bindHandleKey;
+		}
+	};
+	MeshBindData          m_currentMesh;
 
 	// Tracking state for all targets is redundant as only a subset use an indexed binding model
 	static const int      kBufferSlotCount                                                  = 16;
@@ -182,7 +201,7 @@ private:
 	const Texture*        m_currentImages[kImageSlotCount]                                  = { nullptr };
 	GLint                 m_nextImageSlot                                                   = 0;
 	
-	Mesh*                 m_ndcQuadMesh                                                     = nullptr;
+	DrawMesh*             m_ndcQuadMesh                                                     = nullptr;
 
 	struct Impl;
 	Impl* m_impl;

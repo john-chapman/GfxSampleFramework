@@ -46,6 +46,7 @@ extern const GLenum kShaderStages[kShaderStageCount];
 int ShaderStageToIndex(GLenum _stage);
 
 GLenum DataTypeToGLenum(frm::DataType _type);
+frm::DataType GLenumToDataType(GLenum _enum);
 
 frm::AssertBehavior GlAssert(const char* _call, const char* _file, int _line);
 const char* GlEnumStr(GLenum _enum);
@@ -105,5 +106,26 @@ struct GLScopedEnable
 	}
 };
 #define glScopedEnable(_cap, _val) frm::GLScopedEnable FRM_UNIQUE_NAME(_GLScopedEnable)(_cap, _val)
+
+
+struct GLScopedBufferBinding
+{
+	GLenum target;
+	GLenum binding;
+	GLint  prevBinding;
+
+	GLScopedBufferBinding(GLenum _target, GLenum _binding)
+		: target(_target)
+		, prevBinding(0)
+	{
+		glAssert(glGetIntegerv(_binding, &prevBinding));
+	}
+
+	~GLScopedBufferBinding()
+	{
+		glAssert(glBindBuffer(target,(GLuint)prevBinding));
+	}
+};
+#define glScopedBufferBinding(_target) frm::GLScopedBufferBinding FRM_UNIQUE_NAME(_GLScopedBufferBinding)(_target, _target ## _BINDING)
 
 } // namespace frm

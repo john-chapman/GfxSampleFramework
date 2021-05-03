@@ -140,7 +140,23 @@ GLenum frm::internal::DataTypeToGLenum(DataType _type)
 
 		case DataType_Float32:  return GL_FLOAT;
 
-		default:                FRM_ASSERT(false); return GL_INVALID_VALUE;
+		default:                return GL_INVALID_VALUE;
+	};
+}
+
+frm::DataType frm::internal::GLenumToDataType(GLenum _enum)
+{
+	// \todo This doesn't account for normalized types.
+	switch (_enum) {
+		case GL_BYTE:           return DataType_Sint8;
+		case GL_SHORT:          return DataType_Sint16;
+		case GL_INT:            return DataType_Sint32;
+		case GL_UNSIGNED_BYTE:  return DataType_Uint8;
+		case GL_UNSIGNED_SHORT: return DataType_Uint16;
+		case GL_UNSIGNED_INT:   return DataType_Uint32;
+		case GL_HALF_FLOAT:     return DataType_Float16;
+		case GL_FLOAT:          return DataType_Float32;
+		default:                return DataType_Invalid;
 	};
 }
 

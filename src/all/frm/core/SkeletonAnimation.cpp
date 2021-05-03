@@ -4,6 +4,7 @@
 #include <frm/core/interpolation.h>
 #include <frm/core/log.h>
 #include <frm/core/FileSystem.h>
+#include <frm/core/Serializer.h>
 #include <frm/core/Time.h>
 
 #include <im3d/im3d.h>
@@ -22,9 +23,101 @@ Skeleton::Skeleton()
 {
 	// Bone is cast to a float* during sampling, check alignments/offsets:
 	FRM_STATIC_ASSERT(alignof(Bone) >= alignof(float));
-	FRM_STATIC_ASSERT(offsetof(Bone, m_translation) == 0);
-	FRM_STATIC_ASSERT(offsetof(Bone, m_rotation) == 3 * sizeof(float));
-	FRM_STATIC_ASSERT(offsetof(Bone, m_scale) == 7 * sizeof(float));
+	FRM_STATIC_ASSERT(offsetof(Bone, translation) == 0);
+	FRM_STATIC_ASSERT(offsetof(Bone, rotation) == 3 * sizeof(float));
+	FRM_STATIC_ASSERT(offsetof(Bone, scale) == 7 * sizeof(float));
+}
+
+bool Skeleton::serialize(Serializer& _serializer_)
+{
+	bool ret = true;
+
+	uint poseSize = m_pose.size();
+	if (_serializer_.beginArray(poseSize, "m_pose"))
+	{
+		if (_serializer_.getMode() == Serializer::Mode_Read)
+		{
+			m_pose.resize(poseSize);
+		}
+
+		for (mat4& m : m_pose)
+		{
+			ret &= Serialize(_serializer_, m);
+		}
+
+		_serializer_.endArray();
+	}
+	else
+	{
+		ret = false;
+	}
+
+	uint boneCount = m_bones.size();
+	if (_serializer_.beginArray(boneCount, "m_bones"))
+	{
+		if (_serializer_.getMode() == Serializer::Mode_Read)
+		{
+			m_bones.resize(boneCount);
+		}
+
+		for (Bone& bone : m_bones)
+		{
+			_serializer_.beginObject();
+				Serialize(_serializer_, bone.translation, "translation");
+				Serialize(_serializer_, bone.rotation,    "rotation");
+				Serialize(_serializer_, bone.scale,       "scale");
+				ret &= Serialize(_serializer_, bone.parentIndex, "parentIndex");
+			_serializer_.endObject();
+		}
+
+		_serializer_.endArray();
+	}
+	else
+	{
+		ret = false;
+	}
+	
+	uint boneIdCount = m_boneIds.size();
+	if (_serializer_.beginArray(boneIdCount, "m_boneIds"))
+	{
+		if (_serializer_.getMode() == Serializer::Mode_Read)
+		{
+			m_boneIds.resize(boneIdCount);
+		}
+
+		for (uint32& boneId : m_boneIds)
+		{
+			ret &= Serialize(_serializer_, boneId);
+		}
+
+		_serializer_.endArray();
+	}
+	else
+	{
+		ret = false;
+	}
+
+	uint boneNameCount = m_boneNames.size();
+	if (_serializer_.beginArray(boneNameCount, "m_boneNames"))
+	{
+		if (_serializer_.getMode() == Serializer::Mode_Read)
+		{
+			m_boneNames.resize(boneNameCount);
+		}
+
+		for (BoneName& boneName : m_boneNames)
+		{
+			ret &= Serialize(_serializer_, boneName);
+		}
+
+		_serializer_.endArray();
+	}
+	else
+	{
+		ret = false;
+	}
+
+	return ret;
 }
 
 int Skeleton::addBone(const char* _name, int _parentIndex)
@@ -46,14 +139,14 @@ const mat4* Skeleton::resolve()
 	{
 		const Bone& bone = m_bones[i];
 
-		mat4 m = TransformationMatrix(bone.m_translation, bone.m_rotation, bone.m_scale);
+		mat4 m = TransformationMatrix(bone.translation, bone.rotation, bone.scale);
 
-		if (bone.m_parentIndex >= 0)
+		if (bone.parentIndex >= 0)
 		{
-			FRM_ASSERT(bone.m_parentIndex <= i); // parent must come before children
+			FRM_ASSERT(bone.parentIndex <= i); // parent must come before children
 
 			// \todo Cheaper to apply the parent position/orientation/scale separately then build the matrix?
-			m = m_pose[bone.m_parentIndex] * m;
+			m = m_pose[bone.parentIndex] * m;
 		}
 
 		m_pose[i] = m;
@@ -72,10 +165,10 @@ void Skeleton::draw() const
 		for (int i = 0, n = (int)m_bones.size(); i < n; ++i)
 		{
 			const Bone& bone = m_bones[i];
-			if (bone.m_parentIndex >= 0)
+			if (bone.parentIndex >= 0)
 			{
 				Im3d::Vertex(GetTranslation(m_pose[i]), 2.0f);
-				Im3d::Vertex(GetTranslation(m_pose[bone.m_parentIndex]), 12.0f);
+				Im3d::Vertex(GetTranslation(m_pose[bone.parentIndex]), 12.0f);
 			}
 		}
 	Im3d::End();
@@ -294,21 +387,21 @@ void SkeletonAnimation::sample(float _t, Skeleton& _out_, int _hints_[])
 
 SkeletonAnimationTrack* SkeletonAnimation::addTranslationTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
 {
-	const int offset = offsetof(Skeleton::Bone, m_translation) / sizeof(float);
+	const int offset = offsetof(Skeleton::Bone, translation) / sizeof(float);
 	FRM_ASSERT(findTrack(_boneIndex, offset, 3) == nullptr); // track already exists
 	m_tracks.push_back(SkeletonAnimationTrack(_boneIndex, offset, 3, _frameCount, _normalizedTimes, _data));
 	return &m_tracks.back();
 }
 SkeletonAnimationTrack* SkeletonAnimation::addRotationTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
 {
-	const int offset = offsetof(Skeleton::Bone, m_rotation) / sizeof(float);
+	const int offset = offsetof(Skeleton::Bone, rotation) / sizeof(float);
 	FRM_ASSERT(findTrack(_boneIndex, offset, 4) == nullptr); // track already exists
 	m_tracks.push_back(SkeletonAnimationTrack(_boneIndex, offset, 4, _frameCount, _normalizedTimes, _data));
 	return &m_tracks.back();
 }
 SkeletonAnimationTrack* SkeletonAnimation::addScaleTrack(int _boneIndex, int _frameCount, float* _normalizedTimes, float* _data)
 {
-	const int offset = offsetof(Skeleton::Bone, m_scale) / sizeof(float);
+	const int offset = offsetof(Skeleton::Bone, scale) / sizeof(float);
 	FRM_ASSERT(findTrack(_boneIndex, offset, 3) == nullptr); // track already exists
 	m_tracks.push_back(SkeletonAnimationTrack(_boneIndex, offset, 3, _frameCount, _normalizedTimes, _data));
 	return &m_tracks.back();

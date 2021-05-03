@@ -1,4 +1,4 @@
-#include "MeshData.h"
+#include "Mesh.h"
 
 #include <frm/core/log.h>
 #include <frm/core/File.h>
@@ -11,18 +11,26 @@
 
 namespace frm {
 
-bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize)
+bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes)
 {
+	FRM_AUTOTIMER("Mesh::ReadGLTF");
+
 	tinygltf::Model gltf;
-	const PathStr rootPath = FileSystem::GetPath(mesh_.getPath());
-	if (!tinygltf::Load(_srcData, _srcDataSize, rootPath.c_str(), gltf))
-	{
-		return false;
+	{	FRM_AUTOTIMER("Parse GLTF");
+		const PathStr rootPath = FileSystem::GetPath(mesh_.getPath());
+		if (!tinygltf::Load(_srcData, _srcDataSizeBytes, rootPath.c_str(), gltf))
+		{
+			return false;
+		}
 	}
-	
+
 	// We discard the actual submesh hierarchy here and generate a single submesh per material ID. Skeletons ("skins" in gltf terms) are also merged.
-	eastl::vector<MeshBuilder> meshBuilderPerMaterial;
-	meshBuilderPerMaterial.resize(Max((size_t)1, gltf.materials.size()));
+	eastl::vector<Mesh*> meshPerMaterial;
+	meshPerMaterial.resize(Max((size_t)1, gltf.materials.size()));
+	for (Mesh*& mesh : meshPerMaterial)
+	{
+		mesh = Mesh::CreateUnique(Primitive_Triangles);
+	}
 	Skeleton skeleton;
 	eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1);
 	eastl::vector<mat4> bindPose;
@@ -41,7 +49,6 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 			
 		// We traverse the scene's node list *and* recursively traverse each node's subtree. This may cause nodes to be visited multiple times if the scene node hierarchy isn't well formed.
 		eastl::vector<int> visitedNodes;
-
 		for (auto nodeIndex : scene.nodes)
 		{
 			std::vector<int> nodeStack;
@@ -51,10 +58,10 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 			
 			while (!nodeStack.empty())
 			{
-				int thisNodeIndex = nodeStack.back();
+				const int thisNodeIndex = nodeStack.back();
 				const auto& node = gltf.nodes[thisNodeIndex];
 				nodeStack.pop_back();
-				auto transform = transformStack.back();
+				const mat4 transform = transformStack.back();
 				transformStack.pop_back();
 
 				if (eastl::find(visitedNodes.begin(), visitedNodes.end(), thisNodeIndex) != visitedNodes.end())
@@ -70,7 +77,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 				for (auto childIndex : node.children)
 				{
 					nodeStack.push_back(childIndex);
-					mat4 childTransform = GetTransform(&gltf.nodes[nodeStack.back()]);
+					const mat4 childTransform = GetTransform(&gltf.nodes[nodeStack.back()]);
 					transformStack.push_back(transform * childTransform);
 				}
 
@@ -99,10 +106,7 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 					{
 						continue;
 					}
-				
-					MeshBuilder& meshBuilder = meshBuilderPerMaterial[Max(0, meshPrimitive.material)];
-					const uint32 vertexOffset = meshBuilder.getVertexCount();
-
+					
 					tinygltf::Accessor positionsAccessor;
 					if (meshPrimitive.attributes.find("POSITION") != meshPrimitive.attributes.end())
 					{
@@ -128,53 +132,55 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 					}
 
 					const uint32 vertexCount = (uint32)positionsAccessor.count;
+					Mesh& submesh = *meshPerMaterial[Max(0, meshPrimitive.material)];
+					const uint32 vertexOffset = submesh.getVertexCount();
+					submesh.setVertexCount(vertexOffset + vertexCount);
 					{	
+						VertexDataView<vec3> positionsDst = submesh.getVertexDataView<vec3>(Mesh::Semantic_Positions, vertexOffset);
+						FRM_ASSERT(positionsDst.getCount() == vertexCount);
 						const auto& bufferView = gltf.bufferViews[positionsAccessor.bufferView];
 						const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + positionsAccessor.byteOffset;
 						const size_t stride = positionsAccessor.ByteStride(bufferView);
 						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex, buffer += stride)
 						{
-							MeshBuilder::Vertex vertex;
-							vertex.m_position = TransformPosition(transform, *((vec3*)buffer));
-							meshBuilder.addVertex(vertex);
+							positionsDst[vertexIndex] = TransformPosition(transform, *((vec3*)buffer));
 						}
 					}
 
 					FRM_ASSERT(indicesAccessor.count % 3 == 0);
-					const uint32 triangleCount = (uint32)indicesAccessor.count / 3;
+					const uint32 indexCount = (uint32)indicesAccessor.count;
+					const uint32 triangleCount = indexCount / 3;
+					const uint32 indexOffset = submesh.m_lods[0].submeshes[0].indexCount;
+					submesh.setIndexData(0, DataType_Uint32, indexOffset + indexCount);
+					IndexDataView<uint32> indexDst = submesh.getIndexDataView<uint32>(0, 0, indexOffset);					
 					{
 						const auto& bufferView = gltf.bufferViews[indicesAccessor.bufferView];
 						const unsigned char* buffer = gltf.buffers[bufferView.buffer].data.data() + bufferView.byteOffset + indicesAccessor.byteOffset;
 						const size_t stride = indicesAccessor.ByteStride(bufferView);
-						for (uint32 triangleIndex = 0; triangleIndex < triangleCount; ++triangleIndex)
+						for (uint32 i = 0; i < indexCount; ++i, buffer += stride)
 						{
-							MeshBuilder::Triangle triangle;
-							for (uint32 vertexIndex = 0; vertexIndex < 3; ++vertexIndex, buffer += stride)
+							switch (indicesAccessor.componentType)
 							{
-								switch (indicesAccessor.componentType)
-								{
-									default: 
-										FRM_ASSERT(false);
-									case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-										triangle[vertexIndex] = (uint32)*((unsigned int*)buffer);
-										break;
-									case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-										triangle[vertexIndex] = (uint32)*((unsigned short*)buffer);
-										break;
-								};
-								triangle[vertexIndex] += vertexOffset;
-							}
-							meshBuilder.addTriangle(triangle);
+								default: 
+									FRM_ASSERT(false);
+								case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+									indexDst[i] = (uint32)*((unsigned int*)buffer);
+									break;
+								case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+									indexDst[i] = (uint32)*((unsigned short*)buffer);
+									break;
+							};
+							indexDst[i] += vertexOffset;
 						}
 					}
 
 					if (meshPrimitive.attributes.find("NORMAL") != meshPrimitive.attributes.end())
 					{
+						VertexDataView<vec3> normalsDst = submesh.getVertexDataView<vec3>(Mesh::Semantic_Normals, vertexOffset);
 						tinygltf::AutoAccessor accessor(gltf.accessors[meshPrimitive.attributes["NORMAL"]], gltf);
 						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
-						{							
-							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
-							vertex.m_normal = TransformDirection(transform, Normalize(accessor.get<vec3>()));
+						{
+							normalsDst[vertexIndex] = TransformDirection(transform, Normalize(accessor.get<vec3>()));
 							accessor.next();
 						}
 					}
@@ -185,12 +191,12 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 
 					if (meshPrimitive.attributes.find("TANGENT") != meshPrimitive.attributes.end())
 					{
+						VertexDataView<vec4> tangentsDst = submesh.getVertexDataView<vec4>(Mesh::Semantic_Tangents, vertexOffset);
 						tinygltf::AutoAccessor accessor(gltf.accessors[meshPrimitive.attributes["TANGENT"]], gltf);
 						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
-						{							
-							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
+						{
 							vec4 t = accessor.get<vec4>();
-							vertex.m_tangent = vec4(TransformDirection(transform, Normalize(vertex.m_tangent.xyz())), vertex.m_tangent.w);
+							tangentsDst[vertexIndex] = vec4(TransformDirection(transform, Normalize(t.xyz())), t.w);
 							accessor.next();
 						}
 					}
@@ -201,11 +207,11 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 
 					if (meshPrimitive.attributes.find("TEXCOORD_0") != meshPrimitive.attributes.end())
 					{
+						VertexDataView<vec2> texcoordsDst = submesh.getVertexDataView<vec2>(Mesh::Semantic_MaterialUVs, vertexOffset);
 						tinygltf::AutoAccessor accessor(gltf.accessors[meshPrimitive.attributes["TEXCOORD_0"]], gltf);
 						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
-						{							
-							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
-							vertex.m_texcoord = accessor.get<vec2>();
+						{
+							texcoordsDst[vertexIndex] = accessor.get<vec2>();
 							accessor.next();
 						}
 					}
@@ -215,11 +221,11 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 					{
 						hasBoneIndices = true;
 
+						VertexDataView<uvec4> boneIndicesDst = submesh.getVertexDataView<uvec4>(Mesh::Semantic_BoneIndices, vertexOffset);
 						tinygltf::AutoAccessor accessor(gltf.accessors[meshPrimitive.attributes["JOINTS_0"]], gltf);
 						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
-						{							
-							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
-							vertex.m_boneIndices = accessor.get<uvec4>();
+						{
+							boneIndicesDst[vertexIndex] = accessor.get<uvec4>();
 							accessor.next();
 						}
 					}					
@@ -228,12 +234,12 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 					{
 						hasBoneWeights = true;
 
-						tinygltf::AutoAccessor boneWeightsAccessor(gltf.accessors[meshPrimitive.attributes["WEIGHTS_0"]], gltf);
+						VertexDataView<vec4> boneWeightsDst = submesh.getVertexDataView<vec4>(Mesh::Semantic_BoneWeights, vertexOffset);
+						tinygltf::AutoAccessor accessor(gltf.accessors[meshPrimitive.attributes["WEIGHTS_0"]], gltf);
 						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
-						{							
-							MeshBuilder::Vertex& vertex = meshBuilder.getVertex(vertexOffset + vertexIndex);
-							vertex.m_boneWeights = boneWeightsAccessor.get<vec4>();
-							boneWeightsAccessor.next();
+						{
+							boneWeightsDst[vertexIndex] = accessor.get<vec4>();
+							accessor.next();
 						}
 					}
 				}
@@ -241,49 +247,56 @@ bool MeshData::ReadGltf(MeshData& mesh_, const char* _srcData, uint _srcDataSize
 		}
 	}
 
-	MeshBuilder finalMeshBuilder;
-	for (uint materialId = 0; materialId < meshBuilderPerMaterial.size(); ++materialId)
-	{
-		finalMeshBuilder.beginSubmesh(materialId);
-		finalMeshBuilder.addMesh(meshBuilderPerMaterial[materialId]);
-		finalMeshBuilder.endSubmesh();
-	}
+	Mesh* finalMesh = Mesh::CreateUnique(Primitive_Triangles);
 
-	MeshDesc meshDesc = mesh_.getDesc();
-
-	if (meshDesc.findVertexAttr(VertexAttr::Semantic_Normals) && generateNormals)
-	{
-		FRM_AUTOTIMER("Generate normals");
-		finalMeshBuilder.generateNormals();
-	}
-
-	if (meshDesc.findVertexAttr(VertexAttr::Semantic_Tangents) && generateTangents)
-	{
-		FRM_AUTOTIMER("Generate tangents");
-		finalMeshBuilder.generateTangents();
-	}
-
-	if (!meshDesc.findVertexAttr(VertexAttr::Semantic_BoneWeights) && hasBoneWeights)
-	{
-		meshDesc.addVertexAttr(VertexAttr::Semantic_BoneWeights, DataType_Float, 4);
-	}
-
-	if (!meshDesc.findVertexAttr(VertexAttr::Semantic_BoneIndices) && hasBoneIndices)
-	{
-		DataType indexType = DataType_Uint16;
-		if (bindPose.size() < 256)
+	{	FRM_AUTOTIMER("Compile submeshes");
+	
+		for (Mesh* submesh : meshPerMaterial)
 		{
-			indexType = DataType_Uint8;
+			finalMesh->addSubmesh(0, *submesh);
+			Mesh::Release(submesh);
 		}
-		meshDesc.addVertexAttr(VertexAttr::Semantic_BoneIndices, indexType, 4);
+		meshPerMaterial.clear();
+
+		// \todo \hack In this case the second submesh is redundant. We always create submesh 0 to represent the whole mesh, in this case there was only 1 per material submesh and so it also represents the whole mesh.
+		if (finalMesh->m_lods[0].submeshes.size() == 2)
+		{
+			finalMesh->m_lods[0].submeshes.pop_back();
+		}
+
+		if (!bindPose.empty())
+		{
+			skeleton.setPose(bindPose.data());
+			finalMesh->setSkeleton(skeleton);
+		}
 	}
 
+	{	FRM_AUTOTIMER("Finalize");
 
-	MeshData retMesh(meshDesc, finalMeshBuilder);
-	swap(mesh_, retMesh);
+		if (generateNormals)
+		{
+			finalMesh->generateNormals();
+		}
 
-	skeleton.setPose(bindPose.data());
-	mesh_.setSkeleton(skeleton);
+		if (generateTangents)
+		{
+			finalMesh->generateTangents();
+		}
+
+		finalMesh->optimize();
+		finalMesh->generateLODs(5, 0.6f, 0.1f);
+		finalMesh->computeBounds();
+	}
+
+	mesh_.unload();
+	std::swap(mesh_.m_skeleton,      finalMesh->m_skeleton);
+	std::swap(mesh_.m_lods,          finalMesh->m_lods);
+	std::swap(mesh_.m_vertexData,    finalMesh->m_vertexData);
+	std::swap(mesh_.m_vertexCount,   finalMesh->m_vertexCount);
+	std::swap(mesh_.m_indexDataType, finalMesh->m_indexDataType);
+	std::swap(mesh_.m_primitive,     finalMesh->m_primitive);
+
+	Mesh::Release(finalMesh);
 
 	return true;
 }

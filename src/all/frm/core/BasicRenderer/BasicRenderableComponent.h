@@ -20,11 +20,7 @@ public:
 	static void  Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
 	static eastl::span<BasicRenderableComponent*> GetActiveComponents();
 
-	static BasicRenderableComponent* Create(
-		Mesh* _mesh,
-		BasicMaterial* _material
-		);
-
+	static BasicRenderableComponent* Create(DrawMesh* _mesh, BasicMaterial* _material);
 
 	void         setPose(const Skeleton& _skeleton);
 	void         clearPose();
@@ -53,13 +49,17 @@ protected:
 	vec4                                   m_colorAlpha      = vec4(1.0f);
 	mat4                                   m_world           = identity;
 	mat4                                   m_prevWorld       = identity;
-	Mesh*                                  m_mesh            = nullptr;
+	DrawMesh*                              m_mesh            = nullptr;
 	PathStr                                m_meshPath        = "";
+	int                                    m_lodOverride     = -1;
 	int                                    m_subMeshOverride = -1;
 	eastl::fixed_vector<BasicMaterial*, 1> m_materials;      // per submesh
 	eastl::fixed_vector<PathStr, 1>        m_materialPaths;  //     "
 	eastl::fixed_vector<mat4, 1>           m_pose;
 	eastl::fixed_vector<mat4, 1>           m_prevPose;
+
+	// \todo Store this in the renderer.
+	int m_selectedLOD = 0;
 
 	friend class BasicRenderer;
 };

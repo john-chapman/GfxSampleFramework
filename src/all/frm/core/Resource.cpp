@@ -247,14 +247,14 @@ bool Resource<tDerived>::Select(Derived*& _resource_, const char* _buttonLabel, 
 	return ret;
 }
 
-
-// Explicit template instantiations, resource release check
 #define DECL_RESOURCE(_name) \
 	template class Resource<_name>; \
 	const char* Resource<_name>::s_className = #_name;
 
 #include <frm/core/BasicRenderer/BasicMaterial.h>
 DECL_RESOURCE(BasicMaterial);
+#include <frm/core/DrawMesh.h>
+DECL_RESOURCE(DrawMesh);
 #include <frm/core/Mesh.h>
 DECL_RESOURCE(Mesh);
 #include <frm/core/SkeletonAnimation.h>

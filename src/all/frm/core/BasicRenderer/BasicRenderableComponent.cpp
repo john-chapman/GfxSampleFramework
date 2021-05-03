@@ -1,9 +1,10 @@
 #include "BasicRenderableComponent.h"
 #include "BasicMaterial.h"
 
-#include <frm/core/Mesh.h>
+#include <frm/core/DrawMesh.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Serializable.inl>
+#include <frm/core/SkeletonAnimation.h>
 
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
@@ -38,7 +39,7 @@ eastl::span<BasicRenderableComponent*> BasicRenderableComponent::GetActiveCompon
 	return eastl::span<BasicRenderableComponent*>(*((eastl::vector<BasicRenderableComponent*>*)&activeList));
 }
 
-BasicRenderableComponent* BasicRenderableComponent::Create(Mesh* _mesh, BasicMaterial* _material)
+BasicRenderableComponent* BasicRenderableComponent::Create(DrawMesh* _mesh, BasicMaterial* _material)
 {
 	BasicRenderableComponent* ret = (BasicRenderableComponent*)Component::Create(StringHash("BasicRenderableComponent"));
 	ret->m_mesh = _mesh;
@@ -95,18 +96,18 @@ bool BasicRenderableComponent::initImpl()
 	{
 		if (m_meshPath.isEmpty())
 		{
-			m_meshPath = "models/Box_1.obj";
+			m_meshPath = "models/Gear_1.gltf";
 		}
-		m_mesh = Mesh::Create(m_meshPath.c_str());
+		m_mesh = DrawMesh::Create(m_meshPath.c_str());
 	}
 	else
 	{
 		// Need to explicitly call Use here (Mesh::Create does it by default).
-		Mesh::Use(m_mesh);
+		DrawMesh::Use(m_mesh);
 	}
 	if (!CheckResource(m_mesh))
 	{
-		Mesh::Release(m_mesh);
+		DrawMesh::Release(m_mesh);
 		ret = false;
 	}
 
@@ -172,7 +173,7 @@ void BasicRenderableComponent::shutdownImpl()
 		BasicMaterial::Release(material);
 		material = nullptr;
 	}
-	Mesh::Release(m_mesh);
+	DrawMesh::Release(m_mesh);
 	m_mesh = nullptr;
 
 	m_pose.clear();
@@ -200,7 +201,7 @@ bool BasicRenderableComponent::editImpl()
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Mesh"))
 	{
-		if (Mesh::Select(m_mesh, "Mesh", { "*.gltf", "*.obj", "*.md5mesh" }))
+		if (DrawMesh::Select(m_mesh, "Mesh", { "*.mesh", "*.gltf" }))
 		{
 			m_meshPath = m_mesh->getPath();
 			if (ret && m_materialPaths.size() != m_mesh->getSubmeshCount())
@@ -224,6 +225,7 @@ bool BasicRenderableComponent::editImpl()
 		ImGui::SameLine();
 		ImGui::Text(m_meshPath.c_str());
 
+		ImGui::SliderInt("LOD Override", &m_lodOverride, -1, m_mesh->getLODCount() - 1);
 		ImGui::SliderInt("Submesh Override", &m_subMeshOverride, -1, m_mesh->getSubmeshCount() - 1);
 
 		ImGui::TreePop();

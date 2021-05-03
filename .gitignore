@@ -13,3 +13,4 @@ build/vs*/*
 
 # Cached data
 *.physx
+*.drawmesh

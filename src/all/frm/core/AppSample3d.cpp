@@ -7,8 +7,7 @@
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Input.h>
-#include <frm/core/Mesh.h>
-#include <frm/core/MeshData.h>
+#include <frm/core/DrawMesh.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
@@ -415,7 +414,7 @@ void AppSample3d::destroyDebugCullCamera()
 *******************************************************************************/
 
 static Shader*       s_shIm3dPrimitives[Im3d::DrawPrimitive_Count][2]; // Shader per primtive type (points, lines, tris), with/without depth test.
-static Mesh*         s_msIm3dPrimitives[Im3d::DrawPrimitive_Count];    // Mesh per primitive type.
+static DrawMesh*     s_msIm3dPrimitives[Im3d::DrawPrimitive_Count];    // Mesh per primitive type.
 static ImGuiContext* s_im3dTextRenderContext = nullptr;                // Separate ImGui context for text rendering.
 
 bool AppSample3d::Im3d_Init(AppSample3d* _app)
@@ -449,19 +448,19 @@ bool AppSample3d::Im3d_Init(AppSample3d* _app)
 		ret &= s_shIm3dPrimitives[primitiveType][1] && s_shIm3dPrimitives[primitiveType][0]->getState() == Shader::State_Loaded;
 	}
 
-	MeshDesc meshDesc(MeshDesc::Primitive_Points);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Positions, DataType_Float32, 4);
-	meshDesc.addVertexAttr(VertexAttr::Semantic_Colors,    DataType_Uint8N, 4);
-	FRM_ASSERT(meshDesc.getVertexSize() == sizeof(struct Im3d::VertexData));
-	s_msIm3dPrimitives[Im3d::DrawPrimitive_Points] = Mesh::Create(meshDesc);
+	DrawMesh::VertexLayout vertexLayout({
+		{ Mesh::Semantic_Positions, DataType_Float32, 4 },
+		{ Mesh::Semantic_Colors,    DataType_Uint8N,  4 },
+		});
+	FRM_ASSERT(vertexLayout.vertexSizeBytes == sizeof(struct Im3d::VertexData));
+
+	s_msIm3dPrimitives[Im3d::DrawPrimitive_Points] = DrawMesh::CreateUnique(Mesh::Primitive_Points, vertexLayout);
 	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Points] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Points]->getState() == Mesh::State_Loaded;
 	
-	meshDesc.setPrimitive(MeshDesc::Primitive_Lines);
-	s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines] = Mesh::Create(meshDesc);
+	s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines] = DrawMesh::CreateUnique(Mesh::Primitive_Lines, vertexLayout);
 	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines]->getState() == Mesh::State_Loaded;
 
-	meshDesc.setPrimitive(MeshDesc::Primitive_Triangles);
-	s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] = Mesh::Create(meshDesc);
+	s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] = DrawMesh::CreateUnique(Mesh::Primitive_Triangles, vertexLayout);
 	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles]->getState() == Mesh::State_Loaded;
 
 	// Init separate ImGui context for Im3d text rendering.
@@ -481,7 +480,7 @@ void AppSample3d::Im3d_Shutdown(AppSample3d* _app)
 {
 	for (int primitiveType = 0; primitiveType < Im3d::DrawPrimitive_Count; ++primitiveType)
 	{
-		Mesh::Release(s_msIm3dPrimitives[primitiveType]);
+		DrawMesh::Release(s_msIm3dPrimitives[primitiveType]);
 		Shader::Release(s_shIm3dPrimitives[primitiveType][0]);
 		Shader::Release(s_shIm3dPrimitives[primitiveType][1]);
 	}
@@ -531,7 +530,8 @@ void AppSample3d::drawIm3d(
 	std::initializer_list<Viewport>     _viewports,
 	std::initializer_list<Texture*>     _depthTextures
 	)
-{
+{ 
+
 	if (Im3d::GetDrawListCount() == 0)
 	{
 		return;
@@ -557,7 +557,7 @@ void AppSample3d::drawIm3d(
 	{
 		const Im3d::DrawList& drawList = Im3d::GetDrawLists()[drawListIndex];
 
-		Mesh* ms = s_msIm3dPrimitives[drawList.m_primType];
+		DrawMesh* ms = s_msIm3dPrimitives[drawList.m_primType];
 		ms->setVertexData(drawList.m_vertexData, drawList.m_vertexCount, GL_STREAM_DRAW);
 
 		for (size_t viewIndex = 0; viewIndex < viewCount; ++viewIndex)
@@ -694,6 +694,7 @@ void AppSample3d::drawIm3d(
 	}
 
 	ImGui::PopContext();
+
 }
 
 void AppSample3d::drawIm3d(Camera* _camera, Framebuffer* _framebuffer, Viewport _viewport, Texture* _depthTexture)

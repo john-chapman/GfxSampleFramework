@@ -934,7 +934,7 @@ bool SerializerJson::binary(void*& _data_, uint& _sizeBytes_, const char* _name,
 		if (!value((StringBase&)str, _name)) {
 			return false;
 		}
-		bool compressed = str[0] == '1' ? true : false;
+		bool compressed = str[0] == '1';
 		uint binSizeBytes = Base64GetDecodedSizeBytes((char*)str + 1, str.getLength() - 1);
 		char* bin = (char*)FRM_MALLOC(binSizeBytes);
 		Base64Decode((char*)str + 1, str.getLength() - 1, bin, binSizeBytes);
@@ -947,7 +947,7 @@ bool SerializerJson::binary(void*& _data_, uint& _sizeBytes_, const char* _name,
 		}
 		if (_data_) {
 			if (retSizeBytes != _sizeBytes_) {
-				setError("Error serializing %s, buffer size was %llu (expected %llu)", _sizeBytes_, retSizeBytes);
+				setError("Error serializing %s, buffer size was %llu (expected %llu)", _name, _sizeBytes_, retSizeBytes);
 				if (compressed) {
 					FRM_FREE(ret);
 				}

@@ -13,13 +13,14 @@ premake5 --file=premake.lua [target]
 ### Dependencies
 
 Embedded dependencies:
-- [EASTL](https://github.com/electronicarts/EASTL)
 - [dr_wav](https://github.com/mackron/dr_libs)
+- [EASTL](https://github.com/electronicarts/EASTL)
 - [Im3d](https://github.com/john-chapman/im3d/)
 - [ImGui](https://github.com/ocornut/imgui)
 - [linalg](https://github.com/john-chapman/linalg)
 - [LodePNG](http://lodev.org/lodepng/)
 - [lua](https://www.lua.org)
+- [meshoptimizer](https://github.com/zeux/meshoptimizer)
 - [Miniz](https://github.com/richgel999/miniz)
 - [PortAudio](http://www.portaudio.com/)
 - [RapidJSON](http://rapidjson.org/)
@@ -27,9 +28,9 @@ Embedded dependencies:
 - [tinyexr](https://github.com/syoyo/tinyexr)
 - [tinygltf](https://github.com/syoyo/tinygltf)
 - [tinyobjloader](https://github.com/syoyo/tinyobjloader)
-- [stb](https://github.com/nothings/stb)
 
 ## Change Log ##
+- `2021-05-03 (v0.33):` Mesh refactor: integrated [meshoptimizer](https://github.com/zeux/meshoptimizer), new `Mesh` + `DrawMesh` classes.
 - `2020-10-22 (v0.32):` Major refactor of the scene/component system, updated ImGui.
 - `2020-04-13 (v0.31):` Version bump after merging PhysX integration, basic renderer implementation + properites refactor.
 - `2019-10-15 (v0.30):` Subsumed ApplicationTools into GfxSampleFramework.

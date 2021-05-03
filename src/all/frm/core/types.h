@@ -48,6 +48,7 @@ enum DataType
 	DataType_Uint  = DataType_Uint64,
 	DataType_Float = DataType_Float32,
 };
+extern const char* kDataTypeStr[DataType_Count];
 
 inline constexpr bool DataTypeIsInt(DataType _type)
 {
