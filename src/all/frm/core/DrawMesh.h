@@ -21,9 +21,6 @@ namespace frm {
 //   ordering and should be complete (regardless of whether a vertex input is
 //   used).
 // - Submesh index offsets are converted to bytes.
-//
-// \todo
-// - Cache DrawMesh when loaded from disk.
 ////////////////////////////////////////////////////////////////////////////////
 class DrawMesh: public Resource<DrawMesh>
 {

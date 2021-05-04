@@ -38,22 +38,9 @@ const char* Mesh::kVertexDataSemanticStr[Semantic_Count]
 	"User3",          // Semantic_User3
 };
 
-
-Mesh* Mesh::CreateUnique(Primitive _primitive)
+Mesh* Mesh::CreatePlane(float _sizeX, float _sizeZ, int _segsX, int _segsZ, const mat4& _transform, CreateFlags _createFlags)
 {
-	Mesh* ret = FRM_NEW(Mesh(GetUniqueId(), ""));
-	ret->m_primitive = _primitive;	
-	
-	LOD& lod0 = ret->m_lods.push_back();
-	lod0.submeshes.push_back();
-
-	Use(ret);
-	return ret;
-}
-
-Mesh* Mesh::CreatePlane(float _sizeX, float _sizeZ, int _segsX, int _segsZ, const mat4& _transform)
-{
-	Mesh* ret = CreateUnique(Primitive_Triangles);
+	Mesh* ret = FRM_NEW(Mesh());
 
 	const uint32 vertexCount = (_segsX + 1) * (_segsZ + 1);
 	ret->setVertexCount(vertexCount);
@@ -137,9 +124,9 @@ Mesh* Mesh::CreatePlane(float _sizeX, float _sizeZ, int _segsX, int _segsZ, cons
 	return ret;
 }
 
-Mesh* Mesh::CreateDisc(float _radius, int _sides, const mat4& _transform)
+Mesh* Mesh::CreateDisc(float _radius, int _sides, const mat4& _transform, CreateFlags _createFlags)
 {
-	Mesh* ret = CreateUnique(Primitive_Triangles);
+	Mesh* ret = FRM_NEW(Mesh());
 
 	_sides = Max(3, _sides);
 	const int vertexCount = _sides + 1;
@@ -185,9 +172,9 @@ Mesh* Mesh::CreateDisc(float _radius, int _sides, const mat4& _transform)
 	return ret;
 }
 
-Mesh* Mesh::CreateBox(float _sizeX, float _sizeY, float _sizeZ, int _segsX, int _segsY, int _segsZ, const mat4& _transform)
+Mesh* Mesh::CreateBox(float _sizeX, float _sizeY, float _sizeZ, int _segsX, int _segsY, int _segsZ, const mat4& _transform, CreateFlags _createFlags)
 {
-	Mesh* ret = CreateUnique(Primitive_Triangles);
+	Mesh* ret = FRM_NEW(Mesh());
 
 	const vec3 size = vec3(_sizeX, _sizeY, _sizeZ);
 	const vec3 halfSize = size / 2.0f;
@@ -197,21 +184,21 @@ Mesh* Mesh::CreateBox(float _sizeX, float _sizeY, float _sizeZ, int _segsX, int 
 	ret->addSubmesh(0, *faceXZ);
 	faceXZ->transform(RotationMatrix(vec3(1.0f, 0.0f, 0.0f), Radians(180.0f)));
 	ret->addSubmesh(0, *faceXZ);
-	Mesh::Release(faceXZ);
+	Mesh::Destroy(faceXZ);
 
 	Mesh* faceXY = CreatePlane(_sizeX, _sizeY, _segsX, _segsY);
 	faceXY->transform(TransformationMatrix(vec3(0.0f, 0.0f, halfSize.z), RotationQuaternion(vec3(1.0f, 0.0f, 0.0f), Radians(90.0f))));
 	ret->addSubmesh(0, *faceXY);
 	faceXY->transform(RotationMatrix(vec3(1.0f, 0.0f, 0.0f), Radians(180.0f)));
 	ret->addSubmesh(0, *faceXY);
-	Mesh::Release(faceXY);
+	Mesh::Destroy(faceXY);
 	
 	Mesh* faceYZ = CreatePlane(_sizeY, _sizeZ, _segsY, _segsZ);
 	faceYZ->transform(TransformationMatrix(vec3(halfSize.x, 0.0f, 0.0f), RotationQuaternion(vec3(0.0f, 0.0f, 1.0f), Radians(-90.0f))));
 	ret->addSubmesh(0, *faceYZ);
 	faceYZ->transform(RotationMatrix(vec3(0.0f, 0.0f, 1.0f), Radians(180.0f)));
 	ret->addSubmesh(0, *faceYZ);
-	Mesh::Release(faceYZ);
+	Mesh::Destroy(faceYZ);
 
 	ret->transform(_transform);
 	ret->computeBounds();
@@ -219,7 +206,7 @@ Mesh* Mesh::CreateBox(float _sizeX, float _sizeY, float _sizeZ, int _segsX, int 
 	return ret;
 }
 
-Mesh* Mesh::CreateSphere(float _radius, int _segsLat, int _segsLong, const mat4& _transform)
+Mesh* Mesh::CreateSphere(float _radius, int _segsLat, int _segsLong, const mat4& _transform, CreateFlags _createFlags)
 {
 	Mesh* ret = CreatePlane(kTwoPi, kPi, _segsLong, _segsLat);
 
@@ -243,12 +230,12 @@ Mesh* Mesh::CreateSphere(float _radius, int _segsLat, int _segsLong, const mat4&
 	return ret;
 }
 
-Mesh* Mesh::CreateCylinder(float _radius, float _length, int _sides, int _segs, bool _capped, const mat4& _transform)
+Mesh* Mesh::CreateCylinder(float _radius, float _length, int _sides, int _segs, bool _capped, const mat4& _transform, CreateFlags _createFlags)
 {
-	return CreateCone(_length, _radius, _radius, _sides, _segs, _capped, _transform);
+	return CreateCone(_length, _radius, _radius, _sides, _segs, _capped, _transform, _createFlags);
 }
 
-Mesh* Mesh::CreateCone(float _height, float _radiusTop, float _radiusBottom, int _sides, int _segs, bool _capped, const mat4& _transform)
+Mesh* Mesh::CreateCone(float _height, float _radiusTop, float _radiusBottom, int _sides, int _segs, bool _capped, const mat4& _transform, CreateFlags _createFlags)
 {
 	Mesh* ret = CreatePlane(kTwoPi, _height, _sides, _segs);
 	
@@ -287,7 +274,7 @@ Mesh* Mesh::CreateCone(float _height, float _radiusTop, float _radiusBottom, int
 			Mesh* capTop = CreateDisc(_radiusTop, _sides);
 			capTop->transform(TranslationMatrix(vec3(0.0f, _height / 2.0f, 0.0f)));
 			ret->addSubmesh(0, *capTop);
-			Mesh::Release(capTop);
+			Mesh::Destroy(capTop);
 		}
 
 		if (_radiusBottom > 0.0f)
@@ -295,7 +282,7 @@ Mesh* Mesh::CreateCone(float _height, float _radiusTop, float _radiusBottom, int
 			Mesh* capBottom = CreateDisc(_radiusBottom, _sides);
 			capBottom->transform(TranslationMatrix(vec3(0.0f, -_height / 2.0f, 0.0f)) * RotationMatrix(vec3(1.0f, 0.0f, 0.0f), kPi));
 			ret->addSubmesh(0, *capBottom);
-			Mesh::Release(capBottom);
+			Mesh::Destroy(capBottom);
 		}
 	}
 
@@ -305,70 +292,18 @@ Mesh* Mesh::CreateCone(float _height, float _radiusTop, float _radiusBottom, int
 	return ret;
 }
 
-Mesh* Mesh::Create(const char* _path)
+Mesh* Mesh::Create(const char* _path, CreateFlags _createFlags)
 {	
-	Id id = GetHashId(_path);
-	Mesh* ret = Find(id);
-	if (!ret)
-	{
-		ret = FRM_NEW(Mesh(id, _path));
-		ret->m_path = _path;
-	}
-	Use(ret);
+	Mesh* ret = FRM_NEW(Mesh());
+	ret->m_path = _path;
+	ret->load(_createFlags);
+
 	return ret;
 }
 
 void Mesh::Destroy(Mesh*& _mesh_)
 {
 	FRM_DELETE(_mesh_);
-}
-
-bool Mesh::reload()
-{
-	if (m_path.isEmpty())
-	{
-		return true;
-	}
-
-	FRM_AUTOTIMER("Mesh::reload(%s)", m_path.c_str());
-
-	File f;
-	if (!FileSystem::Read(f, m_path.c_str()))
-	{
-		return nullptr;
-	}
-
-	if (FileSystem::CompareExtension("mesh", m_path.c_str()))
-	{
-		Json json;
-		if (!Json::Read(json, m_path.c_str()))
-		{
-			return false;
-		}
-
-		SerializerJson serializer(json, SerializerJson::Mode_Read);
-		return serialize(serializer);
-	}
-	else if (FileSystem::CompareExtension("gltf", m_path.c_str()))
-	{
-		if (!ReadGLTF(*this, f.getData(), f.getDataSize()))
-		{
-			return false;
-		}
-	}
-	else
-	{
-		FRM_ASSERT(false); // unsupported format
-		return false;
-	}
-	
-	return true;
-}
-
-bool Mesh::serialize(Serializer& _serializer_)
-{
-	FRM_ASSERT(false); // \todo
-	return false;
 }
 
 void Mesh::setSkeleton(const Skeleton& _skeleton)
@@ -893,14 +828,64 @@ void Mesh::finalize()
 
 // PROTECTED
 
-Mesh::Mesh(uint64 _id, const char* _name)
-	: Resource<Mesh>(_id, _name)
+Mesh::Mesh(Primitive _primitive)
+	: m_primitive(_primitive)
 {
+	LOD& lod0 = m_lods.push_back();
+	lod0.submeshes.push_back();
+}
+
+Mesh::Mesh(const char* _path, CreateFlags _createFlags)
+	: m_path(_path)
+{
+	load(_createFlags);
 }
 
 Mesh::~Mesh()
 {
 	unload();
+}
+
+bool Mesh::load(CreateFlags _createFlags)
+{
+	if (m_path.isEmpty())
+	{
+		return true;
+	}
+
+	FRM_AUTOTIMER("Mesh::reload(%s)", m_path.c_str());
+
+	File f;
+	if (!FileSystem::Read(f, m_path.c_str()))
+	{
+		return nullptr;
+	}
+
+	if (FileSystem::CompareExtension("mesh", m_path.c_str()))
+	{
+		Json json;
+		if (!Json::Read(json, m_path.c_str()))
+		{
+			return false;
+		}
+
+		SerializerJson serializer(json, SerializerJson::Mode_Read);
+		return serialize(serializer);
+	}
+	else if (FileSystem::CompareExtension("gltf", m_path.c_str()))
+	{
+		if (!ReadGLTF(*this, f.getData(), f.getDataSize(), _createFlags))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		FRM_ASSERT(false); // unsupported format
+		return false;
+	}
+	
+	return true;
 }
 
 void Mesh::unload()
@@ -919,6 +904,12 @@ void Mesh::unload()
 	}
 
 	FRM_DELETE(m_skeleton);
+}
+
+bool Mesh::serialize(Serializer& _serializer_)
+{
+	FRM_ASSERT(false); // \todo
+	return false;
 }
 
 void Mesh::addSubmesh(uint32 _lod, uint32 _indexOffset, uint32 _indexCount)

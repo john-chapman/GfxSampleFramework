@@ -11,7 +11,7 @@
 
 namespace frm {
 
-bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes)
+bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes, CreateFlags _createFlags)
 {
 	FRM_AUTOTIMER("Mesh::ReadGLTF");
 
@@ -25,12 +25,9 @@ bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes)
 	}
 
 	// We discard the actual submesh hierarchy here and generate a single submesh per material ID. Skeletons ("skins" in gltf terms) are also merged.
-	eastl::vector<Mesh*> meshPerMaterial;
+	eastl::vector<Mesh> meshPerMaterial;
 	meshPerMaterial.resize(Max((size_t)1, gltf.materials.size()));
-	for (Mesh*& mesh : meshPerMaterial)
-	{
-		mesh = Mesh::CreateUnique(Primitive_Triangles);
-	}
+
 	Skeleton skeleton;
 	eastl::vector<int> boneIndexMap(gltf.nodes.size(), -1);
 	eastl::vector<mat4> bindPose;
@@ -132,7 +129,7 @@ bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes)
 					}
 
 					const uint32 vertexCount = (uint32)positionsAccessor.count;
-					Mesh& submesh = *meshPerMaterial[Max(0, meshPrimitive.material)];
+					Mesh& submesh = meshPerMaterial[Max(0, meshPrimitive.material)];
 					const uint32 vertexOffset = submesh.getVertexCount();
 					submesh.setVertexCount(vertexOffset + vertexCount);
 					{	
@@ -247,56 +244,61 @@ bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes)
 		}
 	}
 
-	Mesh* finalMesh = Mesh::CreateUnique(Primitive_Triangles);
+	Mesh finalMesh;
 
 	{	FRM_AUTOTIMER("Compile submeshes");
 	
-		for (Mesh* submesh : meshPerMaterial)
+		for (Mesh& submesh : meshPerMaterial)
 		{
-			finalMesh->addSubmesh(0, *submesh);
-			Mesh::Release(submesh);
+			finalMesh.addSubmesh(0, submesh);
 		}
 		meshPerMaterial.clear();
 
 		// \todo \hack In this case the second submesh is redundant. We always create submesh 0 to represent the whole mesh, in this case there was only 1 per material submesh and so it also represents the whole mesh.
-		if (finalMesh->m_lods[0].submeshes.size() == 2)
+		if (finalMesh.m_lods[0].submeshes.size() == 2)
 		{
-			finalMesh->m_lods[0].submeshes.pop_back();
+			finalMesh.m_lods[0].submeshes.pop_back();
 		}
 
 		if (!bindPose.empty())
 		{
 			skeleton.setPose(bindPose.data());
-			finalMesh->setSkeleton(skeleton);
+			finalMesh.setSkeleton(skeleton);
 		}
 	}
 
 	{	FRM_AUTOTIMER("Finalize");
 
-		if (generateNormals)
+		if (generateNormals && _createFlags.get(CreateFlag::GenerateNormals))
 		{
-			finalMesh->generateNormals();
+			finalMesh.generateNormals();
 		}
 
-		if (generateTangents)
+		if (generateTangents && _createFlags.get(CreateFlag::GenerateTangents))
 		{
-			finalMesh->generateTangents();
+			finalMesh.generateTangents();
 		}
 
-		finalMesh->optimize();
-		finalMesh->generateLODs(5, 0.6f, 0.1f);
-		finalMesh->computeBounds();
+		if (_createFlags.get(CreateFlag::Optimize))
+		{
+			finalMesh.optimize();
+		}
+
+		if (_createFlags.get(CreateFlag::GenerateLODs))
+		{
+			finalMesh.generateLODs(5, 0.6f, 0.1f);
+		}
+
+		finalMesh.computeBounds();
 	}
 
 	mesh_.unload();
-	std::swap(mesh_.m_skeleton,      finalMesh->m_skeleton);
-	std::swap(mesh_.m_lods,          finalMesh->m_lods);
-	std::swap(mesh_.m_vertexData,    finalMesh->m_vertexData);
-	std::swap(mesh_.m_vertexCount,   finalMesh->m_vertexCount);
-	std::swap(mesh_.m_indexDataType, finalMesh->m_indexDataType);
-	std::swap(mesh_.m_primitive,     finalMesh->m_primitive);
-
-	Mesh::Release(finalMesh);
+	std::swap(mesh_.m_skeleton,      finalMesh.m_skeleton);
+	std::swap(mesh_.m_lods,          finalMesh.m_lods);
+	std::swap(mesh_.m_vertexData,    finalMesh.m_vertexData);
+	std::swap(mesh_.m_vertexCount,   finalMesh.m_vertexCount);
+	std::swap(mesh_.m_indexDataType, finalMesh.m_indexDataType);
+	std::swap(mesh_.m_primitive,     finalMesh.m_primitive);
 
 	return true;
 }

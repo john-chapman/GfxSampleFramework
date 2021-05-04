@@ -255,8 +255,6 @@ bool Resource<tDerived>::Select(Derived*& _resource_, const char* _buttonLabel, 
 DECL_RESOURCE(BasicMaterial);
 #include <frm/core/DrawMesh.h>
 DECL_RESOURCE(DrawMesh);
-#include <frm/core/Mesh.h>
-DECL_RESOURCE(Mesh);
 #include <frm/core/SkeletonAnimation.h>
 DECL_RESOURCE(SkeletonAnimation);
 #include <frm/core/Shader.h>

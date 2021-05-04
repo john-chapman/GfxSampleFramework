@@ -2,6 +2,7 @@
 
 #include <frm/core/frm.h>
 #include <frm/core/geom.h>
+#include <frm/core/BitFlags.h>
 #include <frm/core/Resource.h>
 #include <frm/core/String.h>
 #include <frm/core/StringHash.h>
@@ -14,8 +15,8 @@ namespace frm {
 // Mesh
 //
 // \todo
-// - Optionally generate LODs for procedural meshes. These should *not* use 
-//   meshopt but instead just generate simpler primitives.
+// - Implement CreateFlags for for procedural meshes. LOD generation should *not* 
+//   use meshopt but instead just generate simpler primitives.
 // - Generalize vertex data semantics. Ideal solution would be to use a map with
 //   arbitrary strings as keys, however this will necessitate a more complex
 //   binding model for DrawMesh to match semantics with vertex attribute 
@@ -23,7 +24,7 @@ namespace frm {
 //   draw).
 // - Auto-generate lightmap UVs?
 ////////////////////////////////////////////////////////////////////////////////
-class Mesh: public Resource<Mesh>
+class Mesh
 {
 public:
 
@@ -60,8 +61,16 @@ public:
 	using VertexDataSemantic = int;
 	static const char* kVertexDataSemanticStr[Semantic_Count];
 
-	// Create a unique mesh instance.
-	static Mesh* CreateUnique(Primitive _primitive = Primitive_Triangles);
+	enum class CreateFlag
+	{
+		Optimize,
+		GenerateLODs,
+		GenerateNormals,
+		GenerateTangents,
+
+		BIT_FLAGS_COUNT_DEFAULT(Optimize, GenerateLODs, GenerateNormals, GenerateTangents)
+	};
+	using CreateFlags = BitFlags<CreateFlag>;
 
 	// Create a plane in XZ.
 	static Mesh* CreatePlane(
@@ -69,7 +78,8 @@ public:
 		float       _sizeZ, 
 		int         _segsX, 
 		int         _segsZ,
-		const mat4& _transform = identity
+		const mat4& _transform = identity,
+		CreateFlags _createFlags = CreateFlags()
 		);
 
 	// Create a disc in XZ.
@@ -77,7 +87,8 @@ public:
 	static Mesh* CreateDisc(
 		float       _radius, 
 		int         _sides,
-		const mat4& _transform = identity
+		const mat4& _transform = identity,
+		CreateFlags _createFlags = CreateFlags()
 		);
 
 	// Create a box. Each face is a submesh, ordering is X+,X-,Y+,Y-,Z+,Z-.
@@ -88,7 +99,8 @@ public:
 		int         _segsX,
 		int         _segsY,
 		int         _segsZ,
-		const mat4& _transform = identity
+		const mat4& _transform = identity,
+		CreateFlags _createFlags = CreateFlags()
 		);
 
 	// Create a sphere with poles aligned to Y axis.
@@ -96,7 +108,8 @@ public:
 		float       _radius,
 		int         _segsLat, 
 		int         _segsLong,
-		const mat4& _transform = identity
+		const mat4& _transform = identity,
+		CreateFlags _createFlags = CreateFlags()
 		);
 
 	// Create a cylinder aligned to the Y axis.
@@ -106,7 +119,8 @@ public:
 		int         _sides,
 		int         _segs,
 		bool        _capped    = true,
-		const mat4& _transform = identity
+		const mat4& _transform = identity,
+		CreateFlags _createFlags = CreateFlags()
 		);
 
 	// Create a cone aligned to the Y axis.
@@ -117,23 +131,29 @@ public:
 		int         _sides,
 		int         _segs,		
 		bool        _capped    = true,
-		const mat4& _transform = identity
+		const mat4& _transform = identity,
+		CreateFlags _createFlags = CreateFlags()
 		);
 
 	// Load from path.
-	static Mesh*          Create(const char* _path);
+	static Mesh*          Create(const char* _path, CreateFlags _createFlags = CreateFlags());
 	
 	// Destroy _mesh_.
 	static void           Destroy(Mesh*& _mesh_);
 
+	
+		                  Mesh(Primitive _primitive = Primitive_Triangles);
+						  Mesh(const char* _path, CreateFlags _createFlags = CreateFlags());
+	                      ~Mesh();
 
-	bool                  load()                                   { return reload(); }
-	bool                  reload();
-	bool                  serialize(Serializer& _serializer_);
-
-	const char*           getPath() const                          { return m_path.c_str(); }
-	uint32                getVertexCount() const                   { return m_vertexCount; }
-	Skeleton*             getSkeleton()                            { return m_skeleton; }
+	const char*           getPath() const                                                  { return m_path.c_str(); }
+	Primitive             getPrimitive() const                                             { return m_primitive; }
+	uint32                getVertexCount() const                                           { return m_vertexCount; }
+	uint32                getIndexCount(uint32 _lod = 0, uint32 _submesh = 0) const        { return m_lods[_lod].submeshes[_submesh].indexCount; }
+	DataType              getIndexDataType() const                                         { return m_indexDataType; }
+	const AlignedBox&     getBoundingBox(uint32 _lod = 0, uint32 _submesh = 0) const       { return m_lods[_lod].submeshes[_submesh].boundingBox; }
+	const Sphere&         getBoundingSphere(uint32 _lod = 0, uint32 _submesh = 0) const    { return m_lods[_lod].submeshes[_submesh].boundingSphere; }
+	Skeleton*             getSkeleton()                                                    { return m_skeleton; }
 	void                  setSkeleton(const Skeleton& _skeleton);
 
 
@@ -226,11 +246,11 @@ protected:
 	LODList    m_lods;
 	Skeleton*  m_skeleton                    = nullptr;
 
-	static bool           ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes);
+	static bool           ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes, CreateFlags _createFlags);
 
-	                      Mesh(uint64 _id, const char* _name);
-	                      ~Mesh();
+	bool                  load(CreateFlags _createFlags);
 	void                  unload();	
+	bool                  serialize(Serializer& _serializer_);
 	void                  addSubmesh(uint32 _lod, uint32 _indexOffset, uint32 _indexCount);
 	void                  addSubmesh(uint32 _lod, Mesh& _mesh);
 	

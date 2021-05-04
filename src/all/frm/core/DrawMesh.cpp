@@ -12,8 +12,6 @@
 #include <frm/core/SkeletonAnimation.h>
 #include <frm/core/Time.h>
 
-#include <cstring> // memcpy
-
 static GLenum PrimitiveToGl(frm::Mesh::Primitive _prim)
 {
 	switch (_prim)
@@ -47,7 +45,6 @@ namespace frm {
 
 // PUBLIC
 
-
 DrawMesh* DrawMesh::CreateUnique(Mesh::Primitive _primitive, const VertexLayout& _vertexLayout)
 {
 	DrawMesh* ret = FRM_NEW(DrawMesh(GetUniqueId(), ""));
@@ -66,7 +63,7 @@ DrawMesh* DrawMesh::CreateUnique(Mesh::Primitive _primitive, const VertexLayout&
 
 DrawMesh* DrawMesh::Create(Mesh& _mesh, const VertexLayout& _vertexLayout)
 {
-	DrawMesh* ret = FRM_NEW(DrawMesh(GetUniqueId(), _mesh.getName()));
+	DrawMesh* ret = FRM_NEW(DrawMesh(GetUniqueId(), _mesh.getPath()));
 	FRM_VERIFY(ret->load(_mesh, _vertexLayout));
 	Use(ret);
 	return ret;
@@ -160,7 +157,7 @@ bool DrawMesh::reload()
 		
 		data->finalize(); // Convert mesh data buffers to minimal precision format.
 		FRM_VERIFY(load(*data, VertexLayout()));
-		Mesh::Release(data);
+		Mesh::Destroy(data);
 
 		// Cache the result.
 		Json json;
@@ -439,11 +436,6 @@ DrawMesh::~DrawMesh()
 
 GLuint DrawMesh::findOrCreateBindHandle(int _lodIndex, uint16 _bindHandleKey)
 {
-	if (_lodIndex >= m_lods.size())
-	{
-		FRM_STRICT_ASSERT(false);
-		return 0;
-	}
 	LOD& lod = m_lods[_lodIndex];
 
 	GLuint& ret = lod.bindHandleMap[_bindHandleKey];

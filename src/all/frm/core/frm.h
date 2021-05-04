@@ -142,7 +142,6 @@ namespace frm {
 	class  Keyboard;
 	class  LuaScript;
 	class  Mesh;
-	class  MeshBuilder;
 	class  Mouse;
 	class  Property;
 	class  PropertyGroup;
