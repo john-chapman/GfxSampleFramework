@@ -96,7 +96,7 @@ bool BasicRenderableComponent::initImpl()
 	{
 		if (m_meshPath.isEmpty())
 		{
-			m_meshPath = "models/Gear_1.gltf";
+			m_meshPath = "models/Box1.gltf";
 		}
 		m_mesh = DrawMesh::Create(m_meshPath.c_str());
 	}

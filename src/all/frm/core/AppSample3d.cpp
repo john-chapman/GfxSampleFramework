@@ -455,13 +455,13 @@ bool AppSample3d::Im3d_Init(AppSample3d* _app)
 	FRM_ASSERT(vertexLayout.vertexSizeBytes == sizeof(struct Im3d::VertexData));
 
 	s_msIm3dPrimitives[Im3d::DrawPrimitive_Points] = DrawMesh::CreateUnique(Mesh::Primitive_Points, vertexLayout);
-	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Points] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Points]->getState() == Mesh::State_Loaded;
+	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Points] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Points]->getState() == DrawMesh::State_Loaded;
 	
 	s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines] = DrawMesh::CreateUnique(Mesh::Primitive_Lines, vertexLayout);
-	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines]->getState() == Mesh::State_Loaded;
+	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Lines]->getState() == DrawMesh::State_Loaded;
 
 	s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] = DrawMesh::CreateUnique(Mesh::Primitive_Triangles, vertexLayout);
-	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles]->getState() == Mesh::State_Loaded;
+	ret &= s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles] && s_msIm3dPrimitives[Im3d::DrawPrimitive_Triangles]->getState() == DrawMesh::State_Loaded;
 
 	// Init separate ImGui context for Im3d text rendering.
 	ImGuiContext* prevImGuiContext = ImGui::GetCurrentContext();
