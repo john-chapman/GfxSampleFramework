@@ -7,7 +7,7 @@
 #include <frm/core/memory.h>
 #include <frm/core/FileSystem.h>
 #include <frm/core/Json.h>
-#include <frm/core/MeshData.h>
+#include <frm/core/Mesh.h>
 #include <frm/core/Serializer.h>
 
 #include <imgui/imgui.h>
@@ -498,16 +498,15 @@ bool PhysicsGeometry::initImpl()
 		{
 			if (cachedData.getDataSize() == 0)
 			{
-				MeshData* meshData = MeshData::Create(m_dataPath.c_str());
+				Mesh meshData = Mesh(m_dataPath.c_str(), Mesh::CreateFlags(0));
 				physx::PxDefaultMemoryOutputStream pxOutput;
-				if (!meshData || !PxCookConvexMesh(meshData, pxOutput))
+				if (!PxCookConvexMesh(meshData, pxOutput))
 				{
 					setState(State_Error);
 					return false;
 				}
 				cachedData.setData((const char*)pxOutput.getData(), pxOutput.getSize());
 				FileSystem::Write(cachedData, cachedPath.c_str());
-				MeshData::Destroy(meshData);
 			}
 
 			physx::PxDefaultMemoryInputData pxInput((physx::PxU8*)cachedData.getData(), (physx::PxU32)cachedData.getDataSize());
@@ -519,16 +518,15 @@ bool PhysicsGeometry::initImpl()
 		{
 			if (cachedData.getDataSize() == 0)
 			{
-				MeshData* meshData = MeshData::Create(m_dataPath.c_str());
+				Mesh meshData = Mesh(m_dataPath.c_str(), Mesh::CreateFlags(0));
 				physx::PxDefaultMemoryOutputStream pxOutput;
-				if (!meshData || !PxCookTriangleMesh(meshData, pxOutput))
+				if (!PxCookTriangleMesh(meshData, pxOutput))
 				{
 					setState(State_Error);
 					return false;
 				}
 				cachedData.setData((const char*)pxOutput.getData(), pxOutput.getSize()); // \todo avoid this copy?
 				FileSystem::Write(cachedData, cachedPath.c_str());
-				MeshData::Destroy(meshData);
 			}
 
 			physx::PxDefaultMemoryInputData pxInput((physx::PxU8*)cachedData.getData(), (physx::PxU32)cachedData.getDataSize());

@@ -2,7 +2,7 @@
 
 #include <frm/core/log.h>
 #include <frm/core/memory.h>
-#include <frm/core/MeshData.h>
+#include <frm/core/Mesh.h>
 #include <frm/core/Pool.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Properties.h>
@@ -252,20 +252,20 @@ static void InitCooker()
 	g_pxCooking = PxCreateCooking(PX_PHYSICS_VERSION, *g_pxFoundation, cookingParams);
 }
 
-bool PxCookConvexMesh(const MeshData* _meshData, physx::PxOutputStream& out_)
+bool PxCookConvexMesh(Mesh& _mesh, physx::PxOutputStream& out_)
 {
 	FRM_AUTOTIMER("Physics::CookConvexMesh");
-
-	FRM_ASSERT(_meshData);
+	
+	FRM_ASSERT(_mesh.getVertexCount() != 0);
 
 	InitCooker();
 	FRM_ASSERT(g_pxCooking);
 
 	// \todo polygons?
 	physx::PxConvexMeshDesc meshDesc = {};
-	meshDesc.points.count = (physx::PxU32)_meshData->getVertexCount();
-	meshDesc.points.stride = _meshData->getDesc().getVertexSize();
-	meshDesc.points.data = _meshData->getVertexData();
+	meshDesc.points.count = (physx::PxU32)_mesh.getVertexCount();
+	meshDesc.points.stride = (physx::PxU32)sizeof(vec3); // \todo Verify correct data type.
+	meshDesc.points.data = _mesh.getVertexData(Mesh::Semantic_Positions);
 	meshDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX;// | physx::PxConvexFlag::eDISABLE_MESH_VALIDATION;
 
 	physx::PxConvexMeshCookingResult::Enum err = physx::PxConvexMeshCookingResult::Enum::eSUCCESS;
@@ -291,24 +291,26 @@ bool PxCookConvexMesh(const MeshData* _meshData, physx::PxOutputStream& out_)
 	return false;
 }
 
-bool PxCookTriangleMesh(const MeshData* _meshData, physx::PxOutputStream& out_)
+bool PxCookTriangleMesh(Mesh& _mesh, physx::PxOutputStream& out_)
 {
 	FRM_AUTOTIMER("Physics::CookTriangleMesh");
 
-	FRM_ASSERT(_meshData);
+	FRM_ASSERT(_mesh.getVertexCount() != 0);
+	FRM_ASSERT(_mesh.getIndexCount() != 0);
+	FRM_ASSERT(_mesh.getPrimitive() == Mesh::Primitive_Triangles);
 
 	InitCooker();
 	FRM_ASSERT(g_pxCooking);
 
 	physx::PxTriangleMeshDesc meshDesc = {};
-	meshDesc.points.count = (physx::PxU32)_meshData->getVertexCount();
-	meshDesc.points.stride = (physx::PxU32)_meshData->getDesc().getVertexSize();
-	meshDesc.points.data = _meshData->getVertexData();
-	meshDesc.triangles.count = (physx::PxU32)_meshData->getIndexCount() / 3;
-	meshDesc.triangles.stride = (physx::PxU32)DataTypeSizeBytes(_meshData->getIndexDataType()) * 3;
-	meshDesc.triangles.data = _meshData->getIndexData();
+	meshDesc.points.count = (physx::PxU32)_mesh.getVertexCount();
+	meshDesc.points.stride = (physx::PxU32)sizeof(vec3); // \todo Verify correct data type.
+	meshDesc.points.data = _mesh.getVertexData(Mesh::Semantic_Positions);
+	meshDesc.triangles.count = (physx::PxU32)_mesh.getIndexCount() / 3;
+	meshDesc.triangles.stride = (physx::PxU32)DataTypeSizeBytes(_mesh.getIndexDataType()) * 3;
+	meshDesc.triangles.data = _mesh.getIndexData();
 	meshDesc.flags = (physx::PxMeshFlags)0; //| physx::PxMeshFlag::eFLIPNORMALS; // use eFLIPNORMALS to flip triangle winding
-	if (_meshData->getIndexDataType() == DataType_Uint16)
+	if (_mesh.getIndexDataType() == DataType_Uint16)
 	{
 		meshDesc.flags |= physx::PxMeshFlag::e16_BIT_INDICES;
 	}
