@@ -220,7 +220,7 @@
 				"_version": 0,
 				"m_castShadows": true,
 				"m_colorAlpha": [1.0, 0.9999899864196777, 0.9999899864196777, 1.0],
-				"m_meshPath": "models/Box_1.obj",
+				"m_meshPath": "models/Box1.gltf",
 				"m_materialPaths": ["materials/BasicMaterial.mat"]
 			}, {
 				"ID": "0004",
@@ -235,7 +235,7 @@
 				"_version": 0,
 				"m_castShadows": true,
 				"m_colorAlpha": [1.0, 0.0, 0.0, 1.0],
-				"m_meshPath": "models/Box_1.obj",
+				"m_meshPath": "models/Box1.gltf",
 				"m_materialPaths": ["materials/BasicMaterial.mat"]
 			}, {
 				"ID": "0006",
@@ -243,7 +243,7 @@
 				"_version": 0,
 				"m_castShadows": true,
 				"m_colorAlpha": [0.0, 1.0, 0.0, 1.0],
-				"m_meshPath": "models/Box_1.obj",
+				"m_meshPath": "models/Box1.gltf",
 				"m_materialPaths": ["materials/BasicMaterial.mat"]
 			}, {
 				"ID": "0007",
@@ -251,7 +251,7 @@
 				"_version": 0,
 				"m_castShadows": true,
 				"m_colorAlpha": [1.0, 0.9999899864196777, 0.9999899864196777, 1.0],
-				"m_meshPath": "models/Box_1.obj",
+				"m_meshPath": "models/Box1.gltf",
 				"m_materialPaths": ["materials/BasicMaterial.mat"]
 			}, {
 				"ID": "0008",
@@ -259,7 +259,7 @@
 				"_version": 0,
 				"m_castShadows": true,
 				"m_colorAlpha": [1.0, 0.9999899864196777, 0.9999899864196777, 1.0],
-				"m_meshPath": "models/Box_1.obj",
+				"m_meshPath": "models/Box1.gltf",
 				"m_materialPaths": ["materials/BasicMaterial.mat"]
 			}, {
 				"ID": "0009",
@@ -277,7 +277,7 @@
 				"_version": 0,
 				"m_castShadows": true,
 				"m_colorAlpha": [1.0, 1.0, 1.0, 1.0],
-				"m_meshPath": "common/models/Sphere_1.obj",
+				"m_meshPath": "common/models/Sphere1.gltf",
 				"m_materialPaths": ["materials/BasicMaterial.mat"]
 			}, {
 				"ID": "000B",
@@ -285,7 +285,7 @@
 				"_version": 0,
 				"m_castShadows": true,
 				"m_colorAlpha": [0.0, 0.5836300849914551, 1.0, 1.0],
-				"m_meshPath": "models/Box_1.obj",
+				"m_meshPath": "models/Box1.gltf",
 				"m_materialPaths": ["materials/BasicMaterial.mat"]
 			}, {
 				"ID": "000C",

@@ -38,7 +38,7 @@ protected:
 	frm::Shader*      m_shDepthOnly         = nullptr;
 	frm::Shader*      m_shDepthError        = nullptr;
 	frm::Buffer*      m_bfInstances         = nullptr;
-	frm::Mesh*        m_mesh                = nullptr;
+	frm::DrawMesh*    m_mesh                = nullptr;
 	int               m_instanceCount       = 64;
 	float             m_maxError            = 1e-3f;
 	bool              m_reconstructPosition = false;

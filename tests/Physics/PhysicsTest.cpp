@@ -7,6 +7,7 @@
 #include <frm/core/BasicRenderer/BasicRenderer.h>
 #include <frm/core/BasicRenderer/BasicRenderableComponent.h>
 #include <frm/core/BasicRenderer/BasicMaterial.h>
+#include <frm/core/DrawMesh.h>
 #include <frm/core/GlContext.h>
 #include <frm/core/Input.h>
 #include <frm/core/Mesh.h>
@@ -61,13 +62,13 @@ bool PhysicsTest::init(const frm::ArgList& _args)
 	m_defaultMaterial = BasicMaterial::Create("materials/Grid1Light.mat");
 	FRM_ASSERT(m_defaultMaterial->getState() == BasicMaterial::State_Loaded);
 
-	m_meshes[Geometry_Box]                 = Mesh::Create("models/Box_1.obj");
+	m_meshes[Geometry_Box]                 = DrawMesh::Create("models/Box1.gltf");
 	m_physicsGeometries[Geometry_Box]      = PhysicsGeometry::CreateBox(vec3(0.5f));
-	m_meshes[Geometry_Capsule]             = Mesh::Create("models/Capsule_1.obj");
+	m_meshes[Geometry_Capsule]             = DrawMesh::Create("models/Capsule1.gltf");
 	m_physicsGeometries[Geometry_Capsule]  = PhysicsGeometry::CreateCapsule(0.25f, 0.25f);
-	m_meshes[Geometry_Cylinder]            = Mesh::Create("models/Cylinder_1.obj");
-	m_physicsGeometries[Geometry_Cylinder] = PhysicsGeometry::CreateConvexMesh("models/Cylinder_1.obj"); // cylinder primitives aren't supported by PhysX
-	m_meshes[Geometry_Sphere]              = Mesh::Create("models/Sphere_1.obj");
+	m_meshes[Geometry_Cylinder]            = DrawMesh::Create("models/Cylinder1.gltf");
+	m_physicsGeometries[Geometry_Cylinder] = PhysicsGeometry::CreateConvexMesh("models/Cylinder1.gltf"); // cylinder primitives aren't supported by PhysX
+	m_meshes[Geometry_Sphere]              = DrawMesh::Create("models/Sphere1.gltf");
 	m_physicsGeometries[Geometry_Sphere]   = PhysicsGeometry::CreateSphere(0.5f);
 	for (int i = 0; i < (int)Geometry_Count; ++i)
 	{
@@ -94,9 +95,9 @@ void PhysicsTest::shutdown()
 		}
 	#endif
 
-	for (Mesh* mesh : m_meshes)
+	for (DrawMesh* mesh : m_meshes)
 	{
-		Mesh::Release(mesh);
+		DrawMesh::Release(mesh);
 	}
 
 	for (int i = 0; i < (int)Geometry_Count; ++i)
@@ -276,9 +277,9 @@ bool PhysicsTest::update()
 					{
 						vec3 boxSize = Max(boxA, boxB) - Min(boxA, boxB);
 						PhysicsGeometry* boxPhysicsGeometry = PhysicsGeometry::CreateBox(boxSize * 0.5f);
-						MeshData* boxMeshData = MeshData::CreateBox(MeshDesc::GetDefault(), boxSize.x, boxSize.y, boxSize.z, 1, 1, 1);
-						Mesh* boxMesh = Mesh::Create(*boxMeshData);
-						MeshData::Destroy(boxMeshData);
+						Mesh* boxMeshData = Mesh::CreateBox(boxSize.x, boxSize.y, boxSize.z, 1, 1, 1, identity, Mesh::CreateFlags(0));
+						DrawMesh* boxMesh = DrawMesh::Create(*boxMeshData);
+						Mesh::Destroy(boxMeshData);
 
 						SceneNode* newNode = World::GetCurrent()->getRootScene()->createTransientNode("#box");
 	
@@ -291,7 +292,7 @@ bool PhysicsTest::update()
 						newNode->addComponent(physicsComponent);
 						FRM_VERIFY(newNode->init() && newNode->postInit());
 
-						Mesh::Release(boxMesh);
+						DrawMesh::Release(boxMesh);
 						//PhysicsGeometry::Release(boxPhysicsGeometry);						
 
 						boxDrawState = BoxDrawState_None;

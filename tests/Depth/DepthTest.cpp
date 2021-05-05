@@ -3,9 +3,9 @@
 #include <frm/core/frm.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Camera.h>
+#include <frm/core/DrawMesh.h>
 #include <frm/core/Framebuffer.h>
 #include <frm/core/GlContext.h>
-#include <frm/core/Mesh.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Properties.h>
 #include <frm/core/Shader.h>
@@ -52,7 +52,7 @@ bool DepthTest::init(const frm::ArgList& _args)
 		return false;
 	}
 
-	m_mesh = Mesh::Create("models/Teapot_1.obj");
+	m_mesh = DrawMesh::Create("models/Teapot1.gltf");
 	if (!CheckResource(m_mesh)) return false;
 
 	m_txRadar = Texture::Create("textures/radar.tga");
@@ -67,7 +67,7 @@ void DepthTest::shutdown()
 	shutdownShaders();
 	shutdownTextures();
 
-	Mesh::Release(m_mesh);
+	DrawMesh::Release(m_mesh);
 	Buffer::Destroy(m_bfInstances);
 	Texture::Release(m_txRadar);
 
@@ -99,7 +99,7 @@ bool DepthTest::update()
 		drawCamera->getProjFlag(Camera::ProjFlag_Reversed)    ? "REV "   : ""
 		);
 
-	ImGui::SliderFloat("Max Error", &m_maxError, 0.0f, 1.0f, "%0.4f", 2.0f);
+	ImGui::SliderFloat("Max Error", &m_maxError, 0.0f, 1.0f, "%0.4f", ImGuiSliderFlags_Logarithmic);
 	ImGui::Checkbox("Reconstruct Position", &m_reconstructPosition);
 
 	if (ImGui::SliderInt("Instance Count", &m_instanceCount, 1, 256) || !m_bfInstances)

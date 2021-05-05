@@ -1,5 +1,6 @@
 #include "Mesh.h"
 
+#include <frm/core/log.h>
 #include <frm/core/math.h>
 #include <frm/core/memory.h>
 #include <frm/core/FileSystem.h>
@@ -296,7 +297,11 @@ Mesh* Mesh::Create(const char* _path, CreateFlags _createFlags)
 {	
 	Mesh* ret = FRM_NEW(Mesh());
 	ret->m_path = _path;
-	ret->load(_createFlags);
+	if (!ret->load(_createFlags))
+	{
+		FRM_DELETE(ret);
+		return nullptr;
+	}
 
 	return ret;
 }
@@ -881,6 +886,7 @@ bool Mesh::load(CreateFlags _createFlags)
 	}
 	else
 	{
+		FRM_LOG_ERR("Mesh::load -- Unsupported format ('%s')", m_path.c_str());
 		FRM_ASSERT(false); // unsupported format
 		return false;
 	}

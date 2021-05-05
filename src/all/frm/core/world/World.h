@@ -1,4 +1,5 @@
 /*	\todo
+	- Bug whereby components of deleted nodes are still serialized out? May be an artefact of a previous bug.
 	- Split up the code to make it more manageable and to fix some declaration order issues with explicit template instantiations.
 	- Allocate scenes from a pool?
 	- See \todo \editoronly in the code some operations require special handling in editor (like re-serialization, which doesn't happen at runtim).
