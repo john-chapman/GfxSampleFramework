@@ -294,6 +294,8 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 		if (imageLightInstances.size() > 0 && imageLightInstances[0].texture && imageLightInstances[0].isBackground)
 		{
 			ctx->setShader(shImageLightBg);
+			ctx->setUniform("uLod", imageLightInstances[0].backgroundLod);
+			ctx->setUniform("uMultiplier", vec3(imageLightInstances[0].brightness));
 			ctx->bindTexture("txEnvmap", imageLightInstances[0].texture);
 			ctx->drawNdcQuad(&sceneCamera);
 		}
@@ -1493,6 +1495,7 @@ void BasicRenderer::updateImageLightInstances()
 
 		ImageLightInstance& lightInstance = imageLightInstances.push_back();
 		lightInstance.brightness          = light->m_brightness;
+		lightInstance.backgroundLod       = light->m_backgroundLod;
 		lightInstance.isBackground        = light->m_isBackground;
 		lightInstance.texture             = light->m_texture;
 	}

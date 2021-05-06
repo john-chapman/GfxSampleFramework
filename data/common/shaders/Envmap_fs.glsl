@@ -6,6 +6,9 @@ noperspective in vec2 vUv;
 noperspective in vec3 vFrustumRay;
 noperspective in vec3 vFrustumRayW;
 
+uniform float uLod = 0.0;
+uniform vec3 uMultiplier = vec3(1.0);
+
 #if   defined(ENVMAP_CUBE)
 	uniform samplerCube txEnvmap;
 #elif defined(ENVMAP_SPHERE)
@@ -17,9 +20,9 @@ layout(location=0) out vec4 fResult;
 void main()
 {
 #if   defined(ENVMAP_CUBE)
-	vec3 ret = textureLod(txEnvmap, normalize(vFrustumRayW), 0.0).rgb;
+	vec3 ret = textureLod(txEnvmap, normalize(vFrustumRayW), uLod).rgb * uMultiplier;
 #elif defined(ENVMAP_SPHERE)
-	vec3 ret = textureLod(txEnvmap, Envmap_GetSphereUv(normalize(vFrustumRayW)), 0.0).rgb;
+	vec3 ret = textureLod(txEnvmap, Envmap_GetSphereUv(normalize(vFrustumRayW)), uLod).rgb * uMultiplier;
 #endif
 
 #if defined(GAMMA)

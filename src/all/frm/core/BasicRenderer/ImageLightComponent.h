@@ -28,14 +28,17 @@ public:
 	void     getBrightness(float _brightness)      { m_brightness = _brightness; }
 	bool     getIsBackground() const               { return m_isBackground; }
 	void     setIsBackground(bool _isBackground)   { m_isBackground = _isBackground; }
+	float    getBackgroundLod() const              { return m_backgroundLod; }
+	void     setBackgroundLod(float _lod)          { m_backgroundLod = _lod; }
 	Texture* getTexture() const                    { return m_texture; }
 
 protected:
 
-	float    m_brightness   = 1.0f;
-	bool     m_isBackground = false;  // If true, use to fill the background of the scene buffer.
-	Texture* m_texture      = nullptr;
-	PathStr  m_texturePath  = "";
+	float    m_brightness     = 1.0f;
+	bool     m_isBackground   = false;  // If true, use to fill the background of the scene buffer.
+	float    m_backgroundLod  = 0.0f;   // LOD to use for background.
+	Texture* m_texture        = nullptr;
+	PathStr  m_texturePath    = "";
 
 	bool initImpl() override;
 	void shutdownImpl() override;

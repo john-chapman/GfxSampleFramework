@@ -80,6 +80,12 @@ bool ImageLightComponent::editImpl()
 
 	ret |= ImGui::DragFloat("Brightness", &m_brightness, 0.1f);
 	ret |= ImGui::Checkbox("Is Background", &m_isBackground);
+	if (m_texture && m_isBackground)
+	{
+		float lod = m_backgroundLod / m_texture->getMipCount();
+		ret |= ImGui::SliderFloat("Background LOD", &lod, 0.0f, 1.0f);
+		m_backgroundLod = lod * m_texture->getMipCount();
+	}
 
 	if (ImGui::Button("Refilter"))
 	{

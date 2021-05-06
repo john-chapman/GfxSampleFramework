@@ -282,9 +282,10 @@ private:
 
 	struct alignas(16) ImageLightInstance
 	{
-		float    brightness   = 1.0f;
-		bool     isBackground = false;
-		Texture* texture      = nullptr;
+		float    brightness    = 1.0f;
+		float    backgroundLod = 0.0f;
+		bool     isBackground  = false;
+		Texture* texture       = nullptr;
 
 		ImageLightInstance() {} // \todo without this, imageLightInstances.push_back() crashes in release builds?
 	};
