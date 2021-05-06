@@ -419,7 +419,6 @@ bool Image::validateFileFormat(FileFormat _format) const
 		case FileFormat_Exr:
 			Image_ERR_IF(m_compression != Compression_None,   "EXR compression not supported");
 			Image_ERR_IF(!DataTypeIsFloat(m_dataType),        "EXR only float data types are supported");
-			Image_ERR_IF(!IsDataTypeBpc(m_dataType, 32),      "EXR only 32 bit data types are supported");
 			break;
 		case FileFormat_Hdr:
 			Image_ERR_IF(m_compression != Compression_None,   "HDR compression not supported");
@@ -837,14 +836,16 @@ bool Image::WriteExr(File& file_, const Image& _img)
 		case Layout_RGB:  
 		default:          exr.num_channels = 3; break;
 	};
-	float* channels[4] = {};
+	char* channels[4] = {};
+	const size_t bytesPerTexelPerChannel = _img.getBytesPerTexel() / exr.num_channels;
 	for (int i = 0; i < exr.num_channels; ++i)
 	{
 		int k = exr.num_channels - i - 1;
-		channels[i] = (float*)FRM_MALLOC(sizeof(float) * _img.m_width * _img.m_height);
+		channels[i] = (char*)FRM_MALLOC(bytesPerTexelPerChannel * _img.m_width * _img.m_height);
 		for (uint j = 0, n = _img.m_width * _img.m_height; j < n; ++j)
 		{
-			channels[i][j] = ((float*)_img.m_data)[j * exr.num_channels + k];
+			//channels[i][j] = ((float*)_img.m_data)[j * exr.num_channels + k];
+			memcpy(channels[i] + j * bytesPerTexelPerChannel, _img.m_data + (j * exr.num_channels + k) * bytesPerTexelPerChannel, bytesPerTexelPerChannel);
 		}
 	}
 	exr.images = (unsigned char**)channels;
@@ -857,10 +858,17 @@ bool Image::WriteExr(File& file_, const Image& _img)
 	header.requested_pixel_types = header.pixel_types;
 	const char* channelNames[] = { "A", "B", "G", "R" };
 	const char** name = channelNames + (4 - header.num_channels);
+	int pixelType = TINYEXR_PIXELTYPE_FLOAT;
+	switch (_img.getImageDataType()) {
+		case DataType_Float32: pixelType = TINYEXR_PIXELTYPE_FLOAT; break;
+		case DataType_Float16: pixelType = TINYEXR_PIXELTYPE_HALF; break;
+		case DataType_Uint32:  pixelType = TINYEXR_PIXELTYPE_UINT; break;
+		default: err = "Unsupported pixel type"; return false;
+	};
 	for (int i = 0; i < header.num_channels; ++i)
 	{
 		strcpy(header.channels[i].name, name[i]);
-		header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
+		header.pixel_types[i] = pixelType;
 	}
 
 	unsigned char* data;
