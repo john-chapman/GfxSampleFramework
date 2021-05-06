@@ -123,16 +123,27 @@ bool ImageLightComponent::loadAndFilter()
 		return false;
 	}
 
-	Texture* srcTexture = Texture::Create(srcImage);
-	if (srcImage.getType() != Image::Type_Cubemap)
+	// Detect whether srcImage is a cubemap or rectilinear layout.
+	Texture::SourceLayout layout = Texture::SourceLayout_Default;
+	if (srcImage.getWidth() / 2 == srcImage.getHeight() / 3)
 	{
-		// Convert to cubemap, assume rectilinear (sphere) projection.
+		layout = Texture::SourceLayout_Cubemap2x3;
+	}
+
+	Texture* srcTexture = Texture::Create(srcImage, layout);
+
+	// Convert to cubemap if necessary, assume rectilinear (sphere) projection.
+	if (srcTexture->getTarget() != GL_TEXTURE_CUBE_MAP)
+	{
 		srcTexture->setWrapV(GL_CLAMP_TO_EDGE);
 		if (!Texture::ConvertSphereToCube(*srcTexture, srcTexture->getHeight()))
 		{
 			return false;
 		}
 	}
+
+	// Filter for IBL.
+
 	Texture* dstTexture = Texture::CreateCubemap(srcTexture->getWidth(), GL_RGBA16F, 99);
 	const bool srcIsGamma = !DataTypeIsFloat(srcImage.getImageDataType());
 

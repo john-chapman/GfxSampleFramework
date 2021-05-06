@@ -27,7 +27,7 @@ public:
 	// Load from a file.
 	static Texture* Create(const char* _path, SourceLayout _layout = SourceLayout_Default);
 	// From frm::Image.
-	static Texture* Create(const frm::Image& _img);
+	static Texture* Create(const frm::Image& _img, SourceLayout _layout = SourceLayout_Default);
 	// Init from another texture, optionally copy texture data.
 	static Texture* Create(Texture* _tx, bool _copyData = true);
 	// Create an empty texture (the resource name is unique).

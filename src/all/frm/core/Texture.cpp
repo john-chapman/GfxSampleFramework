@@ -581,11 +581,12 @@ Texture* Texture::Create(const char* _path, SourceLayout _layout)
 	return ret;
 }
 
-Texture* Texture::Create(const Image& _img)
+Texture* Texture::Create(const Image& _img, SourceLayout _layout)
 {
 	Id id = GetUniqueId();
 	NameStr name("image%llu", id);
 	Texture* ret = FRM_NEW(Texture(id, (const char*)name));
+	ret->m_sourceLayout = _layout;
 	if (!ret->loadImage(_img)) {
 		ret->setState(State_Error);
 		return ret;
