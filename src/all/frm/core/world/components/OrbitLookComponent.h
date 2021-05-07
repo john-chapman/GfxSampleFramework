@@ -17,6 +17,10 @@ public:
 
 	static void Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
 
+	void setTarget(const vec3& _target) { m_target = _target; }
+	void setRadius(float _radius)       { m_radius = _radius; }
+	void setTranslateRate(float _rate)  { m_translateRate = _rate; }
+
 private:
 
 	vec3  m_target         = vec3(0.0f);
