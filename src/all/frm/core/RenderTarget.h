@@ -21,7 +21,7 @@ struct RenderTarget
 
 	void setName(const char* _name);
 
-	Texture* getTexture(int _offset)
+	Texture* getTexture(int _offset = 0)
 	{
 		if (m_textures.empty())
 		{
