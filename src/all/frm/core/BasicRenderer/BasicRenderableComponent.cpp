@@ -50,6 +50,53 @@ BasicRenderableComponent* BasicRenderableComponent::Create(DrawMesh* _mesh, Basi
 	return ret;
 }
 
+void BasicRenderableComponent::setMesh(DrawMesh* _mesh)
+{
+	if (m_mesh)
+	{
+		DrawMesh::Release(m_mesh);
+	}
+	DrawMesh::Use(_mesh);
+	
+	m_mesh = _mesh;
+	m_materialPaths.resize(m_mesh->getSubmeshCount());
+
+	while (m_materials.size() > m_materialPaths.size())
+	{
+		BasicMaterial::Release(m_materials.back());
+		m_materials.pop_back();
+	}
+
+	while (m_materials.size() < m_materialPaths.size())
+	{
+		m_materials.push_back(nullptr);
+	}
+}
+
+void BasicRenderableComponent::setMaterial(BasicMaterial* _material, int _submeshIndex)
+{
+	_submeshIndex = Clamp(_submeshIndex, 0, m_mesh->getSubmeshCount());
+
+	if (m_materials[_submeshIndex])
+	{
+		BasicMaterial::Release(m_materials[_submeshIndex]);
+	}
+	BasicMaterial::Use(_material);
+		
+	m_materials[_submeshIndex] = _material;
+	m_materialPaths[_submeshIndex] = _material->getPath();
+
+	if (_submeshIndex == 0)
+	{
+		for (int i = 1; i < m_mesh->getSubmeshCount(); ++i)
+		{
+			BasicMaterial::Release(m_materials[i]);
+			m_materialPaths[i] = "";
+			m_materials[i] = nullptr;
+		}
+	}
+}
+
 void BasicRenderableComponent::setPose(const Skeleton& _skeleton)
 {
 	const mat4* pose = _skeleton.getPose();
@@ -100,11 +147,12 @@ bool BasicRenderableComponent::initImpl()
 		}
 		m_mesh = DrawMesh::Create(m_meshPath.c_str());
 	}
-	else
+	// \todo This has changed with the mesh refactor, need to validate.
+	/*else
 	{
 		// Need to explicitly call Use here (Mesh::Create does it by default).
 		DrawMesh::Use(m_mesh);
-	}
+	}*/
 	if (!CheckResource(m_mesh))
 	{
 		DrawMesh::Release(m_mesh);

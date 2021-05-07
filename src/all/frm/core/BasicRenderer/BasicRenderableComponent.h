@@ -22,6 +22,10 @@ public:
 
 	static BasicRenderableComponent* Create(DrawMesh* _mesh, BasicMaterial* _material);
 
+	DrawMesh*    getMesh()                                { return m_mesh; }
+	void         setMesh(DrawMesh* _mesh);
+	void         setMaterial(BasicMaterial* _material, int _submeshIndex = 0);
+
 	void         setPose(const Skeleton& _skeleton);
 	void         clearPose();
 
@@ -35,6 +39,9 @@ public:
 	float        getAlpha() const                         { return m_colorAlpha.w; }
 	const mat4&  getPrevWorld() const                     { return m_prevWorld; }
 	void         setPrevWorld(const mat4& _prevWorld)     { m_prevWorld = _prevWorld; }
+	int          getSelectedLOD() const                   { return m_selectedLOD; }
+	void         setLODOverride(int _lod)                 { m_lodOverride = _lod; }
+	void         setSubmeshOverride(int _submesh)         { m_subMeshOverride = _submesh; }
 
 protected:
 
