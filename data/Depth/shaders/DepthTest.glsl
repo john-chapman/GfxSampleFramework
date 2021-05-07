@@ -1,10 +1,7 @@
 #include "shaders/def.glsl"
 #include "shaders/Camera.glsl"
 
-_VERTEX_IN(0, vec3, aPosition);
-_VERTEX_IN(1, vec3, aNormal);
-_VERTEX_IN(2, vec3, aTangent);
-_VERTEX_IN(3, vec2, aTexcoord);
+_VERTEX_IN(POSITIONS,    vec3, aPosition);
 
 layout(std430) buffer _bfInstances
 {

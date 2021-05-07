@@ -7,7 +7,7 @@ uniform float uClearDepth;
 
 #ifdef VERTEX_SHADER ///////////////////////////////////////////////////////////
 
-_VERTEX_IN(0, vec2, aPosition);
+_VERTEX_IN(POSITIONS, vec2, aPosition);
 
 void main() 
 {
