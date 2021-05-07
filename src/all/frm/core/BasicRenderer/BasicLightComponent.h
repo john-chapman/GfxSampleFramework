@@ -30,6 +30,10 @@ public:
 	static void Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
 	static eastl::span<BasicLightComponent*> GetActiveComponents();
 
+	static BasicLightComponent* CreateDirect(const vec3& _color, float _brightness, bool _castShadows);
+	static BasicLightComponent* CreatePoint(const vec3& _color, float _brightness, float _radius, bool _castShadows);
+	static BasicLightComponent* CreateSpot(const vec3& _color, float _brightness, float _radius, float _coneInnerAngle, float _coneOuterAngle, bool _castShadows);
+
 	Type  getType() const                                           { return m_type; }
 	void  setType(Type _type)                                       { m_type = _type; }
 	vec4  getColorBrightness() const                                { return m_colorBrightness; }

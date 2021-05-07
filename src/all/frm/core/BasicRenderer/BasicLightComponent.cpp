@@ -33,6 +33,43 @@ eastl::span<BasicLightComponent*> BasicLightComponent::GetActiveComponents()
 	return eastl::span<BasicLightComponent*>(*((eastl::vector<BasicLightComponent*>*)&activeList));
 }
 
+BasicLightComponent* BasicLightComponent::CreateDirect(const vec3& _color, float _brightness, bool _castShadows)
+{
+	BasicLightComponent* ret = (BasicLightComponent*)Component::Create(StringHash("BasicLightComponent"));
+
+	ret->m_type = Type_Direct;
+	ret->m_colorBrightness = vec4(_color, _brightness);
+	ret->m_castShadows = _castShadows;
+
+	return ret;
+}
+
+BasicLightComponent* BasicLightComponent::CreatePoint(const vec3& _color, float _brightness, float _radius, bool _castShadows)
+{
+	BasicLightComponent* ret = (BasicLightComponent*)Component::Create(StringHash("BasicLightComponent"));
+
+	ret->m_type = Type_Point;
+	ret->m_colorBrightness = vec4(_color, _brightness);
+	ret->m_radius = _radius;
+	ret->m_castShadows = _castShadows;
+
+	return ret;
+}
+
+BasicLightComponent* BasicLightComponent::CreateSpot(const vec3& _color, float _brightness, float _radius, float _coneInnerAngle, float _coneOuterAngle, bool _castShadows)
+{
+	BasicLightComponent* ret = (BasicLightComponent*)Component::Create(StringHash("BasicLightComponent"));
+
+	ret->m_type = Type_Spot;
+	ret->m_colorBrightness = vec4(_color, _brightness);
+	ret->m_radius = _radius;
+	ret->m_coneInnerAngle = _coneInnerAngle;
+	ret->m_coneOuterAngle = _coneOuterAngle;
+	ret->m_castShadows = _castShadows;
+
+	return ret;
+}
+
 // PROTECTED
 
 bool BasicLightComponent::editImpl()
