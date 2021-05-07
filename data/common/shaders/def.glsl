@@ -1,6 +1,8 @@
 #ifndef common_def_glsl
 #define common_def_glsl
 
+#define CONCATENATE_TOKENS(_a, _b) _a ## _b
+
 #if !defined(COMPUTE_SHADER) && !defined(VERTEX_SHADER) && !defined(TESS_CONTROL_SHADER) && !defined(TESS_EVALUATION_SHADER) && !defined(GEOMETRY_SHADER) && !defined(FRAGMENT_SHADER)
 	#error No shader stage defined.
 #endif
@@ -24,13 +26,27 @@
 
 #if defined(VERTEX_SHADER)
 	#define _VARYING(_interp, _type, _name) _interp out _type _name
-	#define _VERTEX_IN(_location, _type, _name) layout(location=_location) in _type _name
+	#define _VERTEX_IN(_semantic, _type, _name) layout(location=CONCATENATE_TOKENS(VertexSemantic_, _semantic)) in _type _name
 	#define _FRAGMENT_OUT(_location, _type, _name)
 #elif defined(FRAGMENT_SHADER)
 	#define _VARYING(_interp, _type, _name) _interp in _type _name
-	#define _VERTEX_IN(_location, _type, _name)
+	#define _VERTEX_IN(_semantic, _type, _name)
 	#define _FRAGMENT_OUT(_location, _type, _name) layout(location=_location) out _type _name
 #endif
+
+// Must match Mesh::_VertexDataSemantic
+#define VertexSemantic_POSITIONS     0
+#define VertexSemantic_NORMALS       1
+#define VertexSemantic_TANGENTS      2
+#define VertexSemantic_COLORS        3
+#define VertexSemantic_MATERIAL_UVS  4
+#define VertexSemantic_LIGHTMAP_UVS  5
+#define VertexSemantic_BONE_WEIGHTS  6
+#define VertexSemantic_BONE_INDICES  7
+#define VertexSemantic_USER0         8
+#define VertexSemantic_USER1         9
+#define VertexSemantic_USER2         10
+#define VertexSemantic_USER3         11
 
 struct DrawArraysIndirectCmd
 {
@@ -53,8 +69,6 @@ struct DispatchIndirectCmd
 	uint m_groupsY;
 	uint m_groupsZ;
 };
-
-#define CONCATENATE_TOKENS(_a, _b) _a ## _b
 
 // Use for compile-time branching based on memory qualifiers - useful for buffers defined in common files, e.g.
 // #define FooMemQualifier readonly

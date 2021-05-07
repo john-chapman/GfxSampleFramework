@@ -12,13 +12,14 @@
 #endif
 #include "shaders/BasicRenderer/GBuffer.glsl"
 
-_VERTEX_IN(0, vec3, aPosition);
-_VERTEX_IN(1, vec3, aNormal);
-_VERTEX_IN(2, vec4, aTangent);
-_VERTEX_IN(3, vec2, aTexcoord);
+_VERTEX_IN(POSITIONS,    vec3, aPosition);
+_VERTEX_IN(NORMALS,      vec3, aNormal);
+_VERTEX_IN(TANGENTS,     vec4, aTangent);
+_VERTEX_IN(MATERIAL_UVS, vec2, aMaterialUV);
+_VERTEX_IN(COLORS,       vec4, aColor);
 #ifdef Geometry_SkinnedMesh
-	_VERTEX_IN(4, vec4,  aBoneWeights);
-	_VERTEX_IN(5, uvec4, aBoneIndices);
+	_VERTEX_IN(BONE_INDICES, vec4,  aBoneWeights);
+	_VERTEX_IN(BONE_WEIGHTS, uvec4, aBoneIndices);
 
 	layout(std430) restrict readonly buffer bfSkinning
 	{
@@ -107,7 +108,7 @@ void main()
 	{
 		vInstanceId = gl_InstanceID;
 
-		vUv = aTexcoord.xy;
+		vUv = aMaterialUV.xy;
 		#ifdef Material_FlipV
 			vUv.y = 1.0 - vUv.y;
 		#endif

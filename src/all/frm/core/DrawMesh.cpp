@@ -454,8 +454,6 @@ GLuint DrawMesh::findOrCreateBindHandle(int _lodIndex, uint16 _bindHandleKey)
 			glAssert(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lod.indexBuffer));
 		}
 
-		// Bind order is determined by the vertex layout. Vertex shader declarations *must* match the vertex layout, even if a location isn't ever actually bound.
-		int bindLocation = 0;
 		for (const VertexData& vertexData : m_vertexData)
 		{
 			for (const VertexLayout::VertexAttribute& attribute : vertexData.layout.attributes)
@@ -464,6 +462,9 @@ GLuint DrawMesh::findOrCreateBindHandle(int _lodIndex, uint16 _bindHandleKey)
 				{
 					continue;
 				}
+
+				// Bind locations are determined by the attribute semantic.
+				const int bindLocation = (int)attribute.semantic;
 				
 				glAssert(glBindBuffer(GL_ARRAY_BUFFER, vertexData.buffer)); // Note that this doesn't modify VAO state, the call to glVertexAttribIPointer*() binds the buffer to the attribute.
 				glAssert(glEnableVertexAttribArray(bindLocation));
@@ -477,8 +478,6 @@ GLuint DrawMesh::findOrCreateBindHandle(int _lodIndex, uint16 _bindHandleKey)
 					// All other types bind as floats.
 					glAssert(glVertexAttribPointer(bindLocation, attribute.dataCount, internal::DataTypeToGLenum(attribute.dataType), DataTypeIsNormalized(attribute.dataType), vertexData.layout.vertexSizeBytes, (const GLvoid*)attribute.offsetBytes));
 				}
-
-				++bindLocation;
 			}
 		}
 

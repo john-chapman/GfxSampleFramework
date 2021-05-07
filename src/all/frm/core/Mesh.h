@@ -40,6 +40,7 @@ public:
 	using Primitive = int;
 	static const char* kPrimitiveStr[Primitive_Count];
 
+	// Must match VertexSemantic_ defines in def.glsl.
 	enum _VertexDataSemantic
 	{
 		Semantic_Positions,

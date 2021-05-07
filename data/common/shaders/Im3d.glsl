@@ -20,8 +20,8 @@
 
 uniform mat4 uViewProjMatrix;
 	
-_VERTEX_IN(0, vec4, aPositionSize);
-_VERTEX_IN(1, vec4, aColor);
+_VERTEX_IN(POSITIONS, vec4, aPositionSize);
+_VERTEX_IN(COLORS,    vec4, aColor);
 out VertexData vData;
 
 void main() 
