@@ -36,6 +36,12 @@ return
 		"../tests/_sample.cpp",
 	},
 
+	MeshViewer =
+	{
+		"../tests/MeshViewer/**",
+		"../tests/_sample.cpp",
+	},
+
 	Octree =
 	{
 		"../tests/Octree/**",
