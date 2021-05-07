@@ -1027,22 +1027,27 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 				continue;
 			}
 
+			/*
+				https://graphics.pixar.com/library/LOD2002/2-perception.pdf (Visual Perception and LOD, Martin Reddy)
+				// \todo https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
+
+			*/
+
 			LODCoefficients lodCoefficients;
-			lodCoefficients.distance     = Length(GetTranslation(renderable->m_world) - _cullCamera->getPosition());
-			lodCoefficients.size         = lodCoefficients.distance / _cullCamera->m_proj[1][1];
-			lodCoefficients.eccentricity = 0.0f;
-			lodCoefficients.velocity     = Length(GetTranslation(renderable->m_world) - GetTranslation(renderable->m_prevWorld)); // \todo Account for rotation cheaply? Use Length2?
+			const vec3  toCamera         = GetTranslation(renderable->m_world) - _cullCamera->getPosition();
+			const float distance         = Length(GetTranslation(renderable->m_world) - _cullCamera->getPosition());
+			lodCoefficients.size         = distance / _cullCamera->m_proj[1][1];
+			lodCoefficients.eccentricity = 1.0f - Max(0.0f, Dot(toCamera / distance, _cullCamera->getViewVector()));
+			lodCoefficients.velocity     = Length(GetTranslation(renderable->m_world) - GetTranslation(renderable->m_prevWorld)); // \todo Account for rotation cheaply? Use Length2? Include camera motion?
 
 			// \todo These factors should be tuned per mesh.
 			LODCoefficients renderableLODCoefficients;
-			renderableLODCoefficients.distance      = 0.0f; // \todo Size includes distance, is this redundant? 
-			renderableLODCoefficients.size          = 0.2f; // \todo Needs to account for mesh size/object scale?
-			renderableLODCoefficients.eccentricity  = 0.0f;
+			renderableLODCoefficients.size          = 0.2f;  // \todo Needs to account for mesh size/object scale?
+			renderableLODCoefficients.eccentricity  = 10.0f; // \todo Experiment with cranking this up for VR?
 			renderableLODCoefficients.velocity      = 5.0f; 
 
 			float flod = 0.0f;
 			flod = Max(flod, lodCoefficients.size         * renderableLODCoefficients.size);
-			flod = Max(flod, lodCoefficients.distance     * renderableLODCoefficients.distance);
 			flod = Max(flod, lodCoefficients.eccentricity * renderableLODCoefficients.eccentricity);
 			flod = Max(flod, lodCoefficients.velocity     * renderableLODCoefficients.velocity);
 

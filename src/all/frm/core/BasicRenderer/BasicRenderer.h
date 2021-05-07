@@ -158,14 +158,15 @@ public:
 	Settings settings;
 	Flags    flags;
 
-	// https://pdfs.semanticscholar.org/presentation/2b40/34c1638aa8c24324b508d80ad14dab0511e3.pdf
 	struct LODCoefficients
 	{
 		float size           = 0.0f; // Coeffient for projected size metric.
-		float distance       = 0.0f; //      "        distance.
 		float eccentricity   = 0.0f; //      "        eccentricity (in periphery vision).
 		float velocity       = 0.0f; //      "        velocity.
 	};
+		
+	Camera sceneCamera;
+	eastl::vector<Camera> shadowCameras;
 
 private:
 
@@ -173,9 +174,6 @@ private:
 	~BasicRenderer();
 
 	bool editFlag(const char* _name, Flag _flag);
-
-	Camera sceneCamera;
-	eastl::vector<Camera> shadowCameras;
 
 	struct alignas(16) MaterialInstance
 	{
