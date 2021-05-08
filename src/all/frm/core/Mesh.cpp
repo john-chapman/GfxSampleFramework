@@ -678,6 +678,10 @@ void Mesh::generateLODs(int _lodCount, float _targetReduction, float _targetErro
 	float* vertexPositions  = (float*)m_vertexData[Semantic_Positions].data;
 	uint32 vertexCount      = m_vertexCount;
 
+	// \todo Use max deviation to auto-compute LOD scale.
+	const float errorScale  = meshopt_simplifyScale(vertexPositions, vertexCount, sizeof(vec3));
+	float maxError          = 0.0f;
+
 	for (int lodIndex = 1; lodIndex < _lodCount; ++lodIndex)
 	{
 		FRM_AUTOTIMER("LOD%d", lodIndex);
@@ -686,7 +690,6 @@ void Mesh::generateLODs(int _lodCount, float _targetReduction, float _targetErro
 		const LOD& prevLOD = m_lods[lodIndex - 1];
 		
 		// \todo Remove submeshes based on some size heuristic.
-		// \todo meshopt can return normalized standard deviation as a LOD selection heuristic.
 		eastl::vector<eastl::vector<uint32> > indexDataPerSubmesh;
 		uint32 indexCount = 0;
 		for (size_t submeshIndex = firstSubmeshIndex; submeshIndex < submeshCount; ++submeshIndex)
@@ -696,7 +699,21 @@ void Mesh::generateLODs(int _lodCount, float _targetReduction, float _targetErro
 
 			auto& newIndexData = indexDataPerSubmesh.push_back();
 			newIndexData.resize(count);
-			newIndexData.resize(meshopt_simplify(newIndexData.data(), (uint32*)prevLOD.indexData + offset, count, vertexPositions, vertexCount, sizeof(vec3), (size_t)Ceil(_targetReduction * count), _targetError));
+
+			// Don't simplify if triangle count <= 32. \todo Better heuristic for this? Optimal threshold?
+			if (count / 3 <= 32)
+			{
+				memcpy(newIndexData.data(), (uint32*)prevLOD.indexData + offset, count * sizeof(uint32));
+			}
+			else
+			{
+				// See here for an explanation of geometric deviation: https://documentation.simplygon.com/SimplygonSDK_8.3.31500.0/articles/simplygonapi/apiuserguide/deviationscreensize.html
+				float resultError = 0.0f;
+				newIndexData.resize(meshopt_simplify(newIndexData.data(), (uint32*)prevLOD.indexData + offset, count, vertexPositions, vertexCount, sizeof(vec3), (size_t)Ceil(_targetReduction * count), _targetError, &resultError));
+				resultError *= errorScale;
+				maxError = Max(maxError, resultError);
+			}
+
 			indexCount += (uint32)newIndexData.size();
 		}
 
