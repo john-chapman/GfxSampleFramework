@@ -1027,11 +1027,10 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 				continue;
 			}
 
-			/*
-				https://graphics.pixar.com/library/LOD2002/2-perception.pdf (Visual Perception and LOD, Martin Reddy)
-				// \todo https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
-
-			*/
+			// \todo
+			// - Eccentricity/velocity LOD coefs probably not useful in the general case.
+			// - Size coef should be computed/tweaked per mesh.
+			// - Need a system whereby projected size (see MeshViewer) maps to a LOD index via the scale. Look at Unreal?
 
 			LODCoefficients lodCoefficients;
 			const vec3  toCamera         = GetTranslation(renderable->m_world) - _cullCamera->getPosition();
@@ -1040,9 +1039,8 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 			lodCoefficients.eccentricity = 1.0f - Max(0.0f, Dot(toCamera / distance, _cullCamera->getViewVector()));
 			lodCoefficients.velocity     = Length(GetTranslation(renderable->m_world) - GetTranslation(renderable->m_prevWorld)); // \todo Account for rotation cheaply? Use Length2? Include camera motion?
 
-			// \todo These factors should be tuned per mesh.
 			LODCoefficients renderableLODCoefficients;
-			renderableLODCoefficients.size          = 0.2f;  // \todo Needs to account for mesh size/object scale?
+			renderableLODCoefficients.size          = 0.2f;
 			renderableLODCoefficients.eccentricity  = 10.0f; // \todo Experiment with cranking this up for VR?
 			renderableLODCoefficients.velocity      = 5.0f; 
 
@@ -1052,7 +1050,7 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 			flod = Max(flod, lodCoefficients.velocity     * renderableLODCoefficients.velocity);
 
 			int selectedLOD = (int)flod;
-			selectedLOD = renderable->m_lodOverride >= 0 ? renderable->m_lodOverride : selectedLOD;
+			selectedLOD = (renderable->m_lodOverride >= 0) ? renderable->m_lodOverride : selectedLOD;
 			selectedLOD = Clamp(selectedLOD + settings.lodBias, 0, renderable->m_mesh->getLODCount() - 1);
 			renderable->m_selectedLOD = selectedLOD;
 			culledSceneRenderables.push_back(renderable);

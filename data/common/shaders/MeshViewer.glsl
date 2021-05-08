@@ -58,6 +58,12 @@ void main()
 
 #ifdef FRAGMENT_SHADER /////////////////////////////////////////////////////////
 
+bool GridMask(in vec2 _uv, in float _scale)
+{
+	const ivec2 gridUv = ivec2(_uv * _scale);
+	return ((gridUv.x + gridUv.y) & 1) == 0;
+}
+
 void main()
 {
 	float sceneDepth = texelFetch(txDepth, ivec2(gl_FragCoord.xy), 0).x;
@@ -79,7 +85,6 @@ void main()
 		{
 			discard;
 		}
-
 		fResult.a = uAlpha;
 		switch (uMode)
 		{
@@ -97,10 +102,14 @@ void main()
 				fResult.a *= vColor.a;
 				break;
 			case Mode_MaterialUVs:
-				fResult.rgb = vec3(fract(vMaterialUV.xy), 0.0);
+			{
+				const float gridAlpha = GridMask(vMaterialUV, 128.0) ? 0.75 : 1.0;
+				fResult.rgb = vec3(fract(vMaterialUV.xy), 0.0) * gridAlpha;
 				break;
+			}
 			case Mode_LightmapUVs:
-				fResult.rgb = vec3(vLightMapUV.xy, 0.0);
+				const float gridAlpha = GridMask(vLightMapUV, 128.0) ? 0.75 : 1.0;
+				fResult.rgb = vec3(vLightMapUV.xy, 0.0) * gridAlpha;
 				break;
 		};
 	}

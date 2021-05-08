@@ -189,7 +189,7 @@ void MeshViewer::draw()
 
 		ctx->setFramebufferAndViewport(m_basicRenderer->fbFinal);
 		ctx->setShader(m_shOverlay);
-		ctx->setMesh(m_mesh, m_renderable->getSelectedLOD());
+		ctx->setMesh(m_mesh, m_renderable->getSelectedLOD(), Max(0, m_submeshOverride));
 		ctx->bindBuffer(m_basicRenderer->sceneCamera.m_gpuBuffer); // NB we MUST use the renderer's camera here to account for TAA since we rely on manual depth testing.
 		ctx->bindTexture("txDepth", txDepth);
 		ctx->setUniform("uWorld", m_renderable->getParentNode()->getWorld());
@@ -203,7 +203,7 @@ void MeshViewer::draw()
 			glAssert(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
 			glAssert(glLineWidth(3.0f)); 
 			ctx->setShader(m_shWireframe);
-			ctx->setMesh(m_mesh, m_renderable->getSelectedLOD());
+			ctx->setMesh(m_mesh, m_renderable->getSelectedLOD(), Max(0, m_submeshOverride));
 			ctx->bindBuffer(m_basicRenderer->sceneCamera.m_gpuBuffer); // NB we MUST use the renderer's camera here to account for TAA since we rely on manual depth testing.
 			ctx->bindTexture("txDepth", txDepth);
 			ctx->setUniform("uWorld", m_renderable->getParentNode()->getWorld());
