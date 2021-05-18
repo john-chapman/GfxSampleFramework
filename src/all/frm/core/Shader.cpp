@@ -328,8 +328,7 @@ void ShaderDesc::SetDefaultVersion(const char* _version)
 
 
 ShaderDesc::ShaderDesc()
-	: m_version(GetDefaultVersion())
-	, m_localSize(1) 
+	: m_localSize(1) 
 {
 	for (int i = 0; i < internal::kShaderStageCount; ++i)
 	{
@@ -648,7 +647,7 @@ bool ShaderDesc::StageDesc::hasDependency(const char* _path) const
 	return false;
 }
 
-bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char* _path)
+bool ShaderDesc::StageDesc::loadSource(ShaderDesc& _shaderDesc, const char* _path)
 {
 	if (!_path) 
 	{
@@ -702,7 +701,8 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 				++commentBlock;
 			}
 
-		} else if (*tp == '*') 
+		} 
+		else if (*tp == '*') 
 		{
 		 // potential comment block ending
 			if (tp[1] == '/') 
@@ -715,7 +715,8 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 				}
 			}
 
-		} else if (*tp == '#' && commentBlock == 0 && !commentLine) 
+		} 
+		else if (*tp == '#' && commentBlock == 0 && !commentLine) 
 		{
 		 // potential include directive
 			if (strncmp(tp, "#include", sizeof("#include") - 1) == 0) 
@@ -800,6 +801,26 @@ bool ShaderDesc::StageDesc::loadSource(const ShaderDesc& _shaderDesc, const char
 				tp.skipLine();
 				++lineCount;
 				continue; // don't advance tp or push to the result
+			}
+			else if (strncmp(tp, "#version", sizeof("#version") - 1) == 0)
+			{
+				tp.advanceToNextWhitespace();
+				tp.skipWhitespace();
+				const char* beg = tp;
+				tp.advanceToNext("\n");
+				Str version;
+				version.set(beg, tp - beg);
+				tp.skipLine();
+				++lineCount;
+
+				if (_shaderDesc.m_version.isEmpty())
+				{
+					_shaderDesc.m_version = version.c_str();
+				}
+				else if (_shaderDesc.m_version != version)
+				{
+					FRM_LOG_ERR("Shader: version already set ('#version %s'), encountered '#version %s' ('%s' line %d)", _shaderDesc.m_version.c_str(), version.c_str(), _path, lineCount - 1);
+				}
 			}
 		}
 		tmp.push_back(*tp);
@@ -1050,6 +1071,10 @@ bool Shader::loadStage(int _i, bool _loadSource)
  // build final source
 	String<0> src;
 	// version pragma
+	if (m_desc.m_version.isEmpty())
+	{
+		m_desc.m_version = ShaderDesc::GetDefaultVersion();
+	}
 	src.appendf("#version %s\n", (const char*)m_desc.m_version);
 	// extensions
 	for (auto& ext : stageDesc.m_extensions)

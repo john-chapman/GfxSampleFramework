@@ -119,7 +119,7 @@ private:
 
 		bool isEnabled() const;
 		bool hasDependency(const char* _path) const;
-		bool loadSource(const ShaderDesc& _shaderDesc, const char* _path = nullptr);
+		bool loadSource(ShaderDesc& _shaderDesc, const char* _path = nullptr);
 		frm::String<0> getLogInfo() const;
 	};
 	
