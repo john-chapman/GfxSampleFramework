@@ -236,7 +236,7 @@ void PxShutdown()
 	g_pxFoundation = nullptr;
 }
 
-static void InitCooker()
+void PxInitCooker()
 {
 	if (g_pxCooking)
 	{
@@ -258,7 +258,7 @@ bool PxCookConvexMesh(Mesh& _mesh, physx::PxOutputStream& out_)
 	
 	FRM_ASSERT(_mesh.getVertexCount() != 0);
 
-	InitCooker();
+	PxInitCooker();
 	FRM_ASSERT(g_pxCooking);
 
 	// \todo polygons?
@@ -299,7 +299,7 @@ bool PxCookTriangleMesh(Mesh& _mesh, physx::PxOutputStream& out_)
 	FRM_ASSERT(_mesh.getIndexCount() != 0);
 	FRM_ASSERT(_mesh.getPrimitive() == Mesh::Primitive_Triangles);
 
-	InitCooker();
+	PxInitCooker();
 	FRM_ASSERT(g_pxCooking);
 
 	physx::PxTriangleMeshDesc meshDesc = {};

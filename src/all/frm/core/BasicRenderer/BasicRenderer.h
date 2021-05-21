@@ -209,7 +209,7 @@ private:
 
 		operator uint64() const { return value; }
 	};
-	using ShaderMap = eastl::unordered_map<ShaderMapKey, Shader*>;
+	using ShaderMap = eastl::unordered_map<uint64, Shader*>; // eastl complains using ShaderMapKey as the key type.
 	ShaderMap shaderMap;
 
 	Shader* findShader(ShaderMapKey _key);

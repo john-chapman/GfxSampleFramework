@@ -69,6 +69,7 @@ protected:
 	int m_selectedLOD = 0;
 
 	friend class BasicRenderer;
+	friend class RaytracingRenderer;
 };
 
 } // namespace frm

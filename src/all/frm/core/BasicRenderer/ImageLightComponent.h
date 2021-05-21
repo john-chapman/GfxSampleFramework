@@ -11,6 +11,8 @@ namespace frm {
 // Image-based light. Supports cubemap and rectilinear projected source images.
 //
 // \todo
+// - Store diffuse irradiance as a set of SH coefficients (see Filament doc).
+//   This saves some texture bandwidth.
 // - Store all cubemaps in a single global array texture + use world space
 //   extents and bounds for parallax correction + filtering.
 // - BC6H compression + caching.

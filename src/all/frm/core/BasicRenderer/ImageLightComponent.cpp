@@ -105,6 +105,7 @@ bool ImageLightComponent::serializeImpl(Serializer& _serializer_)
 	Serialize(_serializer_, m_brightness,   "m_brightness");
 	Serialize(_serializer_, m_texturePath,  "m_texturePath");
 	Serialize(_serializer_, m_isBackground, "m_isBackground");
+	Serialize(_serializer_, m_backgroundLod, "m_backgroundLod");
 	return _serializer_.getError() == nullptr;
 }
 

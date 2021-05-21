@@ -1416,6 +1416,11 @@ bool WorldEditor::editNode(SceneNode* _node_)
 
 	ImGui::PopID(); // node
 
+	if (ret)
+	{
+		_node_->dispatchCallbacks(SceneNode::Event::OnEdit);
+	}
+
 	return ret;
 }
 

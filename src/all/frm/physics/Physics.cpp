@@ -57,6 +57,8 @@ bool Physics::Init()
 		return false;
 	}
 
+	s_instance->setDrawDebug(s_instance->m_drawDebug);
+
 	return true;
 }
 
@@ -157,30 +159,10 @@ void Physics::Edit()
 		g_pxScene->setGravity(Vec3ToPx(g));
 	}
 
-	bool& debugDraw = s_instance->m_drawDebug;
+	bool debugDraw = s_instance->m_drawDebug;
 	if (ImGui::Checkbox("Debug Draw", &debugDraw))
 	{
-		if (debugDraw)
-		{
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE,              1.0f);
-
-			//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_AABBS,    1.0f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES,   1.0f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES,     1.0f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_POINT,      1.0f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_NORMAL,     2.0f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_ERROR,      1.0f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.5f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_LIN_VELOCITY,  0.25f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_ANG_VELOCITY,  0.25f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES,  0.25f);
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
-		}
-		else
-		{
-			g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 0.0f);
-		}
+		s_instance->setDrawDebug(debugDraw);
 	}
 
 	ImGui::Spacing();
@@ -351,9 +333,10 @@ bool Physics::RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flag
 
 	physx::PxRaycastBuffer queryResult;
 	physx::PxHitFlags flags = (physx::PxHitFlags)0
-		| (_flags.get(RayCastFlag::Position) ? physx::PxHitFlag::ePOSITION : (physx::PxHitFlags)0)
-		| (_flags.get(RayCastFlag::Normal)   ? physx::PxHitFlag::eNORMAL   : (physx::PxHitFlags)0)
-		| (_flags.get(RayCastFlag::AnyHit)   ? physx::PxHitFlag::eMESH_ANY : (physx::PxHitFlags)0)
+		| (_flags.get(RayCastFlag::Position)      ? physx::PxHitFlag::ePOSITION   : (physx::PxHitFlags)0)
+		| (_flags.get(RayCastFlag::Normal)        ? physx::PxHitFlag::eNORMAL     : (physx::PxHitFlags)0)
+		| (_flags.get(RayCastFlag::AnyHit)        ? physx::PxHitFlag::eMESH_ANY   : (physx::PxHitFlags)0)
+		| (_flags.get(RayCastFlag::TriangleIndex) ? physx::PxHitFlag::eFACE_INDEX : (physx::PxHitFlags)0)
 		;
 
 	if (!g_pxScene->raycast(Vec3ToPx(_in.origin), Vec3ToPx(_in.direction), _in.maxDistance, queryResult) || !queryResult.hasBlock)
@@ -361,10 +344,11 @@ bool Physics::RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flag
 		return false;
 	}
 
-	out_.position  = PxToVec3(queryResult.block.position);
-	out_.normal    = PxToVec3(queryResult.block.normal);
-	out_.distance  = queryResult.block.distance;
-	out_.component = (PhysicsComponent*)queryResult.block.actor->userData;
+	out_.position      = PxToVec3(queryResult.block.position);
+	out_.normal        = PxToVec3(queryResult.block.normal);
+	out_.distance      = queryResult.block.distance;
+	out_.triangleIndex = queryResult.block.faceIndex;
+	out_.component     = (PhysicsComponent*)queryResult.block.actor->userData;
 
 	return true;
 }
@@ -405,6 +389,32 @@ void Physics::updateComponentTransforms()
 		FRM_ASSERT(actor->is<physx::PxRigidDynamic>());
 		mat4 worldMatrix = PxToMat4(actor->getGlobalPose());
 		component->getParentNode()->setWorld(worldMatrix);
+	}
+}
+
+void Physics::setDrawDebug(bool _enable)
+{
+	m_drawDebug = _enable;
+	if (_enable)
+	{
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE,              1.0f);
+
+		//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_AABBS,    1.0f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES,   1.0f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES,     1.0f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_POINT,      1.0f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_NORMAL,     2.0f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_ERROR,      1.0f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.5f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_LIN_VELOCITY,  0.25f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_ANG_VELOCITY,  0.25f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.25f);
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
+	}
+	else
+	{
+		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 0.0f);
 	}
 }
 
@@ -725,7 +735,21 @@ bool PhysicsComponent::initImpl()
 	physx::PxShape*& pxShape = impl->pxShape;
 	const physx::PxGeometry& geometry = ((physx::PxGeometryHolder*)m_geometry->m_impl)->any();
 	const physx::PxMaterial& material = *((physx::PxMaterial*)m_material->m_impl);
-	pxShape = g_pxPhysics->createShape(geometry, material, false); // \todo Sharing of PxShape instances isn't automatic?
+	
+	// If the node's initial transform contains a scale, we create an exclusive shape with the scaling applied.
+	// \todo This only applies to certain geometry types? Only implemented for trimesh.
+	const vec3 scale = GetScale(m_parentNode->getInitial());
+	if (geometry.getType() == physx::PxGeometryType::eTRIANGLEMESH && Length2(vec3(1.0f) - scale) > 1e-7f)
+	{
+		const physx::PxMeshScale scale(Vec3ToPx(scale));
+		((physx::PxGeometryHolder*)m_geometry->m_impl)->triangleMesh().scale = scale;
+		pxShape = g_pxPhysics->createShape(geometry, material, true);
+	}
+	else
+	{
+		pxShape = g_pxPhysics->createShape(geometry, material, false);
+	}
+
 	if (!pxShape)
 	{
 		return false;
@@ -747,7 +771,7 @@ bool PhysicsComponent::initImpl()
 		{
 			pxShape->setLocalPose(physx::PxTransform(QuatToPx(RotationQuaternion(vec3(0.0f, 0.0f, 1.0f), Radians(90.0f)))));
 			break;
-		}		
+		}
 	};
 
 	pxRigidActor->attachShape(*pxShape);

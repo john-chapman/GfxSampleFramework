@@ -32,6 +32,10 @@
 	#define _VARYING(_interp, _type, _name) _interp in _type _name
 	#define _VERTEX_IN(_semantic, _type, _name)
 	#define _FRAGMENT_OUT(_location, _type, _name) layout(location=_location) out _type _name
+#else
+	#define _VARYING(_interp, _type, _name)
+	#define _VERTEX_IN(_semantic, _type, _name)
+	#define _FRAGMENT_OUT(_location, _type, _name)
 #endif
 
 // Must match Mesh::_VertexDataSemantic

@@ -118,7 +118,7 @@
 				"_class": "ImageLightComponent",
 				"_version": 0,
 				"m_brightness": 1.0,
-				"m_texturePath": "common/textures/env_sky.exr",
+				"m_texturePath": "common/textures/EnvSky1.exr",
 				"m_isBackground": true
 			}, {
 				"ID": "0004",

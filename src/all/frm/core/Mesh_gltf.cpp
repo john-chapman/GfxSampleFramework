@@ -34,6 +34,7 @@ bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes,
 
 	bool generateNormals = false;
 	bool generateTangents = false;
+	bool generateLightmapUVs = false;
 	bool hasBoneIndices = false;
 	bool hasBoneWeights = false;
 
@@ -204,13 +205,28 @@ bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes,
 
 					if (meshPrimitive.attributes.find("TEXCOORD_0") != meshPrimitive.attributes.end())
 					{
-						VertexDataView<vec2> texcoordsDst = submesh.getVertexDataView<vec2>(Mesh::Semantic_MaterialUVs, vertexOffset);
+						VertexDataView<vec2> dst = submesh.getVertexDataView<vec2>(Mesh::Semantic_MaterialUVs, vertexOffset);
 						tinygltf::AutoAccessor accessor(gltf.accessors[meshPrimitive.attributes["TEXCOORD_0"]], gltf);
 						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
 						{
-							texcoordsDst[vertexIndex] = accessor.get<vec2>();
+							dst[vertexIndex] = accessor.get<vec2>();
 							accessor.next();
 						}
+					}
+
+					if (meshPrimitive.attributes.find("TEXCOORD_1") != meshPrimitive.attributes.end())
+					{
+						VertexDataView<vec2> dst = submesh.getVertexDataView<vec2>(Mesh::Semantic_LightmapUVs, vertexOffset);
+						tinygltf::AutoAccessor accessor(gltf.accessors[meshPrimitive.attributes["TEXCOORD_1"]], gltf);
+						for (uint32 vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex)
+						{
+							dst[vertexIndex] = accessor.get<vec2>();
+							accessor.next();
+						}
+					}
+					else
+					{
+						generateLightmapUVs = true;
 					}
 
 					// Note that we don't require the bone index map here, indices are already relative to the skin joints list.
@@ -245,6 +261,7 @@ bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes,
 	}
 
 	Mesh finalMesh;
+	finalMesh.m_path = mesh_.m_path;
 
 	{	FRM_AUTOTIMER("Compile submeshes");
 	
@@ -279,6 +296,11 @@ bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes,
 			finalMesh.generateTangents();
 		}
 
+		if (generateLightmapUVs && _createFlags.get(CreateFlag::GenerateLightmapUVs))
+		{
+			finalMesh.generateLightmapUVs();
+		}
+
 		if (_createFlags.get(CreateFlag::Optimize))
 		{
 			finalMesh.optimize();
@@ -293,12 +315,7 @@ bool Mesh::ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes,
 	}
 
 	mesh_.unload();
-	std::swap(mesh_.m_skeleton,      finalMesh.m_skeleton);
-	std::swap(mesh_.m_lods,          finalMesh.m_lods);
-	std::swap(mesh_.m_vertexData,    finalMesh.m_vertexData);
-	std::swap(mesh_.m_vertexCount,   finalMesh.m_vertexCount);
-	std::swap(mesh_.m_indexDataType, finalMesh.m_indexDataType);
-	std::swap(mesh_.m_primitive,     finalMesh.m_primitive);
+	mesh_.swap(finalMesh);
 
 	return true;
 }

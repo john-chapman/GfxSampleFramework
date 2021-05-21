@@ -55,7 +55,7 @@ public:
 	bool                  reload();
 	bool                  edit();
 	bool                  serialize(Serializer& _serializer_);
-	void                  bind(TextureSampler* _sampler = nullptr) const;
+	void                  bind(GlContext* _ctx_, TextureSampler* _sampler = nullptr) const;
 
 	friend bool Serialize(Serializer& _serializer_, BasicMaterial& _basicMaterial_) { return _basicMaterial_.serialize(_serializer_); }
 

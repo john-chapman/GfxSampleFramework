@@ -1,5 +1,6 @@
 #include "Camera.h"
 
+#include <frm/core/interpolation.h>
 #include <frm/core/Buffer.h>
 #include <frm/core/Serializer.h>
 
@@ -634,6 +635,27 @@ float Camera::getDepthV(float _depth) const
 	{
 		return (zndc - m_proj[3][2]) / m_proj[2][2];
 	}
+}
+
+vec3 Camera::getFrustumRay(const vec2& _ndc) const
+{
+	if (getProjFlag(ProjFlag_Asymmetrical)) 
+	{
+		FRM_ASSERT(false);
+		float h = lerp(m_left, m_right, _ndc.x * 0.5f + 0.5f);
+		float v = lerp(m_down, m_up,    _ndc.y * 0.5f + 0.5f);
+		return vec3(h, v, -1.0);
+	}
+	else
+	{
+		const vec2 ndcJittered = _ndc + m_proj[2].xy(); // incorporate jitter from the proj matrix
+		return vec3(ndcJittered.x * m_up * m_aspectRatio, ndcJittered.y * m_up, -1.0);
+	}
+}
+
+vec3 Camera::getFrustumRayW(const vec2& _ndc) const
+{
+	return TransformDirection(m_world, getFrustumRay(_ndc));
 }
 
 void Camera::defaultInit()

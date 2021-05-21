@@ -1487,9 +1487,10 @@ bool SceneNode::postInit()
 void SceneNode::shutdown()
 {
 	FRM_ASSERT(m_state == World::State::PostInit);
+	
+	dispatchCallbacks(Event::OnShutdown);
 	m_state = World::State::Shutdown;
 
-	dispatchCallbacks(Event::OnShutdown);
 
 	if (m_childScene)
 	{
@@ -1706,7 +1707,7 @@ SceneNode::~SceneNode()
 
 void SceneNode::dispatchCallbacks(Event _event)
 {
-	CallbackList& callbackList = m_callbacks[(int)_event];
+	CallbackList callbackList = m_callbacks[(int)_event]; // NB we deliberately make a copy here in case the callback calls unregister and modifies the list.
 	for (CallbackListEntry& callback : callbackList)
 	{
 		callback(this);

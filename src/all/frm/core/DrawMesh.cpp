@@ -100,37 +100,36 @@ bool DrawMesh::reload()
 
 	File cachedData;
 	PathStr cachedPath = m_path.c_str();
-
-	#if 1
-		if (FileSystem::CompareExtension("drawmesh", m_path.c_str()))
+	if (FileSystem::CompareExtension("drawmesh", m_path.c_str()))
+	{
+		// Path is a DrawMesh.
+		if (!FileSystem::Read(cachedData, m_path.c_str()))
 		{
-			// Path is a DrawMesh.
-			if (!FileSystem::Read(cachedData, m_path.c_str()))
-			{
-				return false;
-			}
+			return false;
 		}
-		else
-		{
-			// Path is not a DrawMesh, check the cache.
-			cachedPath.setf("_cache/%s.drawmesh", FileSystem::GetFileName(m_path.c_str()).c_str());
+	}
+	else
+	{
+		// Path is not a DrawMesh, check the cache.
+		cachedPath.setf("_cache/%s.drawmesh", FileSystem::GetFileName(m_path.c_str()).c_str());
 
-			if (FileSystem::Exists(cachedPath.c_str()))
+		#if 1
+		if (FileSystem::Exists(cachedPath.c_str()))
+		{
+			DateTime sourceDate = FileSystem::GetTimeModified(m_path.c_str());
+			DateTime cachedDate = FileSystem::GetTimeModified(cachedPath.c_str());
+			if (sourceDate <= cachedDate)
 			{
-				DateTime sourceDate = FileSystem::GetTimeModified(m_path.c_str());
-				DateTime cachedDate = FileSystem::GetTimeModified(cachedPath.c_str());
-				if (sourceDate <= cachedDate)
+				FRM_LOG("DrawMesh: Loading cached data '%s'", cachedPath.c_str());
+				if (!FileSystem::Read(cachedData, cachedPath.c_str()))
 				{
-					FRM_LOG("DrawMesh: Loading cached data '%s'", cachedPath.c_str());
-					if (!FileSystem::Read(cachedData, cachedPath.c_str()))
-					{
-						FRM_LOG_ERR("DrawMesh: Error loading cached data '%s'", cachedPath.c_str());
-						return false;
-					}
+					FRM_LOG_ERR("DrawMesh: Error loading cached data '%s'", cachedPath.c_str());
+					return false;
 				}
 			}
 		}
-	#endif
+		#endif
+	}
 
 	if (cachedData.getDataSize() > 0)
 	{
@@ -164,7 +163,6 @@ bool DrawMesh::reload()
 		SerializerJson serializer(json, SerializerJson::Mode_Write);
 		FRM_VERIFY(serialize(serializer));
 
-		cachedPath.setf("_cache/%s.drawmesh", FileSystem::GetFileName(m_path.c_str()).c_str());
 		Json::Write(json, cachedData);
 		FileSystem::Write(cachedData, cachedPath.c_str());
 	}

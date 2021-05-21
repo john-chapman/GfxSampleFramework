@@ -918,7 +918,7 @@ void BasicRenderer::updateMaterialInstances()
 	}
 
 	GLsizei bfMaterialsSize = (GLsizei)(sizeof(MaterialInstance) * materialInstances.size());
-	updateBuffer(bfMaterials, "bfMaterials", bfMaterialsSize, materialInstances.data());
+	updateBuffer(bfMaterials, "bfBasicMaterial_Instances", bfMaterialsSize, materialInstances.data());
 }
 
 Shader* BasicRenderer::findShader(ShaderMapKey _key)
@@ -942,11 +942,11 @@ Shader* BasicRenderer::findShader(ShaderMapKey _key)
 
 	static constexpr const char* kMaterialDefines[] =
 	{		
-		"Material_FlipV",
-		"Material_NormalMapBC5",
-		"Material_AlphaTest",
-		"Material_AlphaDither",
-		"Material_ThinTranslucency",
+		"BasicMaterial_Flag_FlipV",
+		"BasicMaterial_Flag_NormalMapBC5",
+		"BasicMaterial_Flag_AlphaTest",
+		"BasicMaterial_Flag_AlphaDither",
+		"BasicMaterial_Flag_ThinTranslucency",
 	};
 	static_assert(BasicMaterial::Flag_Count == FRM_ARRAY_COUNT(kMaterialDefines), "BasicMaterial::Flag_Count != FRM_ARRAY_COUNT(kMaterialDefines)");
 
@@ -979,7 +979,7 @@ Shader* BasicRenderer::findShader(ShaderMapKey _key)
 			}
 		}
 
-		ret = Shader::CreateVsFs("shaders/BasicRenderer/BasicMaterial.glsl", "shaders/BasicRenderer/BasicMaterial.glsl", std::initializer_list<const char*>(defines.begin(), defines.end()));
+		ret = Shader::CreateVsFs("shaders/BasicRenderer/BasicRenderer.glsl", "shaders/BasicRenderer/BasicRenderer.glsl", std::initializer_list<const char*>(defines.begin(), defines.end()));
 	}
 
 	return ret;
@@ -1472,7 +1472,7 @@ void BasicRenderer::bindAndDraw(const DrawCall& _drawCall)
 	{
 		ctx->bindBuffer(_drawCall.bfSkinning);
 	}
-	_drawCall.material->bind(ssMaterial);
+	_drawCall.material->bind(ctx, ssMaterial);
 	ctx->setMesh(_drawCall.mesh, _drawCall.lodIndex, _drawCall.submeshIndex, _drawCall.bindHandleKey);
 	ctx->draw((GLsizei)_drawCall.instanceData.size());
 }

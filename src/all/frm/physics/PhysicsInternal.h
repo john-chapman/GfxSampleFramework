@@ -41,6 +41,7 @@ struct PxSettings
 bool PxInit(const PxSettings& _settings, eastl::vector<frm::Physics::CollisionEvent>& collisionEvents_);
 void PxShutdown();
 
+void PxInitCooker();
 bool PxCookConvexMesh(Mesh& _mesh, physx::PxOutputStream& out_);
 bool PxCookTriangleMesh(Mesh& _mesh, physx::PxOutputStream& out_);
 

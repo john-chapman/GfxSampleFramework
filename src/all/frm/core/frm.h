@@ -150,6 +150,7 @@ namespace frm {
 	class  ProxyGamepad;
 	class  ProxyKeyboard;
 	class  ProxyMouse;
+	class  RaytracingRenderer;
 	struct RenderTarget;
 	class  Scene;
 	class  SceneNode;

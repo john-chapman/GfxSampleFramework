@@ -60,6 +60,12 @@ return
 		"../tests/_sample.cpp",
 	},
 
+	Raytracing =
+	{
+		"../tests/Raytracing/**",
+		"../tests/_sample.cpp",
+	},
+
 	SceneTest =
 	{
 		"../tests/SceneTest/**",

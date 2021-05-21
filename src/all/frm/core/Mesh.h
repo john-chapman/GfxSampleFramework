@@ -22,7 +22,6 @@ namespace frm {
 //   binding model for DrawMesh to match semantics with vertex attribute 
 //   locations on the shader (via introspection + setting vertex locations per
 //   draw).
-// - Auto-generate lightmap UVs?
 ////////////////////////////////////////////////////////////////////////////////
 class Mesh
 {
@@ -68,6 +67,7 @@ public:
 		GenerateLODs,
 		GenerateNormals,
 		GenerateTangents,
+		GenerateLightmapUVs,
 
 		BIT_FLAGS_COUNT_DEFAULT(Optimize, GenerateLODs, GenerateNormals, GenerateTangents)
 	};
@@ -210,6 +210,9 @@ public:
 	// _targetError specifies the maximum deviation from the source mesh (0.1 = 10%).
 	void                  generateLODs(int _lodCount = 4, float _targetReduction = 0.6f, float _targetError = 0.1f);
 
+	// Generate lightmap UVs.
+	void                  generateLightmapUVs();
+
 protected:
 
 	struct VertexData
@@ -251,6 +254,7 @@ protected:
 
 	bool                  load(CreateFlags _createFlags);
 	void                  unload();	
+	void                  swap(Mesh& _rhs_);
 	bool                  serialize(Serializer& _serializer_);
 	void                  addSubmesh(uint32 _lod, uint32 _indexOffset, uint32 _indexCount);
 	void                  addSubmesh(uint32 _lod, Mesh& _mesh);

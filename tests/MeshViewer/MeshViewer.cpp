@@ -182,7 +182,7 @@ void MeshViewer::draw()
 
 	if (m_mesh)
 	{	
-		glScopedEnable(GL_CULL_FACE, GL_TRUE);
+		glScopedEnable(GL_CULL_FACE, GL_FALSE);
 		glScopedEnable(GL_BLEND, GL_TRUE);
 		
 		Texture* txDepth = m_basicRenderer->renderTargets[BasicRenderer::Target_GBufferDepthStencil].getTexture();
@@ -276,7 +276,7 @@ bool MeshViewer::initScene()
 	world->setCullCameraComponent(cameraComponent);
 	cameraNode->addComponent(cameraComponent);
 	m_camera = &cameraComponent->getCamera();
-	m_camera->setPerspective(Radians(25.0f), 1.0f, 0.05f, 100.0f, Camera::ProjFlag_Default);
+	m_camera->setPerspective(Radians(25.0f), 1.0f, 0.05f, 1000.0f, Camera::ProjFlag_Default);
 
 	FRM_VERIFY(cameraNode->init() && cameraNode->postInit());
 

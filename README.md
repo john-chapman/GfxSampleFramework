@@ -28,6 +28,7 @@ Embedded dependencies:
 - [tinyexr](https://github.com/syoyo/tinyexr)
 - [tinygltf](https://github.com/syoyo/tinygltf)
 - [tinyobjloader](https://github.com/syoyo/tinyobjloader)
+- [xatlas](https://github.com/jpcy/xatlas)
 
 ## Change Log ##
 - `2021-05-03 (v0.33):` Mesh refactor: integrated [meshoptimizer](https://github.com/zeux/meshoptimizer), new `Mesh` + `DrawMesh` classes.

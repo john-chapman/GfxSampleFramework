@@ -1,8 +1,6 @@
-#include "_skeleton.h"
-
 #include <frm/core/frm.h>
 
-using namespace frm;
+#include "_skeleton.h"
 
 static _skeleton s_inst;
 
@@ -15,7 +13,7 @@ _skeleton::~_skeleton()
 {
 }
 
-bool _skeleton::init(const frm::ArgList& _args)
+bool _skeleton::init(const ArgList& _args)
 {
 	if (!AppBase::init(_args))
 	{

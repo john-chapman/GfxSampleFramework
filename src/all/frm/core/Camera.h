@@ -92,6 +92,9 @@ public:
 	// This may return INF for infinite perspective projections.
 	float getDepthV(float _depth) const;
 
+	vec3 getFrustumRay(const vec2& _ndc) const;
+	vec3 getFrustumRayW(const vec2& _ndc) const;
+
 	uint32  m_projFlags;      // Combination of ProjFlag_ enums.
 	bool    m_projDirty;      // Whether to rebuild the projection matrix/local frustum during update().
 	

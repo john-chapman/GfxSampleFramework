@@ -17,6 +17,7 @@ namespace frm {
 // Physics
 // \todo
 // - Raycast CCD (cheaper alternative to full builtin CCD).
+// - Suppress triangle remapping tables on the cooker?
 ////////////////////////////////////////////////////////////////////////////////
 class Physics
 {
@@ -55,9 +56,10 @@ public:
  // Ray cast API
 	enum class RayCastFlag: uint8
 	{
-		Position, // Get the position.
-		Normal,   // Get the normal.
-		AnyHit,   // Get any hit (else closest).
+		Position,       // Get the position.
+		Normal,         // Get the normal.
+		AnyHit,         // Get any hit (else closest).
+		TriangleIndex,  // Get the triangle index.
 
 		BIT_FLAGS_COUNT_DEFAULT(Position, Normal)
 	};
@@ -79,10 +81,11 @@ public:
 
 	struct RayCastOut
 	{
-		vec3              position  = vec3(0.0f); // Position of the intersection.
-		vec3              normal    = vec3(0.0f); // Normal at the intersection.
-		float             distance  = 0.0f;       // Hit distance along ray.
-		PhysicsComponent* component = nullptr;    // Component that was hit.
+		vec3              position       = vec3(0.0f); // Position of the intersection.
+		vec3              normal         = vec3(0.0f); // Normal at the intersection.
+		float             distance       = 0.0f;       // Hit distance along ray.
+		uint32            triangleIndex  = 0;          // Triangle index (for tri mesh hits).
+		PhysicsComponent* component      = nullptr;    // Component that was hit.
 	};
 
 	// Return true if an intersection was found, in which case out_ contains valid data.
@@ -125,6 +128,7 @@ private:
 	     ~Physics();
 
 	void updateComponentTransforms();
+	void setDrawDebug(bool _enable);
 };
 
 

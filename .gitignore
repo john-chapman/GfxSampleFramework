@@ -12,5 +12,4 @@ build/vs*/*
 *.json
 
 # Cached data
-*.physx
-*.drawmesh
+**/_cache/*

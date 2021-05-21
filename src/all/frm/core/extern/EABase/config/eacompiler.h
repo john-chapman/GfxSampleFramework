@@ -599,7 +599,7 @@
 		#elif (defined(EA_COMPILER_CLANG) || defined(EA_COMPILER_GNUC) || defined(EA_COMPILER_INTEL) || defined(EA_COMPILER_RVCT)) && !defined(__EXCEPTIONS) // GCC and most EDG-based compilers define __EXCEPTIONS when exception handling is enabled.
 			#define EA_COMPILER_NO_EXCEPTIONS 1
 
-		#elif (defined(EA_COMPILER_MSVC)) && !defined(_CPPUNWIND)
+		#elif (defined(EA_COMPILER_BORLAND) || defined(EA_COMPILER_MSVC)) && !defined(_CPPUNWIND)
 			#define EA_COMPILER_NO_UNWIND 1
 
 		#endif // EA_COMPILER_NO_EXCEPTIONS / EA_COMPILER_NO_UNWIND
@@ -697,7 +697,7 @@
 			#define EA_THROW_SPEC_DELETE_NONE() throw() 
 
 		#else
-			#if defined(EA_PLATFORM_SONY)
+			#if defined(EA_PLATFORM_PS4)
 				#define EA_THROW_SPEC_NEW(X)        _THROWS(X)
 			#elif defined(_MSC_VER)
 				// Disabled warning "nonstandard extension used: 'throw (...)'" as this warning is a W4 warning which is usually off by default

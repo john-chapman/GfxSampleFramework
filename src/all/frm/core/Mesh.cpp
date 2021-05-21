@@ -10,6 +10,7 @@
 #include <frm/core/Time.h>
 
 #include <frm/core/extern/meshoptimizer/meshoptimizer.h>
+#include <frm/core/extern/xatlas/xatlas.h>
 
 namespace frm {
 
@@ -746,6 +747,104 @@ void Mesh::generateLODs(int _lodCount, float _targetReduction, float _targetErro
 	}
 }
 
+void Mesh::generateLightmapUVs()
+{
+	FRM_AUTOTIMER("Mesh::generateLightmapUVs");
+
+	xatlas::ChartOptions chartOptions;
+	chartOptions.fixWinding = true;
+	chartOptions.useInputMeshUvs = true;
+	
+	xatlas::PackOptions packOptions;
+	packOptions.padding = 4;
+	packOptions.blockAlign = true;
+	packOptions.bruteForce = true;
+	// \todo Need to set texels/unit here to have appropriate padding.
+
+	xatlas::Atlas* atlas = xatlas::Create();
+	const size_t submeshCount = m_lods[0].submeshes.size();
+	const size_t submeshStartIndex = (submeshCount == 1) ? 0 : 1;
+	for (size_t submeshIndex = submeshStartIndex; submeshIndex < submeshCount; ++submeshIndex)
+	{
+		xatlas::MeshDecl meshDecl;
+		meshDecl.vertexCount          = m_vertexCount;
+		meshDecl.vertexPositionData   = m_vertexData[Semantic_Positions].data;
+		meshDecl.vertexPositionStride = sizeof(vec3);
+		meshDecl.vertexNormalData     = m_vertexData[Semantic_Positions].data;
+		meshDecl.vertexNormalStride   = sizeof(vec3);
+		meshDecl.vertexUvData         = m_vertexData[Semantic_MaterialUVs].data;
+		meshDecl.vertexUvStride       = sizeof(vec2);
+		meshDecl.indexCount           = m_lods[0].submeshes[submeshIndex].indexCount;
+		meshDecl.indexData            = (char*)m_lods[0].indexData + m_lods[0].submeshes[submeshIndex].indexOffset * DataTypeSizeBytes(m_indexDataType);
+		meshDecl.indexFormat          = (m_indexDataType == DataType_Uint16) ? xatlas::IndexFormat::UInt16 : xatlas::IndexFormat::UInt32;
+		
+		xatlas::AddMeshError err = xatlas::AddMesh(atlas, meshDecl);
+		FRM_ASSERT(err == xatlas::AddMeshError::Success);
+	}
+
+	xatlas::Generate(atlas, chartOptions, packOptions);
+	FRM_ASSERT(atlas->meshCount == submeshCount - ((submeshCount == 1) ? 0 : 1));
+	if (atlas->atlasCount == 0)
+	{
+		FRM_LOG_ERR("Mesh::generateLightmapUVs() -- xatlas generated no atlases.");
+		xatlas::Destroy(atlas);
+		return;
+	}
+
+	Mesh finalMesh;
+
+	for (uint32_t submeshIndex = 0; submeshIndex < atlas->meshCount; ++submeshIndex)
+	{
+		xatlas::Mesh& atlasMesh = atlas->meshes[submeshIndex];
+		Mesh submesh;
+		submesh.setVertexCount(atlasMesh.vertexCount);
+		for (int semantic = 0; semantic < Semantic_Count; ++semantic)
+		{
+			if (m_vertexData[semantic].semantic == Semantic_Invalid)
+			{
+				continue;
+			}
+
+			submesh.setVertexData(semantic, m_vertexData[semantic].dataType, m_vertexData[semantic].dataCount);
+			const char* srcVertexData = (char*)m_vertexData[semantic].data;
+			char* dstVertexData = (char*)submesh.m_vertexData[semantic].data;
+			const size_t vertexDataSizeBytes = m_vertexData[semantic].getDataSizeBytes();
+			for (uint32_t vertexIndex = 0; vertexIndex < atlasMesh.vertexCount; ++vertexIndex)
+			{
+				const xatlas::Vertex& vertex = atlasMesh.vertexArray[vertexIndex];
+				FRM_ASSERT(vertex.xref < m_vertexCount);
+				memcpy(dstVertexData + vertexIndex * vertexDataSizeBytes, srcVertexData + vertex.xref * vertexDataSizeBytes, vertexDataSizeBytes);
+			}
+		}
+
+		VertexDataView<vec2> lightmapUVs = submesh.getVertexDataView<vec2>(Semantic_LightmapUVs);
+		for (uint32_t vertexIndex = 0; vertexIndex < atlasMesh.vertexCount; ++vertexIndex)
+		{
+			const xatlas::Vertex& vertex = atlasMesh.vertexArray[vertexIndex];
+			lightmapUVs[vertexIndex] = vec2(vertex.uv[0], vertex.uv[1]) / vec2(atlas->width, atlas->height);
+		}
+
+		submesh.setIndexData(0, DataType_Uint32, atlasMesh.indexCount, atlasMesh.indexArray);
+		finalMesh.addSubmesh(0, submesh);
+	}
+
+	{ // \hack Use FRM_AUTOTIMER here only to have the stats appear nicely in the log. 
+		const float vertexCountIncrease = (float)(finalMesh.m_vertexCount - m_vertexCount) / (float)m_vertexCount * 100.0f;
+		const float atlasUtilization = atlas->utilization[0] * 100.0f;
+		FRM_AUTOTIMER("xatlas stats: %1.3f%% vertex count increase, atlas utilization = %1.4f%%", vertexCountIncrease, atlasUtilization); 
+	}
+
+	xatlas::Destroy(atlas);
+	unload();
+
+	// \todo \hack In this case the second submesh is redundant. We always create submesh 0 to represent the whole mesh, in this case there was only 1 per material submesh and so it also represents the whole mesh.
+	if (finalMesh.m_lods[0].submeshes.size() == 2)
+	{
+		finalMesh.m_lods[0].submeshes.pop_back();
+	}
+	swap(finalMesh);
+}
+
 void Mesh::finalize()
 {
 	FRM_AUTOTIMER("Mesh::finalize");
@@ -875,7 +974,7 @@ bool Mesh::load(CreateFlags _createFlags)
 		return true;
 	}
 
-	FRM_AUTOTIMER("Mesh::reload(%s)", m_path.c_str());
+	FRM_AUTOTIMER("Mesh::load(%s)", m_path.c_str());
 
 	File f;
 	if (!FileSystem::Read(f, m_path.c_str()))
@@ -927,6 +1026,17 @@ void Mesh::unload()
 	}
 
 	FRM_DELETE(m_skeleton);
+}
+
+void Mesh::swap(Mesh& _rhs_)
+{
+	frm::swap(m_path,          _rhs_.m_path);
+	std::swap(m_primitive,     _rhs_.m_primitive);
+	std::swap(m_vertexCount,   _rhs_.m_vertexCount);
+	std::swap(m_indexDataType, _rhs_.m_indexDataType);
+	std::swap(m_vertexData,    _rhs_.m_vertexData);
+	std::swap(m_lods,          _rhs_.m_lods);
+	std::swap(m_skeleton,      _rhs_.m_skeleton);
 }
 
 bool Mesh::serialize(Serializer& _serializer_)
