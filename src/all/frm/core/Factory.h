@@ -67,6 +67,7 @@ namespace frm {
 // \todo
 // - More elegant solution than FRM_FORCE_LINK()?
 // - Static access to the class ref, based on the deriving type.
+// - Virtual dtor would make it easier for class cleanup (see XForms).
 ////////////////////////////////////////////////////////////////////////////////
 template <typename tType>
 class Factory

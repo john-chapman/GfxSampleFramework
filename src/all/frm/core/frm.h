@@ -178,6 +178,7 @@ namespace frm {
 	class  XForm;
 		class XFormPositionTarget;
 		class XFormSpin;
+		class XFormSplinePath;
 
 	#if FRM_MODULE_AUDIO
 		class Audio;

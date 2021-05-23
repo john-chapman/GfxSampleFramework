@@ -1,8 +1,10 @@
 #include "XFormComponent.h"
 
 #include <frm/core/interpolation.h>
+#include <frm/core/math.h>
 #include <frm/core/Profiler.h>
 #include <frm/core/Serializable.inl>
+#include <frm/core/SplinePath.h>
 #include <frm/core/world/WorldEditor.h>
 
 #include <im3d/im3d.h>
@@ -475,12 +477,12 @@ public:
 	void reverse() override
 	{
 		eastl::swap(m_start, m_end);
-		m_time = FRM_MAX(m_duration - m_time, 0.0f);
+		m_time = Max(m_duration - m_time, 0.0f);
 	}
 	
 	void apply(float _dt, SceneNode* _node_) override
 	{
-		m_time = FRM_MIN(m_time + _dt, m_duration);
+		m_time = Min(m_time + _dt, m_duration);
 		if (m_onComplete && m_time >= m_duration)
 		{
 			m_onComplete->m_callback(this, _node_);
@@ -488,7 +490,14 @@ public:
 		m_position = smooth(m_start, m_end, m_time / m_duration);
 
 		mat4 local = _node_->getLocal();
-		SetTranslation(local, m_position);
+		if (m_worldSpace)
+		{
+			SetTranslation(local, m_position);
+		}
+		else
+		{
+			local = TranslationMatrix(m_position) * local;
+		}
 		_node_->setLocal(local);
 	}
 
@@ -513,16 +522,19 @@ public:
 
 		ret |= EditCallback(m_onComplete, "On Complete");
 
+		ret |= ImGui::Checkbox("World Space", &m_worldSpace);
+
 		return ret;
 	}
 
 	bool serialize(Serializer& _serializer_) override
 	{
 		bool ret = SerializeAndValidateClass(_serializer_);
-		ret |= Serialize(_serializer_, m_start,    "m_start");
-		ret |= Serialize(_serializer_, m_end,      "m_end");
+		ret |= Serialize(_serializer_, m_start, "m_start");
+		ret |= Serialize(_serializer_, m_end, "m_end");
 		ret |= Serialize(_serializer_, m_duration, "m_duration");
 		ret |= SerializeCallback(_serializer_, m_onComplete, "m_onComplete");
+		ret |= Serialize(_serializer_, m_worldSpace, "m_worldSpace");
 		return ret;
 	}
 
@@ -534,8 +546,189 @@ private:
 	vec3                     m_position   = vec3(0.0f);
 	float                    m_time       = 0.0f;
 	const CallbackReference* m_onComplete = nullptr;
+	bool                     m_worldSpace = false;
 };
 
 FRM_XFORM_DEFINE(XFormPositionTarget, 0);
+
+/******************************************************************************
+
+                               XFormSplinePath
+
+******************************************************************************/
+
+FRM_XFORM_DECLARE(XFormSplinePath)
+{
+public:
+	// \todo This never gets called, see Factory.
+	~XFormSplinePath()
+	{
+		SplinePath::Release(m_splinePath);
+	}
+
+	void reset() override
+	{
+		m_time = m_offset * m_duration;
+	}
+
+	void relativeReset() override
+	{
+		// \todo
+		m_time = m_offset * m_duration;
+	}
+
+	void reverse() override
+	{
+		m_timeScale = -m_timeScale;
+	}
+	
+	void apply(float _dt, SceneNode* _node_) override
+	{
+		if (!m_splinePath)
+		{
+			return;
+		}
+
+		m_time = Clamp(m_time + _dt * m_timeScale, 0.0f, m_duration);
+		if (m_onComplete && (m_time >= m_duration || m_time < 0.0f))
+		{
+			m_onComplete->m_callback(this, _node_);
+		}
+		const float t = m_time / m_duration;
+		const vec3 p = m_splinePath->samplePosition(t);
+
+		mat4 local = _node_->getLocal();
+		SetTranslation(local, p);
+		_node_->setLocal(local);
+	}
+
+	bool edit() override
+	{
+		bool ret = false;
+
+		if (SplinePath::Select(m_splinePath, "SplinePath", { "*.spline" }))
+		{
+			ret = true;
+		}
+
+		if (m_splinePath)
+		{
+			ImGui::SameLine();
+			if (*m_splinePath->getPath() != '\0')
+			{
+				ImGui::Text(m_splinePath->getPath());
+			}
+			else
+			{
+				ImGui::Text("INLINE");
+			}
+		}
+
+		ImGui::SameLine();
+
+		// \hack Static state for popup geometry/material editors.
+		struct SplinePathEditorState
+		{
+			bool show = false;
+			void* callingComponent = nullptr;
+		};
+		static SplinePathEditorState splinePathEditorState;
+
+		if (ImGui::Button(ICON_FA_EXTERNAL_LINK "##editSplinePath"))
+		{
+			splinePathEditorState.show = true;
+			splinePathEditorState.callingComponent = this;
+		}
+		
+		if (splinePathEditorState.callingComponent == this && splinePathEditorState.show && SplinePath::Edit(m_splinePath, &splinePathEditorState.show))
+		{
+			if (!splinePathEditorState.show) // the window was closed
+			{
+				splinePathEditorState.callingComponent = nullptr;
+			}
+			ret = true;
+		}
+
+		ImGui::Spacing();
+
+		ret |= ImGui::SliderFloat("Duration (s)", &m_duration, 0.0f, 10.0f);
+		ret |= ImGui::SliderFloat("Offset", &m_offset, 0.0f, 1.0f);
+		ret |= EditCallback(m_onComplete, "On Complete");
+
+		if (m_splinePath)
+		{
+			Im3d::PushDrawState();
+				Im3d::SetColor(Im3d::Color_Magenta);
+				Im3d::SetSize(2.0f);
+				Im3d::SetAlpha(0.5f);
+				m_splinePath->draw();
+			Im3d::PopDrawState();
+		}
+
+		return ret;
+	}
+
+	bool serialize(Serializer& _serializer_) override
+	{
+		bool ret = SerializeAndValidateClass(_serializer_);
+		ret |= Serialize(_serializer_, m_offset, "m_offset");
+		ret |= Serialize(_serializer_, m_duration, "m_duration");
+		ret |= SerializeCallback(_serializer_, m_onComplete, "m_onComplete");
+
+		if (_serializer_.getMode() == Serializer::Mode_Read)
+		{
+			if (_serializer_.beginObject("SplinePath"))
+			{
+				// serialize inline
+				m_splinePath = SplinePath::Create(_serializer_);
+				_serializer_.endObject();
+			}
+			else
+			{
+				// serialize from file
+				PathStr path;
+				if (!Serialize(_serializer_, path, "SplinePath"))
+				{
+					FRM_LOG_ERR("XFormSplinePath::serialize; missing SplinePath");
+					return false;
+				}
+				m_splinePath = SplinePath::Create(path.c_str());
+			}
+			ret &= m_splinePath && CheckResource(m_splinePath);
+		}
+		else
+		{
+			if (m_splinePath)
+			{
+				if (*m_splinePath->getPath() == '\0')
+				{
+					// serialize inline
+					_serializer_.beginObject("SplinePath");
+					m_splinePath->serialize(_serializer_);
+					_serializer_.endObject();
+				}
+				else
+				{
+					// serialize path
+					PathStr path = m_splinePath->getPath();
+					Serialize(_serializer_, path, "SplinePath");
+				}
+			}
+		}
+
+		return ret;
+	}
+
+private:
+
+	SplinePath*              m_splinePath = nullptr;
+	float                    m_offset     = 0.0f;
+	float                    m_duration   = 0.0f;
+	float                    m_timeScale  = 1.0f;
+	float                    m_time       = 0.0f;
+	const CallbackReference* m_onComplete = nullptr;
+};
+
+FRM_XFORM_DEFINE(XFormSplinePath, 0);
 
 } // namespace frm

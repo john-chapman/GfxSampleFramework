@@ -259,6 +259,8 @@ DECL_RESOURCE(DrawMesh);
 DECL_RESOURCE(SkeletonAnimation);
 #include <frm/core/Shader.h>
 DECL_RESOURCE(Shader);
+#include <frm/core/SplinePath.h>
+DECL_RESOURCE(SplinePath);
 #include <frm/core/Texture.h>
 DECL_RESOURCE(Texture);
 
