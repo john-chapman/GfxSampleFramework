@@ -662,14 +662,10 @@ void Camera::defaultInit()
 {
 	m_projFlags          = ProjFlag_Default;
 	m_projDirty          = true;
-	m_up                 = 1.0f;
-	m_down               = -1.0f;
-	m_right              = 1.0f;
-	m_left               = -1.0f;
-	m_near               = 1.0f;
-	m_far                = 1000.0f;
 	m_world              = mat4(identity);
 	m_proj               = mat4(identity);
 	m_aspectRatio        = 1.0f;
 	m_gpuBuffer          = nullptr;
+
+	setPerspective(Radians(60.0f), 16.0f/9.0f, 0.1f, 1000.0f);
 }
