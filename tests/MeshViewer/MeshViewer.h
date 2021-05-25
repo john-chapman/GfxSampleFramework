@@ -39,7 +39,7 @@ protected:
 	BasicRenderer*            m_basicRenderer    = nullptr;
 	PathStr                   m_meshPath         = "models/Box1.gltf";
 	PathStr                   m_materialPath     = "materials/BasicMaterial.mat";
-	PathStr                   m_environmentPath  = "textures/env_lightgray.exr";
+	PathStr                   m_environmentPath  = "textures/EnvLightGray.exr";
 	DrawMesh*                 m_mesh             = nullptr;
 	BasicRenderableComponent* m_renderable       = nullptr;
 	BasicMaterial*            m_material         = nullptr;
