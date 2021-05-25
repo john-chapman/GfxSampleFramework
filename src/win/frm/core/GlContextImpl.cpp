@@ -190,8 +190,34 @@ GlContext* GlContext::Create(const Window* _window, int _vmaj, int _vmin, Create
 		glAssert(glEnable(GL_DEBUG_OUTPUT));
 	}
 
- // set default states
-	ShaderDesc::SetDefaultVersion((const char*)frm::String<8>("%d%d0", _vmaj, _vmin));
+	// Set default shader version.
+	if (_vmaj == 2 && _vmin == 0)
+	{
+		ShaderDesc::SetDefaultVersion("110");
+	}
+	else if (_vmaj == 2 && _vmin == 1)
+	{
+		ShaderDesc::SetDefaultVersion("120");
+	}
+	else if (_vmaj == 3 && _vmin == 0)
+	{
+		ShaderDesc::SetDefaultVersion("130");
+	}
+	else if (_vmaj == 3 && _vmin == 1)
+	{
+		ShaderDesc::SetDefaultVersion("140");
+	}
+	else if (_vmaj == 3 && _vmin == 2)
+	{
+		ShaderDesc::SetDefaultVersion("150");
+	}
+	else
+	{
+		// After 3.3, GLSL versions follow the OpenGL version.
+		ShaderDesc::SetDefaultVersion(String<8>("%d%d0", _vmaj, _vmin).c_str());
+	}
+
+	// Set default states.
 	#if FRM_NDC_Z_ZERO_TO_ONE
 		FRM_ASSERT(glewIsExtensionSupported("GL_ARB_clip_control"));
 		glAssert(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE));
