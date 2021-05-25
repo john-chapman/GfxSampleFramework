@@ -1002,6 +1002,10 @@ const char* Shader::GetStageInfoLog(GLuint _handle)
 {
 	GLint len;
 	glAssert(glGetShaderiv(_handle, GL_INFO_LOG_LENGTH, &len));
+	if (len == 0)
+	{
+		return nullptr;
+	}
 	char* ret = FRM_NEW_ARRAY(GLchar, len);
 	glAssert(glGetShaderInfoLog(_handle, len, 0, ret));
 	return ret;
@@ -1114,9 +1118,9 @@ bool Shader::loadStage(int _i, bool _loadSource)
 	GLint ret = GL_FALSE;
 	glAssert(glGetShaderiv(m_stageHandles[_i], GL_COMPILE_STATUS, &ret));
 	
- // print error log
 	if (ret == GL_FALSE) 
 	{		
+		// print error log
 		const char* pth = frm::internal::StripPath((const char*)stageDesc.m_path);
 		FRM_LOG_ERR("'%s' compile failed", pth);
 		auto log = stageDesc.getLogInfo();
@@ -1133,7 +1137,19 @@ bool Shader::loadStage(int _i, bool _loadSource)
 	} 
 	else 
 	{
-		FRM_LOG("'%s' compile succeeded", frm::internal::StripPath((const char*)stageDesc.m_path));
+		// print any warnings
+		const char* stageLog = GetStageInfoLog(m_stageHandles[_i]);
+		if (stageLog)
+		{
+			auto log = stageDesc.getLogInfo();
+			log.append(stageLog);
+			FreeStageInfoLog(stageLog);
+			FRM_LOG("'%s' compile succeeded with warnings:\n%s", frm::internal::StripPath((const char*)stageDesc.m_path), log.c_str());
+		}
+		else 
+		{
+			FRM_LOG("'%s' compile succeeded", frm::internal::StripPath((const char*)stageDesc.m_path));
+		}
 	}
 	
 	return ret == GL_TRUE;
