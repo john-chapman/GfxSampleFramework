@@ -306,6 +306,10 @@ bool AppSample::update()
 	{
 		m_showShaderViewer = !m_showShaderViewer;
 	}
+	if (ImGui::IsKeyPressed(Keyboard::Key_4) && ImGui::IsKeyDown(Keyboard::Key_LCtrl)) 
+	{
+		m_showResourceViewer = !m_showResourceViewer;
+	}
 	
 	ImGuiIO& io = ImGui::GetIO();
 	if (m_showMenu) 
@@ -340,9 +344,15 @@ bool AppSample::update()
 	}
 	if (m_showShaderViewer) 
 	{
-		ImGui::SetNextWindowPos(vec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(vec2(0.0f, 16.0f), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(vec2(m_resolution.x * 2.0f/3.0f, m_resolution.y * 2.0f/3.0f), ImGuiCond_FirstUseEver);
 		Shader::ShowShaderViewer(&m_showShaderViewer);
+	}
+	if (m_showResourceViewer)
+	{
+		ImGui::SetNextWindowPos(vec2(0.0f, 16.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(vec2(m_resolution.x * 1.0f/5.0f, m_resolution.y * 1.0f/5.0f), ImGuiCond_FirstUseEver);
+		ShowResourceViewer(&m_showResourceViewer);
 	}
 	
 	ImGui::BeginInvisible("OverlayWindow", vec2(0.0f), vec2((float)m_windowSize.x, (float)m_windowSize.y - (m_showMenu ? ImGui::GetFrameHeightWithSpacing() : 0.0f)));
@@ -402,6 +412,7 @@ AppSample::AppSample(const char* _name)
 		Properties::Add("ShowProfiler",          m_showProfilerViewer,                                                   &m_showProfilerViewer  );
 		Properties::Add("ShowTextureViewer",     m_showTextureViewer,                                                    &m_showTextureViewer   );
 		Properties::Add("ShowShaderViewer",      m_showShaderViewer,                                                     &m_showShaderViewer    );
+		Properties::Add("ShowResourceViewer",    m_showResourceViewer,                                                   &m_showResourceViewer  );
 
 		Properties::PushGroup("#Font");
 			//                  name                 default                     min           max                           storage
@@ -459,10 +470,11 @@ void AppSample::drawMainMenuBar()
 	{
 		if (ImGui::BeginMenu("Tools")) 
 		{
-			if (ImGui::MenuItem("Properties",     nullptr,    m_showPropertyEditor)) m_showPropertyEditor = !m_showPropertyEditor;
-			if (ImGui::MenuItem("Profiler",       "Ctrl+1",   m_showProfilerViewer)) m_showProfilerViewer = !m_showProfilerViewer;
-			if (ImGui::MenuItem("Texture Viewer", "Ctrl+2",   m_showTextureViewer))  m_showTextureViewer  = !m_showTextureViewer;
-			if (ImGui::MenuItem("Shader Viewer",  "Ctrl+3",   m_showShaderViewer))   m_showShaderViewer   = !m_showShaderViewer;
+			if (ImGui::MenuItem("Properties",       nullptr,    m_showPropertyEditor)) m_showPropertyEditor = !m_showPropertyEditor;
+			if (ImGui::MenuItem("Profiler",         "Ctrl+1",   m_showProfilerViewer)) m_showProfilerViewer = !m_showProfilerViewer;
+			if (ImGui::MenuItem("Texture Viewer",   "Ctrl+2",   m_showTextureViewer))  m_showTextureViewer  = !m_showTextureViewer;
+			if (ImGui::MenuItem("Shader Viewer",    "Ctrl+3",   m_showShaderViewer))   m_showShaderViewer   = !m_showShaderViewer;
+			if (ImGui::MenuItem("Resource Viewer",  "Ctrl+4",   m_showResourceViewer)) m_showResourceViewer = !m_showResourceViewer;
 			
 			ImGui::EndMenu();
 		}
@@ -679,6 +691,7 @@ bool AppSample::ImGui_Init(AppSample* _app)
 		});
 	FRM_ASSERT(vertexLayout.vertexSizeBytes == sizeof(ImDrawVert));
 	s_msImGui = DrawMesh::CreateUnique(Mesh::Primitive_Triangles, vertexLayout);
+	s_msImGui->setName("#ImGui");
 
  // shaders
 	if (s_shImGui) 

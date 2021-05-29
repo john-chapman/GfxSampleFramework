@@ -71,6 +71,7 @@ public:
 	static Derived* Find(const char* _name);
 	static int      GetInstanceCount()               { return (int)s_instances.size(); }
 	static Derived* GetInstance(int _index)          { FRM_ASSERT(_index < GetInstanceCount()); return s_instances[_index]; }
+	static const char* GetClassName()                { return s_className; }
 
 	static bool     Select(Derived*& _resource_, const char* _buttonLabel, std::initializer_list<const char*> _fileExtensions);
 
@@ -125,5 +126,7 @@ bool CheckResource(const tResourceType* _resource)
 {
 	return _resource && _resource->getState() != tResourceType::State_Error;
 }
+
+void ShowResourceViewer(bool* _open_);
 
 } // namespace frm

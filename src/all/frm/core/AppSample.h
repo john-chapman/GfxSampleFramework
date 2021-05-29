@@ -60,6 +60,7 @@ protected:
 	bool               m_showProfilerViewer         = false;
 	bool               m_showTextureViewer          = false;
 	bool               m_showShaderViewer           = false;
+	bool               m_showResourceViewer         = false;
 	bool               m_hiddenMode                 = false;  // don't display the app window, disable ImGui
 
 	static void ImGui_RenderDrawLists(ImDrawData* _drawData);

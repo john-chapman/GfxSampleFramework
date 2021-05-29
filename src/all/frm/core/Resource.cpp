@@ -247,6 +247,103 @@ bool Resource<tDerived>::Select(Derived*& _resource_, const char* _buttonLabel, 
 	return ret;
 }
 
+namespace {
+
+template <typename tType>
+void ResourceView(bool _showHidden)
+{
+	const int instanceCount = Resource<tType>::GetInstanceCount();
+
+	ImGui::TableNextRow();
+	ImGui::TableNextColumn();
+	
+	constexpr ImGuiTreeNodeFlags treeNodeFlags = 0
+		| ImGuiTreeNodeFlags_OpenOnArrow 
+		| ImGuiTreeNodeFlags_SpanFullWidth
+		;
+	if (ImGui::TreeNodeEx(String<32>("%s (%d)###%s", Resource<tType>::GetClassName(), instanceCount, Resource<tType>::GetClassName()).c_str(), treeNodeFlags))
+	{
+		for (int i = 0; i < instanceCount; ++i)
+		{
+			const Resource<tType>* instance = Resource<tType>::GetInstance(i);
+			const char* instanceName = instance->getName();
+			if (!_showHidden && *instanceName == '#')
+			{
+				continue;
+			}
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text(instanceName);
+			ImGui::TableNextColumn();
+			ImGui::Text("%d", (int)instance->getRefCount());
+		}
+
+		ImGui::TreePop();
+	}
+}
+
+} // namespace
+
+void frm::ShowResourceViewer(bool* _open_)
+{
+	static bool showHidden = false;
+
+	ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetFrameHeightWithSpacing()), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiCond_FirstUseEver);
+	if (!ImGui::Begin("Resource Viewer", _open_))
+	{
+		ImGui::End();
+		return; // window collapsed, early-out
+	}
+
+	constexpr ImGuiTableFlags tableFlags = 0
+		| ImGuiTableFlags_ScrollY
+		| ImGuiTableFlags_BordersV 
+		| ImGuiTableFlags_BordersOuterH
+		| ImGuiTableFlags_RowBg 
+		| ImGuiTableFlags_SizingStretchSame
+		| ImGuiTableFlags_Resizable
+		;
+	constexpr ImGuiTableColumnFlags columnFlags = 0
+		| ImGuiTableColumnFlags_NoReorder
+		| ImGuiTableColumnFlags_NoHide
+		;
+
+	ImGui::Checkbox("Show Hidden", &showHidden);
+
+	if (ImGui::BeginTable("ResourceViewer", 2, tableFlags))
+	{
+		ImGui::TableSetupColumn("Resource", columnFlags);
+		ImGui::TableSetupColumn("# Refereces", columnFlags);
+		ImGui::TableHeadersRow();
+
+		#define RESOURCE_VIEW(_name) \
+			ResourceView<_name>(showHidden)
+
+		RESOURCE_VIEW(BasicMaterial);
+		RESOURCE_VIEW(DrawMesh);
+		RESOURCE_VIEW(SkeletonAnimation);
+		RESOURCE_VIEW(Shader);
+		RESOURCE_VIEW(SplinePath);
+		RESOURCE_VIEW(Texture);
+
+		#if FRM_MODULE_AUDIO
+			RESOURCE_VIEW(AudioData);
+		#endif
+
+		#if FRM_MODULE_PHYSICS
+			RESOURCE_VIEW(PhysicsMaterial);
+			RESOURCE_VIEW(PhysicsGeometry);
+		#endif
+
+		#undef RESOURCE_VIEW
+		ImGui::EndTable();
+	}
+	
+	ImGui::End();
+}
+
 #define DECL_RESOURCE(_name) \
 	template class Resource<_name>; \
 	const char* Resource<_name>::s_className = #_name;
