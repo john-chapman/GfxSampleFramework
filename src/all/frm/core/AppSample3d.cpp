@@ -50,7 +50,6 @@ bool AppSample3d::init(const frm::ArgList& _args)
 	#endif
 
 	m_world = World::Create(m_worldPath.c_str());
-	FRM_VERIFY(m_world->init() && m_world->postInit());
 
 	m_worldEditor = FRM_NEW(WorldEditor());
 	m_worldEditor->setWorld(m_world);
@@ -64,9 +63,8 @@ void AppSample3d::shutdown()
 
 	FRM_DELETE(m_worldEditor); // \todo Detect pending changes which might need to be saved.
 
-	m_worldPath = m_world->getPath();
-	m_world->shutdown();
-	World::Destroy(m_world);
+	m_worldPath = World::GetCurrent()->getPath();
+	World::Release(m_world);
 
 	#if FRM_MODULE_PHYSICS
 		Physics::Shutdown();

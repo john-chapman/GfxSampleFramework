@@ -172,13 +172,15 @@ void WorldEditor::setWorld(World* _world_)
 	{
 		return;
 	}
-
+		
 	if (!m_modifiedScenes.empty())
 	{
 		FRM_ASSERT(false); // \todo save dialogue
 	}
 	m_modifiedScenes.clear();
 
+	World::Use(_world_);	
+	World::Release(m_currentWorld);
 	m_currentWorld = _world_;
 	m_currentScene = _world_->m_rootScene;
 	m_currentNode  = _world_->m_rootScene->m_root.referent;
@@ -293,15 +295,9 @@ bool WorldEditor::dispatchActions()
 			}
 			else
 			{
-				m_currentWorld->shutdown();
-
-				// \hack \todo We don't necessarily own the world instance and so can't delete m_currentWorld - instead we just create a new one.
-				// This will leak memory over time, simplest solution would be to use ref counting.
-				m_currentWorld = FRM_NEW(World);
+				World::Release(m_currentWorld);
+				m_currentWorld = World::Create();
 				World::SetCurrent(m_currentWorld);
-
-				m_currentWorld->init();
-				m_currentWorld->postInit();
 				m_currentScene = m_currentWorld->m_rootScene;
 				m_currentNode = m_currentScene->m_root.referent;
 				m_nextNodeID = m_currentScene->findUniqueNodeID();

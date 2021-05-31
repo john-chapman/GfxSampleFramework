@@ -186,12 +186,51 @@ World* World::Create(const char* _path)
 			FRM_LOG_ERR("Error serializing world: %s", serializer.getError());
 		}
 	}
+	Use(world);
 	
 	return world;
 }
 
+bool World::Use(World* _world_)
+{
+	bool ret = true;
+
+	FRM_STRICT_ASSERT(_world_);
+	++_world_->m_refCount;
+	if (_world_->m_refCount == 1)
+	{
+		if (_world_->m_state != World::State::PostInit)
+		{
+			ret &= _world_->init();
+			ret &= _world_->postInit();
+		}
+	}
+
+	return ret;
+}
+
+void World::Release(World*& _world_)
+{
+	if (!_world_)
+	{
+		return;
+	}
+
+	FRM_ASSERT(_world_->m_refCount > 0);
+	--_world_->m_refCount;
+	if (_world_->m_refCount == 0)
+	{
+		if (_world_->m_state != World::State::Shutdown)
+		{
+			_world_->shutdown();
+		}
+		Destroy(_world_);
+	}
+}
+
 void World::Destroy(World*& _world_)
 {
+	FRM_ASSERT(_world_->m_refCount == 0);
 	FRM_ASSERT(_world_->m_state == State::Shutdown);
 	FRM_DELETE(_world_);
 	_world_ = nullptr;
@@ -422,6 +461,8 @@ World::World()
 
 World::~World()
 {
+	FRM_ASSERT(m_refCount == 0);
+
 	FRM_ASSERT(m_state == State::Shutdown);
 	m_state = State::Deleted;
 		

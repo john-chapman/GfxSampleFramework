@@ -164,9 +164,14 @@ public:
 	};
 
 	// Create a new world. If _path, load from a .world file, else initialize default scene (simple camera).
+	// Implicitly calls Use().
 	static World*            Create(const char* _path = nullptr);
-	// Destroy a world instance. Call shutdown() first.
-	static void              Destroy(World*& _world_);
+
+	// Increment refcount. Call init(), postInit(), return true if both succeed.
+	static bool              Use(World* _world_);
+
+	// Decrement refcount. Call shutdown() and destroy if refcount is 0.
+	static void              Release(World*& _world_);
 
 	// Get/set the current active world.
 	static World*            GetCurrent()                 { return s_current; }
@@ -207,6 +212,7 @@ private:
 	using SceneInstanceMap = eastl::map<StringHash, SceneList>;
 
 	static World*            s_current;
+	int                      m_refCount          = 0;
 	PathStr                  m_path              = "";
 	State                    m_state             = State::Shutdown;
 	Scene*                   m_rootScene         = nullptr;
@@ -215,6 +221,9 @@ private:
 	GlobalComponentReference m_drawCamera;
 	GlobalComponentReference m_cullCamera;
 	GlobalComponentReference m_inputConsumer;
+
+	// Destroy a world instance. Called implicitly by Release().
+	static void              Destroy(World*& _world_);
 
 	                         World();
 	                         ~World();
