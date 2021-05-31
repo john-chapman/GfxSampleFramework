@@ -118,6 +118,17 @@ bool ImageLightComponent::loadAndFilter()
 		return false;
 	}
 
+	// Re-use existing texture.
+	const PathStr name("ImageLightCompoonent_%s", m_texturePath.c_str());
+	Texture* existing = Texture::Find(name.c_str());
+	if (existing)
+	{
+		Texture::Use(existing);
+		Texture::Release(m_texture);
+		m_texture = existing;
+		return true;
+	}
+
 	File srcFile;
 	if (!FileSystem::Read(srcFile, m_texturePath.c_str()))
 	{
@@ -152,6 +163,7 @@ bool ImageLightComponent::loadAndFilter()
 	// Filter for IBL.
 
 	Texture* dstTexture = Texture::CreateCubemap(srcTexture->getWidth(), GL_RGBA16F, 99);
+	dstTexture->setName(name.c_str());
 	const bool srcIsGamma = !DataTypeIsFloat(srcImage.getImageDataType());
 
 	{	FRM_AUTOTIMER("Filter");
