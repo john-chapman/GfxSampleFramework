@@ -160,7 +160,7 @@ bool BasicRenderableComponent::initImpl()
 	}
 
 	// Materials.
-	//if (m_materialPaths.size() != m_mesh->getSubmeshCount())
+	if (m_mesh)//if (m_materialPaths.size() != m_mesh->getSubmeshCount())
 	{
 		m_materialPaths.resize(m_mesh->getSubmeshCount());
 
@@ -365,6 +365,20 @@ bool BasicRenderableComponent::serializeImpl(Serializer& _serializer_)
 		}
 
 		_serializer_.endArray();
+	}
+
+	if (_serializer_.getMode() == Serializer::Mode_Read())
+	{
+		while (m_materials.size() > m_materialPaths.size())
+		{
+			BasicMaterial::Release(m_materials.back());
+			m_materials.pop_back();
+		}
+
+		while (m_materials.size() < m_materialPaths.size())
+		{
+			m_materials.push_back(nullptr);
+		}
 	}
 
 	return _serializer_.getError() == nullptr;
