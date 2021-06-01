@@ -14,8 +14,8 @@ namespace frm {
 // WorldEditor
 //
 // \todo
+// - More consistent behavior of pushAction()/popAction() (remove cancelAction()).
 // - Improved hierarchy view:
-//    - Use new tables API.
 //    - Color coding for child scenes.
 //    - Show/hide child scenes in the hierarchy.
 // - Push/Pop ID based on _scene_/_node_ args to edit() is currently disabled as

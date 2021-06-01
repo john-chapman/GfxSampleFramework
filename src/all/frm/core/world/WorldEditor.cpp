@@ -219,7 +219,7 @@ void WorldEditor::pushAction(ActionType _type, void* _context, void* _result)
 			break;
 		case ActionType::SaveModifiedWorld:
 		case ActionType::SaveModifiedScene:
-			ImGui::OpenPopup("Save Modified");
+			ImGui::OpenPopup("Save Modified##WorldEditor");
 			break;
 	};
 }
@@ -348,7 +348,7 @@ bool WorldEditor::dispatchActions()
 		{
 			World* world = (World*)action.context;
 			String<64> choiceLabel("Save changes to world '%s'?", world->m_path.c_str());
-			int choice = ImGui::ChoicePopupModal("Save Modified", choiceLabel.c_str(), { "Yes", "No", "Cancel"  });
+			int choice = ImGui::ChoicePopupModal("Save Modified##WorldEditor", choiceLabel.c_str(), { "Yes", "No", "Cancel"  });
 			switch(choice)
 			{
 				default: 
@@ -401,7 +401,7 @@ bool WorldEditor::dispatchActions()
 		{
 			Scene* scene = (Scene*)action.context;
 			String<64> choiceLabel("Save changes to scene '%s'?", scene->m_path.c_str());
-			int choice = ImGui::ChoicePopupModal("Save Modified", choiceLabel.c_str(), { "Yes", "No", "Cancel"  });
+			int choice = ImGui::ChoicePopupModal("Save Modified##WorldEditor", choiceLabel.c_str(), { "Yes", "No", "Cancel"  });
 			switch(choice)
 			{
 				default: 
