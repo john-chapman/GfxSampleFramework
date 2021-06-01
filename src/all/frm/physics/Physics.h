@@ -104,6 +104,9 @@ public:
 
 	static eastl::span<CollisionEvent> GetCollisionEvents() { return eastl::span<CollisionEvent>(s_instance->m_collisionEvents); }
 
+	static void SetPaused(bool _paused);
+	static void Reset();
+
 private:
 
 	static Physics* s_instance;

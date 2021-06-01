@@ -140,17 +140,7 @@ void Physics::Edit()
 
 	if (ImGui::Button("Reset"))
 	{
-		// \todo Destroy transient components (and their parent nodes, if transient).
-
-		for (PhysicsComponent* component : s_instance->m_kinematic)
-		{
-			component->reset();
-		}
-
-		for (PhysicsComponent* component : s_instance->m_dynamic)
-		{
-			component->reset();
-		}
+		Reset();		
 	}
 	
 	if (ImGui::SliderFloat("Gravity", &s_instance->m_gravity, 0.0f, 30.0f))
@@ -351,6 +341,47 @@ bool Physics::RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flag
 	out_.component     = (PhysicsComponent*)queryResult.block.actor->userData;
 
 	return true;
+}
+
+void Physics::SetPaused(bool _paused)
+{
+	s_instance->m_paused = _paused;
+}
+
+void Physics::Reset()
+{
+	eastl::vector<PhysicsComponent*> transientComponents;
+
+	for (PhysicsComponent* component : s_instance->m_kinematic)
+	{
+		component->reset();
+		if (component->isTransient())
+		{
+			transientComponents.push_back(component);
+		}
+	}
+
+	for (PhysicsComponent* component : s_instance->m_dynamic)
+	{
+		component->reset();
+		if (component->isTransient())
+		{
+			transientComponents.push_back(component);
+		}
+	}
+
+	for (PhysicsComponent* component : transientComponents)
+	{
+		SceneNode* parentNode = component->getParentNode();
+		if (parentNode->isTransient())
+		{
+			parentNode->getParentScene()->destroyNode(parentNode);
+		}
+		else
+		{
+			parentNode->removeComponent(component);
+		}
+	}
 }
 
 // PRIVATE
