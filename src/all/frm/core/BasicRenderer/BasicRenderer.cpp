@@ -2,6 +2,7 @@
 #include "BasicRenderableComponent.h"
 #include "BasicLightComponent.h"
 #include "BasicMaterial.h"
+#include "EnvironmentProbeComponent.h"
 #include "ImageLightComponent.h"
 
 #include <frm/core/geom.h>
@@ -18,6 +19,7 @@
 #include <frm/core/Shader.h>
 #include <frm/core/ShadowAtlas.h>
 #include <frm/core/Texture.h>
+#include <frm/core/Time.h>
 #include <frm/core/world/World.h>
 
 #include <frm/vr/VRContext.h>
@@ -31,9 +33,9 @@ namespace frm {
 
 // PUBLIC
 
-BasicRenderer* BasicRenderer::Create(Flags _flags)
+BasicRenderer* BasicRenderer::Create(Flags _flags, Settings* _settings)
 {
-	BasicRenderer* ret = FRM_NEW(BasicRenderer(_flags));
+	BasicRenderer* ret = FRM_NEW(BasicRenderer(_flags, _settings));
 	return ret;
 }
 
@@ -61,7 +63,7 @@ void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamer
 	}
 
 	updatePostProcessData(_dt, postProcessData.frameIndex + 1);
-	
+
 	GlContext* ctx = GlContext::GetCurrent();
 	const Framebuffer* fbRestore = ctx->getFramebuffer();
 	{	PROFILER_MARKER("Shadow Maps");
@@ -136,6 +138,8 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	const bool  isFXAA              = flags.get(Flag::FXAA);
 	const bool  isTAA               = flags.get(Flag::TAA);
 	const bool  isInterlaced        = flags.get(Flag::Interlaced);
+	const bool  isForwardOnly       = flags.get(Flag::ForwardOnly);
+	const bool  isVelocity          = isTAA || isInterlaced || settings.motionBlurQuality >= 0;
 	const bool  isWriteToBackBuffer = flags.get(Flag::WriteToBackBuffer);
 	const bool  isWireframe         = flags.get(Flag::WireFrame);
 
@@ -161,13 +165,11 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	sceneCamera.m_viewProj = sceneCamera.m_proj * sceneCamera.m_view;
 	sceneCamera.updateGpuBuffer();
 
-	const vec2 texelSize = vec2(1.0f) / vec2(fbGBuffer->getWidth(), fbGBuffer->getHeight());
-
 	// Get current render targets.
 	Texture* txGBuffer0 = renderTargets[Target_GBuffer0].getTexture(0);
 	Texture* txGBufferDepthStencil = renderTargets[Target_GBufferDepthStencil].getTexture(0);
-	Texture* txVelocityTileMinMax = renderTargets[Target_VelocityTileMinMax].getTexture(0);
-	Texture* txVelocityTileNeighborMax = renderTargets[Target_VelocityTileNeighborMax].getTexture(0);
+	Texture* txVelocityTileMinMax = isVelocity ? renderTargets[Target_VelocityTileMinMax].getTexture(0) : nullptr;
+	Texture* txVelocityTileNeighborMax = isVelocity ? renderTargets[Target_VelocityTileNeighborMax].getTexture(0) : nullptr;
 	Texture* txScene = renderTargets[Target_Scene].getTexture(0);
 	Texture* txPostProcessResult = renderTargets[Target_PostProcessResult].getTexture(0);
 	Texture* txFXAAResult = renderTargets[Target_FXAAResult].getTexture(0);
@@ -182,13 +184,15 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	fbPostProcessResult->attach(txGBufferDepthStencil, GL_DEPTH_STENCIL_ATTACHMENT);
 	fbFXAAResult->attach(txFXAAResult, GL_COLOR_ATTACHMENT0);
 	fbFinal->attach(txFinal, GL_COLOR_ATTACHMENT0);
+	
+	const vec2 texelSize = vec2(1.0f) / vec2(fbGBuffer->getWidth(), fbGBuffer->getHeight());
 
 	if (sceneDrawCalls.empty() && imageLightInstances.empty())
 	{
 		return;
 	}
 
-	{	PROFILER_MARKER("GBuffer");
+	{	PROFILER_MARKER("GBuffer/Depth");
 
 		ctx->setFramebufferAndViewport(fbGBuffer);
 
@@ -219,6 +223,10 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 			glAssert(glStencilFunc(GL_ALWAYS, 0xff, 0x01)); // \todo only stencil dynamic objects
 			glAssert(glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE));
 
+			if (isForwardOnly && !isVelocity)
+			{
+				glAssert(glColorMask(false, false, false, false));
+			}
 
 			for (auto& it : sceneDrawCalls)
 			{
@@ -240,17 +248,25 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 				PROFILER_MARKER("drawCallback");
 				drawCallback(Pass_GBuffer, sceneCamera);
 			}
+
+			if (isForwardOnly && !isVelocity)
+			{
+				glAssert(glColorMask(true, true, true, true));
+			}
 		}
 
 		#if FRM_MODULE_VR
-			if (!vrCtx || !vrCtx->isActive())
+			if (isVelocity && (!vrCtx || !vrCtx->isActive()))
+		#else
+			if (isVelocity)
 		#endif
-			{	PROFILER_MARKER("Static Velocity");
+			{	
+				PROFILER_MARKER("Static Velocity");
 
 				glScopedEnable(GL_STENCIL_TEST, GL_TRUE);
 				glAssert(glStencilFunc(GL_NOTEQUAL, 0xff, 0x01));
 				glAssert(glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
-				glAssert(glColorMask(false, false, true, true));
+				glAssert(glColorMask(true, true, false, false));
 
 				ctx->setShader(shStaticVelocity);
 				ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
@@ -259,7 +275,10 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 				glAssert(glColorMask(true, true, true, true));
 			}
 
-			{	PROFILER_MARKER("Velocity Dilation");
+			//if (isVelocity)
+			if (settings.motionBlurQuality >= 0)
+			{	
+				PROFILER_MARKER("Velocity Dilation");
 
 				{	PROFILER_MARKER("Tile Min/Max");
 
@@ -453,8 +472,8 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 		ctx->bindBuffer(sceneCamera.m_gpuBuffer);
 		ctx->bindTexture("txScene", txScene);
 		ctx->bindTexture("txGBuffer0", txGBuffer0);
-		ctx->bindTexture("txVelocityTileNeighborMax", txVelocityTileNeighborMax);
 		ctx->bindTexture("txGBufferDepthStencil", txGBufferDepthStencil);
+		ctx->bindTexture("txVelocityTileNeighborMax", txVelocityTileNeighborMax);
 		ctx->bindImage("txOut", txPostProcessResult, GL_WRITE_ONLY);
 		ctx->dispatch(txPostProcessResult);
 
@@ -582,7 +601,7 @@ bool BasicRenderer::edit()
 
 		if (editFlag("TAA", Flag::TAA))
 		{
-			ret = reinitRenderTargets = true;
+			ret = reinitShaders = reinitRenderTargets = true;
 		}
 		if (flags.get(Flag::TAA))
 		{
@@ -595,7 +614,13 @@ bool BasicRenderer::edit()
 			ret = reinitRenderTargets = true;
 		}
 
+		if (editFlag("Forward Only", Flag::ForwardOnly))
+		{
+			ret = reinitShaders = reinitRenderTargets = true;
+		}
+
 		ret |= editFlag("Write to Backbuffer", Flag::WriteToBackBuffer);
+		ret |= editFlag("Static Only", Flag::StaticOnly);
 		ret |= editFlag("Wireframe", Flag::WireFrame);
 
 		ImGui::TreePop();
@@ -605,9 +630,9 @@ bool BasicRenderer::edit()
 	{
 		ret |= ImGui::SliderFloat("Motion Blur Target FPS", &settings.motionBlurTargetFps, 0.0f, 90.0f);
 
-		if (ImGui::SliderInt("Motion Blur Quality", &settings.motionBlurQuality, 0, 1))
+		if (ImGui::SliderInt("Motion Blur Quality", &settings.motionBlurQuality, -1, 1))
 		{
-			ret = reinitShaders = true;
+			ret = reinitShaders = reinitRenderTargets = true;
 		}
 
 		ImGui::TreePop();
@@ -621,7 +646,7 @@ bool BasicRenderer::edit()
 		ImGui::Text("Bloom Weights: %.3f, %.3f, %.3f, %.3f", postProcessData.bloomWeights.x, postProcessData.bloomWeights.y, postProcessData.bloomWeights.z, postProcessData.bloomWeights.w);
 
 		ImGui::Spacing();
-		if (ImGui::SliderInt("Bloom Quality", &settings.bloomQuality, 0, 1))
+		if (ImGui::SliderInt("Bloom Quality", &settings.bloomQuality, -1, 1))
 		{
 			ret = reinitShaders = true;
 		}
@@ -647,14 +672,28 @@ bool BasicRenderer::edit()
 		ImGui::TreePop();
 	}
 
+	if (ImGui::TreeNode("Environment Probes"))
+	{
+		ImGui::Text("%u probes", EnvironmentProbeComponent::GetActiveComponents().size());
+		if (ImGui::Button("Update"))
+		{
+			updateEnvironmentProbes();
+		}
+		ImGui::TreePop();
+	}
+
 	// Debug
 	#if 0
 	{
-		ImGui::Spacing();
-		if (ImGui::Button("Re-compute BRDF Lut"))
+		if (ImGui::TreeNode("DEBUG"))
 		{
-			initBRDFLut();
-		}
+			if (ImGui::Button("Re-compute BRDF Lut"))
+			{
+				initBRDFLut();
+			}
+
+			ImGui::TreePop();
+		}		
 	}
 	#endif
 
@@ -707,26 +746,35 @@ void BasicRenderer::setResolution(int _resolutionX, int _resolutionY)
 
 // PRIVATE
 
-BasicRenderer::BasicRenderer(Flags _flags)
+BasicRenderer::BasicRenderer(Flags _flags, Settings* _settings)
 {
 	flags = _flags;
 
-	Properties::PushGroup("#BasicRenderer");
+	// \hack Properties should be moved up to the app level. Using _settings here to determine whether the renderer instance should use properties or not.
+	if (_settings)
+	{
+		settings = *_settings;
+	}
+	else
+	{
+		Properties::PushGroup("#BasicRenderer");
 
-		Properties::Add("resolution",                settings.resolution,                ivec2(0),   ivec2(8192), &settings.resolution);
-		Properties::Add("motionBlurTargetFps",       settings.motionBlurTargetFps,       0.f,        128.f,       &settings.motionBlurTargetFps);
-		Properties::Add("motionBlurQuality",         settings.motionBlurQuality,         0,          1,           &settings.motionBlurQuality);
-		Properties::Add("taaSharpen",                settings.taaSharpen,                0.f,        2.f,         &settings.taaSharpen);
-		Properties::Add("enableCulling",             settings.enableCulling,                                      &settings.enableCulling);
-		Properties::Add("cullBySubmesh",             settings.cullBySubmesh,                                      &settings.cullBySubmesh);
-		Properties::Add("bloomScale",                settings.bloomScale,               -2.f,        2.f,         &settings.bloomScale);
-		Properties::Add("bloomBrightness",           settings.bloomBrightness,           0.f,        2.f,         &settings.bloomBrightness);
-		Properties::Add("bloomQuality",              settings.bloomQuality,              0,          1,           &settings.bloomQuality);
-		Properties::Add("maxShadowMapResolution",    settings.maxShadowMapResolution,    16,         16*1024,     &settings.maxShadowMapResolution);
-		Properties::Add("minShadowMapResolution",    settings.minShadowMapResolution,    16,         16*1024,     &settings.minShadowMapResolution);
-		Properties::Add("materialTextureAnisotropy", settings.materialTextureAnisotropy, 0.f,        16.f,        &settings.materialTextureAnisotropy);
+			Properties::Add("resolution",                 settings.resolution,                  ivec2(0),   ivec2(8192), &settings.resolution);
+			Properties::Add("motionBlurTargetFps",        settings.motionBlurTargetFps,         0.f,        128.f,       &settings.motionBlurTargetFps);
+			Properties::Add("motionBlurQuality",          settings.motionBlurQuality,           0,          1,           &settings.motionBlurQuality);
+			Properties::Add("taaSharpen",                 settings.taaSharpen,                  0.f,        2.f,         &settings.taaSharpen);
+			Properties::Add("enableCulling",              settings.enableCulling,                                        &settings.enableCulling);
+			Properties::Add("cullBySubmesh",              settings.cullBySubmesh,                                        &settings.cullBySubmesh);
+			Properties::Add("bloomScale",                 settings.bloomScale,                 -2.f,        2.f,         &settings.bloomScale);
+			Properties::Add("bloomBrightness",            settings.bloomBrightness,             0.f,        2.f,         &settings.bloomBrightness);
+			Properties::Add("bloomQuality",               settings.bloomQuality,                0,          1,           &settings.bloomQuality);
+			Properties::Add("maxShadowMapResolution",     settings.maxShadowMapResolution,      16,         16*1024,     &settings.maxShadowMapResolution);
+			Properties::Add("minShadowMapResolution",     settings.minShadowMapResolution,      16,         16*1024,     &settings.minShadowMapResolution);
+			Properties::Add("environmentProbeResolution", settings.environmentProbeResolution,  64,         16*1024,     &settings.environmentProbeResolution);
+			Properties::Add("materialTextureAnisotropy",  settings.materialTextureAnisotropy,   0.f,        16.f,        &settings.materialTextureAnisotropy);
 
-	Properties::PopGroup();
+		Properties::PopGroup();
+	}
 
 	initShaders();
 	initRenderTargets();
@@ -757,8 +805,9 @@ BasicRenderer::BasicRenderer(Flags _flags)
 
 BasicRenderer::~BasicRenderer()
 {
-	shutdownBRDFLut();
+	glAssert(glFinish());
 
+	shutdownBRDFLut();
 	shutdownRenderTargets();
 	shutdownShaders();
 
@@ -803,6 +852,28 @@ bool BasicRenderer::editFlag(const char* _name, Flag _flag)
 	return true;
 }
 
+void BasicRenderer::updateBuffer(Buffer*& _bf_, const char* _name, GLsizei _size, void* _data)
+{
+	if (_size == 0)
+	{
+		return;
+	}
+
+	if (_bf_ && _bf_->getSize() != _size)
+	{
+		Buffer::Destroy(_bf_);
+		_bf_ = nullptr;
+	}
+
+	if (!_bf_)
+	{
+		_bf_ = Buffer::Create(GL_SHADER_STORAGE_BUFFER, _size, GL_DYNAMIC_STORAGE_BIT);
+		_bf_->setName(_name);
+	}
+
+	_bf_->setData(_size, _data);
+}
+
 void BasicRenderer::initRenderTargets()
 {
 	shutdownRenderTargets();
@@ -810,22 +881,32 @@ void BasicRenderer::initRenderTargets()
 	const bool  isFXAA         = flags.get(Flag::FXAA);
 	const bool  isTAA          = flags.get(Flag::TAA);
 	const bool  isInterlaced   = flags.get(Flag::Interlaced);
+	const bool  isForwardOnly  = flags.get(Flag::ForwardOnly);
+	const bool  isVelocity     = isTAA || isInterlaced || settings.motionBlurQuality >= 0;
 	const ivec2 appResolution  = AppSample::GetCurrent()->getResolution();
 	const ivec2 fullResolution = ivec2(settings.resolution.x <= 0 ? appResolution.x : settings.resolution.x, settings.resolution.y <= 0 ? appResolution.y : settings.resolution.y);
 	ivec2 interlacedResolution = isInterlaced ? ivec2(fullResolution.x / 2, fullResolution.y) : fullResolution;
 
-	renderTargets[Target_GBuffer0].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, isInterlaced ? 2 : 1);
-	renderTargets[Target_GBuffer0].setName("#BasicRenderer_txGBuffer0");
-
 	renderTargets[Target_GBufferDepthStencil].init(interlacedResolution.x, interlacedResolution.y, GL_DEPTH32F_STENCIL8, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
 	renderTargets[Target_GBufferDepthStencil].setName("#BasicRenderer_txGBufferDepth");
 
-	//FRM_ASSERT(interlacedResolution.x % motionBlurTileWidth == 0 && interlacedResolution.y % motionBlurTileWidth == 0);
-	renderTargets[Target_VelocityTileMinMax].init(interlacedResolution.x / settings.motionBlurTileWidth, interlacedResolution.y / settings.motionBlurTileWidth, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
-	renderTargets[Target_VelocityTileMinMax].setName("#BasicRenderer_txVelocityTileMinMax");
+	if (isVelocity || !isForwardOnly)
+	{
+		const GLenum format = isForwardOnly ? GL_RG16 : GL_RGBA16;
+		renderTargets[Target_GBuffer0].init(interlacedResolution.x, interlacedResolution.y, format, GL_CLAMP_TO_EDGE, GL_NEAREST, isInterlaced ? 2 : 1);
+		renderTargets[Target_GBuffer0].setName("#BasicRenderer_txGBuffer0");
+	}
 
-	renderTargets[Target_VelocityTileNeighborMax].init(interlacedResolution.x / settings.motionBlurTileWidth, interlacedResolution.y / settings.motionBlurTileWidth, GL_RG16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
-	renderTargets[Target_VelocityTileNeighborMax].setName("#BasicRenderer_txVelocityTileNeighborMax");
+	//if (isVelocity)
+	if (settings.motionBlurQuality >= 0) // only motion blur requires the velocity tile passes
+	{
+		//FRM_ASSERT(interlacedResolution.x % motionBlurTileWidth == 0 && interlacedResolution.y % motionBlurTileWidth == 0); // \todo!
+		renderTargets[Target_VelocityTileMinMax].init(interlacedResolution.x / settings.motionBlurTileWidth, interlacedResolution.y / settings.motionBlurTileWidth, GL_RGBA16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+		renderTargets[Target_VelocityTileMinMax].setName("#BasicRenderer_txVelocityTileMinMax");
+
+		renderTargets[Target_VelocityTileNeighborMax].init(interlacedResolution.x / settings.motionBlurTileWidth, interlacedResolution.y / settings.motionBlurTileWidth, GL_RG16, GL_CLAMP_TO_EDGE, GL_NEAREST, 1);
+		renderTargets[Target_VelocityTileNeighborMax].setName("#BasicRenderer_txVelocityTileNeighborMax");
+	}
 
 	renderTargets[Target_Scene].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA16F, GL_CLAMP_TO_EDGE, GL_LINEAR, 1, 8); // RGB = color, A = abs(linear depth) + mip chain for blur
 	renderTargets[Target_Scene].setName("#BasicRenderer_txScene");
@@ -833,11 +914,17 @@ void BasicRenderer::initRenderTargets()
 	renderTargets[Target_PostProcessResult].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, (isInterlaced && !isFXAA) ? 2 : 1);
 	renderTargets[Target_PostProcessResult].setName("#BasicRenderer_txPostProcessResult");
 
-	renderTargets[Target_FXAAResult].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, isFXAA ? (isInterlaced ? 2 : 1) : 0);
-	renderTargets[Target_FXAAResult].setName("#BasicRenderer_txFXAAResult");
+	if (isFXAA)
+	{
+		renderTargets[Target_FXAAResult].init(interlacedResolution.x, interlacedResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, isInterlaced ? 2 : 1);
+		renderTargets[Target_FXAAResult].setName("#BasicRenderer_txFXAAResult");
+	}
 
-	renderTargets[Target_TAAResolve].init(fullResolution.x, fullResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, (isTAA || isInterlaced) ? 2 : 1);
-	renderTargets[Target_TAAResolve].setName("#BasicRenderer_txTAAResolve");
+	if (isTAA || isInterlaced)
+	{
+		renderTargets[Target_TAAResolve].init(fullResolution.x, fullResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, 2);
+		renderTargets[Target_TAAResolve].setName("#BasicRenderer_txTAAResolve");
+	}
 
 	renderTargets[Target_Final].init(fullResolution.x, fullResolution.y, GL_RGBA8, GL_CLAMP_TO_EDGE, GL_LINEAR, 1);
 	renderTargets[Target_Final].setName("#BasicRenderer_txFinal");
@@ -861,11 +948,17 @@ void BasicRenderer::initShaders()
 	shVelocityMinMax      = Shader::CreateCs("shaders/BasicRenderer/VelocityMinMax.glsl", settings.motionBlurTileWidth);
 	shVelocityNeighborMax = Shader::CreateCs("shaders/BasicRenderer/VelocityNeighborMax.glsl", 8, 8);
 	shImageLightBg	      = Shader::CreateVsFs("shaders/Envmap_vs.glsl", "shaders/Envmap_fs.glsl", { "ENVMAP_CUBE" } );
-	shPostProcess         = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8, 1, { DEF_STR("MOTION_BLUR_QUALITY", settings.motionBlurQuality) });
 	shFXAA                = Shader::CreateCs("shaders/BasicRenderer/FXAA.glsl", 8, 8);
 	shDepthClear          = Shader::CreateVsFs("shaders/BasicRenderer/DepthClear.glsl", "shaders/BasicRenderer/DepthClear.glsl");
-	shBloomDownsample     = Shader::CreateCs("shaders/BasicRenderer/BloomDownsample.glsl", 8, 8, 1, { DEF_STR("BLOOM_QUALITY", settings.bloomQuality) });
 	shBloomUpsample       = Shader::CreateCs("shaders/BasicRenderer/BloomUpsample.glsl", 8, 8);
+
+	shBloomDownsample = Shader::CreateCs("shaders/BasicRenderer/BloomDownsample.glsl", 8, 8, 1, {
+		DEF_STR("BLOOM_QUALITY", settings.bloomQuality)
+		});
+	shPostProcess = Shader::CreateCs("shaders/BasicRenderer/PostProcess.glsl", 8, 8, 1, {
+		DEF_STR("BLOOM_QUALITY", settings.bloomQuality),
+		DEF_STR("MOTION_BLUR_QUALITY", settings.motionBlurQuality)
+		});
 
 	#undef DEF_STR
 
@@ -954,6 +1047,14 @@ Shader* BasicRenderer::findShader(ShaderMapKey _key)
 	if (!ret)
 	{
 		eastl::vector<const char*> defines;
+		if (getFlag(Flag::ForwardOnly))
+		{
+			defines.push_back("FORWARD_ONLY");
+			if (getFlag(Flag::TAA) || settings.motionBlurQuality >= 0)
+			{
+				defines.push_back("FORWARD_ONLY_WITH_VELOCITY");
+			}
+		}
 
 		for (int i = 0; i < Pass_Count; ++i)
 		{
@@ -992,6 +1093,8 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 	sceneBounds.m_min = shadowSceneBounds.m_min = vec3( FLT_MAX);
 	sceneBounds.m_max = shadowSceneBounds.m_max = vec3(-FLT_MAX);
 
+	const bool isStaticOnly = getFlag(Flag::StaticOnly);
+
 // Phase 1: Cull renderables, gather shadow renderables, generate scene and shadow scene bounds.
 	{	PROFILER_MARKER_CPU("Phase 1");
 
@@ -1003,6 +1106,11 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 		for (BasicRenderableComponent* renderable : activeRenderables)
 		{
 			if (!renderable->m_mesh || renderable->m_materials.empty() || renderable->m_colorAlpha.w <= 0.0f)
+			{
+				continue;
+			}
+
+			if (isStaticOnly && !renderable->getParentNode()->isStatic())
 			{
 				continue;
 			}
@@ -1134,6 +1242,11 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 				continue;
 			}
 
+			if (isStaticOnly && !light->getParentNode()->isStatic())
+			{
+				continue;
+			}
+
 			// \todo cull here
 
 			if (light->m_castShadows)
@@ -1155,7 +1268,8 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 
 				switch (light->m_type)
 				{
-					default: break;
+					default: 
+						break;
 					case BasicLightComponent::Type_Direct:
 					{
 						const vec3 shadowSceneOrigin = shadowSceneBounds.getOrigin();
@@ -1526,30 +1640,18 @@ void BasicRenderer::updatePostProcessData(float _dt, uint32 _frameIndex)
 	bfPostProcessData->setData(sizeof(PostProcessData), &postProcessData);
 }
 
-void BasicRenderer::updateBuffer(Buffer*& _bf_, const char* _name, GLsizei _size, void* _data)
+void BasicRenderer::initBRDFLut()
 {
-	if (_size == 0)
+	const PathStr name("#BasicRenderer_txBRDFLut");
+	Texture* existing = Texture::Find(name.c_str());
+	if (existing)
 	{
+		Texture::Use(existing);
+		Texture::Release(txBRDFLut);
+		txBRDFLut = existing;
 		return;
 	}
 
-	if (_bf_ && _bf_->getSize() != _size)
-	{
-		Buffer::Destroy(_bf_);
-		_bf_ = nullptr;
-	}
-
-	if (!_bf_)
-	{
-		_bf_ = Buffer::Create(GL_SHADER_STORAGE_BUFFER, _size, GL_DYNAMIC_STORAGE_BIT);
-		_bf_->setName(_name);
-	}
-
-	_bf_->setData(_size, _data);
-}
-
-void BasicRenderer::initBRDFLut()
-{
 	if (!txBRDFLut)
 	{
 		txBRDFLut = Texture::Create2d(128, 128, GL_RGBA16F);
@@ -1576,6 +1678,198 @@ void BasicRenderer::initBRDFLut()
 void BasicRenderer::shutdownBRDFLut()
 {
 	Texture::Release(txBRDFLut);
+}
+
+void BasicRenderer::updateEnvironmentProbes()
+{
+	PROFILER_MARKER("BasicRenderer::updateEnvironmentProbes");
+
+	const int resolution = settings.environmentProbeResolution;
+	const GLenum format = GL_RGBA16F;
+
+	eastl::vector<int> activeSlots;
+	eastl::vector<int> freeSlots;
+	eastl::vector<EnvironmentProbeComponent*> updateQueue;
+	const auto& activeProbes = EnvironmentProbeComponent::GetActiveComponents();
+	for (EnvironmentProbeComponent* probe : activeProbes)
+	{
+		if (probe->m_probeIndex >= 0)
+		{
+			activeSlots.push_back(probe->m_probeIndex);
+		}
+
+		if (probe->m_dirty)
+		{
+			updateQueue.push_back(probe);
+		}
+	}
+
+	if (updateQueue.empty())
+	{
+		return;
+	}
+
+	// \editoronly Find free slots in the existing probe array.
+	if (txEnvironmentProbeArray && (int)activeSlots.size() < txEnvironmentProbeArray->getArrayCount())
+	{
+		for (int layer = 0; layer < txEnvironmentProbeArray->getArrayCount() / 6; ++layer)
+		{
+			if (eastl::find(activeSlots.begin(), activeSlots.end(), layer) == activeSlots.end())
+			{
+				freeSlots.push_back(layer);
+			}
+		}
+	}
+
+	// Scan the update queue, allocate cubemap slots to probes and determine if we need to reallocate the probe array.
+	int newProbeArrayCount = txEnvironmentProbeArray ? txEnvironmentProbeArray->getArrayCount() / 6 : 0;
+	for (EnvironmentProbeComponent* probe : updateQueue)
+	{
+		if (probe->m_probeIndex < 0)
+		{
+			if (!freeSlots.empty())
+			{
+				probe->m_probeIndex = freeSlots.back();
+				freeSlots.pop_back();
+			}
+			else
+			{
+				probe->m_probeIndex = newProbeArrayCount++;
+			}
+		}
+
+		// \todo \hack Clear the dirty flag here, ensure that the probe renderer instance doesn't try to render probes itself (it won't ever encounter dirty probes this way).
+		probe->m_dirty = false;
+	}
+
+	// Reallocate if required.
+	if (!txEnvironmentProbeArray || txEnvironmentProbeArray->getArrayCount() / 6 != newProbeArrayCount)
+	{
+		Texture* newProbeArray = Texture::CreateCubemapArray(resolution, newProbeArrayCount, format, 99);
+		newProbeArray->setName("#BasicRenderer_txEnvironmentProbeArray");
+		if (txEnvironmentProbeArray)
+		{
+			newProbeArray->copyFrom(txEnvironmentProbeArray);
+			swap(*txEnvironmentProbeArray, *newProbeArray);
+			Texture::Release(newProbeArray);
+		}
+		else
+		{
+			txEnvironmentProbeArray = newProbeArray;
+		}
+	}
+
+	// Render updates.
+	{	FRM_AUTOTIMER("BasicRenderer::updateEnvironmentProbes");
+
+		GlContext* ctx = GlContext::GetCurrent();
+		const Framebuffer* fbRestore = ctx->getFramebuffer();
+		const Viewport vpRestore = ctx->getViewport();
+
+		Texture* txRenderTarget = Texture::CreateCubemap(resolution, format, 99);
+		Texture* txFilterTarget = Texture::CreateCubemap(resolution, format, 99);
+		
+		Flags flags = { Flag::ForwardOnly, Flag::StaticOnly };
+		Settings envSettings;
+		envSettings.resolution                 = ivec2(resolution);
+		envSettings.environmentProbeResolution = 0;
+		envSettings.minShadowMapResolution     = 64;
+		envSettings.maxShadowMapResolution     = resolution * 2;
+		envSettings.motionBlurQuality          = -1;
+		envSettings.bloomQuality               = -1;
+		envSettings.lodBias                    = -9999;//settings.lodBias; // \todo 
+		environmentProbeRenderer = Create(flags, &envSettings);
+
+		while (!updateQueue.empty())
+		{
+			FRM_AUTOTIMER("Probe");
+
+			EnvironmentProbeComponent* probe = updateQueue.back();
+			updateQueue.pop_back();			
+
+			FRM_STRICT_ASSERT(probe->m_probeIndex >= 0);
+			FRM_STRICT_ASSERT(probe->m_dirty);
+		
+			Camera probeCamera;
+			probeCamera.setPerspective(Radians(90.0f), 1.0f, 1e-2f, 1e4f, Camera::ProjFlag_Infinite);
+			probeCamera.updateGpuBuffer(); // Force alloc GPU buffer.
+			static mat4 faceOrientations[6];
+			FRM_ONCE
+			{
+				// \todo Why do we need to rotate XZ cameras about their view axis?
+				faceOrientations[0] = RotationMatrix(vec3(1.0f, 0.0f, 0.0f), Radians(180.0f)) * RotationMatrix(vec3(0.0f, 1.0f, 0.0f), Radians(-90.0f));
+				faceOrientations[1] = RotationMatrix(vec3(1.0f, 0.0f, 0.0f), Radians(180.0f)) * RotationMatrix(vec3(0.0f, 1.0f, 0.0f), Radians( 90.0f));
+				faceOrientations[2] = RotationMatrix(vec3(1.0f, 0.0f, 0.0f), Radians( 90.0f));
+				faceOrientations[3] = RotationMatrix(vec3(1.0f, 0.0f, 0.0f), Radians(-90.0f));
+				faceOrientations[4] = RotationMatrix(vec3(0.0f, 0.0f, 1.0f), Radians(180.0f)) * RotationMatrix(vec3(0.0f, 1.0f, 0.0f), Radians(180.0f));
+				faceOrientations[5] = RotationMatrix(vec3(0.0f, 0.0f, 1.0f), Radians(180.0f)) * RotationMatrix(vec3(0.0f, 1.0f, 0.0f), Radians(0.0f));
+			}
+			
+			for (int face = 0; face < 6; ++face)
+			{
+				FRM_AUTOTIMER("Face");
+	
+				probeCamera.m_world = faceOrientations[face];
+				SetTranslation(probeCamera.m_world, probe->m_origin);
+				probeCamera.update();
+				environmentProbeRenderer->nextFrame(0.0f, &probeCamera, &probeCamera);
+				environmentProbeRenderer->draw(0.0f, &probeCamera, &probeCamera);
+				glAssert(glFlush());
+
+				Framebuffer* fbScene = environmentProbeRenderer->fbScene;
+				ctx->setFramebuffer(fbScene); // required for glNamedFramebufferReadBuffer?
+				glAssert(glNamedFramebufferReadBuffer(fbScene->getHandle(), GL_COLOR_ATTACHMENT0));
+				glAssert(glCopyTextureSubImage3D(txRenderTarget->getHandle(), 0, 0, 0, face, 0, 0, resolution, resolution));
+				glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT));
+			}
+
+			{	FRM_AUTOTIMER("Filter");
+				txRenderTarget->generateMipmap();
+
+				GlContext* ctx = GlContext::GetCurrent();
+				Shader* shFilter = Shader::CreateCs("shaders/BasicRenderer/FilterImageLight.glsl", 8, 8);
+				FRM_ASSERT(shFilter && shFilter->getState() == Shader::State_Loaded);
+				
+				for (int i = 0; i < txRenderTarget->getMipCount(); ++i)
+				{
+					ctx->setShader(shFilter);
+					ctx->setUniform("uLevel", i);
+					ctx->setUniform("uMaxLevel", (int)txRenderTarget->getMipCount());
+					ctx->setUniform("uSrcIsGamma", 0);
+					ctx->bindTexture("txSrc", txRenderTarget);
+					ctx->bindImage("txDst", txFilterTarget, GL_WRITE_ONLY, i);
+					ctx->dispatch(txFilterTarget, 6);
+				}
+				glAssert(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+
+				Shader::Release(shFilter);
+			}
+
+			{	FRM_AUTOTIMER("Copy to Array");
+
+				Framebuffer* fb = Framebuffer::Create();
+				for (int face = 0; face < 6; ++face)
+				{
+					for (int mip = 0; mip < txFilterTarget->getMipCount(); ++mip)
+					{
+						const int mipResolution = resolution >> mip;
+						fb->attachLayer(txFilterTarget, GL_COLOR_ATTACHMENT0, face, mip);
+						ctx->setFramebuffer(fb); // required for glNamedFramebufferReadBuffer?
+						glAssert(glNamedFramebufferReadBuffer(fb->getHandle(), GL_COLOR_ATTACHMENT0));
+						glAssert(glCopyTextureSubImage3D(txEnvironmentProbeArray->getHandle(), mip, 0, 0, face + probe->m_probeIndex * 6, 0, 0, mipResolution, mipResolution));
+					}
+				}
+				glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT));
+				Framebuffer::Destroy(fb);	
+			}
+		}
+
+		BasicRenderer::Destroy(environmentProbeRenderer);
+		Texture::Release(txRenderTarget);
+		Texture::Release(txFilterTarget);	
+		ctx->setFramebuffer(fbRestore);
+		ctx->setViewport(vpRestore);
+	}
 }
 
 } // namespace frm

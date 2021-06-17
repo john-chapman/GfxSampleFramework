@@ -68,13 +68,11 @@ void main()
 	#elif defined(TEXTURE_CUBE_MAP)
 		vec2 uv = texcoord * uScaleUv + uBiasUv;
 		vec3 uvw = Envmap_GetCubeFaceUvw(uv, int(uLayer));
-		uvw.y = -uvw.y;
 		ret = textureLod(txTexture, uvw, uMip);
 		
 	#elif defined(TEXTURE_CUBE_MAP_ARRAY)
-		vec2 uv = texcoord * uScaleUv + uBiasUv;
+		vec2 uv = texcoord * uScaleUv + uBiasUv;		
 		vec3 uvw = Envmap_GetCubeFaceUvw(uv, int(uLayer) % 6);
-		uvw.y = -uvw.y;
 		ret = textureLod(txTexture, vec4(uvw, float(int(uLayer) / 6)), uMip);
 		
 	#else

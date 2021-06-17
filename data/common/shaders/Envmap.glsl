@@ -15,13 +15,13 @@ vec3 Envmap_GetCubeFaceUvw(in vec2 _uv, in int _face)
 	vec2 uv = _uv * 2.0 - 1.0;
 	float w = 1.0;
 	switch (_face) {
-		case Envmap_Face_XP: return vec3(    w, -uv.y, -uv.x);
-		case Envmap_Face_XN: return vec3(   -w, -uv.y,  uv.x);
-		case Envmap_Face_YP: return vec3( uv.x,    w,   uv.y);
-		case Envmap_Face_YN: return vec3( uv.x,   -w,  -uv.y);
-		case Envmap_Face_ZP: return vec3( uv.x, -uv.y,     w);
-		case Envmap_Face_ZN: return vec3(-uv.x, -uv.y,    -w);
-		default: return vec3(0.0);
+		case Envmap_Face_XP: return vec3(    w,  uv.y, -uv.x);
+		case Envmap_Face_XN: return vec3(   -w,  uv.y,  uv.x);
+		case Envmap_Face_YP: return vec3( uv.x,    -w,  uv.y);
+		case Envmap_Face_YN: return vec3( uv.x,     w, -uv.y);
+		case Envmap_Face_ZP: return vec3( uv.x,  uv.y,     w);
+		case Envmap_Face_ZN: return vec3(-uv.x,  uv.y,    -w);
+		default:             return vec3(0.0);
 	};
 }
 

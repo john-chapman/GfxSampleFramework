@@ -126,6 +126,7 @@ namespace frm {
 	class  Camera;
 	class  Component;
 		class CameraComponent;
+		class EnvironmentProbeComponent;
 		class FreeLookComponent;
 		class LookAtComponent;
 		class OrbitLookComponent;

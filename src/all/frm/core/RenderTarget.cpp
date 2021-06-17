@@ -52,6 +52,7 @@ void RenderTarget::shutdown()
 		Texture::Release(tx);
 	}
 	m_textures.clear();
+	m_current = 0;
 }
 
 } // namespace frm

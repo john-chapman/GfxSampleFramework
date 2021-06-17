@@ -25,6 +25,16 @@ namespace frm {
 //   matrices to extract and compensate for XY jitter.
 //
 // \todo
+// - "Usage" enum for setting groups of flags/states based on common use cases. 
+//   Default is main rendering (enable post FX, etc.), other options for 
+//   lightmap/env probe rendering.
+// - Internal flags for caching some global state derived from user flags/settings,
+//   e.g. whether the velocity buffer is required.
+// - Make the renderer properly instantiable - need a cleaner mechanism for adding
+//   settings to the properties table (e.g. do all that at the app level).
+// - Environment probe rendering: need to share probe array with the parent (via a
+//   static 'per world' data structure?) - probes should be able to draw with env
+//   lighting themselves.
 // - Motion blur https://casual-effects.com/research/McGuire2012Blur/McGuire12Blur.pdf
 //   - Polar representation for V? Allows direct loading of the vector magnitude.
 //   - Tile min/max, neighborhood velocities at lower precision?
@@ -52,14 +62,37 @@ public:
 		FXAA,              // Enable FXAA.
 		Interlaced,        // Enable interlaced rendering.
 		WriteToBackBuffer, // Copy txFinal to the back buffer. Disable for custom upsampling/antialiasing.
+		StaticOnly,        // Only use static scene elements (e.g. for lightmap baking).
+		ForwardOnly,       // Disable GBuffer, depth prepass only writes depth (and velocity if required).
 		WireFrame,         // Wireframe overlay.
 
 		_Count,
 		_Default = BIT_FLAGS_DEFAULT(PostProcess, TAA, FXAA, WriteToBackBuffer)
 	};
 	using Flags = BitFlags<Flag>;
+	Flags    flags;
 
-	static BasicRenderer* Create(Flags _flags = Flags());
+	struct Settings
+	{
+		ivec2 resolution                  = ivec2(-1);
+		int   minShadowMapResolution      = 128;
+		int   maxShadowMapResolution      = 4096;
+		int   environmentProbeResolution  = 512;
+		bool  enableCulling               = true;
+		bool  cullBySubmesh               = true;
+		float motionBlurTargetFps         = 60.0f;
+		int   motionBlurTileWidth         = 20;
+		int   motionBlurQuality           = 1;    // -1 = off, 0 = low, 1 = normal
+		float taaSharpen                  = 0.4f;
+		float bloomScale                  = -1.0f;
+		float bloomBrightness             = 0.0f;
+		int   bloomQuality                = 1;    // -1 = off, 0 = low, 1 = normal
+		float materialTextureAnisotropy   = 4.0f;
+		int   lodBias                     = 0;
+	};
+	Settings settings;
+
+	static BasicRenderer* Create(Flags _flags = Flags(), Settings* _settings = nullptr);
 	static void Destroy(BasicRenderer*& _inst_);
 
 	void nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamera);
@@ -137,26 +170,6 @@ public:
 	Shader*         shBloomUpsample            = nullptr;
 
 	bool            pauseUpdate                = false;
-	
-	struct Settings
-	{
-		ivec2 resolution                = ivec2(-1);
-		int   minShadowMapResolution    = 128;
-		int   maxShadowMapResolution    = 4096;
-		bool  enableCulling             = true;
-		bool  cullBySubmesh             = true;
-		float motionBlurTargetFps       = 60.0f;
-		int   motionBlurTileWidth       = 20;
-		int   motionBlurQuality         = 1;
-		float taaSharpen                = 0.4f;
-		float bloomScale                = -1.0f;
-		float bloomBrightness           = 0.0f;
-		int   bloomQuality              = 1;
-		float materialTextureAnisotropy = 4.0f;
-		int   lodBias                   = 0;
-	};
-	Settings settings;
-	Flags    flags;
 
 	struct LODCoefficients
 	{
@@ -170,10 +183,13 @@ public:
 
 private:
 
-	BasicRenderer(Flags _flags);
+	BasicRenderer(Flags _flags, Settings* _settings);
 	~BasicRenderer();
 
 	bool editFlag(const char* _name, Flag _flag);
+
+	// Helper for dynamic buffer updates. Re-creates the buffer if _size changes.
+	void updateBuffer(Buffer*& bf_, const char* _name, GLsizei _size, void* _data);
 
 	struct alignas(16) MaterialInstance
 	{
@@ -299,12 +315,28 @@ private:
 	PostProcessData postProcessData;
 	void updatePostProcessData(float _dt, uint32 _frameIndex);
 
-	void updateBuffer(Buffer*& bf_, const char* _name, GLsizei _size, void* _data);
-
 	Texture* txBRDFLut = nullptr;
-
 	void initBRDFLut();
 	void shutdownBRDFLut();
+
+
+	// Environment probes
+	// \todo
+	// - Needs to be _per world_, cache after rendering.
+	// - Probe resolution is also per world.
+	// - How to invalidate existing probes?
+	// - Share other per-world stuff between renderers e.g. shadow map atlas.
+	struct alignas(16) EnvironmentProbeInstance
+	{
+		vec4   originRadius = vec4(0.0f); // World space position and radius of the probe. If radius == 0, probe is a box.
+		vec4   boxExtents   = vec4(0.0f); // World space extents of the probe box relative to the origin. NB probes are axis-aligned.
+		uint32 probeIndex   = 0;          // Indexes txEnvironmentProbeArray.
+	};
+	
+	Texture* txEnvironmentProbeArray        = nullptr; // Cubemap array for reflection probes.
+	BasicRenderer* environmentProbeRenderer = nullptr;
+
+	void updateEnvironmentProbes();
 
 }; // class BasicRenderer
 

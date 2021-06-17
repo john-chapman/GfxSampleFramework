@@ -3,6 +3,10 @@
 #include "shaders/Sampling.glsl"
 #include "shaders/Rand.glsl"
 
+#ifndef CUBEMAP_ARRAY
+	#define CUBEMAP_ARRAY 0
+#endif
+
 // Normal distribution function (should match BasicRenderer/Lighting.glsl).
 float Lighting_SpecularD_GGX(in float NoH, in float alpha)
 {
@@ -11,8 +15,18 @@ float Lighting_SpecularD_GGX(in float NoH, in float alpha)
 	return k * k * (1.0 / kPi);
 }
 
-uniform samplerCube txSrc;
-uniform writeonly imageCube txDst;
+#if CUBEMAP_ARRAY
+	uniform samplerCubeArray txSrc;
+	uniform writeonly imageCubeArray txDst;
+	uniform int uArrayIndex;
+
+	#define SampleSrc(uvw, lod) (textureLod(txSrc, vec4(uvw, float(uArrayIndex)), lod))
+#else
+	uniform samplerCube txSrc;
+	uniform writeonly imageCube txDst;
+
+	#define SampleSrc(uvw, lod) (textureLod(txSrc, uvw, lod))
+#endif
 
 uniform int uLevel;
 uniform int uMaxLevel;
@@ -32,13 +46,13 @@ void main()
 	{
 		return;
 	}
-	const vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize) + 0.5 / vec2(txSize);
+	vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(txSize) + 0.5 / vec2(txSize);
 	const vec3 uvw = normalize(Envmap_GetCubeFaceUvw(uv, int(gl_WorkGroupID.z)));
 
 	if (uLevel == 0)
 	{
 		// Copy src -> dst.
-		vec3 ret = textureLod(txSrc, uvw, 0.0).rgb;
+		vec3 ret = SampleSrc(uvw, 0.0).rgb;
 		if (bool(uSrcIsGamma))
 		{
 			ret = pow(ret, vec3(2.2));
@@ -95,10 +109,14 @@ void main()
 		for (int i = 0; i < s_sampleCount; ++i)
 		{
 			vec3 L = basis * s_sampleL[i];
-			ret += textureLod(txSrc, L, s_sampleMips[i]).rgb * s_sampleWeights[i];
+			ret += SampleSrc(L, s_sampleMips[i]).rgb * s_sampleWeights[i];
 		}
 		ret *= s_invSampleWeightSum;
 
-		imageStore(txDst, ivec3(gl_GlobalInvocationID.xy, gl_WorkGroupID.z), vec4(ret, 1.0));
+		#if CUBEMAP_ARRAY
+			imageStore(txDst, ivec4(gl_GlobalInvocationID.xy, gl_WorkGroupID.z, uArrayIndex), vec4(ret, 1.0));
+		#else
+			imageStore(txDst, ivec3(gl_GlobalInvocationID.xy, gl_WorkGroupID.z), vec4(ret, 1.0));
+		#endif
 	}
 }

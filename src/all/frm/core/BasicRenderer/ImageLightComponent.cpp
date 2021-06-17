@@ -123,10 +123,10 @@ bool ImageLightComponent::loadAndFilter()
 	Texture* existing = Texture::Find(name.c_str());
 	if (existing)
 	{
-		Texture::Use(existing);
-		Texture::Release(m_texture);
-		m_texture = existing;
-		return true;
+		//Texture::Use(existing);
+		//Texture::Release(m_texture);
+		//m_texture = existing;
+		//return true;
 	}
 
 	File srcFile;

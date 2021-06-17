@@ -1,5 +1,4 @@
 /* 	\todo
-	- Forward-rendered variant (no gbuffer normal).
 	- Gradient framework for normal mapping? http://advances.realtimerendering.com/s2018/Siggraph%202018%20HDRP%20talk_with%20notes.pdf
 */
 #include "shaders/def.glsl"
@@ -17,11 +16,20 @@
 #if defined(Geometry_Mesh) || defined(Geometry_SkinnedMesh)
 	_VARYING(flat, uint, vInstanceId);
 	_VARYING(smooth, vec2, vMaterialUV);
-	#ifdef Pass_GBuffer
+	#if defined(Pass_GBuffer) && !defined(FORWARD_ONLY)
 		_VARYING(smooth, vec3, vPrevPositionP);
 		_VARYING(smooth, vec3, vNormalV);
 		_VARYING(smooth, vec3, vTangentV);
 		_VARYING(smooth, vec3, vBitangentV);
+	#elif defined(Pass_GBuffer) && defined(FORWARD_ONLY_WITH_VELOCITY)
+		_VARYING(smooth, vec3, vPrevPositionP);
+	#endif
+
+	#if defined(Pass_Scene) && defined(FORWARD_ONLY)
+		// Need TBN for shading in the scene pass - interpolate in world space.
+		_VARYING(smooth, vec3, vNormalW);
+		_VARYING(smooth, vec3, vTangentW);
+		_VARYING(smooth, vec3, vBitangentW);
 	#endif
 
 	struct DrawInstance
@@ -119,7 +127,7 @@ void main()
 		normalW = TransformDirection(world, normalW);
 		tangentW  = TransformDirection(world, tangentW);
 		gl_Position = uCamera.m_viewProj * vec4(positionW, 1.0);
-		#ifdef Pass_GBuffer
+		#if defined(Pass_GBuffer) && !defined(FORWARD_ONLY)
 		{
 			const mat4 prevWorld = uDrawInstances[gl_InstanceID].prevWorld;
 			//vPositionP = gl_Position.xyw; // save the interpolant, use gl_FragCoord.xy / uTexelSize instead
@@ -128,6 +136,19 @@ void main()
 			vNormalV = TransformDirection(uCamera.m_view, normalW);
 			vTangentV = TransformDirection(uCamera.m_view, tangentW);
 			vBitangentV = cross(vNormalV, vTangentV);
+		}
+		#elif defined(Pass_GBuffer) && defined(FORWARD_ONLY_WITH_VELOCITY)
+		{
+			const mat4 prevWorld = uDrawInstances[gl_InstanceID].prevWorld;
+			vPrevPositionP = (uCamera.m_prevViewProj * (prevWorld * vec4(prevPositionW, 1.0))).xyw;
+		}
+		#endif
+
+		#if defined(Pass_Scene) && defined(FORWARD_ONLY)
+		{
+			vNormalW    = normalW;
+			vTangentW   = tangentW;
+			vBitangentW = cross(vNormalW, vTangentW);
 		}
 		#endif
 
@@ -258,24 +279,32 @@ void main()
 {
 	#ifdef Pass_GBuffer
 	{
-		float alpha = BasicMaterial_ApplyAlphaTest(vMaterialUV, uDrawInstances[vInstanceId].materialIndex, uDrawInstances[vInstanceId].baseColorAlpha.a);
+		const float alpha = BasicMaterial_ApplyAlphaTest(vMaterialUV, uDrawInstances[vInstanceId].materialIndex, uDrawInstances[vInstanceId].baseColorAlpha.a);
 
-		vec3 normalT = normalize(BasicMaterial_SampleNormalMap(Normal, vMaterialUV));
-		vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
-		GBuffer_WriteNormal(normalV);
+		#if !defined(FORWARD_ONLY)
+		{
+			vec3 normalT = normalize(BasicMaterial_SampleNormalMap(Normal, vMaterialUV));
+			vec3 normalV = normalize(vTangentV) * normalT.x + normalize(vBitangentV) * normalT.y + normalize(vNormalV) * normalT.z;
+			GBuffer_WriteNormal(normalV);
+		}
+		#endif
 
-		vec2 positionP = gl_FragCoord.xy * uTexelSize;
-		vec2 prevPositionP = vPrevPositionP.xy / vPrevPositionP.z * 0.5 + 0.5;
-		vec2 velocity = positionP - prevPositionP;
+		#if !defined(FORWARD_ONLY) || defined(FORWARD_ONLY_WITH_VELOCITY)
+		{
+			vec2 positionP = gl_FragCoord.xy * uTexelSize;
+			vec2 prevPositionP = vPrevPositionP.xy / vPrevPositionP.z * 0.5 + 0.5;
+			vec2 velocity = positionP - prevPositionP;
 
-		// Correct for any jitter in the projection matrices.
-		// Here we need to account for the current and previous jitter since both positionP and prevPositionP have jitter applied.
-		vec2 jitterVelocity = (uCamera.m_prevProj[2].xy - uCamera.m_proj[2].xy) * 0.5;
-		velocity -= jitterVelocity;
+			// Correct for any jitter in the projection matrices.
+			// Here we need to account for the current and previous jitter since both positionP and prevPositionP have jitter applied.
+			vec2 jitterVelocity = (uCamera.m_prevProj[2].xy - uCamera.m_proj[2].xy) * 0.5;
+			velocity -= jitterVelocity;
 
-		velocity *= alpha; // \hack scale velocity with alpha to reduce ghosting artefacts.
+			velocity *= alpha; // \hack scale velocity with alpha to reduce ghosting artefacts.
 
-		GBuffer_WriteVelocity(velocity);
+			GBuffer_WriteVelocity(velocity);
+		}
+		#endif
 	}
 	#endif
 
@@ -287,10 +316,17 @@ void main()
 		float D = abs(Camera_GetDepthV(GBuffer_ReadDepth(ivec2(iuv))));
 		vec3  P = Camera_GetPosition() + V * D;
 		      V = normalize(-V);
-		vec3  N = GBuffer_ReadNormal(ivec2(iuv)); // view space
-		      N = normalize(TransformDirection(uCamera.m_world, N)); // world space
-		fResult.a = D;
 
+		#ifdef FORWARD_ONLY
+			vec3 normalT = normalize(BasicMaterial_SampleNormalMap(Normal, vMaterialUV));
+			vec3 N = normalize(vTangentW) * normalT.x + normalize(vBitangentW) * normalT.y + normalize(vNormalW) * normalT.z;
+		#else
+			vec3 N = GBuffer_ReadNormal(ivec2(iuv)); // view space
+			     N = normalize(TransformDirection(uCamera.m_world, N)); // world space
+		#endif
+
+
+		fResult.a = D;
 		const uint materialIndex = uDrawInstances[vInstanceId].materialIndex;
 		Lighting_In lightingIn;
 		vec3  baseColor    = BasicMaterial_Sample(BaseColor, vMaterialUV).rgb * uBasicMaterial_Instances[materialIndex].baseColorAlpha.rgb * uDrawInstances[vInstanceId].baseColorAlpha.rgb;

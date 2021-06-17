@@ -62,6 +62,7 @@ const char* internal::StripPath(const char* _path)
 FRM_FORCE_LINK(BasicRenderableComponent);
 FRM_FORCE_LINK(BasicLightComponent);
 FRM_FORCE_LINK(CameraComponent);
+FRM_FORCE_LINK(EnvironmentProbeComponent);
 FRM_FORCE_LINK(ImageLightComponent);
 FRM_FORCE_LINK(LookAtComponent);
 FRM_FORCE_LINK(FreeLookComponent);

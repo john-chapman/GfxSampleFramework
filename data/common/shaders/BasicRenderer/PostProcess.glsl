@@ -114,118 +114,126 @@ void main()
 	const float baseLod = 0.0; // \todo use to blur for post fx
 	ret = textureLod(txScene, uv, baseLod).rgb;
 
-	#if (MOTION_BLUR_QUALITY == 0)
-		const int kMotionBlurSampleCount = 5;
-	#else
-		const int kMotionBlurSampleCount = 11;
-	#endif
-
-	#if 0
+	#if (MOTION_BLUR_QUALITY >= 0)
 	{
-	// Basic motion blur.
-		const vec2 jitterVelocity = uCamera.m_prevProj[2].xy * vec2(txSize);
-		const vec2 velocity =
-			GBuffer_ReadVelocity(iuv) * uMotionBlurScale
-			* mix(0.5, 1.0, Noise_InterleavedGradient(vec2(iuv) + jitterVelocity)) // add some noise to reduce banding
-			;
+		#if (MOTION_BLUR_QUALITY == 0)
+			const int kMotionBlurSampleCount = 5;
+		#else
+			const int kMotionBlurSampleCount = 11;
+		#endif
 
-		for (int i = 1; i < kMotionBlurSampleCount; ++i)
+		#if 0
 		{
-			const vec2 offset = velocity * (float(i) / float(kMotionBlurSampleCount - 1) - 0.5);
-			ret += textureLod(txScene, uv + offset, baseLod).rgb;
-		}
-		ret /= float(kMotionBlurSampleCount);
-	}
-	#else
-	{
-	#if 1
-	// https://casual-effects.com/research/McGuire2012Blur/McGuire12Blur.pdf
-		const vec2 jitterVelocity = uCamera.m_prevProj[2].xy * vec2(txSize);
-		const vec2 neighborMaxV = (textureLod(txVelocityTileNeighborMax, uv, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale
-			//* mix(0.5, 1.0, Noise_InterleavedGradient(vec2(iuv.x, iuv.y + uFrameIndex) + jitterVelocity)) // add some noise to reduce banding
-			;
-		if (length2(neighborMaxV) > length2(texelSize)) // only do blur if velocity > .5 texels
-		{
-			float weight = 1.0;
-			vec4 centerSample = textureLod(txScene, uv, baseLod);
-			ret = centerSample.rgb * weight;
-			vec2 centerVelocity = (textureLod(txGBuffer0, uv, 0.0).zw * 2.0 - 1.0) * uMotionBlurScale;
+		// Basic motion blur.
+			const vec2 jitterVelocity = uCamera.m_prevProj[2].xy * vec2(txSize);
+			const vec2 velocity =
+				GBuffer_ReadVelocity(iuv) * uMotionBlurScale
+				* mix(0.5, 1.0, Noise_InterleavedGradient(vec2(iuv) + jitterVelocity)) // add some noise to reduce banding
+				;
+
 			for (int i = 1; i < kMotionBlurSampleCount; ++i)
 			{
-				const vec2 offset = uv + neighborMaxV * (float(i) / float(kMotionBlurSampleCount - 1) - 0.5); // \todo round to neareest texel?
-				vec4 offsetSample = textureLod(txScene, offset, baseLod);
-				vec2 offsetVelocity = (textureLod(txGBuffer0, offset, 0.0).zw * 2.0 - 1.0) * uMotionBlurScale;
-				const float kSoftZExtent = 0.5;
-				float foreground = SoftStep(offsetSample.w, centerSample.w, kSoftZExtent);
-				float background = SoftStep(centerSample.w, offsetSample.w, kSoftZExtent);
-				float offsetSampleWeight = 0.0
-					+ foreground * Cone(offset, uv, offsetVelocity) // blurry Y in front of any X
-					+ background * Cone(uv, offset, centerVelocity) // any Y behind blurry X (background reconstruction)
-					//+ Cylinder(offset, uv, offsetVelocity) * Cylinder(uv, offset, centerVelocity) // \todo causes silhoettes?
-					;
-				weight += offsetSampleWeight;
-				ret += offsetSample.rgb * offsetSampleWeight;
+				const vec2 offset = velocity * (float(i) / float(kMotionBlurSampleCount - 1) - 0.5);
+				ret += textureLod(txScene, uv + offset, baseLod).rgb;
 			}
-			ret.rgb /= weight;
+			ret /= float(kMotionBlurSampleCount);
 		}
-	#else
-	// https://casual-effects.com/research/Guertin2014MotionBlur/Guertin2014MotionBlur.pdf
-	// https://github.com/bradparks/KinoMotion__unity_motion_blur/blob/master/Assets/Kino/Motion/Shader/Reconstruction.cginc
-		const vec2 neighborMaxV = (textureLod(txVelocityTileNeighborMax, uv, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale;
-		const vec2 centerV = (textureLod(txGBuffer0, uv, 0.0).zw * 2.0 - 1.0) * uMotionBlurScale;
-		const vec2 Wn = normalize(neighborMaxV);
-		vec2 Wp = vec2(-Wn.y, Wn.x);
-		if (dot(Wp, centerV) < 0.0)
+		#else
 		{
-			Wp = -Wp;
-		}
-const float y = 1.5;
-		const vec2 Wc = RNMix(Wp, normalize(centerV), (length(centerV) - 0.5) / y);
-		float totalWeight = 1.0;//float(kMotionBlurSampleCount) / length(centerV) * 1.0;//float(kMotionBlurSampleCount);
-		vec4 centerSample = textureLod(txScene, uv, 0.0);
-		ret = centerSample.rgb * totalWeight;
-		for (int i = 1; i < kMotionBlurSampleCount; ++i)
-        {
-			float t = float(i) / float(kMotionBlurSampleCount - 1) - 0.5;
-
-			vec2 d = centerV;
-			if ((i & 1) == 0)
+			#if 1
+		// https://casual-effects.com/research/McGuire2012Blur/McGuire12Blur.pdf
+			const vec2 jitterVelocity = uCamera.m_prevProj[2].xy * vec2(txSize);
+			const vec2 neighborMaxV = (textureLod(txVelocityTileNeighborMax, uv, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale
+				//* mix(0.5, 1.0, Noise_InterleavedGradient(vec2(iuv.x, iuv.y + uFrameIndex) + jitterVelocity)) // add some noise to reduce banding
+				;
+			if (length2(neighborMaxV) > length2(texelSize)) // only do blur if velocity > .5 texels
 			{
-				d = neighborMaxV;
+				float weight = 1.0;
+				vec4 centerSample = textureLod(txScene, uv, baseLod);
+				ret = centerSample.rgb * weight;
+				vec2 centerVelocity = (textureLod(txGBuffer0, uv, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale;
+				for (int i = 1; i < kMotionBlurSampleCount; ++i)
+				{
+					const vec2 offset = uv + neighborMaxV * (float(i) / float(kMotionBlurSampleCount - 1) - 0.5); // \todo round to neareest texel?
+					vec4 offsetSample = textureLod(txScene, offset, baseLod);
+					vec2 offsetVelocity = (textureLod(txGBuffer0, offset, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale;
+					const float kSoftZExtent = 0.5;
+					float foreground = SoftStep(offsetSample.w, centerSample.w, kSoftZExtent);
+					float background = SoftStep(centerSample.w, offsetSample.w, kSoftZExtent);
+					float offsetSampleWeight = 0.0
+						+ foreground * Cone(offset, uv, offsetVelocity) // blurry Y in front of any X
+						+ background * Cone(uv, offset, centerVelocity) // any Y behind blurry X (background reconstruction)
+						//+ Cylinder(offset, uv, offsetVelocity) * Cylinder(uv, offset, centerVelocity) // \todo causes silhoettes?
+						;
+					weight += offsetSampleWeight;
+					ret += offsetSample.rgb * offsetSampleWeight;
+				}
+				ret.rgb /= weight;
 			}
-			const float T = t * length(neighborMaxV);
-			const vec2 sampleP = uv + d * t; // \todo
-
-			vec2 sampleV  = (textureLod(txGBuffer0, sampleP, 0.0).zw * 2.0 - 1.0) * uMotionBlurScale;
-			vec4 sampleCZ = textureLod(txScene, sampleP, 0.0);
-
-			float foreground = ZCompare(centerSample.w, sampleCZ.w);
-			float background = ZCompare(sampleCZ.w, centerSample.w);
-
-			float weightA = dot(Wc, d);
-			float weightB = dot(normalize(sampleV), d);
-
-			float weight = 0.0;
-			weight += foreground * Cone(T, 1.0 / length(sampleV)) * weightB;
-			weight += background * Cone(T, 1.0 / length(centerV)) * weightA;
-			weight += Cylinder(T, min(length(sampleV), length(centerV))) * max(weightA, weightB) * 2.0;
-
-
-			totalWeight += weight;
-			ret += sampleCZ.rgb * weight;
+		#else
+		// https://casual-effects.com/research/Guertin2014MotionBlur/Guertin2014MotionBlur.pdf
+		// https://github.com/bradparks/KinoMotion__unity_motion_blur/blob/master/Assets/Kino/Motion/Shader/Reconstruction.cginc
+			const vec2 neighborMaxV = (textureLod(txVelocityTileNeighborMax, uv, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale;
+			const vec2 centerV = (textureLod(txGBuffer0, uv, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale;
+			const vec2 Wn = normalize(neighborMaxV);
+			vec2 Wp = vec2(-Wn.y, Wn.x);
+			if (dot(Wp, centerV) < 0.0)
+			{
+				Wp = -Wp;
+			}
+	const float y = 1.5;
+			const vec2 Wc = RNMix(Wp, normalize(centerV), (length(centerV) - 0.5) / y);
+			float totalWeight = 1.0;//float(kMotionBlurSampleCount) / length(centerV) * 1.0;//float(kMotionBlurSampleCount);
+			vec4 centerSample = textureLod(txScene, uv, 0.0);
+			ret = centerSample.rgb * totalWeight;
+			for (int i = 1; i < kMotionBlurSampleCount; ++i)
+	        {
+				float t = float(i) / float(kMotionBlurSampleCount - 1) - 0.5;
+	
+				vec2 d = centerV;
+				if ((i & 1) == 0)
+				{
+					d = neighborMaxV;
+				}
+				const float T = t * length(neighborMaxV);
+				const vec2 sampleP = uv + d * t; // \todo
+	
+				vec2 sampleV  = (textureLod(txGBuffer0, sampleP, 0.0).xy * 2.0 - 1.0) * uMotionBlurScale;
+				vec4 sampleCZ = textureLod(txScene, sampleP, 0.0);
+	
+				float foreground = ZCompare(centerSample.w, sampleCZ.w);
+				float background = ZCompare(sampleCZ.w, centerSample.w);
+	
+				float weightA = dot(Wc, d);
+				float weightB = dot(normalize(sampleV), d);
+	
+				float weight = 0.0;
+				weight += foreground * Cone(T, 1.0 / length(sampleV)) * weightB;
+				weight += background * Cone(T, 1.0 / length(centerV)) * weightA;
+				weight += Cylinder(T, min(length(sampleV), length(centerV))) * max(weightA, weightB) * 2.0;
+	
+	
+				totalWeight += weight;
+				ret += sampleCZ.rgb * weight;
+			}
+			ret.rgb /= totalWeight;
+		#endif
 		}
-		ret.rgb /= totalWeight;
-	#endif
+		#endif
 	}
-	#endif
+	#endif // (MOTION_BLUR_QUALITY >= 0)
 
-	vec3 bloom = vec3(0)
-		+ textureLod(txScene, uv, 6.0).rgb * uBloomWeights[3]
-		+ textureLod(txScene, uv, 5.0).rgb * uBloomWeights[2]
-		+ textureLod(txScene, uv, 4.0).rgb * uBloomWeights[1]
-		+ textureLod(txScene, uv, 2.0).rgb * uBloomWeights[0]
-		;
-	ret.rgb += bloom;
+	#if (BLOOM_QUALITY >= 0)
+	{
+		vec3 bloom = vec3(0)
+			+ textureLod(txScene, uv, 6.0).rgb * uBloomWeights[3]
+			+ textureLod(txScene, uv, 5.0).rgb * uBloomWeights[2]
+			+ textureLod(txScene, uv, 4.0).rgb * uBloomWeights[1]
+			+ textureLod(txScene, uv, 2.0).rgb * uBloomWeights[0]
+			;
+		ret.rgb += bloom;
+	}
+	#endif // (BLOOM_QUALITY >= 0)
 
 	ret = Tonemap_ACES_Narkowicz(ret);
 

@@ -38,12 +38,12 @@ uniform sampler2D txGBufferDepthStencil;
 
 vec3 GBuffer_ReadNormal(in ivec2 _iuv)
 {
-	return GBuffer_DecodeNormal(texelFetch(txGBuffer0, _iuv, 0).xy);
+	return GBuffer_DecodeNormal(texelFetch(txGBuffer0, _iuv, 0).zw);
 }
 
 vec2 GBuffer_ReadVelocity(in ivec2 _iuv)
 {
-	return GBuffer_DecodeVelocity(texelFetch(txGBuffer0, _iuv, 0).zw);
+	return GBuffer_DecodeVelocity(texelFetch(txGBuffer0, _iuv, 0).xy);
 }
 
 float GBuffer_ReadDepth(in ivec2 _iuv)
@@ -62,12 +62,12 @@ _FRAGMENT_OUT(0, vec4, GBuffer0);
 
 void GBuffer_WriteNormal(in vec3 _normal)
 {
-	GBuffer0.xy = GBuffer_EncodeNormal(_normal);
+	GBuffer0.zw = GBuffer_EncodeNormal(_normal);
 }
 
 void GBuffer_WriteVelocity(in vec2 _velocity)
 {
-	GBuffer0.zw = GBuffer_EncodeVelocity(_velocity);
+	GBuffer0.xy = GBuffer_EncodeVelocity(_velocity);
 }
 
 #endif // FRAGMENT_SHADER
