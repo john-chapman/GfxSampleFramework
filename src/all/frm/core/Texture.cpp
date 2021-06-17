@@ -91,10 +91,10 @@ struct TextureViewer
 	bool                        m_showTexelGrid  = false;
 	bool                        m_isDragging     = false;
 	int                         m_selected       = -1;
-	frm::Pool<TextureView>      m_txViewPool;
+	Pool<TextureView>           m_txViewPool;
 	eastl::vector<TextureView*> m_txViews;
 
-	static vec2 ThumbToTxView(const frm::TextureView& _txView)
+	static vec2 ThumbToTxView(const TextureView& _txView)
 	{
 		ImGuiIO io = ImGui::GetIO();
 		vec2 thumbPos;
@@ -111,7 +111,8 @@ struct TextureViewer
 
 	void addTextureView(Texture* _tx)
 	{
-		if (!findTextureView(_tx)) {
+		if (!findTextureView(_tx))
+		{
 			//m_txViews.push_back(m_txViewPool.alloc(TextureView(_tx)));
 			m_txViews.push_back(FRM_NEW(TextureView(_tx)));
 		}
@@ -120,9 +121,11 @@ struct TextureViewer
 	void removeTextureView(Texture* _tx)
 	{
 		auto it = eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto _txView) { return _txView->m_texture == _tx; });
-		if (it != m_txViews.end()) {
+		if (it != m_txViews.end())
+		{
 			FRM_STRICT_ASSERT(_tx->getHandle() == (*it)->m_texture->getHandle());
-			if (m_selected == (int)(it - m_txViews.begin())) {
+			if (m_selected == (int)(it - m_txViews.begin()))
+			{
 				m_selected = -1;
 			}
 			//m_txViewPool.free(*it);
@@ -134,7 +137,8 @@ struct TextureViewer
 	TextureView* findTextureView(Texture* _tx)
 	{
 		auto it = eastl::find_if(m_txViews.begin(), m_txViews.end(), [_tx](auto _txView) { return _txView->m_texture == _tx; });
-		if (it != m_txViews.end()) {
+		if (it != m_txViews.end())
+		{
 			return *it;
 		}
 		return nullptr;
@@ -142,7 +146,7 @@ struct TextureViewer
 
 	void draw(bool* _open_)
 	{
-		using namespace frm::internal;
+		using namespace internal;
 
 		static ImGuiTextFilter filter;
 	 	static const ImVec4 kColorTxName = ImVec4(1.0f, 0.7f, 0.2f, 1.0f);
@@ -153,14 +157,16 @@ struct TextureViewer
 	
 		ImGui::SetNextWindowPos(ImVec2(0.0f, ImGui::GetFrameHeightWithSpacing()), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y / 2), ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+		if (!ImGui::Begin("Texture Viewer", _open_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+		{
 			ImGui::End();
 			return; // window collapsed, early-out
 		}
 	
 		ImGuiIO& io = ImGui::GetIO();
 	
-		if (m_selected == -1) {
+		if (m_selected == -1)
+		{
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("%d texture%s", Texture::GetInstanceCount(), Texture::GetInstanceCount() > 0 ? "s" : "");
 			ImGui::SameLine();
@@ -170,13 +176,16 @@ struct TextureViewer
 				filter.Draw("Filter##TextureName");
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_REFRESH " Reload All")) {
+			if (ImGui::Button(ICON_FA_REFRESH " Reload All"))
+			{
 				Texture::ReloadAll();
 			}
 			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_FLOPPY_O " Load")) {
+			if (ImGui::Button(ICON_FA_FLOPPY_O " Load"))
+			{
 				PathStr pth;
-				if (FileSystem::PlatformSelect(pth)) {
+				if (FileSystem::PlatformSelect(pth))
+				{
 					pth = FileSystem::StripRoot((const char*)pth);
 					Texture::Create((const char*)pth);
 				}
@@ -185,14 +194,17 @@ struct TextureViewer
 			ImGui::Separator();
 			
 			bool first = true;
-			for (int i = 0; i < (int)m_txViews.size(); ++i) {
+			for (int i = 0; i < (int)m_txViews.size(); ++i)
+			{
 				TextureView& txView = *m_txViews[i];
 				FRM_ASSERT(txView.m_texture != nullptr);
 				Texture& tx = *txView.m_texture;
-				if (!filter.PassFilter(tx.getName())) {
+				if (!filter.PassFilter(tx.getName()))
+				{
 					continue;
 				}
-				if (tx.getName()[0] == '#' && !m_showHidden) {
+				if (tx.getName()[0] == '#' && !m_showHidden)
+				{
 					continue;
 				}
 	
@@ -204,20 +216,24 @@ struct TextureViewer
 	
 				
 			 // move to a new line if the thumbnail width is too big to fit in the content region
-				if (!first) { // (except if it's the first one)
+				if (!first) // (except if it's the first one)
+				{
 					ImGui::SameLine();
-					if (ImGui::GetCursorPosX() + thumbWidth > ImGui::GetContentRegionMax().x) {
+					if (ImGui::GetCursorPosX() + thumbWidth > ImGui::GetContentRegionMax().x)
+					{
 						ImGui::NewLine();
-					};
+					}
 				}
 				first = false;
 				
 			 // thumbnail button
-				if (ImGui::ImageButton((ImTextureID)&txView, thumbSize, ImVec2(0, 1), ImVec2(1, 0), 1, ImColor(0.5f, 0.5f, 0.5f))) {
+				if (ImGui::ImageButton((ImTextureID)&txView, thumbSize, ImVec2(0, 1), ImVec2(1, 0), 1, ImColor(0.5f, 0.5f, 0.5f)))
+				{
 					m_selected = i;
 				}
 			 // basic info tooltip
-				if (ImGui::IsItemHovered()) {
+				if (ImGui::IsItemHovered())
+				{
 					ImGui::BeginTooltip();
 						ImGui::TextColored(kColorTxName, tx.getName());
 						ImGui::TextColored(kColorTxInfo, "%s\n%s\n%dx%dx%d", GlEnumStr(tx.getTarget()), GlEnumStr(tx.getFormat()), tx.getWidth(), tx.getHeight(), FRM_MAX(tx.getDepth(), tx.getArrayCount()));
@@ -225,33 +241,42 @@ struct TextureViewer
 				}
 			}
 		
-		} else {
+		}
+		else
+		{
 			TextureView& txView = *m_txViews[m_selected];
 			FRM_ASSERT(txView.m_texture != nullptr);
 			Texture& tx = *txView.m_texture;
 			float txAspect = (float)tx.getWidth() / (float)tx.getHeight();
 	
-			if (ImGui::Button(ICON_FA_BACKWARD)) {
+			if (ImGui::Button(ICON_FA_BACKWARD))
+			{
 				m_selected = -1;
 			}
 			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_FLOPPY_O " Save")) {
+			if (ImGui::Button(ICON_FA_FLOPPY_O " Save"))
+			{
 				PathStr pth = tx.getPath();
-				if (FileSystem::PlatformSelect(pth, { "*.bmp", "*.dds", "*.exr", "*.hdr", "*.png", "*.tga" })) {
+				if (FileSystem::PlatformSelect(pth, { "*.bmp", "*.dds", "*.exr", "*.hdr", "*.png", "*.tga" })) 
+				{
 					Image* img = Texture::CreateImage(&tx);
 					Image::Write(*img, (const char*)pth);
 					Texture::DestroyImage(img);
 				}
 			}
-			if (*tx.getPath() != '\0') {
+			if (*tx.getPath() != '\0')
+			{
 				ImGui::SameLine();
-				if (ImGui::Button(ICON_FA_REFRESH " Reload")) {
+				if (ImGui::Button(ICON_FA_REFRESH " Reload"))
+				{
 					tx.reload();
 				}
 				ImGui::SameLine();
-				if (ImGui::Button(ICON_FA_FLOPPY_O " Replace")) {
+				if (ImGui::Button(ICON_FA_FLOPPY_O " Replace"))
+				{
 					PathStr pth;
-					if (FileSystem::PlatformSelect(pth)) {
+					if (FileSystem::PlatformSelect(pth))
+					{
 						pth = FileSystem::StripRoot((const char*)pth);
 						tx.setPath((const char*)pth);
 						tx.reload();
@@ -274,10 +299,12 @@ struct TextureViewer
 		  // need to flip the UVs here to account for the orientation of the quad output by ImGui
 			vec2  uv0 = vec2(0.0f, 1.0f);
 			vec2  uv1 = vec2(1.0f, 0.0f);
-			if (ImGui::ImageButton((ImTextureID)&txView, thumbSize, uv0, uv1, 0)) {
+			if (ImGui::ImageButton((ImTextureID)&txView, thumbSize, uv0, uv1, 0))
+			{
 				//m_selected = -1;
 			}
-			if (m_showTexelGrid) {
+			if (m_showTexelGrid)
+			{
 				const vec2 drawStart = ImGui::GetItemRectMin();
 				const vec2 drawEnd   = ImGui::GetItemRectMax();
 				const int  sizeX     = Max((int)txView.m_size.x >> txView.m_mip, 1);
@@ -285,16 +312,19 @@ struct TextureViewer
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 				drawList->AddRect(drawStart, drawEnd, kColorGrid);
 				drawList->PushClipRect(drawStart, min(drawEnd, vec2(ImGui::GetWindowPos()) + vec2(ImGui::GetWindowSize())));
-					if ((drawEnd.x - drawStart.x) > (sizeX * 3.0f)) { // only draw grid if texel density is low enough
+					if ((drawEnd.x - drawStart.x) > (sizeX * 3.0f)) // only draw grid if texel density is low enough
+					{
 						float scale = thumbSize.x / sizeX;
 						float bias  = (1.0f - Fract(txView.m_offset.x / pow(2.0f, (float)txView.m_mip))) * scale;
-						for (int i = 0, n = sizeX + 1; i <= n; ++i) {
+						for (int i = 0, n = sizeX + 1; i <= n; ++i)
+						{
 							float x = Floor(drawStart.x + (float)i * scale + bias);
 							drawList->AddLine(vec2(x, drawStart.y), vec2(x, drawEnd.y), kColorGrid);
 						}
 						scale = thumbSize.y / sizeY;
 						bias  = (1.0f - Fract(txView.m_offset.y / pow(2.0f, (float)txView.m_mip))) * scale;
-						for (int i = 0, n = sizeY + 1; i <= n; ++i) {
+						for (int i = 0, n = sizeY + 1; i <= n; ++i) 
+						{
 							float y = Floor(drawEnd.y - (float)i * scale - bias);
 							drawList->AddLine(vec2(drawStart.x, y), vec2(drawEnd.x, y), kColorGrid);
 						}
@@ -302,7 +332,8 @@ struct TextureViewer
 				drawList->PopClipRect();
 			}
 	
-			if (m_isDragging || ImGui::IsItemHovered()) {
+			if (m_isDragging || ImGui::IsItemHovered())
+			{
 			 // zoom
 				vec2 txViewPos = ThumbToTxView(txView);
 				//ImGui::BeginTooltip();
@@ -316,12 +347,15 @@ struct TextureViewer
 				txView.m_offset += offsetDelta;
 	
 			 // pan
-				if (io.MouseDown[0]) {
+				if (io.MouseDown[0])
+				{
 					m_isDragging = true;
 				}
 			}
-			if (m_isDragging) {
-				if (!io.MouseDown[0]) {
+			if (m_isDragging)
+			{
+				if (!io.MouseDown[0])
+				{
 					m_isDragging = false;
 				}
 				vec2 offset = vec2(io.MouseDelta.x, -io.MouseDelta.y) * vec2(txView.m_texture->getWidth(), txView.m_texture->getHeight()) / vec2(thumbWidth, thumbHeight) * txView.getNormalizedSize();
@@ -331,7 +365,8 @@ struct TextureViewer
 			ImGui::SetColumnOffset(-1, thumbWidth + ImGui::GetStyle().ItemSpacing.x);
 		
 		 // zoom/pan
-			if (ImGui::Button("Reset View")) {
+			if (ImGui::Button("Reset View"))
+			{
 				txView.reset();
 			}
 			ImGui::SameLine();
@@ -354,25 +389,30 @@ struct TextureViewer
 		 // filter mode
 			ImGui::Spacing(); ImGui::Spacing();
 			int fm = TextureFilterModeToIndex(tx.getMinFilter());
-			if (ImGui::Combo("Min Filter", &fm, "NEAREST\0LINEAR\0NEAREST_MIPMAP_NEAREST\0LINEAR_MIPMAP_NEAREST\0NEAREST_MIPMAP_LINEAR\0LINEAR_MIPMAP_LINEAR\0")) { // must match order of internal::kTextureWrapModes (gl.cpp)
+			if (ImGui::Combo("Min Filter", &fm, "NEAREST\0LINEAR\0NEAREST_MIPMAP_NEAREST\0LINEAR_MIPMAP_NEAREST\0NEAREST_MIPMAP_LINEAR\0LINEAR_MIPMAP_LINEAR\0")) // must match order of internal::kTextureWrapModes (gl.cpp)
+			{
 				tx.setMinFilter(kTextureFilterModes[fm]);
 			}
 			fm = TextureFilterModeToIndex(tx.getMagFilter());
-			if (ImGui::Combo("Mag Filter", &fm, "NEAREST\0LINEAR\0")) { // must match order of internal::kTextureWrapModes (gl.cpp)
+			if (ImGui::Combo("Mag Filter", &fm, "NEAREST\0LINEAR\0")) // must match order of internal::kTextureWrapModes (gl.cpp)
+			{
 				tx.setMagFilter(kTextureFilterModes[fm]);
 			}
 
 		 // mip bias
-			if (tx.getMipCount() > 1) {
+			if (tx.getMipCount() > 1)
+			{
 				float mipBias = tx.getMipBias();
-				if (ImGui::SliderFloat("Mip Bias", &mipBias, (float)-tx.getMipCount(), (float)tx.getMipCount())) {
+				if (ImGui::SliderFloat("Mip Bias", &mipBias, (float)-tx.getMipCount(), (float)tx.getMipCount()))
+				{
 					tx.setMipBias(mipBias);
 				}
 			}
 	
 		 // anisotropy
 			float aniso = tx.getAnisotropy();
-			if (ImGui::SliderFloat("Anisotropy", &aniso, 1.0f, 16.0f)) {
+			if (ImGui::SliderFloat("Anisotropy", &aniso, 1.0f, 16.0f)) 
+			{
 				tx.setAnisotropy(aniso);
 			}
 		
@@ -380,16 +420,20 @@ struct TextureViewer
 			ImGui::Spacing();
 			static const char* kWrapItems = "REPEAT\0MIRRORED_REPEAT\0CLAMP_TO_EDGE\0MIRROR_CLAMP_TO_EDGE\0CLAMP_TO_BORDER\0"; // must match order of internal::kTextureWrapModes (gl.cpp)
 			int wm = TextureWrapModeToIndex(tx.getWrapU());
-			if (ImGui::Combo("Wrap U", &wm, kWrapItems)) {
+			if (ImGui::Combo("Wrap U", &wm, kWrapItems))
+			{
 				tx.setWrapU(kTextureWrapModes[wm]);
 			}
 			wm = TextureWrapModeToIndex(tx.getWrapV());
-			if (ImGui::Combo("Wrap V", &wm, kWrapItems)) {
+			if (ImGui::Combo("Wrap V", &wm, kWrapItems))
+			{
 				tx.setWrapV(kTextureWrapModes[wm]);
 			}
-			if (tx.getDepth() > 1) {
+			if (tx.getDepth() > 1)
+			{
 				wm = TextureWrapModeToIndex(tx.getWrapW());
-				if (ImGui::Combo("Wrap W", &wm, kWrapItems)) {
+				if (ImGui::Combo("Wrap W", &wm, kWrapItems))
+				{
 					tx.setWrapW(kTextureWrapModes[wm]);
 				}
 			}
@@ -403,16 +447,20 @@ struct TextureViewer
 			ImGui::SameLine();
 			ImGui::Checkbox("A", &txView.m_rgbaMask[3]);
 	
-			if (tx.getDepth() > 1) {
+			if (tx.getDepth() > 1)
+			{
 				ImGui::SliderInt("Layer", &txView.m_array, 0, tx.getDepth() - 1);
 			}
-			if (tx.getTarget() == GL_TEXTURE_CUBE_MAP) {
+			if (tx.getTarget() == GL_TEXTURE_CUBE_MAP)
+			{
 				ImGui::SliderInt("Face", &txView.m_array, 0, 5);
 			}
-			if (tx.getArrayCount() > 1) {
+			if (tx.getArrayCount() > 1)
+			{
 				ImGui::SliderInt("Array", &txView.m_array, 0, tx.getArrayCount() - 1);
 			}
-			if (tx.getMipCount() > 1) {
+			if (tx.getMipCount() > 1)
+			{
 				ImGui::SliderInt("Mip", &txView.m_mip, 0, tx.getMipCount() - 1);
 			}
 		
@@ -569,13 +617,15 @@ Texture* Texture::Create(const char* _path, SourceLayout _layout)
 {
 	Id id = GetHashId(_path);
 	Texture* ret = Find(id);
-	if (!ret) {
+	if (!ret)
+	{
 		ret = FRM_NEW(Texture(id, _path));
 		ret->m_path.set(_path);
 		ret->m_sourceLayout = _layout;
 	}
 	Use(ret);
-	if (ret->getState() != State_Loaded) {
+	if (ret->getState() != State_Loaded)
+	{
 	 // \todo replace with default
 	}
 	return ret;
@@ -587,7 +637,8 @@ Texture* Texture::Create(const Image& _img, SourceLayout _layout)
 	NameStr name("image%llu", id);
 	Texture* ret = FRM_NEW(Texture(id, (const char*)name));
 	ret->m_sourceLayout = _layout;
-	if (!ret->loadImage(_img)) {
+	if (!ret->loadImage(_img)) 
+	{
 		ret->setState(State_Error);
 		return ret;
 	}
@@ -604,70 +655,12 @@ Texture* Texture::Create(Texture* _tx, bool _copyData)
 	ret->setWrapU(_tx->getWrapU());
 	ret->setWrapV(_tx->getWrapV());
 	ret->setWrapW(_tx->getWrapW());
-	if (!_copyData) {
-		return ret;
+	
+	if (_copyData)
+	{
+		ret->copyFrom(_tx);
 	}
 
-	Use(_tx);
-	FRM_ASSERT(_tx->getState() == Texture::State_Loaded);
-	glScopedPixelStorei(GL_PACK_ALIGNMENT, 1);
-	GLenum attachment = GL_COLOR_ATTACHMENT0;
-	switch (_tx->m_format) {
-		case GL_DEPTH_COMPONENT:
-		case GL_DEPTH_COMPONENT16:
-		case GL_DEPTH_COMPONENT24:
-		case GL_DEPTH_COMPONENT32F:
-			attachment = GL_DEPTH_ATTACHMENT;
-			break;
-		case GL_DEPTH_STENCIL:
-		case GL_DEPTH24_STENCIL8:
-		case GL_DEPTH32F_STENCIL8:
-			attachment = GL_DEPTH_STENCIL_ATTACHMENT;
-			break;
-		default:
-			attachment = GL_COLOR_ATTACHMENT0;
-			break;
-	};
-	FRM_ASSERT(_tx->m_target != GL_TEXTURE_CUBE_MAP_ARRAY && _tx->m_target != GL_TEXTURE_CUBE_MAP); // \todo code below doesn't support cubemaps
-	GlContext* ctx = GlContext::GetCurrent();
-	Framebuffer* fbSrc = Framebuffer::Create(1, _tx);
-	const Framebuffer* fbRestore = ctx->getFramebuffer();
-	ctx->setFramebuffer(fbSrc); // required for glNamedFramebufferReadBuffer?
-	glAssert(glNamedFramebufferReadBuffer(fbSrc->getHandle(), attachment));
-	for (GLint mip = 0; mip < _tx->m_mipCount; ++mip) {
-		GLint w = FRM_MAX(_tx->m_width  >> mip, 1);
-		GLint h = FRM_MAX(_tx->m_height >> mip, 1);
-		GLint d = FRM_MAX(_tx->m_depth  >> mip, 1);
-
-		switch (_tx->m_target) {
-			case GL_TEXTURE_3D:
-			case GL_TEXTURE_2D_ARRAY:
-			case GL_TEXTURE_1D_ARRAY:
-				for (GLint layer = 0; layer < FRM_MAX(d, _tx->m_arrayCount); ++layer) {
-					fbSrc->attachLayer(_tx, attachment, layer, mip);
-					if (_tx->m_target == GL_TEXTURE_1D_ARRAY) {
-						glAssert(glCopyTextureSubImage2D(ret->getHandle(), mip, 0, layer, 0, 0, w, h));
-					} else {
-						glAssert(glCopyTextureSubImage3D(ret->getHandle(), mip, 0, 0, layer, 0, 0, w, h));
-					}
-				}
-				break;
-			case GL_TEXTURE_2D:
-				fbSrc->attach(_tx, attachment, mip);
-				glAssert(glCopyTextureSubImage2D(ret->getHandle(), mip, 0, 0, 0, 0, w, h));
-				break;
-			case GL_TEXTURE_1D:
-				fbSrc->attach(_tx, attachment, mip);
-				glAssert(glCopyTextureSubImage1D(ret->getHandle(), mip, 0, 0, 0, w));
-				break;
-			default:
-				FRM_ASSERT(false);
-		};
-	}
-	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT));
-	ctx->setFramebuffer(fbRestore);
-	Framebuffer::Destroy(fbSrc);
-	Release(_tx);
 	return ret;
 }
 
@@ -705,12 +698,14 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 	Id id = GetUniqueId();
 
 	Texture* ret = Find(id);
-	if (ret) {
+	if (ret)
+	{
 		return ret;
 	}
 	
 	ret = FRM_NEW(Texture(id, _name));
-	if (_name[0] == '\0') {
+	if (_name[0] == '\0')
+	{
 		ret->setNamef("%llu", id);
 	}
 	ret->m_handle = _handle;
@@ -722,13 +717,15 @@ Texture* Texture::CreateProxy(GLuint _handle, const char* _name)
 	glAssert(glGetTextureLevelParameteriv(_handle, 0, GL_TEXTURE_WIDTH, (GLint*)&ret->m_width));
 	glAssert(glGetTextureLevelParameteriv(_handle, 0, GL_TEXTURE_HEIGHT, (GLint*)&ret->m_height));
 	ret->m_height = FRM_MAX(ret->m_height, 1);
-	if (ret->m_target == GL_TEXTURE_1D_ARRAY) {
+	if (ret->m_target == GL_TEXTURE_1D_ARRAY)
+	{
 		ret->m_arrayCount = ret->m_height;
 		ret->m_height = 1;
 	}
 	glAssert(glGetTextureLevelParameteriv(_handle, 0, GL_TEXTURE_DEPTH, (GLint*)&ret->m_depth));
 	ret->m_depth = FRM_MAX(ret->m_depth, 1);
-	if (ret->m_target == GL_TEXTURE_2D_ARRAY) {
+	if (ret->m_target == GL_TEXTURE_2D_ARRAY)
+	{
 		ret->m_arrayCount = ret->m_depth;
 		ret->m_depth = 1;
 	}
@@ -748,9 +745,11 @@ void Texture::Destroy(Texture*& _inst_)
 
 void Texture::FileModified(const char* _path)
 {
-	for (int i = 0, n = GetInstanceCount(); i < n; ++i) {
+	for (int i = 0, n = GetInstanceCount(); i < n; ++i)
+	{
 		auto texture = GetInstance(i);
-		if (texture->m_path == _path) {
+		if (texture->m_path == _path)
+		{
 			texture->reload();
 		}
 	}
@@ -760,14 +759,13 @@ Image* Texture::CreateImage(const Texture* _tx)
 {
 	FRM_ASSERT(_tx->getState() == State_Loaded);
 
-	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT));
-
 	Image::Layout layout;
 	DataType dataType;
 	Image::CompressionType compression = Image::Compression_None;
 	GLenum glFormat, glType;
 
-	switch (_tx->m_format) {
+	switch (_tx->m_format)
+	{
 		case GL_R:
 		case GL_R8:      layout = Image::Layout_R; dataType = DataType_Uint8N;  glFormat = GL_RED; glType = GL_UNSIGNED_BYTE;  break;
 		case GL_R16:     layout = Image::Layout_R; dataType = DataType_Uint16N; glFormat = GL_RED; glType = GL_UNSIGNED_SHORT; break;
@@ -803,7 +801,8 @@ Image* Texture::CreateImage(const Texture* _tx)
 	};
 
 	Image* ret = nullptr;
-	switch (_tx->m_target) {
+	switch (_tx->m_target)
+	{
 		case GL_TEXTURE_1D: 
 		case GL_TEXTURE_1D_ARRAY:       ret = Image::Create1d(_tx->m_width, layout, dataType, _tx->m_mipCount, _tx->m_arrayCount, compression); break;
 		case GL_TEXTURE_2D: 
@@ -816,30 +815,39 @@ Image* Texture::CreateImage(const Texture* _tx)
 		default:                        FRM_ASSERT_MSG(false, "downloadImage unsupported for '%s'", internal::GlEnumStr(_tx->m_target)); break;
 	};
 
-	if (ret) {
+	if (ret)
+	{
 		glScopedPixelStorei(GL_PACK_ALIGNMENT, 1);
 
 		int arrayCount = ret->isCubemap() ? _tx->getArrayCount() * 6 : _tx->getArrayCount();
 		int mipCount = _tx->getMipCount();
-		for (int level = 0; level < arrayCount; ++level) {
+		for (int level = 0; level < arrayCount; ++level)
+		{
 			GLsizei offsetY = 0;
 			GLsizei offsetZ = 0;
-			if (arrayCount > 0) {
-				if (ret->is1d()) { // 1d arrays use offsetY to select the level
+			if (arrayCount > 0)
+			{
+				if (ret->is1d()) // 1d arrays use offsetY to select the level
+				{
 					offsetY = level;
-				} else if (ret->isCubemap() || ret->is2d()) { // cubemaps/2d arrays use offsetZ to select the level
+				} else if (ret->isCubemap() || ret->is2d()) // cubemaps/2d arrays use offsetZ to select the level
+				{
 					offsetZ = level;
 				}
 			}
 			GLsizei w = _tx->m_width;
 			GLsizei h = _tx->m_height;
 			GLsizei d = _tx->m_depth;
-			for (int mip = 0; mip < mipCount; ++mip) {
+			for (int mip = 0; mip < mipCount; ++mip)
+			{
 				char* dst = ret->getRawImage(level, mip);
 				GLsizei bufSize = (GLsizei)ret->getRawImageSize(mip);
-				if (ret->isCompressed()) {
+				if (ret->isCompressed())
+				{
 					glAssert(glGetCompressedTextureSubImage(_tx->m_handle, mip, 0, offsetY, offsetZ, w, h, d, bufSize, dst));
-				} else {
+				} 
+				else
+				{
 					glAssert(glGetTextureSubImage(_tx->m_handle, mip, 0, offsetY, offsetZ, w, h, d, glFormat, glType, bufSize, dst));
 				}
 				w = FRM_MAX(w >> 1, 1);
@@ -848,6 +856,8 @@ Image* Texture::CreateImage(const Texture* _tx)
 			}
 		}
 	}
+
+	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT));
 
 	return ret;
 }
@@ -867,16 +877,19 @@ GLint Texture::GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth)
 bool Texture::ConvertSphereToCube(Texture& _sphere, GLsizei _width)
 {
 	static Shader* shConvert;
-	if_unlikely (!shConvert) {
+	if_unlikely (!shConvert)
+	{
 		shConvert = Shader::CreateCs("shaders/ConvertEnvmap_cs.glsl", 1, 1, 1, { "SPHERE_TO_CUBE" });
-		if (!shConvert) {
+		if (!shConvert)
+		{
 			return false;
 		}
 	}
 
  // \hack can't bind RGB textures as images, so convert
 	GLenum format = _sphere.m_format;
-	switch (format) {
+	switch (format)
+	{
 		case GL_RGB32F: format = GL_RGBA32F; break;
 		case GL_RGB16F: format = GL_RGBA16F; break;
 		case GL_RGB16:  format = GL_RGBA16; break;
@@ -914,7 +927,8 @@ bool Texture::ConvertSphereToCube(Texture& _sphere, GLsizei _width)
 	Texture::Release(cube);
 
 	TextureView* txView = g_textureViewer.findTextureView(&_sphere);
-	if (txView) {
+	if (txView)
+	{
 		txView->reset();
 	}
 
@@ -924,16 +938,19 @@ bool Texture::ConvertSphereToCube(Texture& _sphere, GLsizei _width)
 bool Texture::ConvertCubeToSphere(Texture& _cube, GLsizei _width)
 {
 	static Shader* shConvert;
-	if_unlikely (!shConvert) {
+	if_unlikely (!shConvert)
+	{
 		shConvert = Shader::CreateCs("shaders/ConvertEnvmap_cs.glsl", 1, 1, 1, { "CUBE_TO_SPHERE" });
-		if (!shConvert) {
+		if (!shConvert)
+		{
 			return false;
 		}
 	}
 
  // \hack can't bind RGB textures as images, so convert
 	GLenum format = _cube.m_format;
-	switch (format) {
+	switch (format)
+	{
 		case GL_RGB32F: format = GL_RGBA32F; break;
 		case GL_RGB16F: format = GL_RGBA16F; break;
 		case GL_RGB16:  format = GL_RGBA16; break;
@@ -954,7 +971,8 @@ bool Texture::ConvertCubeToSphere(Texture& _cube, GLsizei _width)
 	Texture::Release(sphere);
 
 	TextureView* txView = g_textureViewer.findTextureView(&_cube);
-	if (txView) {
+	if (txView)
+	{
 		txView->reset();
 	}
 
@@ -963,26 +981,30 @@ bool Texture::ConvertCubeToSphere(Texture& _cube, GLsizei _width)
 
 bool Texture::reload()
 {
-	if (m_path.isEmpty()) {
+	if (m_path.isEmpty())
+	{
 		return true;
 	}
 
 	FRM_AUTOTIMER("Texture::load(%s)", (const char*)m_path);
 	
 	File f;
-	if (!FileSystem::Read(f, (const char*)m_path)) {
+	if (!FileSystem::Read(f, (const char*)m_path))
+	{
 		setState(State_Error);
 		return false;
 	}
 	m_path = f.getPath(); // use f.getPath() to include the root - this is required for reload to work correctly
 
 	Image img;
-	if (!Image::Read(img, f)) {
+	if (!Image::Read(img, f))
+	{
 		setState(State_Error);
 		return false;
 	}
 
-	if (!loadImage(img)) {
+	if (!loadImage(img))
+	{
 		setState(State_Error);
 		return false;
 	}
@@ -1014,7 +1036,8 @@ void Texture::setSubData(
 {
 	FRM_ASSERT(_mip <= m_mipCount);
 
-	if (GlIsTexFormatCompressed(m_format)) {
+	if (GlIsTexFormatCompressed(m_format))
+	{
 		#ifdef FRM_DEBUG
 			GLsizei mipDiv = (GLsizei)pow(2.0, (double)_mip);
 			GLsizei w = m_width / mipDiv;
@@ -1029,7 +1052,8 @@ void Texture::setSubData(
 				FRM_ASSERT_MSG(!illegal, "Illegal operation, cannot upload sub data within a compressed block");
 			}
 		#endif
-		switch (m_target) {
+		switch (m_target)
+		{
 			case GL_TEXTURE_1D:
 				glAssert(glCompressedTextureSubImage1D(m_handle, _mip, _offsetX, _sizeX, m_format, (GLsizei)_dataType, (GLvoid*)_data));
 				break;
@@ -1047,8 +1071,11 @@ void Texture::setSubData(
 				return;
 		};
 
-	} else {
-		switch (m_target) {
+	}
+	else
+	{
+		switch (m_target)
+		{
 			case GL_TEXTURE_1D:
 				glAssert(glTextureSubImage1D(m_handle, _mip, _offsetX, _sizeX, _dataFormat, _dataType, (GLvoid*)_data));
 				break;
@@ -1101,6 +1128,78 @@ float Texture::getMipBias() const
 	return (float)ret;
 }
 
+void Texture::copyFrom(Texture* _src)
+{
+	FRM_ASSERT(_src->getState() == Texture::State_Loaded);
+
+	glScopedPixelStorei(GL_PACK_ALIGNMENT, 1);
+	GLenum attachment = GL_COLOR_ATTACHMENT0;
+	switch (_src->m_format)
+	{
+		case GL_DEPTH_COMPONENT:
+		case GL_DEPTH_COMPONENT16:
+		case GL_DEPTH_COMPONENT24:
+		case GL_DEPTH_COMPONENT32F:
+			attachment = GL_DEPTH_ATTACHMENT;
+			break;
+		case GL_DEPTH_STENCIL:
+		case GL_DEPTH24_STENCIL8:
+		case GL_DEPTH32F_STENCIL8:
+			attachment = GL_DEPTH_STENCIL_ATTACHMENT;
+			break;
+		default:
+			attachment = GL_COLOR_ATTACHMENT0;
+			break;
+	};
+
+	GlContext* ctx = GlContext::GetCurrent();
+	const Framebuffer* fbRestore = ctx->getFramebuffer();
+	Framebuffer* fbSrc = Framebuffer::Create();
+
+	const GLint copyW = Min(m_width,  _src->m_width);
+	const GLint copyH = Min(m_height, _src->m_height);
+	const GLint copyD = Min(m_depth,  _src->m_depth);
+	const GLint copyMips = Min(m_mipCount, _src->m_mipCount);
+	const GLint copyLayers = Min(m_arrayCount, _src->m_arrayCount);
+
+	for (GLint mip = 0; mip < copyMips; ++mip)
+	{
+		const GLint w = Max(copyW >> mip, 1);
+		const GLint h = Max(copyH >> mip, 1);
+		const GLint d = Max(copyD >> mip, 1);
+
+		for (GLint layer = 0; layer < copyLayers; ++layer)
+		{
+			fbSrc->attachLayer(_src, attachment, layer, mip);
+			ctx->setFramebuffer(fbSrc); // required for glNamedFramebufferReadBuffer?
+			glAssert(glNamedFramebufferReadBuffer(fbSrc->getHandle(), attachment));
+
+			switch (m_target)
+			{
+				default:
+					FRM_ASSERT(false);
+				case GL_TEXTURE_1D:
+					glAssert(glCopyTextureSubImage1D(m_handle, mip, 0, 0, 0, w));
+					break;
+				case GL_TEXTURE_2D:
+				case GL_TEXTURE_1D_ARRAY:
+					glAssert(glCopyTextureSubImage2D(m_handle, mip, 0, layer, 0, 0, w, h));
+					break;
+				case GL_TEXTURE_3D:
+				case GL_TEXTURE_2D_ARRAY:
+				case GL_TEXTURE_CUBE_MAP:
+				case GL_TEXTURE_CUBE_MAP_ARRAY:
+					glAssert(glCopyTextureSubImage3D(m_handle, mip, 0, 0, layer, 0, 0, w, h));
+					break;
+			};
+		}
+	}
+
+	glAssert(glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT));
+	ctx->setFramebuffer(fbRestore);
+	Framebuffer::Destroy(fbSrc);
+}
+
 void Texture::setFilter(GLenum _mode)
 {
 	setMinFilter(_mode);
@@ -1150,7 +1249,8 @@ GLenum Texture::getMagFilter() const
 void Texture::setAnisotropy(GLfloat _anisotropy)
 {
 	FRM_ASSERT(m_handle);
-	if (GLEW_EXT_texture_filter_anisotropic) {
+	if (GLEW_EXT_texture_filter_anisotropic)
+	{
 		static float mx;
 		FRM_ONCE glAssert(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &mx));
 		glAssert(glTextureParameterf(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, FRM_CLAMP(_anisotropy, 1.0f, mx)));
@@ -1161,7 +1261,8 @@ GLfloat Texture::getAnisotropy() const
 {
 	FRM_ASSERT(m_handle);
 	GLfloat ret = -1.0f;
-	if (GLEW_EXT_texture_filter_anisotropic) {
+	if (GLEW_EXT_texture_filter_anisotropic)
+	{
 		glAssert(glGetTextureParameterfv(m_handle, GL_TEXTURE_MAX_ANISOTROPY_EXT, &ret));
 	}
 	return ret;
@@ -1249,7 +1350,8 @@ Texture::Texture(
 	m_mipCount   = FRM_MIN(_mipCount, GetMaxMipCount(_width, _height));
 	glAssert(glCreateTextures(m_target, 1, &m_handle));
 
-	switch (_target) {
+	switch (_target)
+	{
 		case GL_TEXTURE_1D:             glAssert(glTextureStorage1D(m_handle, m_mipCount, m_format, m_width)); break;
 		case GL_TEXTURE_1D_ARRAY:       glAssert(glTextureStorage2D(m_handle, m_mipCount, m_format, m_width, m_arrayCount)); break;
 		case GL_TEXTURE_2D:             glAssert(glTextureStorage2D(m_handle, m_mipCount, m_format, m_width, m_height)); break;
@@ -1275,7 +1377,8 @@ Texture::Texture(
 
 Texture::~Texture()
 {
-	if (m_ownsHandle && m_handle) {
+	if (m_ownsHandle && m_handle)
+	{
 		glAssert(glDeleteTextures(1, &m_handle));
 		m_handle = 0;
 	}
@@ -1387,45 +1490,60 @@ static void AllocCubemapArray(Texture& _tx, const Image& _img)
 static void Upload1d(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
 {
 	Texture_COMPUTE_WHD();
-	if (_img.isCompressed()) {
+	if (_img.isCompressed())
+	{
 		glAssert(glCompressedTextureSubImage1D(_tx.getHandle(), _mip, 0, w, _tx.getFormat(), (GLsizei)_img.getRawImageSize(_mip), _img.getRawImage(_array, _mip)));
-	} else {
+	}
+	else
+	{
 		glAssert(glTextureSubImage1D(_tx.getHandle(), _mip, 0, w, _srcFormat, _srcType, _img.getRawImage(_array, _mip)));
 	}
 }
 static void Upload1dArray(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
 {
 	Texture_COMPUTE_WHD();
-	if (_img.isCompressed()) {
+	if (_img.isCompressed())
+	{
 		glAssert(glCompressedTextureSubImage2D(_tx.getHandle(), _mip, 0, _array, w, 1, _tx.getFormat(), (GLsizei)_img.getRawImageSize(_mip), _img.getRawImage(_array, _mip)));
-	} else {
+	}
+	else
+	{
 		glAssert(glTextureSubImage2D(_tx.getHandle(), _mip, 0, _array, w, 1, _srcFormat, _srcType, _img.getRawImage(_array, _mip)));
 	}
 }
 static void Upload2d(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
 {
 	Texture_COMPUTE_WHD();
-	if (_img.isCompressed()) {
+	if (_img.isCompressed())
+	{
 		glAssert(glCompressedTextureSubImage2D(_tx.getHandle(), _mip, 0, _array, w, h, _tx.getFormat(), (GLsizei)_img.getRawImageSize(_mip), _img.getRawImage(_array, _mip)));
-	} else {
+	}
+	else
+	{
 		glAssert(glTextureSubImage2D(_tx.getHandle(), _mip, 0, 0, w, h, _srcFormat, _srcType, _img.getRawImage(_array, _mip)));
 	}
 }
 static void Upload2dArray(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
 {
 	Texture_COMPUTE_WHD();
-	if (_img.isCompressed()) {
+	if (_img.isCompressed())
+	{
 		glAssert(glCompressedTextureSubImage3D(_tx.getHandle(), _mip, 0, 0, _array, w, h, 1, _tx.getFormat(), (GLsizei)_img.getRawImageSize(_mip), _img.getRawImage(_array, _mip)));
-	} else {
+	}
+	else
+	{
 		glAssert(glTextureSubImage3D(_tx.getHandle(), _mip, 0, 0, _array, w, h, 1, _srcFormat, _srcType, _img.getRawImage(_array, _mip)));
 	}
 }
 static void Upload3d(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType)
 {
 	Texture_COMPUTE_WHD();
-	if (_img.isCompressed()) {
+	if (_img.isCompressed())
+	{
 		glAssert(glCompressedTextureSubImage3D(_tx.getHandle(), _mip, 0, 0, _array, w, h, d, _tx.getFormat(), (GLsizei)_img.getRawImageSize(_mip), _img.getRawImage(_array, _mip)));
-	} else {
+	}
+	else
+	{
 		glAssert(glTextureSubImage3D(_tx.getHandle(), _mip, 0, 0, _array, w, h, d, _srcFormat, _srcType, _img.getRawImage(_array, _mip)));
 	}
 }
@@ -1436,8 +1554,10 @@ static void UploadCubemap2x3(Texture& _tx, const Image& _img, GLint _array, GLin
 	glAssert(glBindTexture(GL_TEXTURE_CUBE_MAP, _tx.getHandle()));
 
 	int face = 0;
-	for (int y = 0; y < 3; ++y) {
-		for (int x = 0; x < 2; ++x) {
+	for (int y = 0; y < 3; ++y)
+	{
+		for (int x = 0; x < 2; ++x)
+		{
 			char* src = _img.getRawImage(_array, _mip);
 			src += x * w * (GLsizei)_img.getBytesPerTexel();
 			src += y * h * w * 2 * (GLsizei)_img.getBytesPerTexel();
@@ -1453,7 +1573,8 @@ static void UploadVolumeNx1(Texture& _tx, const Image& _img, GLint _array, GLint
 	glScopedPixelStorei(GL_UNPACK_ROW_LENGTH, w * d);
 	glAssert(glBindTexture(GL_TEXTURE_3D, _tx.getHandle()));
 
-	for (GLsizei i = 0; i < d; ++i) {
+	for (GLsizei i = 0; i < d; ++i)
+	{
 		char* src = _img.getRawImage(_array, _mip);
 		src += i * w * (GLsizei)_img.getBytesPerTexel();
 		glAssert(glTexSubImage3D(GL_TEXTURE_3D, _mip, 0, 0, i, w, h, 1, _srcFormat, _srcType, src));
@@ -1479,10 +1600,12 @@ bool Texture::loadImage(const Image& _img)
 	void (*alloc)(Texture& _tx, const Image& _img);
 	void (*upload)(Texture& _tx, const Image& _img, GLint _array, GLint _mip, GLenum _srcFormat, GLenum _srcType);
 
-	switch (m_sourceLayout) {
+	switch (m_sourceLayout)
+	{
 		default:
 		case SourceLayout_Default:
-			switch (_img.getType()) {
+			switch (_img.getType())
+			{
 				case Image::Type_1d:           m_target = GL_TEXTURE_1D;             alloc = Alloc1d;           upload = Upload1d;       break;
 				case Image::Type_1dArray:      m_target = GL_TEXTURE_1D_ARRAY;       alloc = Alloc1dArray;      upload = Upload1dArray;  break;
 				case Image::Type_2d:           m_target = GL_TEXTURE_2D;             alloc = Alloc2d;           upload = Upload2d;       break;
@@ -1513,7 +1636,8 @@ bool Texture::loadImage(const Image& _img)
 
  // src format
 	GLenum srcFormat;
-	switch (_img.getLayout()) {
+	switch (_img.getLayout())
+	{
 		case Image::Layout_R:    srcFormat = m_format = GL_RED;  break;
 		case Image::Layout_RG:   srcFormat = m_format = GL_RG;   break;
 		case Image::Layout_RGB:  srcFormat = m_format = GL_RGB;  break;
@@ -1522,8 +1646,10 @@ bool Texture::loadImage(const Image& _img)
 	};
 
  // internal format (request only, we read back the actual format the implementation used later)
-	if (_img.isCompressed()) {
-		switch (_img.getCompressionType()) {
+	if (_img.isCompressed())
+	{
+		switch (_img.getCompressionType())
+		{
 			case Image::Compression_BC1: 
 				switch (_img.getLayout()) {
 					case Image::Layout_RGB:  m_format = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;       break;
@@ -1538,10 +1664,14 @@ bool Texture::loadImage(const Image& _img)
 			case Image::Compression_BC6: m_format = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT; break;
 			case Image::Compression_BC7: m_format = GL_COMPRESSED_RGBA_BPTC_UNORM;         break;
 		};
-	} else {
-		switch (_img.getLayout()) {
+	}
+	else
+	{
+		switch (_img.getLayout())
+		{
 			case Image::Layout_R:
-				switch (_img.getImageDataType()) {
+				switch (_img.getImageDataType()) 
+				{
 					case DataType_Float32: m_format = GL_R32F; break;
 					case DataType_Float16: m_format = GL_R16F; break;
 					case DataType_Uint16N: m_format = GL_R16;  break;
@@ -1549,7 +1679,8 @@ bool Texture::loadImage(const Image& _img)
 				};
 				break;
 			case Image::Layout_RG:
-				switch (_img.getImageDataType()) {
+				switch (_img.getImageDataType()) 
+				{
 					case DataType_Float32: m_format = GL_RG32F; break;
 					case DataType_Float16: m_format = GL_RG16F; break;
 					case DataType_Uint16N: m_format = GL_RG16;  break;
@@ -1557,7 +1688,8 @@ bool Texture::loadImage(const Image& _img)
 				};
 				break;
 			case Image::Layout_RGB:			
-				switch (_img.getImageDataType()) {
+				switch (_img.getImageDataType()) 
+				{
 					case DataType_Float32: m_format = GL_RGB32F; break;
 					case DataType_Float16: m_format = GL_RGB16F; break;
 					case DataType_Uint16N: m_format = GL_RGB16;  break;
@@ -1565,7 +1697,8 @@ bool Texture::loadImage(const Image& _img)
 				};
 				break;
 			case Image::Layout_RGBA:
-				switch (_img.getImageDataType()) {
+				switch (_img.getImageDataType()) 
+				{
 					case DataType_Float32: m_format = GL_RGBA32F; break;
 					case DataType_Float16: m_format = GL_RGBA16F; break;
 					case DataType_Uint16N: m_format = GL_RGBA16;  break;
@@ -1579,16 +1712,19 @@ bool Texture::loadImage(const Image& _img)
 	GLenum srcType = _img.isCompressed() ? GL_UNSIGNED_BYTE : internal::DataTypeToGLenum(_img.getImageDataType());
 
  // delete old handle, gen new handle (required since we use immutable storage)
-	if (m_handle) {
+	if (m_handle) 
+	{
 		glAssert(glDeleteTextures(1, &m_handle));
 	}
 
- // upload data; frm::Image stores each array layer contiguously with its mip chain, so we need to call glTexSubImage* to upload each layer/mip separately
+ // upload data; Image stores each array layer contiguously with its mip chain, so we need to call glTexSubImage* to upload each layer/mip separately
 	glAssert(glCreateTextures(m_target, 1, &m_handle));
 	alloc(*this, _img);
 	GLint count = (GLint)(_img.isCubemap() ? _img.getArrayCount() * 6 : _img.getArrayCount());
-	for (GLint i = 0; i < count; ++i) {		
-		for (GLint j = 0; j < (GLint)_img.getMipmapCount(); ++j) {
+	for (GLint i = 0; i < count; ++i) 
+	{		
+		for (GLint j = 0; j < (GLint)_img.getMipmapCount(); ++j) 
+		{
 			upload(*this, _img, i, j, srcFormat, srcType);
 		}
 	}

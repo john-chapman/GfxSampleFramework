@@ -26,8 +26,8 @@ public:
 
 	// Load from a file.
 	static Texture* Create(const char* _path, SourceLayout _layout = SourceLayout_Default);
-	// From frm::Image.
-	static Texture* Create(const frm::Image& _img, SourceLayout _layout = SourceLayout_Default);
+	// From Image.
+	static Texture* Create(const Image& _img, SourceLayout _layout = SourceLayout_Default);
 	// Init from another texture, optionally copy texture data.
 	static Texture* Create(Texture* _tx, bool _copyData = true);
 	// Create an empty texture (the resource name is unique).
@@ -45,9 +45,9 @@ public:
 	// Reload _path.
 	static void     FileModified(const char* _path);
 
-	// Create an frm::Image (download the GPU data). This a a synchronous operation via glGetTextureImage() and will stall the gpu.
-	static frm::Image* CreateImage(const Texture* _tx);
-	static void        DestroyImage(frm::Image*& _img_);
+	// Create an Image (download the GPU data). This a a synchronous operation via glGetTextureImage() and will stall the gpu.
+	static Image*   CreateImage(const Texture* _tx);
+	static void     DestroyImage(Image*& _img_);
 	
 	static GLint GetMaxMipCount(GLsizei _width, GLsizei _height, GLsizei _depth = 1);
 
@@ -87,6 +87,9 @@ public:
 	// Bias for mip selection (negative bias sharpens the image).
 	void  setMipBias(float _bias);
 	float getMipBias() const;
+
+	// Copy date from _src.
+	void copyFrom(Texture* _src);
 	
 	// Filter mode.
 	void        setFilter(GLenum _mode);    // mipmap filter modes cannot be applied globally
@@ -170,8 +173,8 @@ private:
 		GLenum  _format
 		);
 
-	// Load data from a frm::Image.
-	bool loadImage(const frm::Image& _img);
+	// Load data from a Image.
+	bool loadImage(const Image& _img);
 
 	// Update the format and dimensions of the texture via glGetTexLevelParameteriv.
 	// Assumes that the texture is bound to m_target.
