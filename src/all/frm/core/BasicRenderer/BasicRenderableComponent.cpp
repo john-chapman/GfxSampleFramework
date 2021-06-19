@@ -9,9 +9,15 @@
 #include <imgui/imgui.h>
 #include <im3d/im3d.h>
 
+static const char* kFlagStr[] =
+{
+	"CastShadows",
+	"VisibleToEnvProbes"
+};
+
 namespace frm {
 
-FRM_COMPONENT_DEFINE(BasicRenderableComponent, 0);
+FRM_COMPONENT_DEFINE(BasicRenderableComponent, 1);
 
 // PUBLIC
 
@@ -48,6 +54,11 @@ BasicRenderableComponent* BasicRenderableComponent::Create(DrawMesh* _mesh, Basi
 	ret->m_materialPaths.push_back(_material->getPath());
 
 	return ret;
+}
+
+void BasicRenderableComponent::setFlag(Flag _flag, bool _value)
+{
+	m_flags.set(_flag, _value);
 }
 
 void BasicRenderableComponent::setMesh(DrawMesh* _mesh)
@@ -243,7 +254,12 @@ bool BasicRenderableComponent::editImpl()
 
 	ret |= ImGui::ColorEdit3("Color", &m_colorAlpha.x);
 	ret |= ImGui::SliderFloat("Alpha", &m_colorAlpha.w, 0.0f, 1.0f);
-	ret |= ImGui::Checkbox("Cast Shadows", &m_castShadows);
+
+	ImGui::Spacing();
+	for (int i = 0; i < Flags::kCount; ++i)
+	{
+		ret |= editFlag(kFlagStr[i], (Flag)i);
+	}
 
 	ImGui::Spacing();
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
@@ -344,16 +360,27 @@ bool BasicRenderableComponent::editImpl()
 	return ret;
 }
 
+bool BasicRenderableComponent::editFlag(const char* _name, Flag _flag)
+{
+	bool flagValue = m_flags.get(_flag);
+	if (!ImGui::Checkbox(_name, &flagValue))
+	{
+		return false;
+	}
+	setFlag(_flag, flagValue);
+	return true;
+}
+
 bool BasicRenderableComponent::serializeImpl(Serializer& _serializer_)
 {
 	if (!SerializeAndValidateClass(_serializer_))
 	{
 		return false;
 	}
-
-	Serialize(_serializer_, m_castShadows, "m_castShadows");
-	Serialize(_serializer_, m_colorAlpha,  "m_colorAlpha");
-	Serialize(_serializer_, m_meshPath,    "m_meshPath");
+	
+	Serialize(_serializer_, m_flags, kFlagStr, "m_flags");
+	Serialize(_serializer_, m_colorAlpha, "m_colorAlpha");
+	Serialize(_serializer_, m_meshPath, "m_meshPath");
 
 	uint materialCount = m_materialPaths.size();
 	if (_serializer_.beginArray(materialCount, "m_materialPaths"))

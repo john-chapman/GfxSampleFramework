@@ -1123,7 +1123,7 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 			sceneBounds.m_min = Min(sceneBounds.m_min, bb.m_min);
 			sceneBounds.m_max = Max(sceneBounds.m_max, bb.m_max);
 
-			if (renderable->m_castShadows)
+			if (renderable->getFlag(BasicRenderableComponent::Flag::CastShadows))
 			{
 				shadowSceneBounds.m_min = Min(shadowSceneBounds.m_min, bb.m_min);
 				shadowSceneBounds.m_max = Max(shadowSceneBounds.m_max, bb.m_max);
@@ -1554,7 +1554,7 @@ void BasicRenderer::addDrawCall(const BasicRenderableComponent* _renderable, int
 	// \todo not all passes are relevant to each draw call list (e.g. shadows only need Pass_Shadow)
 	for (int pass = 0; pass < Pass_Count; ++pass)
 	{
-		if (pass == Pass_Shadow && !_renderable->m_castShadows)
+		if (pass == Pass_Shadow && !_renderable->getFlag(BasicRenderableComponent::Flag::CastShadows))
 		{
 			continue;
 		}

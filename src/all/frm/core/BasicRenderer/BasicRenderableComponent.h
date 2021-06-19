@@ -17,6 +17,15 @@ FRM_COMPONENT_DECLARE(BasicRenderableComponent)
 {
 public:
 
+	enum class Flag
+	{
+		CastShadows,         // Cast shadows.
+		VisibleToEnvProbes,  // If static, visible to environment probes.
+
+		BIT_FLAGS_COUNT_DEFAULT(CastShadows, VisibleToEnvProbes)
+	};
+	using Flags = BitFlags<Flag>;
+
 	static void  Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
 	static eastl::span<BasicRenderableComponent*> GetActiveComponents();
 
@@ -29,8 +38,8 @@ public:
 	void         setPose(const Skeleton& _skeleton);
 	void         clearPose();
 
-	bool         getCastShadows() const                   { return m_castShadows; }
-	void         setCastShadows(bool _castShadows)        { m_castShadows = _castShadows; }
+	void         setFlag(Flag _flag, bool _value);
+	bool         getFlag(Flag _flag) const                { return m_flags.get(_flag); }
 	const vec4&  getColorAlpha() const                    { return m_colorAlpha; }
 	void         setColorAlpha(const vec4& _colorAlpha)   { m_colorAlpha = _colorAlpha; }
 	void         setColor(const vec3& _color)             { m_colorAlpha = vec4(_color, m_colorAlpha.w); }
@@ -49,10 +58,11 @@ protected:
 	bool         postInitImpl() override;
 	void         shutdownImpl() override;
 	bool         editImpl() override;
+	bool         editFlag(const char* _name, Flag _flag);
 	bool         serializeImpl(Serializer& _serializer_) override;
 	bool         isStatic() override { return true; }
 
-	bool                                   m_castShadows     = true;
+	Flags                                  m_flags;
 	vec4                                   m_colorAlpha      = vec4(1.0f);
 	mat4                                   m_world           = identity;
 	mat4                                   m_prevWorld       = identity;
