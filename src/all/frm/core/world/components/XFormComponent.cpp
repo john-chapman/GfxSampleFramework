@@ -568,13 +568,12 @@ public:
 
 	void reset() override
 	{
-		m_time = m_offset * m_duration;
+		m_time = 0.0f;
 	}
 
 	void relativeReset() override
 	{
-		// \todo
-		m_time = m_offset * m_duration;
+		m_time = 0.0f;
 	}
 
 	void reverse() override
@@ -594,7 +593,7 @@ public:
 		{
 			m_onComplete->m_callback(this, _node_);
 		}
-		const float t = m_time / m_duration;
+		const float t = Fract(m_time / m_duration + m_offset);
 		const vec3 p = m_splinePath->samplePosition(t);
 
 		mat4 local = _node_->getLocal();
