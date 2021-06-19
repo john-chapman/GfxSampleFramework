@@ -35,7 +35,7 @@ inline bool Serializable<tType>::SerializeAndValidateClassName(Serializer& _seri
 }
 
 template <typename tType>
-inline bool Serializable<tType>::SerializeAndValidateClassVersion(Serializer& _serializer_)
+inline bool Serializable<tType>::SerializeAndValidateClassVersion(Serializer& _serializer_, int* version_)
 {
 	int classVersion = kClassVersion;
 	if (_serializer_.getMode() == Serializer::Mode_Read)
@@ -46,10 +46,9 @@ inline bool Serializable<tType>::SerializeAndValidateClassVersion(Serializer& _s
 			return false;
 		}
 		
-		if (classVersion > kClassVersion) // \todo optional backward compatibility?
+		if (version_)
 		{
-			FRM_LOG_ERR("Invalue _version; expected '%d' but found '%d' (%s)", kClassVersion, classVersion, kClassName);
-			return false;
+			*version_ = classVersion;
 		}
 		
 		return true;
@@ -57,6 +56,11 @@ inline bool Serializable<tType>::SerializeAndValidateClassVersion(Serializer& _s
 	}
 	else 
 	{
+		if (version_)
+		{
+			*version_ = classVersion;
+		}
+
 		return _serializer_.value(classVersion, "_version");
 	}
 }

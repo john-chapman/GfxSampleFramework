@@ -22,17 +22,17 @@ class Serializable
 
 public:
 	
-	static const char* GetClassName()                                                         { return kClassName; }
-	static StringHash  GetClassNameHash()                                                     { return kClassNameHash; }
-	static int         GetClassVersion()                                                      { return kClassVersion; }
+	static const char* GetClassName()                                                                 { return kClassName; }
+	static StringHash  GetClassNameHash()                                                             { return kClassNameHash; }
+	static int         GetClassVersion()                                                              { return kClassVersion; }
 
-	bool               serialize(Serializer& _serializer_)                                    { return tType::serialize(_serializer_); }
+	bool               serialize(Serializer& _serializer_)                                            { return tType::serialize(_serializer_); }
 
 protected:
 
 	static bool        SerializeAndValidateClassName(Serializer& _serializer_);
-	static bool        SerializeAndValidateClassVersion(Serializer& _serializer_);
-	static bool        SerializeAndValidateClass(Serializer& _serializer_)                    { return SerializeAndValidateClassName(_serializer_) && SerializeAndValidateClassVersion(_serializer_); }
+	static bool        SerializeAndValidateClassVersion(Serializer& _serializer_, int* version_);
+	static bool        SerializeAndValidateClass(Serializer& _serializer_, int* version_ = nullptr)   { return SerializeAndValidateClassName(_serializer_) && SerializeAndValidateClassVersion(_serializer_, version_); }
 };
 
 #define FRM_SERIALIZABLE_DEFINE(_class, _version) \
