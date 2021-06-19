@@ -226,12 +226,45 @@ bool SplinePath::edit()
 	{
 		s_editorState.selected = -1;
 	}
+	
+	bool isLoop = false;
+	if (m_raw.size() > 1)
+	{
+		isLoop = m_raw.front() == m_raw.back();
+	}
+
+	if (m_raw.size() > 2 && ImGui::Checkbox("Loop", &isLoop))
+	{
+		if (isLoop)
+		{
+			m_raw.push_back(m_raw.front());
+		}
+		else
+		{
+			m_raw.pop_back();
+		}
+
+		ret = true;
+	}
 
 	if (ImGui::Button(ICON_FA_PLUS " Add"))
 	{
+		if (isLoop)
+		{
+			m_raw.pop_back();
+		}
+		
+		int newIndex = s_editorState.selected + 1;
+		vec3 newValue = vec3(0.0f);
+		m_raw.insert(m_raw.begin() + newIndex, newValue);
+		s_editorState.selected = newIndex;
+
+		if (isLoop)
+		{
+			m_raw.push_back(m_raw.front());
+		}
+
 		ret = true;
-		s_editorState.selected = (int)m_raw.size();
-		m_raw.push_back(vec3(0.0f)); // \todo create offset along the end of the spline?
 	}
 
 	if (s_editorState.selected >= 0)
@@ -239,11 +272,21 @@ bool SplinePath::edit()
 		if (Im3d::GizmoTranslation("SplinePath", &m_raw[s_editorState.selected].x))
 		{
 			ret = true;
+
+			if (isLoop && s_editorState.selected == 0)
+			{
+				m_raw.back() = m_raw.front();
+			}
 		}
 
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_TIMES " Delete") || ImGui::IsKeyPressed(Keyboard::Key_Delete))
 		{
+			if (isLoop && s_editorState.selected == 0 && m_raw.size() > 2)
+			{
+				m_raw.back() = m_raw[1];
+			}
+
 			ret = true;
 			m_raw.erase(m_raw.begin() + s_editorState.selected);
 			s_editorState.selected = -1;
@@ -261,7 +304,7 @@ bool SplinePath::edit()
 	{
 		Im3d::PushDrawState();
 			Im3d::SetSize(3.0f);
-			for (int i = 0; i < (int)m_raw.size(); ++i)
+			for (int i = 0; i < (int)m_raw.size() - (isLoop ? 1 : 0); ++i)
 			{
 				if (i == s_editorState.selected)
 				{
@@ -306,6 +349,20 @@ bool SplinePath::edit()
 		Im3d::SetSize(6.0f);
 		Im3d::SetAlpha(0.8f);
 		draw();
+
+		#if 1
+			for (const vec4& p : m_eval)
+			{
+				Im3d::DrawPoint(p.xyz(), 8.0f, Im3d::Color_Black);
+			}
+		#else
+			const int kSampleCount = 1024;
+			for (int i = 0; i < kSampleCount; ++i)
+			{
+				float t = (float)i / (float)(kSampleCount - 1);
+				Im3d::DrawPoint(samplePosition(t), 8.0f, Im3d::Color_Black);
+			}
+		#endif
 	Im3d::PopDrawState();
 
 	Im3d::PopEnableSorting();
@@ -382,14 +439,17 @@ void SplinePath::build()
 	}
 
 	m_eval.clear();
-	for (int i = 0, n = (int)m_raw.size() - 1; i < n; ++i)
+	const bool isLoop = m_raw.front() == m_raw.back();
+	const int m = isLoop ? 1 : 0; 
+	const int n = (int)m_raw.size() - (isLoop ? 0 : 1); 
+	for (int i = m; i < n; ++i)
 	{
 		subdiv(i);
 	}
 
 	m_length = 0.0f;
 	m_eval[0].w = 0.0f;
-	for (int i = 1, n = (int)m_eval.size() - 1; i < n; ++i)
+	for (int i = 1, n = (int)m_eval.size(); i < n; ++i)
 	{
 		float seglen = length(m_eval[i].xyz() - m_eval[i - 1].xyz());
 		m_length += seglen;
@@ -404,12 +464,30 @@ void SplinePath::build()
 
 void SplinePath::subdiv(int _segment, float _t0, float _t1, float _maxError, int _limit)
 {
-	auto GetClampIndices = [this](int _i, int& i0_, int& i1_, int& i2_, int& i3_)
+	const bool isLoop = m_raw.front() == m_raw.back();
+	auto GetClampIndices = [this, isLoop](int _i, int& i0_, int& i1_, int& i2_, int& i3_)
 		{
-			i0_ = Max(_i - 1, 0);
+			if (isLoop && _i == m_raw.size() - 1)
+			{
+				_i = 0;
+			}
+			i0_ = _i - 1;
 			i1_ = _i;
-			i2_ = Min(_i + 1, (int)m_raw.size() - 1);
-			i3_ = Min(_i + 2, (int)m_raw.size() - 1);
+			i2_ = _i + 1;			
+			i3_ = _i + 2;
+
+			if (isLoop)
+			{
+				i0_ = (i0_ < 0) ? (int)m_raw.size() - 2 : i0_;
+				i2_ = i2_ % ((int)m_raw.size() - 1);
+				i3_ = i3_ % ((int)m_raw.size() - 1);
+			}
+			else
+			{
+				i0_ = Max(i0_, 0);
+				i2_ = Min(i2_, (int)m_raw.size() - 1);
+				i3_ = Min(i3_, (int)m_raw.size() - 1);
+			}
 		};
 
 
