@@ -52,12 +52,17 @@ void main()
 	if (uLevel == 0)
 	{
 		// Copy src -> dst.
-		vec3 ret = SampleSrc(uvw, 0.0).rgb;
+		vec4 ret = SampleSrc(uvw, 0.0);
 		if (bool(uSrcIsGamma))
 		{
-			ret = pow(ret, vec3(2.2));
+			ret.rgb = pow(ret.rgb, vec3(2.2));
 		}
-		imageStore(txDst, ivec3(gl_GlobalInvocationID.xy, gl_WorkGroupID.z), vec4(ret, 1.0));
+
+		#if CUBEMAP_ARRAY
+			imageStore(txDst, ivec4(gl_GlobalInvocationID.xy, gl_WorkGroupID.z, uArrayIndex), ret);
+		#else
+			imageStore(txDst, ivec3(gl_GlobalInvocationID.xy, gl_WorkGroupID.z), ret);
+		#endif
 	}
 	else
 	{
@@ -112,7 +117,7 @@ void main()
 			ret += SampleSrc(L, s_sampleMips[i]).rgb * s_sampleWeights[i];
 		}
 		ret *= s_invSampleWeightSum;
-
+		
 		#if CUBEMAP_ARRAY
 			imageStore(txDst, ivec4(gl_GlobalInvocationID.xy, gl_WorkGroupID.z, uArrayIndex), vec4(ret, 1.0));
 		#else
