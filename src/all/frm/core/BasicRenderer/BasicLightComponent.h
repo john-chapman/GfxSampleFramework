@@ -11,7 +11,9 @@ namespace frm {
 // Basic analytical light type.
 //
 // \todo
-// - Physically based units.
+// - Color selection in editor can be done _either_ via color temperature _or_
+//   by RGB.
+// - Rename brightness -> intensity.
 ////////////////////////////////////////////////////////////////////////////////
 FRM_COMPONENT_DECLARE(BasicLightComponent)
 {

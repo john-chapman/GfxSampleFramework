@@ -60,6 +60,13 @@ struct Lighting_ShadowLight
 	float          arrayIndex;
 };
 
+struct Lighting_EnvProbe
+{
+	vec4 originRadius;
+	vec4 boxHalfExtents;
+	uint probeIndex;
+};
+
 void Lighting_Init(
 	inout Lighting_In _in_,
 	in    vec3        _N,                    // Surface normal at P.

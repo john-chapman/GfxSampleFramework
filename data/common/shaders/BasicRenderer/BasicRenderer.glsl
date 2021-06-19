@@ -60,6 +60,13 @@ uniform vec2 uTexelSize; // 1/framebuffer size
 	};
 	uniform int uLightCount; // can't use uLights.length since it can be 0
 
+	layout(std430) restrict readonly buffer bfEnvProbes
+	{
+		Lighting_EnvProbe uEnvProbes[];
+	};
+	uniform int uEnvProbeCount;
+	uniform samplerCubeArray txEnvProbes;
+
 	layout(std430) restrict readonly buffer bfShadowLights
 	{
 		Lighting_ShadowLight uShadowLights[];
@@ -204,6 +211,48 @@ vec3 BasicMaterial_ApplyLighting(inout Lighting_In _in_, in vec3 _P, in vec3 _N,
 				break;
 			}
 		};
+	}
+	
+	// Environment probes.
+	{
+		const vec3 R = reflect(-_V, _N);
+		// Specular dominant direction correction (see Frostbite).
+		#if 1
+			vec3 Rdom = mix(_N, R, (1.0 - _in_.alpha) * (sqrt(1.0 - _in_.alpha) + _in_.alpha));
+		#else
+			vec3 Rdom = R;
+		#endif
+
+		const float NoR = saturate(dot(_N, Rdom));
+		const vec3 brdf = textureLod(txBRDFLut, vec2(NoR, _in_.alpha), 0.0).xyz;	
+		for (int i = 0; i < uEnvProbeCount; ++i)
+		{		
+			if (uEnvProbes[i].originRadius.w > 0.0)
+			{
+			}
+			else
+			{
+				const vec3  boxOrigin = uEnvProbes[i].originRadius.xyz;
+				const vec3  boxDistanceP = abs(_P - boxOrigin) / uEnvProbes[i].boxHalfExtents.xyz;
+				const float boxAttenuation = 1.0 - smoothstep(0.75, 1.0, max3(boxDistanceP));
+				if (boxAttenuation > 0.0)
+				{
+					const vec3  boxMin    = boxOrigin - uEnvProbes[i].boxHalfExtents.xyz;
+					const vec3  boxMax    = boxOrigin + uEnvProbes[i].boxHalfExtents.xyz;
+					
+					const vec3  boxMinP   = (boxMin - _P) / R;
+					const vec3  boxMaxP   = (boxMax - _P) / R;
+					const vec3  maxP      = max(boxMinP, boxMaxP);
+					const float boxD      = min3(maxP);
+					
+					const vec3  boxIntersection = _P + R * boxD;
+					vec3 R2 = boxIntersection - boxOrigin;
+					R2.y = -R2.y;
+					ret += (_in_.f0 * brdf.x + _in_.f90 * brdf.y) * textureLod(txEnvProbes, vec4(R2, uEnvProbes[i].probeIndex), _in_.alpha * 4.0).rgb * boxAttenuation;
+					ret += (textureLod(txEnvProbes, vec4(_N, uEnvProbes[i].probeIndex), 6.0).rgb * brdf.z) * _in_.diffuse * boxAttenuation;
+				}
+			}
+		}
 	}
 
 	// Shadow lights.

@@ -346,6 +346,13 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 				ctx->bindBuffer("bfLights", bfLights);
 			}
 
+			ctx->setUniform("uEnvProbeCount", (int)environmentProbeInstances.size());
+			if (bfEnvironmentProbes)
+			{
+				ctx->bindBuffer("bfEnvProbes", bfEnvironmentProbes);
+				ctx->bindTexture("txEnvProbes", txEnvironmentProbeArray);
+			}
+
 			ctx->setUniform("uShadowLightCount", (int)shadowLightInstances.size());
 			if (bfShadowLights)
 			{
@@ -545,6 +552,12 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 		ctx->blitFramebuffer(fbFinal, nullptr, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	}
 
+	if (debugViewMode != DebugViewMode_None)
+	{
+		ctx->setFramebufferAndViewport(nullptr);
+		drawDebugView(&sceneCamera, debugViewMode);
+	}
+
 	ctx->setFramebufferAndViewport(fbRestore);
 }
 
@@ -589,6 +602,11 @@ bool BasicRenderer::edit()
 		}
 		ImGui::EndCombo();
 	}
+
+	ImGui::Combo("Debug View", &debugViewMode, 
+		"None\0"
+		"Environment Probes\0"
+		);	
 
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Flags"))
@@ -830,6 +848,7 @@ BasicRenderer::~BasicRenderer()
 	Buffer::Destroy(bfLights);
 	Buffer::Destroy(bfShadowLights);
 	Buffer::Destroy(bfImageLights);
+	Buffer::Destroy(bfEnvironmentProbes);
 	Buffer::Destroy(bfPostProcessData);
 
 	for (size_t i = 0; i < shadowMapAllocations.size(); ++i)
@@ -872,6 +891,24 @@ void BasicRenderer::updateBuffer(Buffer*& _bf_, const char* _name, GLsizei _size
 	}
 
 	_bf_->setData(_size, _data);
+}
+
+void BasicRenderer::drawDebugView(Camera* _camera, DebugViewMode _mode)
+{
+	PROFILER_MARKER("BasicRenderer::drawDebugView");
+
+	GlContext* ctx = GlContext::GetCurrent();
+	ctx->setShader(shDebugViewMode);
+	ctx->setUniform("uMode", debugViewMode);
+
+	ctx->setUniform("uEnvProbeCount", (int)environmentProbeInstances.size());
+	if (bfEnvironmentProbes)
+	{
+		ctx->bindBuffer("bfEnvProbes", bfEnvironmentProbes);
+		ctx->bindTexture("txEnvProbes", txEnvironmentProbeArray);
+	}
+
+	ctx->drawNdcQuad(_camera);
 }
 
 void BasicRenderer::initRenderTargets()
@@ -951,6 +988,7 @@ void BasicRenderer::initShaders()
 	shFXAA                = Shader::CreateCs("shaders/BasicRenderer/FXAA.glsl", 8, 8);
 	shDepthClear          = Shader::CreateVsFs("shaders/BasicRenderer/DepthClear.glsl", "shaders/BasicRenderer/DepthClear.glsl");
 	shBloomUpsample       = Shader::CreateCs("shaders/BasicRenderer/BloomUpsample.glsl", 8, 8);
+	shDebugViewMode       = Shader::CreateVsFs("shaders/NdcQuad_vs.glsl", "shaders/BasicRenderer/DebugView.glsl");
 
 	shBloomDownsample = Shader::CreateCs("shaders/BasicRenderer/BloomDownsample.glsl", 8, 8, 1, {
 		DEF_STR("BLOOM_QUALITY", settings.bloomQuality)
@@ -983,6 +1021,7 @@ void BasicRenderer::shutdownShaders()
 	Shader::Release(shBloomDownsample);
 	Shader::Release(shBloomUpsample);
 	Shader::Release(shTAAResolve);
+	Shader::Release(shDebugViewMode);
 
 	for (auto& it : shaderMap)
 	{
@@ -1757,6 +1796,8 @@ void BasicRenderer::updateEnvironmentProbes()
 		{
 			txEnvironmentProbeArray = newProbeArray;
 		}
+
+		environmentProbeInstances.resize(newProbeArrayCount);
 	}
 
 	// Render updates.
@@ -1785,7 +1826,12 @@ void BasicRenderer::updateEnvironmentProbes()
 			FRM_AUTOTIMER("Probe");
 
 			EnvironmentProbeComponent* probe = updateQueue.back();
-			updateQueue.pop_back();			
+			updateQueue.pop_back();
+			
+			EnvironmentProbeInstance& probeInstance = environmentProbeInstances[probe->m_probeIndex];
+			probeInstance.originRadius = vec4(probe->m_origin, probe->m_radius);
+			probeInstance.boxHalfExtents = vec4(probe->m_boxExtents * 0.5f, 1.0f);
+			probeInstance.probeIndex = probe->m_probeIndex;
 
 			FRM_STRICT_ASSERT(probe->m_probeIndex >= 0);
 			FRM_STRICT_ASSERT(probe->m_dirty);
@@ -1869,6 +1915,8 @@ void BasicRenderer::updateEnvironmentProbes()
 		Texture::Release(txFilterTarget);	
 		ctx->setFramebuffer(fbRestore);
 		ctx->setViewport(vpRestore);
+
+		updateBuffer(bfEnvironmentProbes, "bfEnvProbes", sizeof(EnvironmentProbeInstance) * environmentProbeInstances.size(), environmentProbeInstances.data());
 	}
 }
 

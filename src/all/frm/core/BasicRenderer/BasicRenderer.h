@@ -32,9 +32,12 @@ namespace frm {
 //   e.g. whether the velocity buffer is required.
 // - Make the renderer properly instantiable - need a cleaner mechanism for adding
 //   settings to the properties table (e.g. do all that at the app level).
-// - Environment probe rendering: need to share probe array with the parent (via a
-//   static 'per world' data structure?) - probes should be able to draw with env
-//   lighting themselves.
+// - Environment probe rendering:
+//   - Oriented boxes (pass inverse transform to lighting).
+//   - Distance-based roughness (see Frostbite).
+//   - Need to share probe array with the parent (via a static 'per world' data 
+//     structure?). Probes should be able to draw with env lighting themselves?
+//   - As per Frostbite, disable specular and approx metals with f0 as diffuse albedo.
 // - Motion blur https://casual-effects.com/research/McGuire2012Blur/McGuire12Blur.pdf
 //   - Polar representation for V? Allows direct loading of the vector magnitude.
 //   - Tile min/max, neighborhood velocities at lower precision?
@@ -66,8 +69,7 @@ public:
 		ForwardOnly,       // Disable GBuffer, depth prepass only writes depth (and velocity if required).
 		WireFrame,         // Wireframe overlay.
 
-		_Count,
-		_Default = BIT_FLAGS_DEFAULT(PostProcess, TAA, FXAA, WriteToBackBuffer)
+		BIT_FLAGS_COUNT_DEFAULT(PostProcess, TAA, FXAA, WriteToBackBuffer)
 	};
 	using Flags = BitFlags<Flag>;
 	Flags    flags;
@@ -154,6 +156,7 @@ public:
 	Buffer*         bfMaterials                = nullptr;     // Material instance data.
 	Buffer*         bfLights                   = nullptr;     // Basic light instance data.
 	Buffer*         bfShadowLights             = nullptr;     // Shadow casting light instance data.
+	Buffer*         bfEnvironmentProbes        = nullptr;     // Environment probe instance data.
 	Buffer*         bfImageLights              = nullptr;     // Image light instance data.
 	Buffer*         bfPostProcessData	       = nullptr;     // Data for the post process shader.
 	ShadowAtlas*    shadowAtlas                = nullptr;     // Shadow map allocations.
@@ -173,9 +176,9 @@ public:
 
 	struct LODCoefficients
 	{
-		float size           = 0.0f; // Coeffient for projected size metric.
-		float eccentricity   = 0.0f; //      "        eccentricity (in periphery vision).
-		float velocity       = 0.0f; //      "        velocity.
+		float size           = 0.0f; // Coefficent for projected size metric.
+		float eccentricity   = 0.0f; //      "         eccentricity (in periphery vision).
+		float velocity       = 0.0f; //      "         velocity.
 	};
 		
 	Camera sceneCamera;
@@ -190,6 +193,18 @@ private:
 
 	// Helper for dynamic buffer updates. Re-creates the buffer if _size changes.
 	void updateBuffer(Buffer*& bf_, const char* _name, GLsizei _size, void* _data);
+
+	enum DebugViewMode_
+	{
+		DebugViewMode_None,
+		DebugViewMode_EnvironmentProbes,
+
+		DebugViewMode_Count
+	};
+	typedef int DebugViewMode;
+	DebugViewMode debugViewMode = DebugViewMode_None;
+	Shader* shDebugViewMode = nullptr;
+	void drawDebugView(Camera* _camera, DebugViewMode _mode);
 
 	struct alignas(16) MaterialInstance
 	{
@@ -324,16 +339,18 @@ private:
 	// \todo
 	// - Needs to be _per world_, cache after rendering.
 	// - Probe resolution is also per world.
-	// - How to invalidate existing probes?
 	// - Share other per-world stuff between renderers e.g. shadow map atlas.
 	struct alignas(16) EnvironmentProbeInstance
 	{
-		vec4   originRadius = vec4(0.0f); // World space position and radius of the probe. If radius == 0, probe is a box.
-		vec4   boxExtents   = vec4(0.0f); // World space extents of the probe box relative to the origin. NB probes are axis-aligned.
-		uint32 probeIndex   = 0;          // Indexes txEnvironmentProbeArray.
+		vec4   originRadius = vec4(0.0f);     // World space position and radius of the probe. If radius == 0, probe is a box.
+		vec4   boxHalfExtents   = vec4(0.0f); // World space extents of the probe box relative to the origin. NB probes are axis-aligned.
+		uint32 probeIndex   = 0;              // Indexes txEnvironmentProbeArray.
+
+		EnvironmentProbeInstance() {}
 	};
+	eastl::vector<EnvironmentProbeInstance> environmentProbeInstances;
 	
-	Texture* txEnvironmentProbeArray        = nullptr; // Cubemap array for reflection probes.
+	Texture* txEnvironmentProbeArray = nullptr; // Cubemap array for reflection probes.
 	BasicRenderer* environmentProbeRenderer = nullptr;
 
 	void updateEnvironmentProbes();
