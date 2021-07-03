@@ -1041,7 +1041,7 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 
 			LODCoefficients renderableLODCoefficients;
 			renderableLODCoefficients.size          = 0.2f;
-			renderableLODCoefficients.eccentricity  = 10.0f; // \todo Experiment with cranking this up for VR?
+			renderableLODCoefficients.eccentricity  = 0.0f; // \todo Experiment with cranking this up for VR? 
 			renderableLODCoefficients.velocity      = 5.0f; 
 
 			float flod = 0.0f;
@@ -1053,6 +1053,7 @@ void BasicRenderer::updateDrawCalls(Camera* _cullCamera)
 			selectedLOD = (renderable->m_lodOverride >= 0) ? renderable->m_lodOverride : selectedLOD;
 			selectedLOD = Clamp(selectedLOD + settings.lodBias, 0, renderable->m_mesh->getLODCount() - 1);
 			renderable->m_selectedLOD = selectedLOD;
+//Im3d::Text(GetTranslation(renderable->m_world), 1.0f, Im3d::Color_Magenta, Im3d::TextFlags_Default, "LOD%d", selectedLOD);
 			culledSceneRenderables.push_back(renderable);
 		}
 	}
@@ -1395,9 +1396,10 @@ void BasicRenderer::addDrawCall(const BasicRenderableComponent* _renderable, int
 		};
 
 	uint64 drawCallKey = 0;
-	drawCallKey = BitfieldInsert(drawCallKey, (uint64)material->getIndex(), 40, 24);
-	drawCallKey = BitfieldInsert(drawCallKey, (uint64)mesh->getIndex(),     16, 24);
-	drawCallKey = BitfieldInsert(drawCallKey, (uint64)_submeshIndex,        0,  16);
+	drawCallKey = BitfieldInsert(drawCallKey, (uint64)material->getIndex(),         40, 24);
+	drawCallKey = BitfieldInsert(drawCallKey, (uint64)mesh->getIndex() + _lodIndex, 16, 24);
+	drawCallKey = BitfieldInsert(drawCallKey, (uint64)_lodIndex,                    12, 4);
+	drawCallKey = BitfieldInsert(drawCallKey, (uint64)_submeshIndex,                0,  12);
 
 	DrawCall& drawCall           = map_[drawCallKey];
 	drawCall.material            = material;
