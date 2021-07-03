@@ -394,7 +394,7 @@ bool BasicRenderableComponent::serializeImpl(Serializer& _serializer_)
 		_serializer_.endArray();
 	}
 
-	if (_serializer_.getMode() == Serializer::Mode_Read())
+	if (_serializer_.getMode() == Serializer::Mode_Read)
 	{
 		while (m_materials.size() > m_materialPaths.size())
 		{

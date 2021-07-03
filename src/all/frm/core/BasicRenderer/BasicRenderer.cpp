@@ -1916,7 +1916,7 @@ void BasicRenderer::updateEnvironmentProbes()
 		ctx->setFramebuffer(fbRestore);
 		ctx->setViewport(vpRestore);
 
-		updateBuffer(bfEnvironmentProbes, "bfEnvProbes", sizeof(EnvironmentProbeInstance) * environmentProbeInstances.size(), environmentProbeInstances.data());
+		updateBuffer(bfEnvironmentProbes, "bfEnvProbes", (GLsizei)(sizeof(EnvironmentProbeInstance) * environmentProbeInstances.size()), environmentProbeInstances.data());
 	}
 }
 
