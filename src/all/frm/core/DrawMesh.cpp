@@ -12,6 +12,8 @@
 #include <frm/core/SkeletonAnimation.h>
 #include <frm/core/Time.h>
 
+#define DRAW_MESH_ENABLE_CACHE 1
+
 static GLenum PrimitiveToGl(frm::Mesh::Primitive _prim)
 {
 	switch (_prim)
@@ -113,8 +115,7 @@ bool DrawMesh::reload()
 		// Path is not a DrawMesh, check the cache.
 		cachedPath.setf("_cache/%s.drawmesh", FileSystem::GetFileName(m_path.c_str()).c_str());
 
-		#if 1
-		if (FileSystem::Exists(cachedPath.c_str()))
+		if (DRAW_MESH_ENABLE_CACHE && FileSystem::Exists(cachedPath.c_str()))
 		{
 			DateTime sourceDate = FileSystem::GetTimeModified(m_path.c_str());
 			DateTime cachedDate = FileSystem::GetTimeModified(cachedPath.c_str());
@@ -128,7 +129,6 @@ bool DrawMesh::reload()
 				}
 			}
 		}
-		#endif
 	}
 
 	if (cachedData.getDataSize() > 0)
