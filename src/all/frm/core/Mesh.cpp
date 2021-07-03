@@ -294,11 +294,11 @@ Mesh* Mesh::CreateCone(float _height, float _radiusTop, float _radiusBottom, int
 	return ret;
 }
 
-Mesh* Mesh::Create(const char* _path, CreateFlags _createFlags)
+Mesh* Mesh::Create(const char* _path, CreateFlags _createFlags, std::initializer_list<const char*> _filters)
 {	
 	Mesh* ret = FRM_NEW(Mesh());
 	ret->m_path = _path;
-	if (!ret->load(_createFlags))
+	if (!ret->load(_createFlags, _filters))
 	{
 		FRM_DELETE(ret);
 		return nullptr;
@@ -947,6 +947,135 @@ void Mesh::finalize()
 	}
 }
 
+void Mesh::addSubmesh(uint32 _lod, uint32 _indexOffset, uint32 _indexCount)
+{
+	FRM_ASSERT(_lod < m_lods.size()); // Set index data first.
+	LOD& lod = m_lods[_lod];
+
+	FRM_ASSERT(!lod.submeshes.empty()); // Init whole mesh first.
+	Submesh& wholeMesh = lod.submeshes[0];
+	FRM_ASSERT(_indexOffset < wholeMesh.indexCount);
+	FRM_ASSERT(_indexCount < (wholeMesh.indexCount - _indexOffset));
+
+	lod.submeshes.push_back();
+	Submesh& submesh    = lod.submeshes.back();
+	submesh.indexOffset = _indexOffset;
+	submesh.indexCount  = _indexCount;
+}
+
+void Mesh::addSubmesh(uint32 _lod, const Mesh& _mesh)
+{
+	// \todo Merge common code with addLOD().
+
+	FRM_ASSERT(_lod < m_lods.size());
+	const LOD& srcLod = _mesh.m_lods[_lod];
+	LOD& dstLod = m_lods[_lod];
+	FRM_ASSERT(!dstLod.submeshes.empty());
+	FRM_ASSERT(_mesh.m_indexDataType == DataType_Uint32);
+	
+	// Append vertex data.
+	const uint32 vertexOffset = m_vertexCount;
+	setVertexCount(m_vertexCount + _mesh.getVertexCount());
+	for (int semantic = 0; semantic < Semantic_Count; ++semantic)
+	{
+		if (!_mesh.m_vertexData[semantic].data)
+		{
+			continue;
+		}
+
+		const VertexData& srcVertexData = _mesh.m_vertexData[semantic];
+		const size_t dataSizeBytes = srcVertexData.getDataSizeBytes();
+		VertexData& dstVertexData = m_vertexData[semantic];
+		if (!dstVertexData.data)
+		{
+			dstVertexData = srcVertexData;
+			dstVertexData.data = FRM_MALLOC_ALIGNED(dataSizeBytes * m_vertexCount, alignof(float));
+		}
+		FRM_ASSERT(dstVertexData.dataType  == srcVertexData.dataType);
+		FRM_ASSERT(dstVertexData.dataCount == srcVertexData.dataCount);
+		memcpy((char*)dstVertexData.data + vertexOffset * dataSizeBytes, srcVertexData.data, _mesh.getVertexCount() * dataSizeBytes);
+	}
+
+	// Append index data.		
+	const Submesh& srcSubmesh = srcLod.submeshes[0];
+	const uint32 dstSubmeshIndex = (uint32)dstLod.submeshes.size();
+	Submesh& dstSubmesh = dstLod.submeshes.push_back();
+	dstSubmesh.boundingBox = srcSubmesh.boundingBox;
+	dstSubmesh.boundingSphere = srcSubmesh.boundingSphere;
+	dstSubmesh.indexOffset = dstLod.submeshes[0].indexCount;
+	dstSubmesh.indexCount = srcSubmesh.indexCount;
+	dstLod.indexData = FRM_REALLOC_ALIGNED(dstLod.indexData, (dstSubmesh.indexOffset + dstSubmesh.indexCount) * sizeof(uint32), alignof(uint32));
+	
+	IndexDataView<uint32> srcIndexData = const_cast<Mesh&>(_mesh).getIndexDataView<uint32>(_lod); // \todo Const data views?
+	IndexDataView<uint32> dstIndexData = getIndexDataView<uint32>(_lod, dstSubmeshIndex);
+	FRM_ASSERT(srcIndexData.getCount() == dstIndexData.getCount());
+	for (uint32 i = 0; i < srcIndexData.getCount(); ++i)
+	{
+		dstIndexData[i] = srcIndexData[i] + vertexOffset;
+	}
+
+	dstLod.submeshes[0].indexCount += srcSubmesh.indexCount;
+	// \todo Grow BB/BS?
+}
+
+void Mesh::addLOD(const Mesh& _mesh)
+{
+	// \todo Merge common code with addSubmesh().
+
+	FRM_ASSERT(_mesh.m_lods.size() == 1);
+
+	// \hack Detect case where we're adding LOD0 and pop the empty LOD first.
+	if (m_lods.size() == 1 && m_vertexData->data == nullptr)
+	{
+		m_lods.pop_back();
+	}
+
+	// Append vertex data.
+	// \todo Merge with existing if LOD > 0?
+	const uint32 vertexOffset = m_vertexCount;
+	setVertexCount(m_vertexCount + _mesh.getVertexCount());
+	for (int semantic = 0; semantic < Semantic_Count; ++semantic)
+	{
+		if (!_mesh.m_vertexData[semantic].data)
+		{
+			continue;
+		}
+
+		const VertexData& srcVertexData = _mesh.m_vertexData[semantic];
+		const size_t dataSizeBytes = srcVertexData.getDataSizeBytes();
+		VertexData& dstVertexData = m_vertexData[semantic];
+		if (!dstVertexData.data)
+		{
+			dstVertexData = srcVertexData;
+			dstVertexData.data = FRM_MALLOC_ALIGNED(dataSizeBytes * m_vertexCount, alignof(float));
+		}
+		FRM_ASSERT(dstVertexData.dataType  == srcVertexData.dataType);
+		FRM_ASSERT(dstVertexData.dataCount == srcVertexData.dataCount);
+		memcpy((char*)dstVertexData.data + vertexOffset * dataSizeBytes, srcVertexData.data, _mesh.getVertexCount() * dataSizeBytes);
+	}
+
+	// Append index data.
+	const uint32 lodIndex = (uint32)m_lods.size();
+	LOD& dstLod = m_lods.push_back();
+	Submesh& dstSubmesh = dstLod.submeshes.push_back();
+	dstSubmesh = _mesh.m_lods[0].submeshes[0];
+	dstLod.indexData = FRM_REALLOC_ALIGNED(dstLod.indexData, (dstSubmesh.indexOffset + dstSubmesh.indexCount) * sizeof(uint32), alignof(uint32));
+	IndexDataView<uint32> srcIndexData = const_cast<Mesh&>(_mesh).getIndexDataView<uint32>(0); // \todo Const data views?
+	IndexDataView<uint32> dstIndexData = getIndexDataView<uint32>(lodIndex);
+	FRM_ASSERT(srcIndexData.getCount() == dstIndexData.getCount());
+	for (uint32 i = 0; i < srcIndexData.getCount(); ++i)
+	{
+		dstIndexData[i] = srcIndexData[i] + vertexOffset;
+	}
+
+	// Copy submeshes.
+	dstLod.submeshes.resize(_mesh.m_lods[0].submeshes.size());
+	for (uint32 submeshIndex = 1; submeshIndex < dstLod.submeshes.size(); ++submeshIndex)
+	{
+		dstLod.submeshes[submeshIndex] = _mesh.m_lods[0].submeshes[submeshIndex];
+	}
+}
+
 // PROTECTED
 
 Mesh::Mesh(Primitive _primitive)
@@ -959,7 +1088,7 @@ Mesh::Mesh(Primitive _primitive)
 Mesh::Mesh(const char* _path, CreateFlags _createFlags)
 	: m_path(_path)
 {
-	load(_createFlags);
+	load(_createFlags, {});
 }
 
 Mesh::~Mesh()
@@ -967,7 +1096,7 @@ Mesh::~Mesh()
 	unload();
 }
 
-bool Mesh::load(CreateFlags _createFlags)
+bool Mesh::load(CreateFlags _createFlags, std::initializer_list<const char*> _filters)
 {
 	if (m_path.isEmpty())
 	{
@@ -995,7 +1124,7 @@ bool Mesh::load(CreateFlags _createFlags)
 	}
 	else if (FileSystem::CompareExtension("gltf", m_path.c_str()))
 	{
-		if (!ReadGLTF(*this, f.getData(), f.getDataSize(), _createFlags))
+		if (!ReadGLTF(*this, f.getData(), f.getDataSize(), _createFlags, _filters))
 		{
 			return false;
 		}
@@ -1043,75 +1172,6 @@ bool Mesh::serialize(Serializer& _serializer_)
 {
 	FRM_ASSERT(false); // \todo
 	return false;
-}
-
-void Mesh::addSubmesh(uint32 _lod, uint32 _indexOffset, uint32 _indexCount)
-{
-	FRM_ASSERT(_lod < m_lods.size()); // Set index data first.
-	LOD& lod = m_lods[_lod];
-
-	FRM_ASSERT(!lod.submeshes.empty()); // Init whole mesh first.
-	Submesh& wholeMesh = lod.submeshes[0];
-	FRM_ASSERT(_indexOffset < wholeMesh.indexCount);
-	FRM_ASSERT(_indexCount < (wholeMesh.indexCount - _indexOffset));
-
-	lod.submeshes.push_back();
-	Submesh& submesh    = lod.submeshes.back();
-	submesh.indexOffset = _indexOffset;
-	submesh.indexCount  = _indexCount;
-}
-
-void Mesh::addSubmesh(uint32 _lod, Mesh& _mesh)
-{
-	FRM_ASSERT(_lod < m_lods.size());
-	const LOD& srcLod = _mesh.m_lods[_lod];
-	LOD& dstLod = m_lods[_lod];
-	FRM_ASSERT(!dstLod.submeshes.empty());
-	FRM_ASSERT(_mesh.m_indexDataType == DataType_Uint32);
-	
-	// Append vertex data.
-	const uint32 vertexOffset = m_vertexCount;
-	setVertexCount(m_vertexCount + _mesh.getVertexCount());
-	for (int semantic = 0; semantic < Semantic_Count; ++semantic)
-	{
-		if (!_mesh.m_vertexData[semantic].data)
-		{
-			continue;
-		}
-
-		const VertexData& srcVertexData = _mesh.m_vertexData[semantic];
-		const size_t dataSizeBytes = srcVertexData.getDataSizeBytes();
-		VertexData& dstVertexData = m_vertexData[semantic];
-		if (!dstVertexData.data)
-		{
-			dstVertexData = srcVertexData;
-			dstVertexData.data = FRM_MALLOC_ALIGNED(dataSizeBytes * m_vertexCount, alignof(float));
-		}
-		FRM_ASSERT(dstVertexData.dataType  == srcVertexData.dataType);
-		FRM_ASSERT(dstVertexData.dataCount == srcVertexData.dataCount);
-		memcpy((char*)dstVertexData.data + vertexOffset * dataSizeBytes, srcVertexData.data, _mesh.getVertexCount() * dataSizeBytes);
-	}
-
-	// Append index data.		
-	const Submesh& srcSubmesh = srcLod.submeshes[0];
-	const uint32 dstSubmeshIndex = (uint32)dstLod.submeshes.size();
-	Submesh& dstSubmesh = dstLod.submeshes.push_back();
-	dstSubmesh.boundingBox = srcSubmesh.boundingBox;
-	dstSubmesh.boundingSphere = srcSubmesh.boundingSphere;
-	dstSubmesh.indexOffset = dstLod.submeshes[0].indexCount;
-	dstSubmesh.indexCount = srcSubmesh.indexCount;
-	dstLod.indexData = FRM_REALLOC_ALIGNED(dstLod.indexData, (dstSubmesh.indexOffset + dstSubmesh.indexCount) * sizeof(uint32), alignof(uint32));
-	
-	IndexDataView<uint32> srcIndexData = _mesh.getIndexDataView<uint32>(_lod);
-	IndexDataView<uint32> dstIndexData = getIndexDataView<uint32>(_lod, dstSubmeshIndex);
-	FRM_ASSERT(srcIndexData.getCount() == dstIndexData.getCount());
-	for (uint32 i = 0; i < srcIndexData.getCount(); ++i)
-	{
-		dstIndexData[i] = srcIndexData[i] + vertexOffset;
-	}
-
-	dstLod.submeshes[0].indexCount += srcSubmesh.indexCount;
-	// \todo Grow BB/BS?
 }
 
 //void Mesh::debugValidate()
