@@ -533,7 +533,7 @@ void AppSample3d::drawIm3d(
 	)
 { 
 
-	if (Im3d::GetDrawListCount() == 0)
+	if (Im3d::GetDrawListCount() == 0 && Im3d::GetTextDrawListCount() == 0)
 	{
 		return;
 	}
