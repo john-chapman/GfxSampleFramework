@@ -33,11 +33,14 @@ namespace frm {
 // - Make the renderer properly instantiable - need a cleaner mechanism for adding
 //   settings to the properties table (e.g. do all that at the app level).
 // - Environment probe rendering:
-//   - Oriented boxes (pass inverse transform to lighting).
+//   - Oriented boxes (pass inverse transform to lighting as a quaternion, see FC4
+//     presentation?).
+//   - Store diffuse irradiance as a set of SH coefficients (see Filament doc).
 //   - Distance-based roughness (see Frostbite).
 //   - Need to share probe array with the parent (via a static 'per world' data 
 //     structure?). Probes should be able to draw with env lighting themselves?
 //   - As per Frostbite, disable specular and approx metals with f0 as diffuse albedo.
+//   - BC6H compression + caching.
 // - Motion blur https://casual-effects.com/research/McGuire2012Blur/McGuire12Blur.pdf
 //   - Polar representation for V? Allows direct loading of the vector magnitude.
 //   - Tile min/max, neighborhood velocities at lower precision?
@@ -308,18 +311,6 @@ private:
 		ShadowLightInstance() {} // \todo without this, shadowLightInstances.push_back() crashes in release builds?
 	};
 	eastl::vector<ShadowLightInstance> shadowLightInstances;
-
-	struct alignas(16) ImageLightInstance
-	{
-		float    brightness    = 1.0f;
-		float    backgroundLod = 0.0f;
-		bool     isBackground  = false;
-		Texture* texture       = nullptr;
-
-		ImageLightInstance() {} // \todo without this, imageLightInstances.push_back() crashes in release builds?
-	};
-	eastl::vector<ImageLightInstance> imageLightInstances;
-	void updateImageLightInstances();
 
 	struct alignas(16) PostProcessData
 	{

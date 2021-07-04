@@ -74,12 +74,11 @@ uniform vec2 uTexelSize; // 1/framebuffer size
 	uniform int uShadowLightCount; // can't use uShadowLights.length since it can be 0
 	uniform sampler2DArray txShadowMap;
 
-	uniform sampler2D txBRDFLut;
-
-	// \todo see ImageLightComponent
 	uniform int uImageLightCount;
 	uniform float uImageLightBrightness;
 	uniform samplerCube txImageLight;
+
+	uniform sampler2D txBRDFLut;
 
 	_FRAGMENT_OUT(0, vec4, fResult);
 #endif

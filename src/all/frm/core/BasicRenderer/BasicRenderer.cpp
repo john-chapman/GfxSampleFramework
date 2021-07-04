@@ -54,7 +54,6 @@ void BasicRenderer::nextFrame(float _dt, Camera* _drawCamera, Camera* _cullCamer
 	 // \todo can skip updates if nothing changed
 		updateMaterialInstances();
 		updateDrawCalls(_cullCamera);
-		updateImageLightInstances();
 	}
 
 	for (int i = 0; i < Target_Count; ++i)
@@ -187,7 +186,23 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 	
 	const vec2 texelSize = vec2(1.0f) / vec2(fbGBuffer->getWidth(), fbGBuffer->getHeight());
 
-	if (sceneDrawCalls.empty() && imageLightInstances.empty())
+	// \todo Priority system in case there are multiple? We just use the first encountered image light in both cases.
+	ImageLightComponent* imageLightBackground = nullptr;
+	ImageLightComponent* imageLight           = nullptr;
+	for (ImageLightComponent* imageLightInstance : ImageLightComponent::GetActiveComponents())
+	{
+		if (!imageLightBackground && imageLightInstance->m_isBackground && imageLightInstance->m_texture)
+		{
+			imageLightBackground = imageLightInstance;
+		}
+
+		if (!imageLight && imageLightInstance->m_isLight && imageLightInstance->m_texture)
+		{
+			imageLight = imageLightInstance;
+		}
+	}
+
+	if (sceneDrawCalls.empty() && !imageLightBackground)
 	{
 		return;
 	}
@@ -310,12 +325,12 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 		glScopedEnable(GL_DEPTH_TEST, GL_TRUE);
 		glAssert(glDepthFunc(GL_EQUAL));
 
-		if (imageLightInstances.size() > 0 && imageLightInstances[0].texture && imageLightInstances[0].isBackground)
+		if (imageLightBackground)
 		{
 			ctx->setShader(shImageLightBg);
-			ctx->setUniform("uLod", imageLightInstances[0].backgroundLod);
-			ctx->setUniform("uMultiplier", vec3(imageLightInstances[0].brightness));
-			ctx->bindTexture("txEnvmap", imageLightInstances[0].texture);
+			ctx->setUniform("uLod", imageLightBackground->m_backgroundLod);
+			ctx->setUniform("uMultiplier", vec3(imageLightBackground->m_brightness));
+			ctx->bindTexture("txEnvmap", imageLightBackground->m_texture);
 			ctx->drawNdcQuad(&sceneCamera);
 		}
 		else
@@ -360,15 +375,15 @@ void BasicRenderer::draw(float _dt, Camera* _drawCamera, Camera* _cullCamera)
 			}
 			ctx->bindTexture("txShadowMap", shadowAtlas->getTexture());
 
-			ctx->setUniform("uImageLightCount", (int)imageLightInstances.size());
-			if (imageLightInstances.size() > 0 && imageLightInstances[0].texture)
+			if (imageLight)
 			{
-				ctx->bindTexture("txImageLight", imageLightInstances[0].texture);
-				ctx->setUniform("uImageLightBrightness", imageLightInstances[0].brightness);
+				ctx->setUniform("uImageLightCount", 1);
+				ctx->bindTexture("txImageLight", imageLight->m_texture);
+				ctx->setUniform("uImageLightBrightness", imageLight->m_brightness);
 			}
 			else
 			{
-				// \todo Crashes if no texture bound?
+				ctx->bindTexture("txImageLight", txBRDFLut); // \todo Crashes if no texture bound?
 				ctx->setUniform("uImageLightCount", 0);
 			}
 
@@ -1630,33 +1645,6 @@ void BasicRenderer::bindAndDraw(const DrawCall& _drawCall)
 	_drawCall.material->bind(ctx, ssMaterial);
 	ctx->setMesh(_drawCall.mesh, _drawCall.lodIndex, _drawCall.submeshIndex, _drawCall.bindHandleKey);
 	ctx->draw((GLsizei)_drawCall.instanceData.size());
-}
-
-void BasicRenderer::updateImageLightInstances()
-{
-	PROFILER_MARKER_CPU("updateImageLightInstances");
-
-	// \todo need a separate system for this, see ImageLightComponent
-
-	const auto& activeImageLights = ImageLightComponent::GetActiveComponents();
-	FRM_ASSERT(activeImageLights.size() <= 1); // only 1 image light is currently supported
-
-	imageLightInstances.clear();
-	imageLightInstances.reserve(activeImageLights.size());
-	for (ImageLightComponent* light : activeImageLights)
-	{
-		const SceneNode* sceneNode = light->getParentNode();
-		if (light->m_brightness <= 0.0f)
-		{
-			continue;
-		}
-
-		ImageLightInstance& lightInstance = imageLightInstances.push_back();
-		lightInstance.brightness          = light->m_brightness;
-		lightInstance.backgroundLod       = light->m_backgroundLod;
-		lightInstance.isBackground        = light->m_isBackground;
-		lightInstance.texture             = light->m_texture;
-	}
 }
 
 void BasicRenderer::updatePostProcessData(float _dt, uint32 _frameIndex)

@@ -8,14 +8,7 @@ namespace frm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // ImageLightComponent
-// Image-based light. Supports cubemap and rectilinear projected source images.
-//
-// \todo
-// - Store diffuse irradiance as a set of SH coefficients (see Filament doc).
-//   This saves some texture bandwidth.
-// - Store all cubemaps in a single global array texture + use world space
-//   extents and bounds for parallax correction + filtering.
-// - BC6H compression + caching.
+// Single global env light for basic use cases.
 ////////////////////////////////////////////////////////////////////////////////
 FRM_COMPONENT_DECLARE(ImageLightComponent)
 {
@@ -37,20 +30,21 @@ public:
 
 protected:
 
-	float    m_brightness     = 1.0f;
-	bool     m_isBackground   = false;  // If true, use to fill the background of the scene buffer.
-	float    m_backgroundLod  = 0.0f;   // LOD to use for background.
-	Texture* m_texture        = nullptr;
-	PathStr  m_texturePath    = "";
+	float       m_brightness     = 1.0f;
+	bool        m_isBackground   = true;   // If true, use to fill the background of the scene buffer.
+	bool        m_isLight        = true;   // If true, use as a light source.
+	float       m_backgroundLod  = 0.0f;   // LOD to use for background.
+	Texture*    m_texture        = nullptr;
+	PathStr     m_texturePath    = "";
 
-	bool initImpl() override;
-	void shutdownImpl() override;
-	bool editImpl() override;
-	bool serializeImpl(Serializer& _serializer_) override;
-	bool isStatic() override { return true; }
+	bool        initImpl() override;
+	void        shutdownImpl() override;
+	bool        editImpl() override;
+	bool        serializeImpl(Serializer& _serializer_) override;
+	bool        isStatic() override { return true; }
 
 	// Call during init() or whenever the texture path changes.
-	bool loadAndFilter();
+	bool        loadAndFilter();
 
 	friend class BasicRenderer;
 };

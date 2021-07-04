@@ -78,8 +78,10 @@ bool ImageLightComponent::editImpl()
 	ImGui::SameLine();
 	ImGui::Text("'%s'", m_texturePath.c_str());
 
-	ret |= ImGui::DragFloat("Brightness", &m_brightness, 0.1f);
+	ret |= ImGui::DragFloat("Brightness", &m_brightness, 0.05f, 0.0f, 999.0f);
 	ret |= ImGui::Checkbox("Is Background", &m_isBackground);
+	ImGui::SameLine();
+	ret |= ImGui::Checkbox("Is Light", &m_isLight);
 	if (m_texture && m_isBackground)
 	{
 		float lod = m_backgroundLod / m_texture->getMipCount();
@@ -105,6 +107,7 @@ bool ImageLightComponent::serializeImpl(Serializer& _serializer_)
 	Serialize(_serializer_, m_brightness,   "m_brightness");
 	Serialize(_serializer_, m_texturePath,  "m_texturePath");
 	Serialize(_serializer_, m_isBackground, "m_isBackground");
+	Serialize(_serializer_, m_isLight, "m_isLight");
 	Serialize(_serializer_, m_backgroundLod, "m_backgroundLod");
 	return _serializer_.getError() == nullptr;
 }
