@@ -137,7 +137,7 @@ public:
 		);
 
 	// Load from path.
-	static Mesh*          Create(const char* _path, CreateFlags _createFlags = CreateFlags());
+	static Mesh*          Create(const char* _path, CreateFlags _createFlags = CreateFlags(), std::initializer_list<const char*> _filters = {});
 	
 	// Destroy _mesh_.
 	static void           Destroy(Mesh*& _mesh_);
@@ -213,6 +213,9 @@ public:
 	// Generate lightmap UVs.
 	void                  generateLightmapUVs();
 
+	void                  addSubmesh(uint32 _lod, uint32 _indexOffset, uint32 _indexCount);
+	void                  addSubmesh(uint32 _lod, const Mesh& _mesh);
+
 protected:
 
 	struct VertexData
@@ -250,15 +253,14 @@ protected:
 	LODList    m_lods;
 	Skeleton*  m_skeleton                    = nullptr;
 
-	static bool           ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes, CreateFlags _createFlags);
+	static bool           ReadGLTF(Mesh& mesh_, const char* _srcData, size_t _srcDataSizeBytes, CreateFlags _createFlags, std::initializer_list<const char*> _filters);
 
-	bool                  load(CreateFlags _createFlags);
+	bool                  load(CreateFlags _createFlags, std::initializer_list<const char*> _filters);
 	void                  unload();	
 	void                  swap(Mesh& _rhs_);
 	bool                  serialize(Serializer& _serializer_);
-	void                  addSubmesh(uint32 _lod, uint32 _indexOffset, uint32 _indexCount);
-	void                  addSubmesh(uint32 _lod, Mesh& _mesh);
-	
+	void                  addLOD(const Mesh& _mesh);
+		
 	// Finalize vertex/index data formats. Note that this is private as we only want to use reduced precision formats when converting to DrawMesh.
 	void                  finalize();
 

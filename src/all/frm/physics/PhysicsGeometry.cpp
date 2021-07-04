@@ -498,13 +498,20 @@ bool PhysicsGeometry::initImpl()
 		{
 			if (cachedData.getDataSize() == 0)
 			{
-				Mesh meshData = Mesh(m_dataPath.c_str(), Mesh::CreateFlags(0));
+				Mesh* mesh = Mesh::Create(m_dataPath.c_str(), Mesh::CreateFlags(0), { "PHYS" });
 				physx::PxDefaultMemoryOutputStream pxOutput;
-				if (!PxCookConvexMesh(meshData, pxOutput))
+				bool cookStatus = PxCookConvexMesh(*mesh, pxOutput);
+				AlignedBox bb = mesh->getBoundingBox();
+				Mesh::Destroy(mesh);
+
+				if (!cookStatus)
 				{
 					setState(State_Error);
-					return false;
+					m_type = Type_Box;
+					geometryUnion->box() = physx::PxBoxGeometry(Vec3ToPx((bb.m_max - bb.m_min) / 2.0f));
+					return true; // \hack Don't crash.
 				}
+
 				cachedData.setData((const char*)pxOutput.getData(), pxOutput.getSize());
 				FileSystem::Write(cachedData, cachedPath.c_str());
 			}
@@ -518,13 +525,20 @@ bool PhysicsGeometry::initImpl()
 		{
 			if (cachedData.getDataSize() == 0)
 			{
-				Mesh meshData = Mesh(m_dataPath.c_str(), Mesh::CreateFlags(0));
+				Mesh* mesh = Mesh::Create(m_dataPath.c_str(), Mesh::CreateFlags(0), { "PHYS" });
 				physx::PxDefaultMemoryOutputStream pxOutput;
-				if (!PxCookTriangleMesh(meshData, pxOutput))
+				bool cookStatus = PxCookTriangleMesh(*mesh, pxOutput);
+				AlignedBox bb = mesh->getBoundingBox();
+				Mesh::Destroy(mesh);
+
+				if (!cookStatus)
 				{
 					setState(State_Error);
-					return false;
+					m_type = Type_Box;
+					geometryUnion->box() = physx::PxBoxGeometry(Vec3ToPx((bb.m_max - bb.m_min) / 2.0f));
+					return true; // \hack Don't crash.
 				}
+
 				cachedData.setData((const char*)pxOutput.getData(), pxOutput.getSize()); // \todo avoid this copy?
 				FileSystem::Write(cachedData, cachedPath.c_str());
 			}

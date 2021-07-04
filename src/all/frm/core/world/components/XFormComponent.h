@@ -76,23 +76,25 @@ FRM_COMPONENT_DECLARE(XFormComponent)
 {
 public:
 
-	static void Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
+	static void  Update(Component** _from, Component** _to, float _dt, World::UpdatePhase _phase);
 
-	void addXForm(XForm* _xform_);
-	void removeXForm(XForm*& _xform_);
+	virtual void reset() override;
 
-	virtual ~XFormComponent();
+	void         addXForm(XForm* _xform_);
+	void         removeXForm(XForm*& _xform_);
+
+	virtual      ~XFormComponent();
 
 private:
 
 	eastl::fixed_vector<XForm*, 1> m_xforms;
 
-	void update(float _dt);
-	bool editImpl() override;
-	bool serializeImpl(Serializer& _serializer_) override;
-	bool isStatic() override { return false; }
+	void         update(float _dt);
+	bool         editImpl() override;
+	bool         serializeImpl(Serializer& _serializer_) override;
+	bool         isStatic() override { return false; }
 
-	void moveXForm(int _from, int _to);
+	void         moveXForm(int _from, int _to);
 };
 
 } // namespace frm

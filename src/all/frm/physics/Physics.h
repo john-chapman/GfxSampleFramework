@@ -185,7 +185,7 @@ public:
 	void*        getImpl() { return m_impl; }
 
 	// Reset to the initial state, zero velocities.
-	virtual void reset();
+	virtual void reset() override;
 
 	// Explicitly copy internal transform back to the parent node.
 	void         forceUpdateNodeTransform();

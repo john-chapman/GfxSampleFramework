@@ -189,6 +189,14 @@ void XFormComponent::Update(Component** _from, Component** _to, float _dt, World
 	}
 }
 
+void XFormComponent::reset()
+{
+	for (XForm* xform : m_xforms)
+	{
+		xform->reset();
+	}
+}
+
 void XFormComponent::addXForm(XForm* _xform_)
 {
 	m_xforms.push_back(_xform_);

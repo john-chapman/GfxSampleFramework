@@ -101,6 +101,7 @@ WorldEditor::WorldEditor()
 
 WorldEditor::~WorldEditor()
 {
+	World::Release(m_currentWorld);
 }
 
 bool WorldEditor::edit()
@@ -641,6 +642,11 @@ bool WorldEditor::worldMenu()
 		if (ImGui::MenuItem("Open.."))
 		{
 			pushAction(ActionType::LoadWorld, m_currentWorld);
+		}
+		
+		if (ImGui::MenuItem("Reset", nullptr, nullptr, m_currentWorld != nullptr))
+		{
+			m_currentWorld->reset();
 		}
 
 		ImGui::Separator();

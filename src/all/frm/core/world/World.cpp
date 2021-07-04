@@ -429,6 +429,11 @@ void World::shutdown()
 	FRM_ASSERT(m_sceneInstances.empty());
 }
 
+void World::reset()
+{
+	m_rootScene->reset();
+}
+
 CameraComponent* World::getDrawCameraComponent()
 {
 	CameraComponent* cameraComponent = (CameraComponent*)m_drawCamera.referent;
@@ -799,6 +804,14 @@ void Scene::shutdown()
 	flushPendingDeletes();
 
 	m_world->removeSceneInstance(this);
+}
+
+void Scene::reset()
+{
+	for (auto& node : m_localNodeMap)
+	{
+		node.second->reset();
+	}
 }
 
 void Scene::update(float _dt, World::UpdatePhase _phase)
@@ -1558,6 +1571,43 @@ void SceneNode::shutdown()
 	for (LocalComponentReference& component : m_components)
 	{
 		component->shutdown();
+		if (component->isTransient())
+		{
+			// Destroy transient components.
+			// \todo Remove reference from the component list.
+			Component::Destroy(component.referent);
+		}
+	}
+}
+
+void SceneNode::reset()
+{
+	if (m_childScene)
+	{
+		m_childScene->reset();
+	}
+
+	// Destroy transient children.
+	for (LocalNodeReference& child : m_children)
+	{
+		if (child->isTransient())
+		{
+			FRM_ASSERT(child->getID() == 0u);
+			m_parentScene->destroyNode(child.referent);
+		}
+	}
+	
+	// If transient, remove from parent.
+	if (m_parent.isResolved() && isTransient())
+	{
+		m_parent->removeChild(this);
+	}
+
+	
+	// Reset components, destroy transient components.
+	for (LocalComponentReference& component : m_components)
+	{
+		component->reset();
 		if (component->isTransient())
 		{
 			// Destroy transient components.

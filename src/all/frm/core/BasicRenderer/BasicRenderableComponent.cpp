@@ -158,12 +158,11 @@ bool BasicRenderableComponent::initImpl()
 		}
 		m_mesh = DrawMesh::Create(m_meshPath.c_str());
 	}
-	// \todo This has changed with the mesh refactor, need to validate.
-	/*else
+	else
 	{
 		// Need to explicitly call Use here (Mesh::Create does it by default).
 		DrawMesh::Use(m_mesh);
-	}*/
+	}
 	if (!CheckResource(m_mesh))
 	{
 		DrawMesh::Release(m_mesh);
