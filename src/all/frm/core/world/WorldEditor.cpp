@@ -101,6 +101,7 @@ WorldEditor::WorldEditor()
 
 WorldEditor::~WorldEditor()
 {
+	World::Release(m_currentWorld);
 }
 
 bool WorldEditor::edit()
