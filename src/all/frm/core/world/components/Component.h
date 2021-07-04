@@ -69,6 +69,7 @@ public:
 	bool         init()                                       { FRM_ASSERT(m_state == World::State::Shutdown); m_state = World::State::Init; return initImpl(); }
 	bool         postInit()                                   { FRM_ASSERT(m_state == World::State::Init); m_state = World::State::PostInit; return postInitImpl(); }
 	void         shutdown()                                   { FRM_ASSERT(m_state == World::State::PostInit); m_state = World::State::Shutdown; shutdownImpl(); }
+	virtual void reset()                                      {}
 
 	bool         edit();
 	bool         serialize(Serializer& _serializer_);

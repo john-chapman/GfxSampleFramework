@@ -191,6 +191,7 @@ public:
 	bool                     init();
 	bool                     postInit();
 	void                     shutdown();
+	void                     reset();
 
 	// Get/set the current draw/cull camera component. Getters will create a transient node with a camera component + free look controller if none exists.
 	CameraComponent*         getDrawCameraComponent();
@@ -288,6 +289,7 @@ public:
 	bool                      init();
 	bool                      postInit();
 	void                      shutdown();
+	void                      reset();
 
 	// Add/remove a component. The node takes ownership of the component's memory (client code should *not* call Component::Destroy()).
 	void                      addComponent(Component* _component);
@@ -402,6 +404,7 @@ public:
 	bool                       init();
 	bool                       postInit();
 	void                       shutdown();
+	void                       reset();
 
 	// Create a new permanent node. Unlike transient nodes, these are serialized.
 	// init() and postInit() must subsequently be called on the node.

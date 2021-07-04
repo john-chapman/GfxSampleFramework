@@ -64,6 +64,7 @@ bool Physics::Init()
 
 void Physics::Shutdown()
 {
+	FRM_ASSERT(g_pxComponentPool.getUsedCount() == 0);
 	FRM_ASSERT(s_instance);
 	PxShutdown();
 	FRM_DELETE(s_instance);
@@ -676,8 +677,8 @@ bool PhysicsComponent::reinit()
 	const vec3 angularVelocity = getAngularVelocity();
 
 // \hack Keep geometry/material resources alive while we call shutdown().
-PhysicsGeometry::Use(m_geometry);
-PhysicsMaterial::Use(m_material);
+//PhysicsGeometry::Use(m_geometry);
+//PhysicsMaterial::Use(m_material);
 	shutdown();
 
 	if (!init() || !postInit())
@@ -685,8 +686,8 @@ PhysicsMaterial::Use(m_material);
 		return false;
 	}
 
-PhysicsGeometry::Release(m_geometry);
-PhysicsMaterial::Release(m_material);
+//PhysicsGeometry::Release(m_geometry);
+//PhysicsMaterial::Release(m_material);
 
 	setWorldTransform(world);
 	setLinearVelocity(linearVelocity);
