@@ -131,28 +131,31 @@ bool WorldEditor::edit()
 		ImGui::EndMenuBar();
 	}
 
-	if (ImGui::BeginChild("HierarchyView", ImVec2(0.0f, m_hierarchyViewHeight), true))
+	if (m_currentWorld)
 	{
-		ret |= hierarchyView(m_currentWorld->m_rootScene->m_root.referent);
-	}
-	ImGui::EndChild();
+		if (ImGui::BeginChild("HierarchyView", ImVec2(0.0f, m_hierarchyViewHeight), true))
+		{
+			ret |= hierarchyView(m_currentWorld->m_rootScene->m_root.referent);
+		}
+		ImGui::EndChild();
 
-	// \todo generalize splitter behavior
-	ImGui::InvisibleButton("HierarchyViewSplitter", ImVec2(-1.0f, 12.0f));
-	if (ImGui::IsItemHovered())
-	{
-		ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+		// \todo generalize splitter behavior
+		ImGui::InvisibleButton("HierarchyViewSplitter", ImVec2(-1.0f, 12.0f));
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+		}
+		if (ImGui::IsItemActive())
+		{
+			m_hierarchyViewHeight = Max(64.0f, m_hierarchyViewHeight + ImGui::GetIO().MouseDelta.y);
+		}
+		
+		if (ImGui::BeginChild("EditorView", ImVec2(-1.0f, -1.0f), true))
+		{
+			ret |= editorView();
+		}
+		ImGui::EndChild();
 	}
-	if (ImGui::IsItemActive())
-	{
-		m_hierarchyViewHeight = Max(64.0f, m_hierarchyViewHeight + ImGui::GetIO().MouseDelta.y);
-	}
-	
-	if (ImGui::BeginChild("EditorView", ImVec2(-1.0f, -1.0f), true))
-	{
-		ret |= editorView();
-	}
-	ImGui::EndChild();
 
 	ret |= dispatchActions();
 
@@ -180,14 +183,24 @@ void WorldEditor::setWorld(World* _world_)
 	}
 	m_modifiedScenes.clear();
 
-	World::Use(_world_);	
 	World::Release(m_currentWorld);
-	m_currentWorld = _world_;
-	m_currentScene = _world_->m_rootScene;
-	m_currentNode  = _world_->m_rootScene->m_root.referent;
-
-	m_nextNodeID = m_currentScene->findUniqueNodeID();
-	m_nextComponentID = m_currentScene->findUniqueComponentID();
+	if (_world_)
+	{
+		World::Use(_world_);	
+		m_currentWorld    = _world_;
+		m_currentScene    = _world_->m_rootScene;
+		m_currentNode     = _world_->m_rootScene->m_root.referent;
+		m_nextNodeID      = m_currentScene->findUniqueNodeID();
+		m_nextComponentID = m_currentScene->findUniqueComponentID();
+	}
+	else
+	{
+		m_currentWorld    = nullptr;
+		m_currentScene    = nullptr;
+		m_currentNode     = nullptr;
+		m_nextNodeID      = 0;
+		m_nextComponentID = 0;
+	}
 
 	flash();
 }
