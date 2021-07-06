@@ -176,6 +176,27 @@ public:
 	Shader*         shBloomUpsample            = nullptr;
 
 	bool            pauseUpdate                = false;
+	
+	struct Settings
+	{
+		ivec2 resolution                = ivec2(-1);
+		int   minShadowMapResolution    = 128;
+		int   maxShadowMapResolution    = 4096;
+		bool  enableCulling             = true;
+		bool  cullBySubmesh             = true;
+		float motionBlurTargetFps       = 60.0f;
+		int   motionBlurTileWidth       = 20;
+		int   motionBlurQuality         = 1;
+		float taaSharpen                = 0.4f;
+		float bloomScale                = -1.0f;
+		float bloomBrightness           = 0.0f;
+		int   bloomQuality              = 1;
+		float materialTextureAnisotropy = 4.0f;
+		int   lodBias                   = 0;
+		float exposureScale             = 1.0f;
+	};
+	Settings settings;
+	Flags    flags;
 
 	struct LODCoefficients
 	{
@@ -317,6 +338,7 @@ private:
 		vec4   bloomWeights    = vec4(0.2f);
 		float  motionBlurScale = 0.0f;     // current fps / target fps
 		uint32 frameIndex      = 0;
+		float  exposureScale   = 1.0f;
 	};
 	PostProcessData postProcessData;
 	void updatePostProcessData(float _dt, uint32 _frameIndex);

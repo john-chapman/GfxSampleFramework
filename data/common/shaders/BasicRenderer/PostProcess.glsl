@@ -17,6 +17,7 @@ layout(std140) uniform bfPostProcessData
 	vec4  uBloomWeights;
 	float uMotionBlurScale;
 	uint  uFrameIndex;
+	float uExposureScale;
 };
 
 vec3 Gamma(in vec3 _x)
@@ -234,6 +235,8 @@ void main()
 		ret.rgb += bloom;
 	}
 	#endif // (BLOOM_QUALITY >= 0)
+
+	ret.rgb *= uExposureScale;
 
 	ret = Tonemap_ACES_Narkowicz(ret);
 

@@ -659,6 +659,12 @@ bool BasicRenderer::edit()
 		ImGui::TreePop();
 	}
 
+	if (ImGui::TreeNode("Exposure"))
+	{
+		ret |= ImGui::SliderFloat("Exposure Scale", &settings.exposureScale, 0.0f, 2.0f);
+		ImGui::TreePop();
+	}
+
 	if (ImGui::TreeNode("Motion Blur"))
 	{
 		ret |= ImGui::SliderFloat("Motion Blur Target FPS", &settings.motionBlurTargetFps, 0.0f, 90.0f);
@@ -792,19 +798,20 @@ BasicRenderer::BasicRenderer(Flags _flags, Settings* _settings)
 	{
 		Properties::PushGroup("#BasicRenderer");
 
-			Properties::Add("resolution",                 settings.resolution,                  ivec2(0),   ivec2(8192), &settings.resolution);
-			Properties::Add("motionBlurTargetFps",        settings.motionBlurTargetFps,         0.f,        128.f,       &settings.motionBlurTargetFps);
-			Properties::Add("motionBlurQuality",          settings.motionBlurQuality,           0,          1,           &settings.motionBlurQuality);
-			Properties::Add("taaSharpen",                 settings.taaSharpen,                  0.f,        2.f,         &settings.taaSharpen);
-			Properties::Add("enableCulling",              settings.enableCulling,                                        &settings.enableCulling);
-			Properties::Add("cullBySubmesh",              settings.cullBySubmesh,                                        &settings.cullBySubmesh);
-			Properties::Add("bloomScale",                 settings.bloomScale,                 -2.f,        2.f,         &settings.bloomScale);
-			Properties::Add("bloomBrightness",            settings.bloomBrightness,             0.f,        2.f,         &settings.bloomBrightness);
-			Properties::Add("bloomQuality",               settings.bloomQuality,                0,          1,           &settings.bloomQuality);
-			Properties::Add("maxShadowMapResolution",     settings.maxShadowMapResolution,      16,         16*1024,     &settings.maxShadowMapResolution);
-			Properties::Add("minShadowMapResolution",     settings.minShadowMapResolution,      16,         16*1024,     &settings.minShadowMapResolution);
-			Properties::Add("environmentProbeResolution", settings.environmentProbeResolution,  64,         16*1024,     &settings.environmentProbeResolution);
-			Properties::Add("materialTextureAnisotropy",  settings.materialTextureAnisotropy,   0.f,        16.f,        &settings.materialTextureAnisotropy);
+			Properties::Add("resolution",                settings.resolution,                ivec2(0),   ivec2(8192), &settings.resolution);
+			Properties::Add("motionBlurTargetFps",       settings.motionBlurTargetFps,       0.f,        128.f,       &settings.motionBlurTargetFps);
+			Properties::Add("motionBlurQuality",         settings.motionBlurQuality,         0,          1,           &settings.motionBlurQuality);
+			Properties::Add("taaSharpen",                settings.taaSharpen,                0.f,        2.f,         &settings.taaSharpen);
+			Properties::Add("enableCulling",             settings.enableCulling,                                      &settings.enableCulling);
+			Properties::Add("cullBySubmesh",             settings.cullBySubmesh,                                      &settings.cullBySubmesh);
+			Properties::Add("bloomScale",                settings.bloomScale,                -2.f,       2.f,         &settings.bloomScale);
+			Properties::Add("bloomBrightness",           settings.bloomBrightness,           0.f,        2.f,         &settings.bloomBrightness);
+			Properties::Add("bloomQuality",              settings.bloomQuality,              0,          1,           &settings.bloomQuality);
+			Properties::Add("maxShadowMapResolution",    settings.maxShadowMapResolution,    16,         16*1024,     &settings.maxShadowMapResolution);
+			Properties::Add("minShadowMapResolution",    settings.minShadowMapResolution,    16,         16*1024,     &settings.minShadowMapResolution);
+			Properties::Add("materialTextureAnisotropy", settings.materialTextureAnisotropy, 0.f,        16.f,        &settings.materialTextureAnisotropy);
+			Properties::Add("lodBias",                   settings.lodBias,                   -8,         8,           &settings.lodBias);
+			Properties::Add("exposureScale",             settings.exposureScale,             0.f,        2.f,         &settings.exposureScale);
 
 		Properties::PopGroup();
 	}
@@ -1651,6 +1658,7 @@ void BasicRenderer::updatePostProcessData(float _dt, uint32 _frameIndex)
 {
 	postProcessData.motionBlurScale = settings.motionBlurTargetFps * _dt;
 	postProcessData.frameIndex = _frameIndex;
+	postProcessData.exposureScale = settings.exposureScale;
 	
 	{
 		// Bloom weights are sampled along a line, slope is determined by bloomScale.
