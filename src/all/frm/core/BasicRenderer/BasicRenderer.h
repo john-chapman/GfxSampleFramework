@@ -94,6 +94,7 @@ public:
 		int   bloomQuality                = 1;    // -1 = off, 0 = low, 1 = normal
 		float materialTextureAnisotropy   = 4.0f;
 		int   lodBias                     = 0;
+		float exposureScale               = 1.0f;
 	};
 	Settings settings;
 
@@ -177,27 +178,6 @@ public:
 
 	bool            pauseUpdate                = false;
 	
-	struct Settings
-	{
-		ivec2 resolution                = ivec2(-1);
-		int   minShadowMapResolution    = 128;
-		int   maxShadowMapResolution    = 4096;
-		bool  enableCulling             = true;
-		bool  cullBySubmesh             = true;
-		float motionBlurTargetFps       = 60.0f;
-		int   motionBlurTileWidth       = 20;
-		int   motionBlurQuality         = 1;
-		float taaSharpen                = 0.4f;
-		float bloomScale                = -1.0f;
-		float bloomBrightness           = 0.0f;
-		int   bloomQuality              = 1;
-		float materialTextureAnisotropy = 4.0f;
-		int   lodBias                   = 0;
-		float exposureScale             = 1.0f;
-	};
-	Settings settings;
-	Flags    flags;
-
 	struct LODCoefficients
 	{
 		float size           = 0.0f; // Coefficent for projected size metric.
