@@ -56,7 +56,11 @@ void AppSample3d::shutdown()
 
 	FRM_DELETE(m_worldEditor); // \todo Detect pending changes which might need to be saved.
 
-	m_worldPath = World::GetCurrent()->getPath();
+	World* currentWorld = World::GetCurrent();
+	if (currentWorld)
+	{
+		m_worldPath = currentWorld->getPath();
+	}
 	World::Release(m_world);
 
 	if (m_txIm3dDepth)
