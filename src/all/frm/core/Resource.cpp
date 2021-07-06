@@ -42,8 +42,8 @@ void Resource<tDerived>::Release(Derived*& _inst_)
 		if (_inst_->m_refs == 0)
 		{
 			Derived::Destroy(_inst_);
-			_inst_ = nullptr;
 		}
+		_inst_ = nullptr;
 	}
 }
 
