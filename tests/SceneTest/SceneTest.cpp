@@ -64,7 +64,7 @@ bool SceneTest::update()
 		ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Physics"))
 		{
-			Physics::Edit();
+			Physics::GetCurrentWorld()->edit();
 			
 			ImGui::TreePop();
 		}

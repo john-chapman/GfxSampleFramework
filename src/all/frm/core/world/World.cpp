@@ -9,6 +9,10 @@
 #include <frm/core/world/components/CameraComponent.h>
 #include <frm/core/world/components/FreeLookComponent.h>
 
+#if FRM_MODULE_PHYSICS
+	#include <frm/physics/Physics.h>
+#endif
+
 namespace frm {
 
 /*******************************************************************************
@@ -228,6 +232,15 @@ void World::Release(World*& _world_)
 	}
 }
 
+void World::SetCurrent(World* _world_)
+{
+	// \todo Need to unset/set active camera? Possibly need activation events?
+	s_current = _world_;
+	#if FRM_MODULE_PHYSICS
+		Physics::SetCurrentWorld(s_current->m_physicsWorld);
+	#endif
+}
+
 void World::Destroy(World*& _world_)
 {
 	FRM_ASSERT(_world_->m_refCount == 0);
@@ -267,6 +280,13 @@ void World::update(float _dt, UpdatePhase _phase)
 
 			_phase = (UpdatePhase)i;
 
+			#if FRM_MODULE_PHYSICS
+				if (_phase == UpdatePhase::Physics)
+				{
+					m_physicsWorld->update(_dt);
+				}
+			#endif
+
 			if_likely (m_rootScene)
 			{
 				m_rootScene->update(_dt, _phase);
@@ -277,6 +297,13 @@ void World::update(float _dt, UpdatePhase _phase)
 	else
 	{
 		PROFILER_MARKER_CPU(kUpdatePhaseMarkerStr[(int)_phase]);
+
+		#if FRM_MODULE_PHYSICS
+			if (_phase == UpdatePhase::Physics)
+			{
+				m_physicsWorld->update(_dt);
+			}
+		#endif
 
 		if_likely (m_rootScene)
 		{
@@ -377,6 +404,11 @@ bool World::init()
 	FRM_ASSERT(m_state == State::Shutdown);
 	m_state = World::State::Init;
 
+	// \todo Moved this to the ctor as we need to ensure global init has happened before serializing any physics geometry/materials.
+	//#if FRM_MODULE_PHYSICS
+	//	FRM_VERIFY(m_physicsWorld->init());
+	//#endif
+
 	if (!m_rootScene)
 	{
 		m_rootScene = Scene::CreateDefault(this);
@@ -426,6 +458,11 @@ void World::shutdown()
 	//m_cullCamera = GlobalComponentReference();
 	//m_inputConsumer = GlobalComponentReference();
 
+	// \todo See init().
+	//#if FRM_MODULE_PHYSICS
+	//	m_physicsWorld->shutdown();
+	//#endif
+
 	FRM_ASSERT(m_sceneInstances.empty());
 }
 
@@ -462,6 +499,11 @@ World::World()
 	{
 		s_current = this;
 	}
+
+	#if FRM_MODULE_PHYSICS
+		m_physicsWorld = FRM_NEW(PhysicsWorld);
+		FRM_VERIFY(m_physicsWorld->init());
+	#endif
 }
 
 World::~World()
@@ -473,6 +515,11 @@ World::~World()
 		
 	FRM_DELETE(m_rootScene);
 	m_rootScene = nullptr;
+
+	#if FRM_MODULE_PHYSICS
+		m_physicsWorld->shutdown();
+		FRM_DELETE(m_physicsWorld);
+	#endif
 
 	if (s_current == this)
 	{

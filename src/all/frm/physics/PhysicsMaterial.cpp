@@ -274,6 +274,10 @@ void PhysicsMaterial::updateImpl()
 {
 	if (!m_impl)
 	{
+		PhysicsWorld* physicsWorld = Physics::GetCurrentWorld();
+		FRM_ASSERT(physicsWorld);
+		PhysicsWorld::Impl* px = physicsWorld->m_impl;
+
 		m_impl = g_pxPhysics->createMaterial(m_staticFriction, m_dynamicFriction, m_restitution);
 		physx::PxMaterial* pxMaterial = (physx::PxMaterial*)m_impl;
 		pxMaterial->userData = this;

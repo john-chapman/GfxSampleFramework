@@ -89,7 +89,11 @@ void CharacterControllerComponent::update(float _dt)
 
 bool CharacterControllerComponent::initImpl()
 {
-	FRM_ASSERT(g_pxControllerManager);
+	FRM_ASSERT(g_pxPhysics);
+	PhysicsWorld* physicsWorld = Physics::GetCurrentWorld();
+	FRM_ASSERT(physicsWorld);
+	PhysicsWorld::Impl* px = physicsWorld->m_impl;
+
 	FRM_ASSERT(!m_impl);
 	
 	physx::PxCapsuleControllerDesc desc;
@@ -102,7 +106,7 @@ bool CharacterControllerComponent::initImpl()
 	const physx::PxVec3 position = Vec3ToPx(m_parentNode->getPosition());
 	desc.position = physx::PxExtendedVec3(position.x, position.y, position.z);
 
-	physx::PxController* controller = g_pxControllerManager->createController(desc);
+	physx::PxController* controller = px->pxControllerManager->createController(desc);
 	desc.material->release();
 
 	if (!controller)

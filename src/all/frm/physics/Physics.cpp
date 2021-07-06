@@ -5,7 +5,7 @@
 
 #include <frm/core/log.h>
 #include <frm/core/memory.h>
-#include <frm/core/BasicRenderer/BasicRenderableComponent.h> // used by PhysicsComponentTemp to manage fadeout
+#include <frm/core/BasicRenderer/BasicRenderableComponent.h> // used by transient PhysicsComponent to manage fadeout
 #include <frm/core/FileSystem.h>
 #include <frm/core/Properties.h>
 #include <frm/core/Profiler.h>
@@ -19,7 +19,6 @@
 
 
 namespace frm {
-
 
 /******************************************************************************
 
@@ -40,47 +39,79 @@ static const char* kPhysicsFlagStr[] =
 
 // PUBLIC
 
-bool Physics::Init()
+const PhysicsMaterial* Physics::GetDefaultMaterial()
 {
-	FRM_AUTOTIMER("#Physics::Init");
+	return PhysicsMaterial::Create(0.5f, 0.5f, 0.5f);
+}
 
-	FRM_ASSERT(!s_instance);
-	s_instance = FRM_NEW(Physics);
+// PRIVATE
+
+PhysicsWorld* Physics::s_currentWorld = nullptr;
+
+/******************************************************************************
+
+                                  PhysicsWorld
+
+******************************************************************************/
+
+// PUBLIC
+
+PhysicsWorld::PhysicsWorld()
+{
+	PhysicsWorld* current = Physics::GetCurrentWorld();
+	if (!current)
+	{
+		Physics::SetCurrentWorld(this);
+	}
+}
+
+PhysicsWorld::~PhysicsWorld()
+{
+	if (Physics::GetCurrentWorld() == this)
+	{
+		Physics::SetCurrentWorld(nullptr);
+	}
+}
+
+bool PhysicsWorld::init()
+{
+	FRM_AUTOTIMER("#PhysicsWorld::Init");
+
+	Properties::PushGroup("#Physics");
+		Properties::Add("m_drawDebug",          m_drawDebug,                                         &m_drawDebug);
+		Properties::Add("m_paused",             m_paused,                                            &m_paused);
+		Properties::Add("m_stepLengthSeconds",  m_stepLengthSeconds,     0.0f,         1.0f,         &m_stepLengthSeconds);
+		Properties::Add("m_gravity",            m_gravity,               0.0f,         20.0f,        &m_gravity);
+		Properties::Add("m_gravityDirection",   m_gravityDirection,      vec3(-20.0f), vec3(20.0f),  &m_gravityDirection);
+	Properties::PopGroup();
+
+	m_gravityDirection = Normalize(m_gravityDirection);
 
 	PxSettings pxSettings;
-	pxSettings.gravity         = s_instance->m_gravity * s_instance->m_gravityDirection;
-	pxSettings.toleranceLength = 1.0f;
-	pxSettings.toleranceSpeed  = s_instance->m_gravity;
+	pxSettings.gravity         = m_gravity * m_gravityDirection;
+	m_impl = FRM_NEW(Impl(pxSettings));
 
-	if (!PxInit(pxSettings, s_instance->m_collisionEvents))
-	{
-		return false;
-	}
-
-	s_instance->setDrawDebug(s_instance->m_drawDebug);
+	setDrawDebug(m_drawDebug);
 
 	return true;
 }
 
-void Physics::Shutdown()
+void PhysicsWorld::shutdown()
 {
-	FRM_ASSERT(g_pxComponentPool.getUsedCount() == 0);
-	FRM_ASSERT(s_instance);
-	PxShutdown();
-	FRM_DELETE(s_instance);
-	s_instance = nullptr;
+	Properties::InvalidateGroup("#Physics");
+	FRM_DELETE(m_impl);
 }
 
-void Physics::Update(float _dt)
+void PhysicsWorld::update(float _dt)
 {
 	PROFILER_MARKER_CPU("#Physics::Update");
 	
-	if (s_instance->m_paused)
+	if (m_paused)
 	{
-		if (s_instance->m_step)
+		if (m_step)
 		{
-			s_instance->m_step = false;
-			_dt = s_instance->m_stepLengthSeconds;
+			m_step = false;
+			_dt = m_stepLengthSeconds;
 		}
 		else
 		{
@@ -89,10 +120,10 @@ void Physics::Update(float _dt)
 		}
 	}
 
-	s_instance->m_collisionEvents.clear();
+	m_impl->collisionEvents.clear();
 
 	// Set kinematic transforms.
-	for (PhysicsComponent* component : s_instance->m_kinematic)
+	for (PhysicsComponent* component : m_kinematic)
 	{
 		PxComponentImpl* impl = (PxComponentImpl*)component->m_impl;
 		FRM_ASSERT(impl);
@@ -103,70 +134,73 @@ void Physics::Update(float _dt)
 	}
 
 	// Step the simulation.
-	float stepLengthSeconds = Min(s_instance->m_stepLengthSeconds, _dt);
-	float stepCount = Floor((_dt + s_instance->m_stepAccumulator) / stepLengthSeconds);
-	s_instance->m_stepAccumulator += _dt - (stepCount * stepLengthSeconds);
+	float stepLengthSeconds = Min(m_stepLengthSeconds, _dt);
+	float stepCount = Floor((_dt + m_stepAccumulator) / stepLengthSeconds);
+	m_stepAccumulator += _dt - (stepCount * stepLengthSeconds);
 	for (int i = 0; i < (int)stepCount; ++i)
 	{
 		PROFILER_MARKER_CPU("Step");
 
-		g_pxScene->simulate(stepLengthSeconds);
-		FRM_VERIFY(g_pxScene->fetchResults(true)); // true = block until the results are ready
+		m_impl->pxScene->simulate(stepLengthSeconds);
+		FRM_VERIFY(m_impl->pxScene->fetchResults(true)); // true = block until the results are ready
 	}
 }
 
-void Physics::Edit()
+bool PhysicsWorld::edit()
 {
-	if (ImGui::Button(s_instance->m_paused ? ICON_FA_PLAY " Resume" : ICON_FA_PAUSE " Pause"))
+	bool ret = false;
+
+	if (ImGui::Button(m_paused ? ICON_FA_PLAY " Resume" : ICON_FA_PAUSE " Pause"))
 	{
-		s_instance->m_paused = !s_instance->m_paused;
+		m_paused = !m_paused;
 	}
 
-	if (s_instance->m_paused)
+	if (m_paused)
 	{
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_STEP_FORWARD " Step"))
 		{
 		#if 0
-			// this doesn't work well because calling Update() here sets the world matrix, which subsequently gets overwritten during the scene update
-			s_instance->m_paused = false;
-			s_instance->m_stepAccumulator = 0.0f;
-			Update(s_instance->m_stepLengthSeconds);
-			s_instance->m_paused = true;
+			// This doesn't work well because calling update() here sets the world matrix on scene nodes, which subsequently gets overwritten during the scene update.
+			m_paused = false;
+			m_stepAccumulator = 0.0f;
+			update(m_stepLengthSeconds);
+			m_paused = true;
 		#else
-			s_instance->m_step = true;
+			m_step = true;
 		#endif
 		}
 	}
 
 	if (ImGui::Button("Reset"))
 	{
-		Reset();		
+		reset();		
 	}
 	
-	if (ImGui::SliderFloat("Gravity", &s_instance->m_gravity, 0.0f, 30.0f))
+	if (ImGui::SliderFloat("Gravity", &m_gravity, 0.0f, 30.0f))
 	{
-		vec3 g = s_instance->m_gravityDirection * s_instance->m_gravity;
-		g_pxScene->setGravity(Vec3ToPx(g));
+		vec3 g = m_gravityDirection * m_gravity;
+		m_impl->pxScene->setGravity(Vec3ToPx(g));
+		ret = true;
 	}
 
-	bool debugDraw = s_instance->m_drawDebug;
+	bool debugDraw = m_drawDebug;
 	if (ImGui::Checkbox("Debug Draw", &debugDraw))
 	{
-		s_instance->setDrawDebug(debugDraw);
+		setDrawDebug(debugDraw);
 	}
 
 	ImGui::Spacing();
 	if (ImGui::TreeNode("Stats"))
 	{
 		physx::PxSimulationStatistics stats;
-		g_pxScene->getSimulationStatistics(stats);
+		m_impl->pxScene->getSimulationStatistics(stats);
 
 		ImGui::Text("Static Bodies:      %u",             stats.nbStaticBodies);
 		ImGui::Text("Dynamic Bodies:     %u (%u active)", stats.nbDynamicBodies,   stats.nbActiveDynamicBodies);
 		ImGui::Text("Kinematic Bodies:   %u (%u active)", stats.nbKinematicBodies, stats.nbActiveKinematicBodies);
 		ImGui::Text("Active Constraints: %u ",            stats.nbActiveConstraints);
-		ImGui::Text("Collision Events:   %u",             s_instance->m_collisionEvents.size());
+		ImGui::Text("Collision Events:   %u",             m_impl->collisionEvents.size());
 
 		ImGui::Spacing();
 		
@@ -176,11 +210,13 @@ void Physics::Edit()
 
 		ImGui::TreePop();
 	}
+
+	return ret;
 }
 
-void Physics::DrawDebug()
+void PhysicsWorld::drawDebug()
 {
-	if (!s_instance->m_drawDebug)
+	if (!m_drawDebug)
 	{
 		return;
 	}
@@ -196,7 +232,7 @@ void Physics::DrawDebug()
 		};
 	
 	// \todo This seems to have a 1 frame latency, calling DrawDebug() before/after the update doesn't seem to have any effect.
-	const physx::PxRenderBuffer& drawList = g_pxScene->getRenderBuffer();
+	const physx::PxRenderBuffer& drawList = m_impl->pxScene->getRenderBuffer();
 
 	Im3d::PushDrawState();
 
@@ -235,7 +271,7 @@ void Physics::DrawDebug()
 
 	}
 
-	for (CollisionEvent& collisionEvent : s_instance->m_collisionEvents)
+	for (CollisionEvent& collisionEvent : m_impl->collisionEvents)
 	{
 		Im3d::DrawPoint(collisionEvent.point, 8.0f, Im3d::Color_Magenta);
 		Im3d::DrawLine(collisionEvent.point, collisionEvent.point + collisionEvent.normal * Max(0.2f, collisionEvent.impulse), 4.0f, Im3d::Color_Red);
@@ -244,60 +280,56 @@ void Physics::DrawDebug()
 	Im3d::PopDrawState();
 }
 
-void Physics::RegisterComponent(PhysicsComponent* _component_)
+void PhysicsWorld::registerComponent(PhysicsComponent* _component_)
 {
 	PROFILER_MARKER_CPU("#Physics::RegisterComponent");
 
 	PxComponentImpl* impl = (PxComponentImpl*)_component_->m_impl;
 	FRM_ASSERT(impl);
-	g_pxScene->addActor(*impl->pxRigidActor);
+	m_impl->pxScene->addActor(*impl->pxRigidActor);
 
-	Flags flags = _component_->getFlags();
-	if (flags.get(Flag::Dynamic))
+	const Flags flags = _component_->getFlags();
+	if (flags.get(Physics::Flag::Dynamic))
 	{
-		s_instance->m_dynamic.push_back(_component_);
+		m_dynamic.push_back(_component_);
 	}
-	else if (flags.get(Flag::Kinematic))
+	else if (flags.get(Physics::Flag::Kinematic))
 	{
-		s_instance->m_kinematic.push_back(_component_);
+		m_kinematic.push_back(_component_);
 	}
 	else
 	{
-		s_instance->m_static.push_back(_component_);
+		m_static.push_back(_component_);
 	}
 }
 
-void Physics::UnregisterComponent(PhysicsComponent* _component_)
+
+void PhysicsWorld::unregisterComponent(PhysicsComponent* _component_)
 {
 	PROFILER_MARKER_CPU("#Physics::UnregisterComponent");
 
 	PxComponentImpl* impl = (PxComponentImpl*)_component_->m_impl;
 	FRM_ASSERT(impl);
-	g_pxScene->removeActor(*impl->pxRigidActor);
+	m_impl->pxScene->removeActor(*impl->pxRigidActor);
 
 	Flags flags = _component_->getFlags();
-	if (flags.get(Flag::Dynamic))
+	if (flags.get(Physics::Flag::Dynamic))
 	{
-		s_instance->m_dynamic.erase_first_unsorted(_component_);
+		m_dynamic.erase_first_unsorted(_component_);
 	}
-	else if (flags.get(Flag::Kinematic))
+	else if (flags.get(Physics::Flag::Kinematic))
 	{
-		s_instance->m_kinematic.erase_first_unsorted(_component_);
+		m_kinematic.erase_first_unsorted(_component_);
 	}
 	else
 	{
-		s_instance->m_static.erase_first_unsorted(_component_);
+		m_static.erase_first_unsorted(_component_);
 	}
 }
 
-const PhysicsMaterial* Physics::GetDefaultMaterial()
+void PhysicsWorld::addGroundPlane(const PhysicsMaterial* _material)
 {
-	return PhysicsMaterial::Create(0.5f, 0.5f, 0.5f);
-}
-
-void Physics::AddGroundPlane(const PhysicsMaterial* _material)
-{
-	static SceneNode* groundNode;
+	static SceneNode* groundNode = nullptr;
 	if (!groundNode)
 	{
 		Scene* rootScene = World::GetCurrent()->getRootScene();
@@ -309,28 +341,27 @@ void Physics::AddGroundPlane(const PhysicsMaterial* _material)
 			1.0f,
 			-1.0f,
 			identity,
-			{ Flag::Static, Flag::Simulation, Flag::Query}
+			{ Physics::Flag::Static, Physics::Flag::Simulation, Physics::Flag::Query }
 			);			
 		groundNode->addComponent(physicsComponent);
 
-		FRM_VERIFY(groundNode->init());
-		FRM_VERIFY(groundNode->postInit());
+		FRM_VERIFY(groundNode->init() && groundNode->postInit());
 	}
 }
 
-bool Physics::RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flags)
+bool PhysicsWorld::rayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flags)
 {
 	PROFILER_MARKER_CPU("#Physics::RayCast");
 
 	physx::PxRaycastBuffer queryResult;
 	physx::PxHitFlags flags = (physx::PxHitFlags)0
-		| (_flags.get(RayCastFlag::Position)      ? physx::PxHitFlag::ePOSITION   : (physx::PxHitFlags)0)
-		| (_flags.get(RayCastFlag::Normal)        ? physx::PxHitFlag::eNORMAL     : (physx::PxHitFlags)0)
-		| (_flags.get(RayCastFlag::AnyHit)        ? physx::PxHitFlag::eMESH_ANY   : (physx::PxHitFlags)0)
-		| (_flags.get(RayCastFlag::TriangleIndex) ? physx::PxHitFlag::eFACE_INDEX : (physx::PxHitFlags)0)
+		| (_flags.get(Physics::RayCastFlag::Position)      ? physx::PxHitFlag::ePOSITION   : (physx::PxHitFlags)0)
+		| (_flags.get(Physics::RayCastFlag::Normal)        ? physx::PxHitFlag::eNORMAL     : (physx::PxHitFlags)0)
+		| (_flags.get(Physics::RayCastFlag::AnyHit)        ? physx::PxHitFlag::eMESH_ANY   : (physx::PxHitFlags)0)
+		| (_flags.get(Physics::RayCastFlag::TriangleIndex) ? physx::PxHitFlag::eFACE_INDEX : (physx::PxHitFlags)0)
 		;
 
-	if (!g_pxScene->raycast(Vec3ToPx(_in.origin), Vec3ToPx(_in.direction), _in.maxDistance, queryResult) || !queryResult.hasBlock)
+	if (!m_impl->pxScene->raycast(Vec3ToPx(_in.origin), Vec3ToPx(_in.direction), _in.maxDistance, queryResult) || !queryResult.hasBlock)
 	{
 		return false;
 	}
@@ -344,16 +375,21 @@ bool Physics::RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flag
 	return true;
 }
 
-void Physics::SetPaused(bool _paused)
+eastl::span<Physics::CollisionEvent> PhysicsWorld::getCollisionEvents()
 {
-	s_instance->m_paused = _paused;
+	return eastl::span<CollisionEvent>(m_impl->collisionEvents);
 }
 
-void Physics::Reset()
+void PhysicsWorld::setPaused(bool _paused)
+{
+	m_paused = _paused;
+}
+
+void PhysicsWorld::reset()
 {
 	eastl::vector<PhysicsComponent*> transientComponents;
 
-	for (PhysicsComponent* component : s_instance->m_kinematic)
+	for (PhysicsComponent* component : m_kinematic)
 	{
 		component->reset();
 		if (component->isTransient())
@@ -362,7 +398,7 @@ void Physics::Reset()
 		}
 	}
 
-	for (PhysicsComponent* component : s_instance->m_dynamic)
+	for (PhysicsComponent* component : m_dynamic)
 	{
 		component->reset();
 		if (component->isTransient())
@@ -385,31 +421,10 @@ void Physics::Reset()
 	}
 }
 
+
 // PRIVATE
 
-Physics* Physics::s_instance;
-
-Physics::Physics()
-{
-	Properties::PushGroup("#Physics");
-
-		Properties::Add("m_drawDebug",          m_drawDebug,                                         &m_drawDebug);
-		Properties::Add("m_paused",             m_paused,                                            &m_paused);
-		Properties::Add("m_stepLengthSeconds",  m_stepLengthSeconds,     0.0f,         1.0f,         &m_stepLengthSeconds);
-		Properties::Add("m_gravity",            m_gravity,               0.0f,         20.0f,        &m_gravity);
-		Properties::Add("m_gravityDirection",   m_gravityDirection,      vec3(-20.0f), vec3(20.0f),  &m_gravityDirection);
-
-	Properties::PopGroup();
-
-	m_gravityDirection = Normalize(m_gravityDirection);
-}
-
-Physics::~Physics()
-{
-	Properties::InvalidateGroup("#Physics");
-}
-
-void Physics::updateComponentTransforms()
+void PhysicsWorld::updateComponentTransforms()
 {
 	// \todo Consider the 'active actors' api, can skip updating nodes which haven't moved: https://gameworksdocs.nvidia.com/PhysX/4.0/documentation/PhysXGuide/Manual/RigidBodyDynamics.html#active-actors.
 	// Given that we're already updating only components with the 'dynamic' flag set, this is likely to be more efficient only if there are many thousands of actors.
@@ -424,29 +439,28 @@ void Physics::updateComponentTransforms()
 	}
 }
 
-void Physics::setDrawDebug(bool _enable)
+void PhysicsWorld::setDrawDebug(bool _enable)
 {
 	m_drawDebug = _enable;
 	if (_enable)
 	{
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE,              1.0f);
-
-		//g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_AABBS,    1.0f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES,   1.0f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES,     1.0f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_POINT,      1.0f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_NORMAL,     2.0f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_ERROR,      1.0f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.5f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_LIN_VELOCITY,  0.25f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_ANG_VELOCITY,  0.25f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.25f);
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE,              1.0f);
+		//m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_AABBS,    1.0f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES,   1.0f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES,     1.0f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_POINT,      1.0f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_NORMAL,     2.0f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eCONTACT_ERROR,      1.0f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.5f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_LIN_VELOCITY,  0.25f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_ANG_VELOCITY,  0.25f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.25f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS,       1.0f);
 	}
 	else
 	{
-		g_pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 0.0f);
+		m_impl->pxScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 0.0f);
 	}
 }
 
@@ -813,7 +827,7 @@ bool PhysicsComponent::initImpl()
 		physx::PxRigidBodyExt::updateMassAndInertia(*pxRigidDynamic, m_mass);
 	}
 
-	Physics::RegisterComponent(this);
+	Physics::GetCurrentWorld()->registerComponent(this);
 
 	return true;
 }
@@ -837,7 +851,10 @@ bool PhysicsComponent::postInitImpl()
 
 void PhysicsComponent::shutdownImpl()
 {
-	Physics::UnregisterComponent(this);
+	PhysicsWorld* physicsWorld = Physics::GetCurrentWorld();
+	FRM_ASSERT(physicsWorld);
+
+	physicsWorld->unregisterComponent(this);
 
 	PxComponentImpl*& impl = (PxComponentImpl*&)m_impl;
 

@@ -7,7 +7,6 @@
 #include <frm/core/frm.h>
 #include <frm/core/math.h>
 #include <frm/core/Pool.h>
-
 #include <frm/physics/Physics.h>
 
 #include <PxPhysicsAPI.h>
@@ -18,10 +17,8 @@
 namespace frm {
 
 extern physx::PxFoundation*           g_pxFoundation;
-extern physx::PxControllerManager*    g_pxControllerManager;
-extern physx::PxPhysics*              g_pxPhysics;
 extern physx::PxDefaultCpuDispatcher* g_pxDispatcher;
-extern physx::PxScene*                g_pxScene;
+extern physx::PxPhysics*              g_pxPhysics;
 extern physx::PxCooking*              g_pxCooking;
 
 struct PxComponentImpl
@@ -33,18 +30,33 @@ extern Pool<PxComponentImpl> g_pxComponentPool;
 
 struct PxSettings
 {
-	float toleranceLength;
-	float toleranceSpeed;
-	vec3  gravity;
+	float toleranceLength  = 1.0f;
+	float toleranceSpeed   = 10.0f;
+	vec3  gravity          = vec3(0.0f, -10.0f, 0.0f);
 };
 
-bool PxInit(const PxSettings& _settings, eastl::vector<frm::Physics::CollisionEvent>& collisionEvents_);
-void PxShutdown();
+struct PhysicsWorld::Impl: public physx::PxSimulationEventCallback
+{
+	physx::PxScene*                        pxScene              = nullptr;
+	physx::PxControllerManager*            pxControllerManager  = nullptr;
+	eastl::vector<Physics::CollisionEvent> collisionEvents;
 
+	Impl(const PxSettings& _settings);
+	~Impl();
+
+	// PxSimulationEventCallback
+	void onConstraintBreak(physx::PxConstraintInfo* constraints, physx::PxU32 count) override;
+	void onWake(physx::PxActor** actors, physx::PxU32 count) override;
+	void onSleep(physx::PxActor** actors, physx::PxU32 count) override;
+	void onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) override;
+	void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) override;
+	void onAdvance(const physx::PxRigidBody* const* bodyBuffer, const physx::PxTransform* poseBuffer, const physx::PxU32 count) override;
+};
+
+// Cooking
 void PxInitCooker();
 bool PxCookConvexMesh(Mesh& _mesh, physx::PxOutputStream& out_);
 bool PxCookTriangleMesh(Mesh& _mesh, physx::PxOutputStream& out_);
-
 
 
 // Px -> frm

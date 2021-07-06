@@ -31,6 +31,7 @@ Embedded dependencies:
 - [xatlas](https://github.com/jpcy/xatlas)
 
 ## Change Log ##
+- `2021-07-06 (v0.34):` Physics refactor: `PhysicsWorld` object (per `World`); wraps `physx::PxScene`, `physx::PxControllerManager`, implements event callbacks directly.
 - `2021-05-03 (v0.33):` Mesh refactor: integrated [meshoptimizer](https://github.com/zeux/meshoptimizer), new `Mesh` + `DrawMesh` classes.
 - `2020-10-22 (v0.32):` Major refactor of the scene/component system, updated ImGui.
 - `2020-04-13 (v0.31):` Version bump after merging PhysX integration, basic renderer implementation + properites refactor.

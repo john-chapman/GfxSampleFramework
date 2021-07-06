@@ -175,7 +175,7 @@ public:
 
 	// Get/set the current active world.
 	static World*            GetCurrent()                 { return s_current; }
-	static void              SetCurrent(World* _world)    { s_current = _world; } // \todo Need to unset/set active camera? Possibly need activation events?
+	static void              SetCurrent(World* _world);
 
 	// Get the current draw/cull camera. These are convenience wrappers equivalent to World::GetCurrent()->get{Draw,Cull}CameraComponent()->getCamera().
 	static Camera*           GetDrawCamera();
@@ -222,6 +222,10 @@ private:
 	GlobalComponentReference m_drawCamera;
 	GlobalComponentReference m_cullCamera;
 	GlobalComponentReference m_inputConsumer;
+
+	#if FRM_MODULE_PHYSICS
+		PhysicsWorld*        m_physicsWorld      = nullptr;
+	#endif
 
 	// Destroy a world instance. Called implicitly by Release().
 	static void              Destroy(World*& _world_);

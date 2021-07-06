@@ -13,6 +13,8 @@
 
 namespace frm {
 
+class PhysicsWorld;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Physics
 // \todo
@@ -22,8 +24,16 @@ namespace frm {
 class Physics
 {
 public:
+	
+	// Get/create the default material.
+	static const PhysicsMaterial* GetDefaultMaterial();
 
-	enum class Flag: uint8
+	// Get/set the current world instance.
+	static PhysicsWorld*          GetCurrentWorld()                      { return s_currentWorld; }
+	static void                   SetCurrentWorld(PhysicsWorld* _world)  { s_currentWorld = _world; }
+
+
+	enum class Flag
 	{
 		Static,           // Fixed position, infinite mass.
 		Kinematic,        // Animated position, infinite mass.
@@ -38,22 +48,8 @@ public:
 		BIT_FLAGS_COUNT_DEFAULT(Dynamic, Simulation, Query)
 	};
 	using Flags = BitFlags<Flag>;
-
-	static bool Init();
-	static void Shutdown();
-	static void Update(float _dt);
-	static void Edit();
-	static void DrawDebug();
-
-	static void RegisterComponent(PhysicsComponent* _component_);
-	static void UnregisterComponent(PhysicsComponent* _component_);
-
-	static const PhysicsMaterial* GetDefaultMaterial();
-
-	static void AddGroundPlane(const PhysicsMaterial* _material = GetDefaultMaterial());
-
-
- // Ray cast API
+	
+ // Ray casts
 	enum class RayCastFlag: uint8
 	{
 		Position,       // Get the position.
@@ -88,12 +84,8 @@ public:
 		PhysicsComponent* component      = nullptr;    // Component that was hit.
 	};
 
-	// Return true if an intersection was found, in which case out_ contains valid data.
-	static bool RayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flags = RayCastFlags());
-
- // Collision events API
-	// \todo
-	// - Use threshold impact forces to generate on/persists/off events (see physx docs).
+ // Collision events
+	// \todo Use threshold impact forces to generate on/persists/off events (see physx docs).
 	struct CollisionEvent
 	{
 		PhysicsComponent* components[2] = { nullptr };
@@ -102,46 +94,78 @@ public:
 		float             impulse       = 0.0f;
 	};
 
-	static eastl::span<CollisionEvent> GetCollisionEvents() { return eastl::span<CollisionEvent>(s_instance->m_collisionEvents); }
-
-	static void SetPaused(bool _paused);
-	static void Reset();
 
 private:
 
-	static Physics* s_instance;
+	static PhysicsWorld* s_currentWorld;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// PhysicsWorld
+////////////////////////////////////////////////////////////////////////////////
+class PhysicsWorld
+{
+public:
+
+	using Flags          = Physics::Flags;
+	using RayCastIn      = Physics::RayCastIn;
+	using RayCastOut     = Physics::RayCastOut;
+	using RayCastFlags   = Physics::RayCastFlags;
+	using CollisionEvent = Physics::CollisionEvent;
+
+		 PhysicsWorld();
+	     ~PhysicsWorld();
+
+	bool init();
+	void shutdown();
+	void update(float _dt);
+	bool edit();
+	void drawDebug();
+
+	void registerComponent(PhysicsComponent* _component_);
+	void unregisterComponent(PhysicsComponent* _component_);
+
+	void addGroundPlane(const PhysicsMaterial* _material = Physics::GetDefaultMaterial());
+
+	// Return true if an intersection was found, in which case out_ contains valid data.
+	bool rayCast(const RayCastIn& _in, RayCastOut& out_, RayCastFlags _flags = RayCastFlags());
+
+	// Valid between calls to update().
+	eastl::span<CollisionEvent> getCollisionEvents();
+
+	void setPaused(bool _paused);
+	void reset();
+
+	struct Impl;
+	Impl* m_impl              = nullptr; // PhysicsInternal.h
+
+private:
 
 	bool  m_paused            = false;
 	bool  m_step              = true;
 	bool  m_drawDebug         = false;
 	float m_stepLengthSeconds = 1.0f/60.0f;
 	float m_stepAccumulator   = 0.0f;
-
 	float m_gravity           = 15.0f;
 	vec3  m_gravityDirection  = vec3(0.0f, -1.0f, 0.0f);
 
-	eastl::vector<CollisionEvent> m_collisionEvents;
 
 	// \todo better containers for these - fast iteration, insertion/deletion?
 	eastl::vector<PhysicsComponent*> m_static;
 	eastl::vector<PhysicsComponent*> m_kinematic;
 	eastl::vector<PhysicsComponent*> m_dynamic;
 
-	     Physics();
-	     ~Physics();
-
 	void updateComponentTransforms();
 	void setDrawDebug(bool _enable);
-};
 
+	friend class Physics;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // PhysicsComponent
 ////////////////////////////////////////////////////////////////////////////////
 FRM_COMPONENT_DECLARE(PhysicsComponent)
 {
-	friend class Physics;
-
 public:
 
 	using Flag  = Physics::Flag;
@@ -221,6 +245,9 @@ protected:
 	bool editFlags();
 
 	void updateTransient(float _dt);
+
+	friend class Physics;
+	friend class PhysicsWorld;
 };
 
 } // namespace frm

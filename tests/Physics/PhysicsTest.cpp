@@ -184,7 +184,7 @@ bool PhysicsTest::update()
 	ImGui::SetNextTreeNodeOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Physics"))
 	{
-		Physics::Edit();
+		Physics::GetCurrentWorld()->edit();
 		ImGui::TreePop();
 	}
 	
@@ -223,6 +223,8 @@ bool PhysicsTest::update()
 		ImGui::SameLine();
 		ImGui::Text("%d", boxDrawState);
 
+		PhysicsWorld* physicsWorld = Physics::GetCurrentWorld();
+
 		bool showBox = false;
 		switch (boxDrawState)
 		{
@@ -231,7 +233,7 @@ bool PhysicsTest::update()
 				break;
 			case BoxDrawState_XZStart:
 			{
-				if (Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlag::Position))
+				if (physicsWorld->rayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlag::Position))
 				{
 					Im3d::DrawPoint(raycastOut.position, 16.0f, Im3d::Color_White);
 					if (io.MouseDown[0])
@@ -337,7 +339,7 @@ bool PhysicsTest::update()
 
 		if (isSelecting)
 		{
-			if (io.MouseClicked[0] && Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlag::Position))
+			if (io.MouseClicked[0] && physicsWorld->rayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut, Physics::RayCastFlag::Position))
 			{
 				selectedNode = raycastOut.component->getParentNode();
 				if (selectedNode)
@@ -371,7 +373,7 @@ bool PhysicsTest::update()
 					}
 				}
 				
-				if (!jointTestComponent[1] && io.MouseClicked[0] && Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut))
+				if (!jointTestComponent[1] && io.MouseClicked[0] && physicsWorld->rayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut))
 				{
 					jointTestComponent[1] = raycastOut.component;
 					joint->setComponent(1, raycastOut.component);
@@ -394,7 +396,7 @@ bool PhysicsTest::update()
 			}
 			else
 			{
-				if (io.MouseClicked[0] && Physics::RayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut))
+				if (io.MouseClicked[0] && physicsWorld->rayCast(Physics::RayCastIn(cursorRay.m_origin, cursorRay.m_direction, 100.0f), raycastOut))
 				{
 					jointTestComponent[0] = raycastOut.component;
 					jointTestComponent[1] = nullptr;

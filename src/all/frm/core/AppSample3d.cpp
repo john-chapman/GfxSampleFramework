@@ -42,13 +42,6 @@ bool AppSample3d::init(const frm::ArgList& _args)
 		return false;
 	}
 
-	#if FRM_MODULE_PHYSICS
-		if (!Physics::Init()) 
-		{
-			return false;
-		}
-	#endif
-
 	m_world = World::Create(m_worldPath.c_str());
 
 	m_worldEditor = FRM_NEW(WorldEditor());
@@ -65,10 +58,6 @@ void AppSample3d::shutdown()
 
 	m_worldPath = World::GetCurrent()->getPath();
 	World::Release(m_world);
-
-	#if FRM_MODULE_PHYSICS
-		Physics::Shutdown();
-	#endif
 
 	if (m_txIm3dDepth)
 	{
@@ -98,9 +87,6 @@ bool AppSample3d::update()
 		world->update(dt, World::UpdatePhase::GatherActive);
 		world->update(dt, World::UpdatePhase::PrePhysics);
 		world->update(dt, World::UpdatePhase::Hierarchy);
-		#if FRM_MODULE_PHYSICS
-			Physics::Update(dt);
-		#endif
 		world->update(dt, World::UpdatePhase::Physics);
 		world->update(dt, World::UpdatePhase::PostPhysics);
 		world->update(dt, World::UpdatePhase::PreRender);
@@ -177,7 +163,7 @@ bool AppSample3d::update()
 	}
 
 	#if FRM_MODULE_PHYSICS
-		Physics::DrawDebug();
+		Physics::GetCurrentWorld()->drawDebug();
 	#endif
 
 	return true;

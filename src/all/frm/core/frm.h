@@ -1,6 +1,6 @@
 #pragma once
 
-#define FRM_VERSION "0.33"
+#define FRM_VERSION "0.34"
 
 #include <frm/core/config.h>
 
@@ -193,6 +193,7 @@ namespace frm {
 		class PhysicsConstraint;
 		class PhysicsMaterial;
 		class PhysicsGeometry;
+		class PhysicsWorld;
 	#endif
 
 	#if FRM_MODULE_VR
