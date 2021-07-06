@@ -155,6 +155,12 @@ bool MeshViewer::update()
 		ImGui::TreePop();
 	}
 
+	if (ImGui::TreeNode("Material"))
+	{
+		m_material->edit();
+		ImGui::TreePop();
+	}
+
 	return true;
 }
 
